@@ -1659,18 +1659,48 @@ a, button, input, select, textarea, label,
 
 <div class="page" id="page-auftraege">
   <div style="padding:24px 28px;">
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;">
+
+    <!-- Header -->
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Gespeicherte Aufträge</div>
-        <div style="color:var(--muted);font-size:12px;margin-top:2px;">Lokal im Browser gespeichert</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Offerten-Übersicht</div>
+        <div style="color:var(--muted);font-size:12px;margin-top:2px;" id="offertenSubtitle">Wird geladen...</div>
       </div>
-      <div style="display:flex;gap:7px;">
-        <label class="btn btn-gh" style="cursor:pointer;">↓ Import<input type="file" accept=".json" onchange="importAuftraege(event)" style="display:none;"></label>
-        <button class="btn btn-gh" onclick="exportAuftraege()">↑ Export</button>
-        <button class="btn btn-d" onclick="clearAuftraege()">Alle löschen</button>
+      <button class="btn btn-gh" onclick="renderAuftragListe()" style="font-size:11px;">↻ Aktualisieren</button>
+    </div>
+
+    <!-- Filter-Leiste -->
+    <div style="background:var(--surface2);border:1px solid var(--border);border-radius:10px;padding:12px 14px;margin-bottom:14px;">
+
+      <!-- Suche -->
+      <div style="margin-bottom:10px;">
+        <input type="text" id="offertenSuche" placeholder="Suche nach Kundenname, Auftragsnummer..."
+          oninput="filterOfferten()"
+          style="width:100%;background:var(--surface);border:1px solid var(--border);color:var(--text);
+                 padding:8px 12px;border-radius:var(--rsm);font-size:13px;box-sizing:border-box;">
+      </div>
+
+      <!-- Bearbeiter-Filter -->
+      <div style="margin-bottom:8px;">
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Bearbeiter</div>
+        <div id="bearbeiterFilter" style="display:flex;gap:5px;flex-wrap:wrap;"></div>
+      </div>
+
+      <!-- Status-Filter -->
+      <div>
+        <div style="font-size:10px;color:var(--muted);text-transform:uppercase;letter-spacing:.6px;margin-bottom:6px;">Status</div>
+        <div style="display:flex;gap:5px;flex-wrap:wrap;">
+          <button class="btn btn-gh filter-status active-filter" data-status="" onclick="setStatusFilter('')" style="font-size:11px;">Alle</button>
+          <button class="btn btn-gh filter-status" data-status="entwurf" onclick="setStatusFilter('entwurf')" style="font-size:11px;">Entwurf</button>
+          <button class="btn btn-gh filter-status" data-status="gesendet" onclick="setStatusFilter('gesendet')" style="font-size:11px;">Gesendet</button>
+          <button class="btn btn-gh filter-status" data-status="bestellt" onclick="setStatusFilter('bestellt')" style="font-size:11px;">Bestellt</button>
+          <button class="btn btn-gh filter-status" data-status="abgelehnt" onclick="setStatusFilter('abgelehnt')" style="font-size:11px;">Abgelehnt</button>
+        </div>
       </div>
     </div>
-    <div id="auftragListe" style="display:flex;flex-direction:column;gap:8px;"></div>
+
+    <!-- Offerten-Liste -->
+    <div id="auftragListe" style="display:flex;flex-direction:column;gap:6px;"></div>
   </div>
 </div>
 
@@ -1678,12 +1708,10 @@ a, button, input, select, textarea, label,
   <div style="padding:24px 28px;">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">
       <div>
-        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Einstellungen & Preise</div>
-        <div style="color:var(--muted);font-size:12px;">Änderungen sofort aktiv · automatisch gespeichert</div>
+        <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Administration</div>
+        <div style="color:var(--muted);font-size:12px;">Änderungen sofort aktiv · werden in Datenbank gespeichert</div>
       </div>
       <div style="display:flex;gap:6px;">
-        <button class="btn btn-gh" onclick="exportPrices()">↑ Export</button>
-        <label class="btn btn-gh" style="cursor:pointer;">↓ Import<input type="file" accept=".json" onchange="importPrices(event)" style="display:none;"></label>
         <button class="btn btn-d" onclick="resetPrices()">↺ Werkseinstellungen</button>
       </div>
     </div>
@@ -8460,28 +8488,48 @@ async function ladeOffertenvonServer(){
   }catch(e){ return []; }
 }
 
-async function ladeAuftragVomServer(dateiname){
-  if(!serverVerfuegbar){showToast('Server nicht erreichbar','error');return;}
-  try{
-    // Node.js server: use auftragsnr as ID
-    const searchId = dateiname.replace('.json','');
-    const r=await fetch(KALLE_SERVER+'/offerten/'+searchId+'/payload');
-    if(!r.ok) throw new Error('Datei nicht gefunden');
-    const auftrag=await r.json();
-    // Load into localStorage and open
-    const auftraege=loadAuftraege();
-    if(!auftraege.find(a=>a.auftragsnr===auftrag.auftragsnr)){
-      auftraege.push(auftrag);
-      localStorage.setItem('grafe_auftraege_v2',JSON.stringify(auftraege));
-    }
-    loadAuftrag(auftrag.id);
-    showToast('✓ '+auftrag.auftragsnr+' geladen');
-  }catch(e){showToast('Fehler: '+e.message,'error');}
+async function loadAuftragData(a){
+  // Fill all form fields from auftrag object
+  if($('kundenname'))$('kundenname').value=a.kundenname||'';
+  if($('kontaktperson'))$('kontaktperson').value=a.kontaktperson||'';
+  if($('auftragsnr'))$('auftragsnr').value=a.auftragsnr||'';
+  if($('datum'))$('datum').value=a.datum||'';
+  if($('telefon'))$('telefon').value=a.telefon||'';
+  if($('email'))$('email').value=a.email||'';
+  if($('adresseStrasse'))$('adresseStrasse').value=a.adresseStrasse||'';
+  if($('adressePLZ'))$('adressePLZ').value=a.adressePLZ||'';
+  if($('adresseOrt'))$('adresseOrt').value=a.adresseOrt||'';
+  if($('bemerkung'))$('bemerkung').value=a.bemerkung||'';
+  if(a.slKundennummer){
+    const slEl=document.getElementById('slKundennummer');
+    if(slEl)slEl.value=a.slKundennummer;
+    if(a.kundenname)showKundenBadge({nr:a.slKundennummer,name:a.kundenname,ort:a.adresseOrt||''});
+  }
+  // Set Bearbeiter
+  if(a.bearbeiterKuerzel&&$('bearbeiterSel')){
+    $('bearbeiterSel').value=a.bearbeiterKuerzel;
+  }
+  // Load positions
+  positions=JSON.parse(JSON.stringify(a.positions||[]));
+  editIdx=-1;
+  // Load global montage
+  if(a.globalMontage)loadGlobalMontageData(a.globalMontage);
+  renderPos();updateTotals();
 }
 
-// ═══════════════════════════════════════════════════════
-// VERSAND-SEKTION (für alle Positionstypen)
-// ═══════════════════════════════════════════════════════
+async function ladeAuftragVomServer(auftragsnr){
+  if(!serverVerfuegbar){showToast('Server nicht erreichbar','error');return;}
+  try{
+    const r = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/payload');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const a = await r.json();
+    loadAuftragData(a);
+    showPage('kalk');
+    showToast('✓ '+auftragsnr+' geladen');
+  } catch(e){
+    showToast('Fehler beim Laden: '+e.message,'error');
+  }
+}
 
 function buildVersandSection(wrap, pfx, calcFn){
   if(!wrap)return;
@@ -9801,7 +9849,10 @@ function clearAll(){if(!confirm('Alle Positionen und Auftragsdaten löschen?'))r
 
 function saveAuftrag(){
   if(!positions.length){showToast('Keine Positionen vorhanden','error');return;}
-  // Ensure auftragsnr
+  if(!serverVerfuegbar){
+    showToast('⚠ Server nicht erreichbar — Speichern nicht möglich','error');
+    return;
+  }
   const anrInp=$('auftragsnr');
   if(anrInp&&!anrInp.value)genAuftragsnr();
   const anr=$('auftragsnr')?.value||('KA'+Date.now());
@@ -9822,79 +9873,194 @@ function saveAuftrag(){
     bemerkung:$('bemerkung')?.value||'',
     bearbeiter:bearbeiter?.name||'',
     bearbeiterKuerzel:bearbeiter?.kuerzel||'',
+    slKundennummer:document.getElementById('slKundennummer')?.value||'',
     globalMontage:gMont,
     total:positions.reduce((a,p)=>a+p.totalVK,0)+gMont.total,
     positions:JSON.parse(JSON.stringify(positions)),
     savedAt:new Date().toISOString(),
     _version:2};
 
-  // 1. Save to localStorage
-  const auftraege=loadAuftraege();
-  auftraege.push(auftrag);
-  localStorage.setItem('grafe_auftraege_v2',JSON.stringify(auftraege));
-
-  // 2. Try server save first, fallback to download
   saveOfferteToServer(auftrag).then(ok=>{
     if(ok){
-      showToast('✓ '+anr+' auf Netzlaufwerk gespeichert');
+      showToast('✓ '+anr+' in Datenbank gespeichert');
+      renderAuftragListe&&renderAuftragListe();
     } else {
-      // Fallback: download
-      dl(JSON.stringify(auftrag,null,2), anr+'.json', 'application/json');
-      showToast('💾 '+anr+' heruntergeladen — in Offerten-Ordner ablegen');
+      showToast('⚠ Fehler beim Speichern — Server prüfen','error');
     }
-    renderAuftragListe&&renderAuftragListe();
   });
 }
+
 function loadAuftraege(){try{const s=localStorage.getItem('grafe_auftraege_v2');return s?JSON.parse(s):[];}catch(e){return[];}}
-function renderAuftragListe(){
-  // Show server offerten if available
-  ladeOffertenvonServer().then(serverOfferten=>{
-    const localAuftraege=loadAuftraege();
-    // Mark server offerten
-    const serverNrs=new Set(serverOfferten.map(o=>o.auftragsnr));
-    const localNrs=new Set(localAuftraege.map(a=>a.auftragsnr));
-    // Show combined list
-    const serverEl=$('serverOffertenList');
-    if(serverEl&&serverOfferten.length>0){
-      serverEl.style.display='block';
-      serverEl.innerHTML='<div class="st y" style="font-size:10px;color:var(--teal);margin-bottom:8px;">🖧 Datenbank ('+serverOfferten.length+' Offerten)</div>'+
-        serverOfferten.map(o=>`<div style="background:var(--surface2);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:5px;display:flex;justify-content:space-between;align-items:center;">
-          <div>
-            <div style="font-weight:600;font-size:12px;">${o.auftragsnr} <span style="color:var(--muted);font-weight:400;">· ${o.kundenname||'–'}</span></div>
-            <div style="font-size:10px;color:var(--muted);">${o.datum||''} · ${o.bearbeiter||''} · CHF ${(o.total_brutto||o.total_netto||0).toFixed(2)} inkl. MwSt.</div>
-            <div style="font-size:9px;color:var(--muted);">${o.status||''} · ${o.projektnr||''}</div>
-          </div>
-          <div style="display:flex;gap:4px;">
-            <button class="btn btn-gh" onclick="ladeAuftragVomServer('${o.auftragsnr}')" style="font-size:10px;">↑ Laden</button>
-          </div>
-        </div>`).join('');
-    } else if(serverEl){
-      serverEl.style.display='none';
+// ═══════════════════════════════════════════════════════
+// OFFERTEN-ÜBERSICHT (Datenbank)
+// ═══════════════════════════════════════════════════════
+
+let alleOfferten = [];       // alle geladenen Offerten
+let filterBearbeiter = '';   // aktiver Bearbeiter-Filter
+let filterStatus = '';       // aktiver Status-Filter
+
+async function renderAuftragListe(){
+  const liste = $('auftragListe');
+  const subtitle = $('offertenSubtitle');
+  if(!liste) return;
+
+  if(!serverVerfuegbar){
+    liste.innerHTML = `
+      <div style="text-align:center;padding:40px 20px;color:var(--muted);">
+        <div style="font-size:32px;margin-bottom:12px;">⚠</div>
+        <div style="font-size:15px;font-weight:600;margin-bottom:6px;">Server nicht erreichbar</div>
+        <div style="font-size:12px;">Die Offerten-Übersicht benötigt eine Verbindung zur Datenbank.</div>
+        <div style="font-size:12px;margin-top:4px;">Server-Adresse: <strong>${KALLE_SERVER}</strong></div>
+      </div>`;
+    if(subtitle) subtitle.textContent = 'Server offline';
+    return;
+  }
+
+  liste.innerHTML = '<div style="color:var(--muted);padding:16px;font-size:12px;">Lade Offerten...</div>';
+
+  try{
+    const r = await fetch(KALLE_SERVER+'/offerten?limit=200');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data = await r.json();
+    alleOfferten = data.offerten || [];
+
+    // Bearbeiter-Filter Buttons aufbauen
+    const bearbeiterSet = [...new Set(alleOfferten
+      .map(o=>o.bearbeiter_kuerzel||o.bearbeiter||'')
+      .filter(Boolean))].sort();
+    const bFilter = $('bearbeiterFilter');
+    if(bFilter){
+      bFilter.innerHTML =
+        `<button class="btn btn-gh filter-bearb ${filterBearbeiter===''?'active-filter':''}"
+          onclick="setBearbeiterFilter('')" style="font-size:11px;">Alle</button>` +
+        bearbeiterSet.map(b=>
+          `<button class="btn btn-gh filter-bearb ${filterBearbeiter===b?'active-filter':''}"
+            onclick="setBearbeiterFilter('${b}')" style="font-size:11px;">${b}</button>`
+        ).join('');
     }
+
+    if(subtitle) subtitle.textContent =
+      `${alleOfferten.length} Offerten in Datenbank`;
+
+    filterOfferten();
+  } catch(e){
+    liste.innerHTML = `<div style="color:var(--red);padding:16px;font-size:12px;">
+      Fehler beim Laden: ${e.message}</div>`;
+  }
+}
+
+function filterOfferten(){
+  const suche = ($('offertenSuche')?.value||'').toLowerCase();
+  const liste = $('auftragListe');
+  if(!liste||!alleOfferten.length) return;
+
+  const gefiltert = alleOfferten.filter(o=>{
+    const matchBearb = !filterBearbeiter ||
+      o.bearbeiter_kuerzel===filterBearbeiter || o.bearbeiter===filterBearbeiter;
+    const matchStatus = !filterStatus || o.status===filterStatus;
+    const matchSuche = !suche ||
+      (o.kundenname||'').toLowerCase().includes(suche) ||
+      (o.auftragsnr||'').toLowerCase().includes(suche) ||
+      (o.bearbeiter||'').toLowerCase().includes(suche);
+    return matchBearb && matchStatus && matchSuche;
   });
-  const auftraege=loadAuftraege();const c=$('auftragListe');
-  if(!auftraege.length){c.innerHTML='<div style="color:var(--muted);padding:20px;">Noch keine Aufträge.</div>';return;}
-  c.innerHTML='';
-  [...auftraege].reverse().forEach(a=>{
-    const d=document.createElement('div');
-    d.style.cssText='background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:14px 16px;display:flex;justify-content:space-between;align-items:center;gap:12px;';
-    d.innerHTML=`<div style="flex:1;min-width:0;">
-      <div style="font-weight:600;font-size:14px;">${a.auftragsnr} <span style="color:var(--muted);font-size:12px;">· ${a.kundenname}${a.kontaktperson?' / '+a.kontaktperson:''}</span></div>
-      <div style="font-size:11px;color:var(--muted);margin-top:2px;">${a.datum} · ${a.positions.length} Pos.${a.telefon?' · '+a.telefon:''}${a.bemerkung?' · '+a.bemerkung:''}</div>
-      <div style="font-size:10px;color:var(--muted);margin-top:3px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
-        ${(a.positions||[]).map(p=>p.label||p.text||'–').join(' · ')}
+
+  if(!gefiltert.length){
+    liste.innerHTML = '<div style="color:var(--muted);padding:20px;font-size:12px;text-align:center;">Keine Offerten gefunden.</div>';
+    return;
+  }
+
+  liste.innerHTML = '';
+  gefiltert.forEach(o=>{
+    const statusColor = {
+      entwurf:'var(--muted)', gesendet:'var(--teal)',
+      bestellt:'var(--green)', abgelehnt:'var(--red)'
+    }[o.status]||'var(--muted)';
+    const total = parseFloat(o.total_brutto||o.total_netto||0).toFixed(2);
+    const datum = o.datum ? new Date(o.datum).toLocaleDateString('de-CH') : '–';
+
+    const el = document.createElement('div');
+    el.style.cssText = `background:var(--surface2);border:1px solid var(--border);
+      border-radius:8px;padding:12px 14px;display:flex;justify-content:space-between;
+      align-items:center;gap:12px;`;
+    el.innerHTML = `
+      <div style="flex:1;min-width:0;">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;margin-bottom:3px;">
+          <span style="font-weight:700;font-size:14px;">${o.auftragsnr}</span>
+          <span style="color:var(--muted);font-size:12px;">${o.kundenname||'–'}</span>
+          <span style="font-size:10px;color:${statusColor};padding:1px 6px;
+            border:1px solid ${statusColor};border-radius:3px;text-transform:uppercase;
+            letter-spacing:.4px;">${o.status||'entwurf'}</span>
+        </div>
+        <div style="font-size:11px;color:var(--muted);">
+          ${datum}
+          ${o.bearbeiter?` · <strong style="color:var(--accent);">${o.bearbeiter_kuerzel||o.bearbeiter}</strong>`:''}
+          ${o.total_netto?` · CHF ${total} inkl. MwSt.`:''}
+        </div>
       </div>
-    </div>
-    <div style="display:flex;align-items:center;gap:6px;flex-shrink:0;">
-      <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:800;color:var(--accent);">CHF ${a.total.toFixed(2)}</span>
-      <button class="btn btn-y" onclick="printOfferte('${a.id}')" title="Offerte drucken / PDF">⎙ Offerte</button>
-      <button class="btn btn-t" onclick="loadAuftrag('${a.id}')" title="In Kalkulation laden">↑ Laden</button>
-      <button class="btn btn-gh" onclick="exportSingleAuftrag('${a.id}')" title="Als JSON exportieren">↓ JSON</button>
-      <button class="btn btn-d" style="padding:5px 9px;" onclick="deleteAuftrag('${a.id}')" title="Löschen">✕</button>
-    </div>`;
-    c.appendChild(d);
+      <div style="display:flex;align-items:center;gap:5px;flex-shrink:0;">
+        <select onchange="setOfferteStatus('${o.auftragsnr}',this.value)"
+          style="font-size:10px;background:var(--surface);border:1px solid var(--border);
+                 color:var(--text);padding:4px 6px;border-radius:4px;">
+          ${['entwurf','gesendet','bestellt','abgelehnt'].map(s=>
+            `<option value="${s}" ${o.status===s?'selected':''}>${s.charAt(0).toUpperCase()+s.slice(1)}</option>`
+          ).join('')}
+        </select>
+        <button class="btn btn-y" onclick="ladeAuftragVomServer('${o.auftragsnr}')"
+          style="font-size:10px;" title="Laden und bearbeiten">↑ Laden</button>
+        <button class="btn btn-gh" onclick="printOfferteFromServer('${o.auftragsnr}')"
+          style="font-size:10px;" title="PDF erstellen">⎙ PDF</button>
+      </div>`;
+    liste.appendChild(el);
   });
 }
+
+function setBearbeiterFilter(kuerzel){
+  filterBearbeiter = kuerzel;
+  // Update button styles
+  document.querySelectorAll('.filter-bearb').forEach(b=>{
+    b.classList.toggle('active-filter', b.onclick?.toString().includes(`'${kuerzel}'`)||
+      (kuerzel===''&&b.onclick?.toString().includes("''")));
+  });
+  filterOfferten();
+}
+
+function setStatusFilter(status){
+  filterStatus = status;
+  document.querySelectorAll('.filter-status').forEach(b=>{
+    b.classList.toggle('active-filter', b.dataset.status===status);
+  });
+  filterOfferten();
+}
+
+async function setOfferteStatus(auftragsnr, status){
+  if(!serverVerfuegbar) return;
+  try{
+    const r = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/status',{
+      method:'PATCH',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({status, bearbeiter: getBearbeiter()?.kuerzel||''})
+    });
+    if(r.ok){
+      const o = alleOfferten.find(x=>x.auftragsnr===auftragsnr);
+      if(o) o.status = status;
+      showToast(`✓ Status auf «${status}» gesetzt`);
+    }
+  } catch(e){ showToast('Fehler: '+e.message,'error'); }
+}
+
+async function printOfferteFromServer(auftragsnr){
+  if(!serverVerfuegbar){showToast('Server nicht erreichbar','error');return;}
+  try{
+    const r = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/payload');
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const payload = await r.json();
+    // Load into positions and print
+    loadAuftragData(payload);
+    setTimeout(()=>printDoc('offer'), 300);
+  }catch(e){ showToast('Fehler: '+e.message,'error'); }
+}
+
 
 function printOfferte(id){
   const auftraege=loadAuftraege();
@@ -10049,100 +10215,6 @@ function loadAuftrag(id){
   showPage('kalk',document.querySelectorAll('.nav-pill')[0]);
   document.querySelectorAll('.nav-pill')[0].classList.add('active');
 }
-function deleteAuftrag(id){if(!confirm('Löschen?'))return;const a=loadAuftraege().filter(x=>x.id!==id);localStorage.setItem('grafe_auftraege_v2',JSON.stringify(a));renderAuftragListe();}
-function exportSingleAuftrag(id){const a=loadAuftraege().find(x=>x.id===id);if(!a)return;dl(JSON.stringify(a,null,2),`Grafe_${a.auftragsnr}.json`,'application/json');}
-function exportAuftraege(){const a=loadAuftraege();if(!a.length)return alert('Keine Aufträge.');dl(JSON.stringify(a,null,2),'Grafe_Auftraege_Export.json','application/json');}
-function importAuftraege(e){rdFile(e,d=>{try{const data=JSON.parse(d);const ex=loadAuftraege();const m=[...ex,...(Array.isArray(data)?data:[data])];localStorage.setItem('grafe_auftraege_v2',JSON.stringify(m));renderAuftragListe();alert('OK!');}catch(er){alert('Fehler: '+er.message);}});}
-function clearAuftraege(){if(!confirm('Alle Aufträge löschen?'))return;localStorage.removeItem('grafe_auftraege_v2');renderAuftragListe();}
-
-
-
-// ═══════════════════════════════════════════════════════
-// AGB HTML (eingebettet für PDF)
-// ═══════════════════════════════════════════════════════
-const AGB_HTML = `
-<div class="agb-page" style="page-break-before:always;">
-  <div style="max-width:170mm;margin:0 auto;font-family:Arial,Helvetica,sans-serif;font-size:8.5pt;line-height:1.5;color:#111;">
-
-    <div style="border-bottom:2px solid #222;padding-bottom:6px;margin-bottom:12px;">
-      <div style="font-size:12pt;font-weight:700;">Allgemeine Geschäftsbedingungen (AGB)</div>
-      <div style="font-size:9pt;color:#555;">der Grafe AG, Birsfelden</div>
-    </div>
-
-    <div style="columns:2;column-gap:8mm;font-size:8pt;">
-
-      <p><strong>1. Geltungsbereich</strong><br>
-      Diese allgemeinen Geschäftsbedingungen («AGB») sind integrierender Bestandteil aller Rechtsgeschäfte zwischen der Grafe AG und dem Auftraggeber/Kunden, auch wenn auf diese bei zukünftigen Geschäften nicht mehr besonders hingewiesen wird. Durch Erteilung des Auftrages anerkennt der Auftraggeber/Kunde die vorliegenden AGB. Diese AGB ersetzen alle vorangegangenen und gelten ab 1. Januar 2019.</p>
-
-      <p><strong>2. Vorarbeiten</strong><br>
-      Eine erste Besprechung ist vorbehaltlich anderslautender Abrede unverbindlich. Von der Grafe AG ausgearbeitete Projektskizzen, provisorische Offerten o.ä. bleiben in deren alleinigem Eigentum. Jede weitere Entwurfsvariante sowie die Anfertigung von Konzepten, Modellen oder Prototypen stellt einen gesondert zu honorierenden Auftrag dar.</p>
-
-      <p><strong>3. Offertstellung</strong><br>
-      Alle Angebote der Grafe AG gelten als freibleibend. Ein Auftrag wird erst durch schriftliche Auftragsbestätigung verbindlich. Mündliche Zusagen von Mitarbeitern sind erst nach schriftlicher Bestätigung durch einen Zeichnungsberechtigten verbindlich. Den kommunizierten Preisen liegen die am Tag der Ermittlung gültigen Lohn- und Materialkosten zugrunde.</p>
-
-      <p><strong>4. Vertragsschluss</strong><br>
-      Der Vertragsschluss kommt mit der Auftragsbestätigung zustande. Fehler sind unverzüglich schriftlich zu rügen; nach 5 Tagen gilt der Inhalt als genehmigt. Massangaben sind durch den Auftraggeber zu prüfen. Die aufgedruckten Farben sind nicht farbverbindlich.</p>
-
-      <p><strong>5. Leistungsänderungen / Annullationen</strong><br>
-      Änderungen oder Annullierungen nach Vertragsschluss sind nur mit schriftlichem Einverständnis der Grafe AG sowie gegen volle Schadloshaltung möglich. Bei wesentlichen Änderungen kann die Grafe AG eine angemessene Entschädigung für bereitgestellte Kapazitäten verrechnen.</p>
-
-      <p><strong>6. Pflichten des Auftraggebers</strong><br>
-      Der Auftraggeber verpflichtet sich, vereinbarte Vergütungen innert Zahlungsfrist zu bezahlen und der Grafe AG alle nötigen Informationen zu geben. Er hat Anweisungen nachzukommen und alles zu unterlassen, was die Auftragsausführung behindert. Werden bauseitig Gerüste oder Hebebühnen gestellt, trägt der Auftraggeber die Aufsichtspflicht. Mehrere Auftraggeber haften solidarisch.</p>
-
-      <p><strong>7. Leistungsumfang</strong><br>
-      Massgebend ist der Wortlaut der Auftragsbestätigung. Maurer-, Spengler-, Dachdecker-, Verputz- und Malerarbeiten sowie Gerüste sind ohne ausdrückliche Vereinbarung nicht im Preis inbegriffen. Technisch notwendige Änderungen der Ausführungszeichnungen sind möglich und gelten als zugestanden; Mehrkosten gehen zu Lasten des Auftraggebers.</p>
-
-      <p><strong>8. Montage und Stromzuführung</strong><br>
-      Bei anschlussfertig offerierter Ware erfolgt die Montage durch Personal der Grafe AG. Der Auftraggeber ist verpflichtet, die notwendigen Voraussetzungen rechtzeitig zu schaffen. Die primärseitige Stromzuführung ist durch einen konzessionierten Elektriker auszuführen; die Kosten gehen zu Lasten des Auftraggebers.</p>
-
-      <p><strong>9. Lieferung und Gefahrenübergang</strong><br>
-      Vorbehaltlich anderer Abreden ist Lieferung «ab Werk» vereinbart; die Gefahr geht über, wenn die Ware die Fabrik verlässt. Liefertermine werden so genau wie möglich angegeben, ohne Garantie. Bei Vertragsänderungen, höherer Gewalt oder nicht von der Grafe AG beeinflussbaren Ereignissen verlängern sich die Lieferfristen angemessen.</p>
-
-      <p><strong>10. Abnahme</strong><br>
-      Als Abnahme gilt der Zeitpunkt der Entgegennahme. Der Auftraggeber hat die Produkte unverzüglich zu prüfen. Mängel sind spätestens innert 5 Werktagen schriftlich zu melden. Nicht erkennbare oder später auftretende Mängel sind ebenfalls innert 5 Werktagen nach Kenntnisnahme zu melden.</p>
-
-      <p><strong>11. Gewährleistung und Haftung</strong><br>
-      Die Gewährleistung erstreckt sich auf Fabrikations- oder Materialdefekte. Geringe Abweichungen in Grösse, Form oder Farbe sowie technisch bedingte Konstruktionsänderungen stellen keinen Mangel dar. Bei rechtzeitig angezeigtem Mangel kann die Grafe AG nach Wahl nachbessern oder ersetzen. Gewährleistungsansprüche verjähren nach einem Jahr (Konsumenten: zwei Jahre). Mangelfolgeschäden sind ausgeschlossen, sofern kein grobfahrlässiges Verschulden vorliegt.</p>
-
-      <p><strong>12. Annahmeverzug</strong><br>
-      Kann oder will der Auftraggeber die Ware nicht zum vereinbarten Termin übernehmen, behält sich die Grafe AG vor, vom Vertrag zurückzutreten und Schadenersatz geltend zu machen.</p>
-
-      <p><strong>13. Bewilligungen</strong><br>
-      Die Beschaffung behördlicher Bewilligungen ist Sache des Auftraggebers, sofern nicht anders vereinbart. Notwendige Änderungen aufgrund behördlicher Vorschriften entbinden den Auftraggeber nicht von der Abnahme- und Zahlungspflicht.</p>
-
-      <p><strong>14. Immaterialgüterrechte</strong><br>
-      Alle Rechte an von der Grafe AG erstellten Konzepten, Designs, CAD-Zeichnungen, Entwürfen usw. verbleiben bei der Grafe AG. Weitergabe und Vervielfältigung sind ohne ausdrückliche schriftliche Genehmigung nicht gestattet.</p>
-
-      <p><strong>15. Verwendung von Bildmaterial</strong><br>
-      Die Grafe AG ist berechtigt, Fotos der produzierten Arbeiten für eigene Zwecke (Homepage, Print, PR) uneingeschränkt zu verwenden. Der Auftraggeber stimmt einer solchen Verwendung mit Erteilung des Auftrags ausdrücklich zu.</p>
-
-      <p><strong>16. Preise und Zahlungsbedingungen</strong><br>
-      Alle Preise verstehen sich netto, exkl. MwSt., in CHF, ab Werk. Ohne gegenteilige Vereinbarung ist je ein Drittel bei Auftragserteilung, bei Lieferbereitschaft und nach Erhalt der Rechnung zahlbar. Nach 30 Tagen ab Rechnungsdatum wird der Betrag mit 5% p.a. verzinst.</p>
-
-      <p><strong>17. Eigentumsvorbehalt</strong><br>
-      Die Grafe AG behält das Eigentumsrecht an gelieferten Waren bis zur vollständigen Bezahlung aller Ansprüche.</p>
-
-      <p><strong>18. Geheimhaltung</strong><br>
-      Beide Parteien verpflichten sich zur Geheimhaltung aller nicht allgemein zugänglichen Tatsachen und Daten, die im Rahmen des Auftrages zugänglich gemacht werden. Diese Pflicht besteht nach Beendigung des Vertragsverhältnisses weiter.</p>
-
-      <p><strong>19–21. Verrechnung / Datenschutz / Übertragung</strong><br>
-      Gegenforderungen können nicht mit Forderungen der Grafe AG verrechnet werden. Personenbezogene Daten werden gemäss geltenden Datenschutznormen bearbeitet. Die Übertragung von Rechten und Pflichten auf Dritte bedarf der schriftlichen Zustimmung.</p>
-
-      <p><strong>22. Gerichtsstand und Erfüllungsort</strong><br>
-      Es gilt ausschliesslich schweizerisches Recht. Erfüllungsort und ausschliesslicher Gerichtsstand ist der Sitz der Grafe AG in Birsfelden.</p>
-
-    </div>
-
-    <div style="margin-top:10mm;padding-top:4mm;border-top:1px solid #ccc;font-size:7.5pt;color:#666;">
-      Birsfelden, 1. Januar 2019 &nbsp;·&nbsp; Grafe AG &nbsp;·&nbsp; Rheinfelderstrasse 12 &nbsp;·&nbsp; 4127 Birsfelden
-    </div>
-
-  </div>
-</div>`;
-
-// ═══════════════════════════════════════════════════════
-// EMAIL-FUNKTION (Outlook via mailto:)
-// ═══════════════════════════════════════════════════════
 function prepareEmail(){
   if(!positions.length){showToast('Keine Positionen vorhanden','error');return;}
   const kunde=$('kundenname')?.value||'';
@@ -11213,4 +11285,5 @@ function toggleEmailAnalyse(){
 }
 
 </script>
-</body></html>
+</body></html.active-filter{background:var(--accent)!important;color:#111!important;border-color:var(--accent)!important;font-weight:700!important;}
+>
