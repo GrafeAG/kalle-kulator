@@ -1365,8 +1365,8 @@ a, button, input, select, textarea, label,
 
             <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Zuschnittsart</div>
             <div class="zopt-row" id="slZuschnittMethode">
-              <div class="zopt" data-val="kein" onclick="slSetZuschnitt(this)">
-                <div>Bereits zugeschnitten</div><div class="zopt-sub">Kein Aufwand</div>
+              <div class="zopt sel" data-val="kein" onclick="slSetZuschnitt(this)">
+                <div>Bereits zugeschnitten / Angeliefert</div><div class="zopt-sub">Kein Aufwand</div>
               </div>
               <div class="zopt" data-val="saegen" onclick="slSetZuschnitt(this)">
                 <div>Manuell sägen</div><div class="zopt-sub">Min × CHF/Min</div>
@@ -5371,8 +5371,10 @@ function slSetZuschnitt(btn){
   document.querySelectorAll('#slZuschnittMethode .zopt').forEach(b=>b.classList.remove('sel'));
   btn.classList.add('sel');
   const val=btn.dataset.val||'kein';
-  const det=$('tgSlZuschnitt');if(!det)return;det.innerHTML='';
-  if(val==='kein'){cSl && cSl();return;}
+  const det=$('tgSlZuschnitt');
+  if(det) det.innerHTML='';
+  if(val==='kein'){cSl && cSl();return;}  // cSl() immer aufrufen, auch wenn det null
+  if(!det) return;
   if(val==='saegen'){
     const rate=P.zuschnitt?.saegenRate||2.00;
     const l=parseInt($('slLen')?.value)||200, b2=parseInt($('slBr')?.value)||100, stk=parseInt($('slStk')?.value)||1;
@@ -6608,8 +6610,12 @@ function cSl(){
 
   const matIdx=parseInt($('slMat')?.value)||0;
   const mat=P.schildmaterial[isNaN(matIdx)?0:matIdx]||{preis:0,name:''};
-  const matEK=mat.preis*m2n;
-  const matVK=matEK*(1+marge);
+  // Materialpreis — bei "Bereits zugeschnitten" kein Materialpreis
+  const zuschnittSel=document.querySelector('#slZuschnittMethode .zopt.sel');
+  const zuschnittVal=zuschnittSel?.dataset?.val||'kein'; // kein sel → kein Materialpreis
+  const istZugeschnitten=(zuschnittVal==='kein');
+  let matEK=istZugeschnitten?0:mat.preis*m2n;
+  let matVK=istZugeschnitten?0:matEK*(1+marge);
   const matBadge=$('slMatBadge');
   if(matBadge){
     if(mat.preis>0){
@@ -9492,6 +9498,12 @@ function editPos(i){
     if($('slLen'))$('slLen').value=p.l||200;
     if($('slBr'))$('slBr').value=p.b||100;
     if($('slStk'))$('slStk').value=p.stk||1;
+    // Zuschnittsart wiederherstellen
+    setTimeout(()=>{
+      const zm = p.zuschnittMethode||'saegen';
+      const btn=document.querySelector(`#slZuschnittMethode .zopt[data-val="${zm}"]`);
+      if(btn) slSetZuschnitt(btn);
+    }, 50);
     if($('slMarge'))$('slMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.5;
     reBuild();
     setTimeout(()=>{
