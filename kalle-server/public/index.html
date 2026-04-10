@@ -7924,158 +7924,44 @@ function renderMargenBackend(){
 }
 
 function renderIntegrationsBackend(){
-  const wrap=$('beIntegrations');if(!wrap)return;wrap.innerHTML='';
+  const wrap=$('beIntegrations');if(!wrap)return;
+  wrap.innerHTML='';
 
+  // Server URL Konfiguration (nur relevant bei file:// Betrieb)
+  const isFileMode = window.location.protocol === 'file:';
   const h=document.createElement('div');h.className='st a';
-  h.textContent='Integrationen';wrap.appendChild(h);
+  h.textContent='Server-Verbindung';wrap.appendChild(h);
 
-  const cfg=P.integrations||{onedrive:{},monday:{}};
+  const hint=document.createElement('div');hint.className='hint ht';
+  hint.style.cssText='margin-bottom:10px;font-size:11px;';
+  hint.innerHTML = isFileMode
+    ? '⚠ KALLE läuft via <strong>file://</strong> — Server-IP manuell eintragen.'
+    : '✓ KALLE läuft via <strong>'+window.location.origin+'</strong> — Server-URL wird automatisch erkannt.';
+  wrap.appendChild(hint);
 
-  // ── Zentrale Preisliste ────────────────────────────────────────────────
-  const plSection=document.createElement('div');
-  plSection.style.cssText='margin-bottom:20px;padding-bottom:16px;border-bottom:1px solid var(--border);';
-  plSection.innerHTML=`
-    <div style="display:flex;align-items:center;gap:10px;margin-bottom:10px;">
-      <span style="font-size:18px;">📋</span>
-      <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--accent);">Zentrale Preisliste</span>
-      <span style="font-size:10px;color:var(--muted);">(für alle Mitarbeiter)</span>
-    </div>
-    <div class="hint ht" style="margin-bottom:10px;font-size:11px;">
-      Leg eine <strong>kalle-preise.json</strong> im gleichen Ordner wie die HTML-Datei ab.<br>
-      Einfach <code>kalle-preise.json</code> eintragen — fertig. Alle Mitarbeiter laden beim Start automatisch die aktuelle Preisliste.<br>
-      <strong>Pfad leer lassen</strong> = jeder nutzt seinen lokalen Stand.
-    </div>
-    <div class="field" style="margin-bottom:8px;margin-top:10px;">
-      <label>Offerten-Ablage Pfad <span style="color:var(--muted);font-size:9px;">(nur als Hinweis beim Speichern)</span></label>
-      <input type="text" id="be-offertPath"
-        value="${cfg.offertPfad||''}"
-        placeholder="Z:/10-Marketing-Verkauf/15-Kalkulationsgrundlagen/Offerten"
-        onchange="if(!P.integrations)P.integrations={};P.integrations.offertPfad=this.value;saveP();"
-        style="font-family:'Inter',monospace;font-size:11px;width:100%;">
-    </div>
-    <div class="hint ht" style="font-size:10px;margin-top:6px;">
-      ⓘ Offerten werden als JSON-Datei heruntergeladen. Speichere sie manuell in den Offerten-Ordner auf dem Netzlaufwerk — so haben alle Mitarbeiter Zugriff.
-    </div>
-    <div class="field" style="margin-bottom:8px;">
-      <label>Pfad zur Preisliste</label>
-      <input type="text" id="be-preisPath"
-        value="${cfg.preislistePfad||''}"
-        placeholder="kalle-preise.json  (gleicher Ordner wie HTML-Datei)"
-        onchange="if(!P.integrations)P.integrations={};P.integrations.preislistePfad=this.value;saveP();"
-        style="font-family:'Inter',monospace;font-size:11px;width:100%;">
-    </div>
-    <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;">
-      <button class="btn btn-y" style="font-size:11px;" onclick="exportPreislisteZentral()">
-        ↓ Preisliste exportieren
-      </button>
-      <button class="btn btn-gh" style="font-size:11px;" onclick="checkVersionAndPrices().then(()=>showToast('Preisliste geprüft'))">
-        ↺ Jetzt laden / prüfen
-      </button>
+  // Server URL Feld (nur im file:// Modus relevant)
+  const urlDiv=document.createElement('div');urlDiv.className='field';
+  urlDiv.style.cssText='margin-bottom:12px;';
+  urlDiv.innerHTML=`<label>Server-URL <span style="font-size:9px;color:var(--muted);">${isFileMode?'(benötigt für file:// Betrieb)':'(automatisch erkannt)'}</span></label>
+    <div style="display:flex;gap:6px;">
+      <input type="text" id="serverUrlInput" value="${KALLE_SERVER}"
+        placeholder="http://192.168.1.50:8765"
+        style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+               padding:7px 10px;border-radius:var(--rsm);font-size:12px;"
+        ${isFileMode?'':'readonly'}>
+      ${isFileMode?`<button class="btn btn-y" onclick="saveServerUrl()" style="font-size:11px;">Speichern</button>`:''}
+      <button class="btn btn-gh" onclick="checkServer().then(()=>showToast(serverVerfuegbar?'✓ Verbunden':'✗ Nicht erreichbar',serverVerfuegbar?'':'error'))" style="font-size:11px;">Test</button>
     </div>`;
-  wrap.appendChild(plSection);
+  wrap.appendChild(urlDiv);
 
-  const odH=document.createElement('div');
-  odH.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px;margin-top:4px;';
-  odH.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="#0078d4"><path d="M19.35 10.04A7.49 7.49 0 0012 4C9.11 4 6.6 5.64 5.35 8.04A5.994 5.994 0 000 14c0 3.31 2.69 6 6 6h13c2.76 0 5-2.24 5-5 0-2.64-2.05-4.78-4.65-4.96z"/></svg>
-    <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#0078d4;">OneDrive / Microsoft 365</span>
-    <button class="btn btn-gh" onclick="odShowSetup()" style="font-size:10px;padding:3px 8px;margin-left:auto;">? Setup-Anleitung</button>`;
-  wrap.appendChild(odH);
-
-  const odGrid=document.createElement('div');odGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px;';
-  [
-    {label:'Client ID (Azure App)',key:'clientId',ph:'xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx'},
-    {label:'Tenant ID / Domain',key:'tenantId',ph:'artexgroupch'},
-    {label:'SharePoint Site-Name',key:'siteName',ph:'Grafe2026'},
-    {label:'Ordnerpfad in der Site',key:'folderPath',ph:'Freigegebene Dokumente/KALLE_Offerten'},
-  ].forEach(({label,key,ph})=>{
-    const d=document.createElement('div');d.className='field';
-    d.innerHTML=`<label>${label}</label>
-      <input type="text" value="${(cfg.onedrive||{})[key]||''}" placeholder="${ph}"
-        onchange="if(!P.integrations)P.integrations={onedrive:{},monday:{}};if(!P.integrations.onedrive)P.integrations.onedrive={};P.integrations.onedrive['${key}']=this.value;saveP();"
-        style="font-family:'Inter',monospace;font-size:11px;">`;
-    odGrid.appendChild(d);
-  });
-  wrap.appendChild(odGrid);
-
-  const moH=document.createElement('div');
-  moH.style.cssText='display:flex;align-items:center;gap:10px;margin-bottom:10px;border-top:1px solid var(--border);padding-top:14px;';
-  moH.innerHTML=`<svg width="20" height="20" viewBox="0 0 24 24" fill="#f7b731"><circle cx="5" cy="12" r="3"/><circle cx="12" cy="12" r="3"/><circle cx="19" cy="12" r="3"/></svg>
-    <span style="font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#f7b731;">Monday.com</span>
-    <button class="btn btn-gh" onclick="mondayShowSetup()" style="font-size:10px;padding:3px 8px;margin-left:auto;">? Setup-Anleitung</button>`;
-  wrap.appendChild(moH);
-
-  const moGrid=document.createElement('div');moGrid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;';
-  [
-    {label:'API Token',key:'apiToken',ph:'eyJ...'},
-    {label:'Board ID',key:'boardId',ph:'1234567890'},
-    {label:'Group ID (optional)',key:'groupId',ph:'new_group'},
-    {label:'Status-Spalten-ID',key:'statusColId',ph:'status'},
-    {label:'Betrag-Spalten-ID',key:'amountColId',ph:'numbers'},
-    {label:'Bearbeiter-Spalten-ID',key:'bearbeiterColId',ph:'text'},
-    {label:'Datum-Spalten-ID',key:'dateColId',ph:'date'},
-  ].forEach(({label,key,ph})=>{
-    const d=document.createElement('div');d.className='field';
-    const isSecret=key==='apiToken';
-    d.innerHTML=`<label>${label}</label>
-      <input type="${isSecret?'password':'text'}" value="${(cfg.monday||{})[key]||''}" placeholder="${ph}"
-        onchange="if(!P.integrations)P.integrations={onedrive:{},monday:{}};if(!P.integrations.monday)P.integrations.monday={};P.integrations.monday['${key}']=this.value;saveP();"
-        style="font-family:'Inter',monospace;font-size:11px;">`;
-    moGrid.appendChild(d);
-  });
-  wrap.appendChild(moGrid);
-
-  const testRow=document.createElement('div');testRow.style.cssText='display:flex;gap:8px;margin-top:8px;';
-  testRow.innerHTML=`
-    <button class="btn" style="background:#0078d4;color:#fff;border-color:#0078d4;font-size:11px;" onclick="saveToOneDrive()">☁ OneDrive testen</button>
-    <button class="btn" style="background:#f7b731;color:#333;border-color:#f7b731;font-size:11px;" onclick="sendToMonday()">◉ Monday testen</button>`;
-  wrap.appendChild(testRow);
-}
-
-// ═══════════════════════════════════════════════════════
-// VERSIONS-CHECK & ZENTRALE PREISLISTE
-// ═══════════════════════════════════════════════════════
-
-async function checkVersionAndPrices(){
-  // ── 1. Zentrale Preisliste laden (falls konfiguriert) ─────────────────
-  // Try server first, then configured path
-  const serverOk = await checkServer();
-  if(serverOk){
-    await ladePricesFromServer();
-  }
-  const preisPath=P.integrations?.preislistePfad||'';
-  if(preisPath&&!serverOk){
-    try{
-      const fetchUrl=preisPath.startsWith('http')||preisPath.startsWith('/')
-        ? preisPath+'?t='+Date.now()
-        : preisPath;
-      const resp=await fetch(fetchUrl,{cache:'no-store'});
-      if(resp.ok){
-        const centralP=await resp.json();
-        // Merge: zentrale Preise überschreiben lokale
-        // Bearbeiter + Integrationen bleiben lokal (personenspezifisch)
-        const keepLocal={
-          bearbeiter: P.bearbeiter,
-          integrations: P.integrations,
-        };
-        P=Object.assign({},centralP,keepLocal);
-        saveP();
-        console.log('KALLE-KULATOR: Zentrale Preisliste geladen von '+preisPath);
-        showToast('✓ Preisliste geladen ('+new Date().toLocaleTimeString('de-CH',{hour:'2-digit',minute:'2-digit'})+')');console.log('KALLE-KULATOR: Preisliste geladen',preisPath);
-        renderBackend&&renderBackend();
-        reBuild&&reBuild();
-      }
-    }catch(e){
-      console.warn('KALLE-KULATOR: Preisliste nicht erreichbar —',e.message);
-      // Silent fail: lokale Preisliste wird weiterverwendet
-    }
-  }
-
-  // ── 2. Versionscheck ──────────────────────────────────────────────────
-  const lastVersion=localStorage.getItem(APP_VERSION_KEY)||'';
-  if(lastVersion && lastVersion!==APP_VERSION){
-    showVersionUpdateBanner(lastVersion, APP_VERSION);
-  }
-  localStorage.setItem(APP_VERSION_KEY, APP_VERSION);
+  // Status
+  const statusDiv=document.createElement('div');
+  statusDiv.style.cssText='font-size:12px;padding:8px 12px;border-radius:6px;margin-bottom:12px;'
+    +(serverVerfuegbar?'background:#1a3a1a;color:var(--green);':'background:var(--surface3);color:var(--muted);');
+  statusDiv.textContent = serverVerfuegbar
+    ? '● Server verbunden — '+KALLE_SERVER
+    : '○ Server nicht erreichbar — '+KALLE_SERVER;
+  wrap.appendChild(statusDiv);
 }
 
 function showVersionUpdateBanner(oldV, newV){
@@ -8398,8 +8284,18 @@ function importAuftragJSON(){
 // Mini-Server auf localhost:8765
 // ═══════════════════════════════════════════════════════
 
-const KALLE_SERVER = 'http://localhost:8765'; // Node.js + PostgreSQL Backend
-const KALLE_SERVER_VERSION = '2.0'; // Node.js Server erwartet
+// Server-URL auto-ermitteln:
+// - Wenn via http(s):// geöffnet → gleicher Origin (Browser öffnet KALLE vom Server)
+// - Wenn via file:// geöffnet → konfigurierte IP aus localStorage oder Fallback
+function getServerUrl(){
+  if(window.location.protocol === 'http:' || window.location.protocol === 'https:'){
+    return window.location.origin; // z.B. http://192.168.1.50:8765
+  }
+  // file:// Modus: aus localStorage oder Standardwert
+  return localStorage.getItem('kalle_server_url') || 'http://localhost:8765';
+}
+const KALLE_SERVER = getServerUrl();
+const KALLE_SERVER_VERSION = '2.0';
 let serverVerfuegbar = false;
 
 async function checkServer(){
@@ -8427,8 +8323,8 @@ function updateServerStatus(ok){
   el.textContent = ok ? '● Server aktiv' : '○ Server offline';
   el.style.color = ok ? 'var(--green)' : 'var(--muted)';
   el.title = ok
-    ? 'KALLE-Server läuft – Offerten werden automatisch gespeichert'
-    : 'Server offline – Offerten werden als Download gespeichert\nkalle_server.py starten!';
+    ? 'KALLE-Server läuft – Offerten werden in Datenbank gespeichert'
+    : 'Server offline – Verbindung zu '+KALLE_SERVER+' fehlgeschlagen';
 }
 
 async function saveOfferteToServer(auftrag){
@@ -9436,6 +9332,14 @@ function renderKundenstammBackend(){
     stat.textContent=`${KUNDEN.length} Kunden geladen · Suche nach Name, Firmennamen oder SL-Nummer`;
     wrap.appendChild(stat);
   }
+}
+
+function saveServerUrl(){
+  const val = document.getElementById('serverUrlInput')?.value?.trim();
+  if(!val) return;
+  localStorage.setItem('kalle_server_url', val);
+  showToast('Server-URL gespeichert — Seite wird neu geladen...');
+  setTimeout(()=>location.reload(), 1200);
 }
 
 function renderPos(){
@@ -11263,8 +11167,15 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('datum').value=new Date().toISOString().split('T')[0];
   const savedKey=localStorage.getItem('grafe_apikey');if(savedKey&&$('apiKey'))$('apiKey').value=savedKey;
   reBuild();updateTotals();initBearbeiterSel();
-  // Check version + load central prices
-  setTimeout(checkVersionAndPrices, 800);
+  // Server verbinden + Preise laden
+  setTimeout(async ()=>{
+    const ok = await checkServer();
+    if(ok){
+      await ladePricesFromServer();
+      ladeBearbliterVomServer&&ladeBearbliterVomServer();
+    }
+    setTimeout(ladeKundenstamm, 400);
+  }, 800);
   const vBadge=$('appVersionBadge');if(vBadge)vBadge.textContent='v'+APP_VERSION;
 });
 
