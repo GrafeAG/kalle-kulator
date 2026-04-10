@@ -1,0 +1,5 @@
+kalle-server/node_modules/
+kalle-server/.env
+*.log
+.DS_Store
+Thumbs.db
