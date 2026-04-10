@@ -9112,38 +9112,56 @@ let kundenLoaded = false;
 async function ladeKundenstamm(){
   if(kundenLoaded) return;
 
-  // 1. Try Node.js server
-  if(serverVerfuegbar){
-    try{
-      const r = await fetch(KALLE_SERVER + '/kunden');
-      if(r.ok){
-        const data = await r.json();
-        KUNDEN = Array.isArray(data) ? data : (data.kunden || []);
-        if(KUNDEN.length){ kundenLoaded=true; console.log('[KALLE] Kunden vom Server:', KUNDEN.length); return; }
-      }
-    }catch(e){}
-  }
+  // Warte bis checkServer() ausgeführt wurde
+  const doLoad = async () => {
+    // 1. Server verfügbar → /kunden Endpoint
+    if(serverVerfuegbar){
+      try{
+        const r = await fetch(KALLE_SERVER + '/kunden');
+        if(r.ok){
+          const data = await r.json();
+          const liste = Array.isArray(data) ? data : (data.kunden || []);
+          if(liste.length){
+            KUNDEN = liste;
+            kundenLoaded = true;
+            const sl=$('kundenLadeStatus');
+            if(sl)sl.textContent='('+KUNDEN.length+' Kunden)';
+            console.log('[KALLE] Kunden vom Server:', KUNDEN.length);
+            return;
+          }
+        }
+      }catch(e){ console.warn('[KALLE] /kunden Fehler:', e.message); }
+    }
 
-  // 2. Try kunden.json via XMLHttpRequest (works on file:// in Firefox)
-  await new Promise(resolve => {
-    const xhr = new XMLHttpRequest();
-    xhr.open('GET', 'kunden.json', true);
-    xhr.timeout = 4000;
-    xhr.onload = function(){
-      if(xhr.status === 200 || xhr.status === 0){ // status 0 = file://
-        try{
-          const data = JSON.parse(xhr.responseText);
-          KUNDEN = Array.isArray(data) ? data : (data.kunden || []);
-          kundenLoaded = true;
-          console.log('[KALLE] Kundenstamm geladen:', KUNDEN.length, 'Kunden');
-          const sl=$('kundenLadeStatus');if(sl)sl.textContent='('+KUNDEN.length+' Kunden)';
-        }catch(e){ console.warn('[KALLE] kunden.json parse error:', e.message); }
-      }
-      resolve();
-    };
-    xhr.onerror = xhr.ontimeout = () => { console.log('[KALLE] kunden.json nicht gefunden'); resolve(); };
-    xhr.send();
-  });
+    // 2. Fallback: kunden.json via XHR (file:// kompatibel)
+    await new Promise(resolve => {
+      const xhr = new XMLHttpRequest();
+      xhr.open('GET', 'kunden.json', true);
+      xhr.timeout = 5000;
+      xhr.onload = function(){
+        if(xhr.status === 200 || xhr.status === 0){
+          try{
+            const data = JSON.parse(xhr.responseText);
+            KUNDEN = Array.isArray(data) ? data : (data.kunden || []);
+            kundenLoaded = true;
+            const sl=$('kundenLadeStatus');
+            if(sl)sl.textContent='('+KUNDEN.length+' Kunden)';
+            console.log('[KALLE] Kundenstamm (lokal):', KUNDEN.length, 'Kunden');
+          }catch(e){ console.warn('[KALLE] kunden.json parse error:', e.message); }
+        }
+        resolve();
+      };
+      xhr.onerror = xhr.ontimeout = () => {
+        console.warn('[KALLE] kunden.json nicht erreichbar');
+        const sl=$('kundenLadeStatus');
+        if(sl)sl.textContent='(nicht geladen)';
+        resolve();
+      };
+      xhr.send();
+    });
+  };
+
+  await doLoad();
 }
 
 function sucheKunden(query){
@@ -9289,36 +9307,60 @@ function renderKundenstammBackend(){
   importBtn.textContent='📂 kunden.json / Excel importieren';
   importBtn.onclick=()=>{
     const inp=document.createElement('input');
-    inp.type='file';inp.accept='.json,.xlsx,.xls,.csv';
+    inp.type='file'; inp.accept='.json,.csv';
     inp.onchange=async function(){
-      const file=this.files[0];if(!file)return;
+      const file=this.files[0]; if(!file)return;
       showToast('Kundenstamm wird geladen...');
       try{
+        let kunden=[];
         if(file.name.endsWith('.json')){
           const txt=await file.text();
-          KUNDEN=JSON.parse(txt);
-          kundenLoaded=true;
-        } else if(file.name.endsWith('.xlsx')||file.name.endsWith('.xls')){
-          showToast('Excel-Import: Bitte als JSON oder CSV exportieren','error');
-          return;
+          const data=JSON.parse(txt);
+          kunden=Array.isArray(data)?data:(data.kunden||[]);
         } else {
-          // CSV: parse
+          // CSV: SelectLine Format (Semikolon-getrennt)
           const txt=await file.text();
           const lines=txt.split('\n').filter(Boolean);
           const header=lines[0].split(';').map(h=>h.replace(/"/g,'').trim());
-          KUNDEN=lines.slice(1).map(l=>{
-            const v=l.split(';').map(v=>v.replace(/"/g,'').trim());
+          kunden=lines.slice(1).map(l=>{
+            const v=l.split(';').map(x=>x.replace(/"/g,'').trim());
             const obj={};header.forEach((h,i)=>obj[h]=v[i]||'');
-            return{nr:obj['Nummer']||obj['nr']||'',name:obj['Firma']||obj['Name']||obj['name']||'',
-              firma:obj['Firma']||'',kontakt:obj['Name']||'',
-              strasse:obj['Strasse']||obj['strasse']||'',
-              plz:obj['PLZ']||obj['plz']||'',ort:obj['Ort']||obj['ort']||'',
-              tel:obj['Telefon1']||obj['tel']||'',email:obj['Email']||obj['email']||''};
+            return{
+              nr:    obj['Nummer']   ||obj['nr']   ||'',
+              name:  obj['Firma']    ||obj['Name'] ||obj['name']||'',
+              firma: obj['Firma']    ||'',
+              kontakt:obj['Name']   ||'',
+              strasse:obj['Strasse'] ||obj['strasse']||'',
+              plz:   obj['PLZ']     ||obj['plz']  ||'',
+              ort:   obj['Ort']     ||obj['ort']  ||'',
+              tel:   obj['Telefon1']||obj['tel']  ||'',
+              email: obj['Email']   ||obj['email']||'',
+            };
           }).filter(k=>k.name&&k.name!=='NICHT MEHR VERWENDEN');
-          kundenLoaded=true;
         }
-        showToast(`✓ ${KUNDEN.length} Kunden geladen`);
-        renderKundenstammBackend(); // refresh display
+
+        // Lokal laden
+        KUNDEN=kunden; kundenLoaded=true;
+        showToast('✓ '+KUNDEN.length+' Kunden lokal geladen');
+        const sl=$('kundenLadeStatus');
+        if(sl)sl.textContent='('+KUNDEN.length+' Kunden)';
+
+        // Auf Server hochladen falls verfügbar
+        if(serverVerfuegbar){
+          showToast('Lade auf Server hoch...');
+          const r=await fetch(KALLE_SERVER+'/kunden/upload',{
+            method:'POST',
+            headers:{'Content-Type':'application/json'},
+            body:JSON.stringify(kunden)
+          });
+          if(r.ok){
+            const res=await r.json();
+            showToast('✓ '+res.anzahl+' Kunden auf Server gespeichert — alle Mitarbeiter haben Zugriff');
+          } else {
+            showToast('Lokal OK, Server-Upload fehlgeschlagen','error');
+          }
+        }
+        renderKundenstammBackend();
       }catch(e){showToast('Fehler: '+e.message,'error');}
     };
     inp.click();
