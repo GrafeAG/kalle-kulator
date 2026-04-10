@@ -3,4 +3,5 @@ kalle-server/.env
 *.log
 .DS_Store
 Thumbs.db
-kalle-push.bat
+kalle-push.ps1
+kalle-server\public\kunden.json
