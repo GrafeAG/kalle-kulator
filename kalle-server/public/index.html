@@ -8391,7 +8391,7 @@ async function ladeOffertenvonServer(){
   }catch(e){ return []; }
 }
 
-async function loadAuftragData(a){
+function loadAuftragData(a){
   // Fill all form fields from auftrag object
   if($('kundenname'))$('kundenname').value=a.kundenname||'';
   if($('kontaktperson'))$('kontaktperson').value=a.kontaktperson||'';
@@ -10268,8 +10268,9 @@ async function printOfferteFromServer(auftragsnr){
     const r = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/payload');
     if(!r.ok) throw new Error('HTTP '+r.status);
     const payload = await r.json();
-    // Load into positions and print
-    loadAuftragData(payload);
+    // Load into positions first (await since async)
+    await loadAuftragData(payload);
+    // Then print
     setTimeout(()=>printDoc('offer'), 300);
   }catch(e){ showToast('Fehler: '+e.message,'error'); }
 }
@@ -10493,7 +10494,10 @@ Freundliche Grüsse
 }
 
 function printDoc(mode){
-  if(!positions.length)return alert('Keine Positionen.');
+  if(!positions||!positions.length){
+    showToast('Keine Positionen vorhanden — zuerst eine Position erfassen','error');
+    return;
+  }
   const isInt=mode==='internal';
   const agbHtml=isInt?'':AGB_HTML;
   // Strip price info from detail strings in offer mode
@@ -11031,13 +11035,41 @@ function printDoc(mode){
 ${!isInt ? agbHtml : ''}
 
 </body></html>`;
-  const w=window.open('','_blank');
-  if(w){w.document.write(html);w.document.close();setTimeout(()=>w.print(),800);}
-  else{
-    const blob=new Blob([html],{type:'text/html'});
-    const url=URL.createObjectURL(blob);
-    const a=document.createElement('a');a.href=url;a.target='_blank';a.click();
-    setTimeout(()=>URL.revokeObjectURL(url),5000);
+  // Zuverlässige PDF-Ausgabe via verstecktem iframe (kein Popup-Blocker)
+  const printFrame = document.getElementById('kalle-print-frame') || (() => {
+    const f = document.createElement('iframe');
+    f.id = 'kalle-print-frame';
+    f.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
+    document.body.appendChild(f);
+    return f;
+  })();
+
+  try {
+    const doc = printFrame.contentDocument || printFrame.contentWindow.document;
+    doc.open();
+    doc.write(html);
+    doc.close();
+    setTimeout(() => {
+      try {
+        printFrame.contentWindow.focus();
+        printFrame.contentWindow.print();
+      } catch(e) {
+        // Fallback: neues Fenster
+        const w = window.open('', '_blank');
+        if(w){ w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 600); }
+        else {
+          const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+          const url = URL.createObjectURL(blob);
+          const a = document.createElement('a');
+          a.href = url; a.download = (aufnr||'Offerte')+'.html';
+          a.click();
+          setTimeout(()=>URL.revokeObjectURL(url), 5000);
+        }
+      }
+    }, 500);
+  } catch(e) {
+    showToast('PDF-Fehler: ' + e.message, 'error');
+    console.error('[PDF]', e);
   }
 }
 
