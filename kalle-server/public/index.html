@@ -9112,11 +9112,11 @@ function renderSLArtikelBackend(){
 // AGB HTML — Anhang in Kundenofferte
 // ═══════════════════════════════════════════════════════
 const AGB_HTML = `
-<div style="page-break-before:always;font-family:'Inter',Arial,sans-serif;font-size:9px;color:#333;line-height:1.6;padding:14mm 18mm;">
+<div class="page" style="page-break-before:always;">
   <div style="font-size:14px;font-weight:700;margin-bottom:6mm;border-bottom:1px solid #1c1c1e;padding-bottom:3mm;">
     Allgemeine Geschäftsbedingungen (AGB) — Grafe AG
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12mm;">
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12mm;font-size:9px;color:#333;line-height:1.6;">
     <div>
       <p style="font-weight:700;margin-bottom:2mm;">1. Geltungsbereich</p>
       <p style="margin-bottom:4mm;">Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Geschäftsbeziehungen zwischen der Grafe AG, Rheinfelderstrasse 12, 4127 Birsfelden (nachfolgend «Grafe AG») und ihren Kunden. Abweichende Bedingungen des Kunden werden nicht anerkannt, es sei denn, Grafe AG stimmt ihrer Geltung ausdrücklich schriftlich zu.</p>
@@ -9143,7 +9143,7 @@ const AGB_HTML = `
       <p style="margin-top:6mm;color:#666;">Grafe AG · Rheinfelderstrasse 12 · 4127 Birsfelden · Tel. +41 61 421 23 23 · info@grafe.ch · www.grafe.ch</p>
     </div>
   </div>
-</div>`;
+</div><!-- /page -->`; 
 
 
 // ═══════════════════════════════════════════════════════
@@ -9697,6 +9697,16 @@ function loadGlobalMontageData(gm){
   if(typeof calcGlobalMontage === 'function') calcGlobalMontage();
 }
 
+function toggleVariante(i){
+  if(i<0||i>=positions.length) return;
+  positions[i].isVariante = !positions[i].isVariante;
+  renderPos();
+  updateTotals();
+  showToast(positions[i].isVariante
+    ? '⬡ Variante — nicht in Gesamtsumme'
+    : '✓ Variante aufgehoben — in Gesamtsumme');
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -9762,9 +9772,13 @@ function renderPos(){
         <div style="font-size:10px;color:var(--muted);">${sub}${p.montVK>0?` · Montage CHF ${p.montVK.toFixed(2)}`:''}</div></div>
       </div>
       <div style="display:flex;align-items:center;gap:7px;">
-        <span class="pc-price">CHF ${p.totalVK.toFixed(2)}</span>
+        <span class="pc-price" style="${p.isVariante?'text-decoration:line-through;opacity:.4;font-size:11px;':''}">
+          ${p.isVariante?'<span style="font-size:9px;color:var(--teal);display:block;line-height:1;">VARIANTE</span>':''}
+          CHF ${p.totalVK.toFixed(2)}
+        </span>
         <button class="icon-btn" onclick="editPos(${i})">✎</button>
         <button class="icon-btn" onclick="dupPos(${i})" title="Duplizieren" style="opacity:.7;">⧉</button>
+        <button class="icon-btn${p.isVariante?' var-active':''}" onclick="toggleVariante(${i})" title="${p.isVariante?'Variante: nicht in Gesamtsumme':'Als Variante markieren'}" style="font-size:9px;${p.isVariante?'background:var(--teal);color:#111;border-color:var(--teal);':'opacity:.5;'}">VAR</button>
         <button class="icon-btn del" onclick="delPos(${i})">✕</button>
       </div>
     </div>`;
@@ -9774,6 +9788,7 @@ function renderPos(){
 
 function updateTotals(){
   const t=positions.reduce((a,p)=>{
+    if(p.isVariante) return a; // Variante — nicht in Gesamtsumme
     if(p.type==='fraes')a.fraes+=p.totalVK;
     else if(p.type==='gravur')a.gravur+=p.totalVK;
     else if(p.type==='folientechnik')a.folie=(a.folie||0)+p.totalVK;
@@ -10572,6 +10587,7 @@ function printDoc(mode){
   const adr=($('adresseStrasse')?.value||'')+', '+($('adressePLZ')?.value||'')+' '+($('adresseOrt')?.value||'');
   const globalMont=getGlobalMontageTotal();
   const t=positions.reduce((a,p)=>{
+    if(p.isVariante) return a; // Variante nicht in Gesamtsumme
     if(p.type==='fraes')a.fraes+=p.totalVK;
     else if(p.type==='gravur')a.gravur+=p.totalVK;
     else if(p.type==='schild'){a.schild+=p.totalVK;a.ek+=p.matEK||0;a.mvk+=p.matVK||0;}
@@ -10612,6 +10628,9 @@ function printDoc(mode){
 
   const rows=positions.map((p,i)=>{
     const posRabatte=rabattMap[i]||[];
+    // Varianten: grau und markiert, aber in PDF aufgeführt
+    const variantStyle=p.isVariante?'opacity:.55;':'' ;
+    const variantBadge=p.isVariante?'<span style="display:inline-block;margin-left:6px;font-size:8px;padding:1px 5px;background:#e8f4f4;color:#1A8A8A;border:1px solid #1A8A8A;border-radius:3px;font-weight:700;">VARIANTE</span>':'';
     const rabattInline=posRabatte.length>0?posRabatte.map(rb=>
       `<div style="margin-top:3px;padding:2px 6px;background:#fff5f5;border-left:2px solid #cc0000;font-size:9px;color:#cc0000;">
         🏷 ${rb.label}: –${rb.pctStr} = –CHF ${rb.abzug.toFixed(2)}
@@ -10700,9 +10719,9 @@ function printDoc(mode){
     if(montStr)mods.push(`Befestigung vor Ort: ${montStr}`);
     if(p.montPersAkt&&p.montStd>0)mods.push(`Montagepersonal: ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd} h`);
     if(p.anfahrtKm>0)mods.push(`Anfahrt: ${p.anfahrtKm} km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''}`);
-    return `<tr>
+    return `<tr style="${variantStyle}">
         <td class="c-pos">${i+1}</td><td class="c-menge">${p.stk}</td><td class="c-me">Stk.</td>
-        <td class="c-bez"><strong>${p.label}</strong>${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br>
+        <td class="c-bez"><strong>${p.label}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br>
           <span class="sub">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m² · Schildmaterial: ${p.matName}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}<br>
           ${mods.filter(Boolean).map(m=>'<span style="display:block;margin-top:1px;">'+m+'</span>').join('')}
           ${arbStr?'<br>Arbeitsleistungen: '+arbStr:''}
@@ -10847,11 +10866,11 @@ function printDoc(mode){
       if(isInt)detail+=`<br><span style="color:#999;">Material EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Veredelung/Druck CHF ${p.veredVK?.toFixed(2)}</span>`;
     }
     if((p.montage||[]).length)detail+='<br>Montage: '+(p.montage||[]).map(m=>`${m.name}${m.detail?' '+m.detail:''}`).join(', ');
-    return `<tr>
+    return `<tr style="${variantStyle}">
       <td class="c-pos">${i+1}</td>
       <td class="c-menge">${p.stk||1}</td>
       <td class="c-me">Stk.</td>
-      <td class="c-bez">${desc}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${isInt?detail:detail.replace(/EK CHF [\d.,]+\s*·?\s*/g,'').replace(/→ VK CHF [\d.,]+/g,'').replace(/\(EK [^)]+\)/g,'').replace(/VK CHF [\d.,]+/g,'')}</span>${rabattInline}</td>
+      <td class="c-bez">${desc}${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${isInt?detail:detail.replace(/EK CHF [\d.,]+\s*·?\s*/g,'').replace(/→ VK CHF [\d.,]+/g,'').replace(/\(EK [^)]+\)/g,'').replace(/VK CHF [\d.,]+/g,'')}</span>${rabattInline}</td>
       <td class="c-ep">${p.totalVK.toFixed(2)}</td>
       <td class="c-gp">${p.totalVK.toFixed(2)}<sup>2</sup></td>
     </tr>`;
@@ -10952,7 +10971,16 @@ function printDoc(mode){
 
   @media print{
     body{background:#fff;}
-    .page{padding:10mm 16mm 22mm 16mm;}
+    @page{size:A4 portrait;margin:0;}
+    .page{
+      padding:10mm 16mm 22mm 16mm;
+      page-break-after:always;
+      page-break-inside:avoid;
+      width:210mm;
+      min-height:297mm;
+      box-sizing:border-box;
+    }
+    .page:last-child{page-break-after:auto;}
     .footer{position:fixed;bottom:8mm;}
   }
 </style>
@@ -11048,7 +11076,7 @@ function printDoc(mode){
       <tr class="sum-netto"><td colspan="5">Netto-Betrag</td><td class="sum-v">CHF ${grandTotal.toFixed(2)}</td></tr>
       <tr class="sum-mwst"><td colspan="5" style="color:#555;">+ 8.10 % MwSt von ${grandTotal.toFixed(2)}</td><td class="sum-v" style="color:#555;">CHF ${mwst.toFixed(2)}</td></tr>
       <tr class="sum-total"><td colspan="5">Gesamttotal inkl. MWST</td><td class="sum-v">CHF ${(grandTotal+mwst).toFixed(2)}</td></tr>
-      <tr class="sum-footer-note"><td colspan="6"><sup>2</sup> Preise exkl. MwSt.</td></tr>
+      <tr class="sum-footer-note"><td colspan="6"><sup>2</sup> Preise exkl. MwSt.${positions.some(p=>p.isVariante)?' &nbsp;|&nbsp; <sup>V</sup> Variantenposition — nicht in Gesamtsumme enthalten':''}</td></tr>
     </table>
   </div>
 
