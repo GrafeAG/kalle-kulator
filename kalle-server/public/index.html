@@ -16,6 +16,29 @@
   --text:#f2f2f7;--text2:#aeaeb2;--muted:#636366;
   --danger:#ff453a;--success:#32d74b;--radius:8px;--rsm:5px;
 }
+/* ── HELLER MODUS ─────────────────────────────────── */
+body.light-mode{
+  --bg:#f2f2f7;
+  --surface:#ffffff;
+  --surface2:#f2f2f7;
+  --surface3:#e5e5ea;
+  --border:#d1d1d6;
+  --border-light:#c7c7cc;
+  --accent:#b8940a;
+  --accent-dim:rgba(184,148,10,.10);
+  --accent-hover:#9a7c08;
+  --teal:#0a8080;
+  --teal-dim:rgba(10,128,128,.10);
+  --amber:#c07010;
+  --amber-dim:rgba(192,112,16,.10);
+  --green:#248a50;
+  --green-dim:rgba(36,138,80,.10);
+  --text:#1c1c1e;
+  --text2:#3a3a3c;
+  --muted:#8e8e93;
+  --danger:#d70015;
+  --success:#248a50;
+}
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh;line-height:1.5;-webkit-text-size-adjust:100%;}
 
@@ -357,6 +380,7 @@ a, button, input, select, textarea, label,
     </nav>
   </div>
   <div class="hdr-act">
+    <button id="themeToggleBtn" class="btn btn-gh" onclick="toggleTheme()" title="Hell/Dunkel Modus" style="font-size:13px;padding:5px 10px;">🌙</button>
     <button class="btn btn-gh" onclick="saveAuftrag()">💾 Sichern</button>
     <button class="btn btn-gh" onclick="resetAll()">↺ Reset</button>
     <button class="btn btn-t" onclick="printDoc('internal')">⬡ Intern</button>
@@ -5374,7 +5398,20 @@ function slSetZuschnitt(btn){
   const val=btn.dataset.val||'kein';
   const det=$('tgSlZuschnitt');
   if(det) det.innerHTML='';
-  if(val==='kein'){cSl && cSl();return;}  // cSl() immer aufrufen, auch wenn det null
+  if(val==='kein'){
+    // Textfeld für angeliefertes Material anzeigen
+    if(det) det.innerHTML=`
+      <div class="field" style="margin-top:6px;">
+        <label style="font-size:10px;color:var(--muted);">Materialbeschrieb <span style="font-size:9px;">(erscheint in Offerte)</span></label>
+        <input type="text" id="slAngeliefertBez"
+          placeholder="z.B. Verzinktes Stahlblech 2mm, angeliefert durch Kunde..."
+          oninput="cSl()"
+          value="${$('slAngeliefertBez')?.value||''}"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);
+                 color:var(--text);padding:7px 10px;border-radius:var(--rsm);font-size:12px;">
+      </div>`;
+    cSl && cSl(); return;
+  }
   if(!det) return;
   if(val==='saegen'){
     const rate=P.zuschnitt?.saegenRate||2.00;
@@ -6991,6 +7028,7 @@ function saveSchild(){
     eigenBefPreis:parseFloat($('slEigenBefPreis')?.value)||0,
     befestigungVK:r.befestigungVK||0,
     zuschnittMethode:document.querySelector('#slZuschnittMethode .zopt.sel')?.dataset.val||'kein',
+    angeliefertBez:$('slAngeliefertBez')?.value?.trim()||'',
     zuschnittVK:r.zuschnittVK||0,
     eloxAkt:gC('slEloxAkt'),frEloxVK:r.eloxVK||0,
     bruenAkt:gC('slBruenAkt'),bruenMin:parseFloat($('slBruen-minuten')?.value)||0,bruenVK:r.bruenVK||0,
@@ -9707,6 +9745,26 @@ function toggleVariante(i){
     : '✓ Variante aufgehoben — in Gesamtsumme');
 }
 
+function toggleTheme(){
+  const isLight = document.body.classList.toggle('light-mode');
+  localStorage.setItem('kalle_theme', isLight ? 'light' : 'dark');
+  const btn = document.getElementById('themeToggleBtn');
+  if(btn) btn.textContent = isLight ? '🌕' : '🌙';
+  showToast(isLight ? '☀ Heller Modus aktiv' : '🌙 Dunkler Modus aktiv');
+}
+
+function initTheme(){
+  const saved = localStorage.getItem('kalle_theme');
+  // Also check system preference
+  const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+  const useDark = saved ? saved === 'dark' : prefersDark;
+  if(!useDark){
+    document.body.classList.add('light-mode');
+    const btn = document.getElementById('themeToggleBtn');
+    if(btn) btn.textContent = '🌕';
+  }
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -9826,6 +9884,11 @@ function editPos(i){
       const zm = p.zuschnittMethode||'saegen';
       const btn=document.querySelector(`#slZuschnittMethode .zopt[data-val="${zm}"]`);
       if(btn) slSetZuschnitt(btn);
+      // Restore angeliefertBez text
+      setTimeout(()=>{
+        const abEl=$('slAngeliefertBez');
+        if(abEl&&p.angeliefertBez) abEl.value=p.angeliefertBez;
+      },50);
     }, 50);
     if($('slMarge'))$('slMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.5;
     reBuild();
@@ -10722,7 +10785,7 @@ function printDoc(mode){
     return `<tr style="${variantStyle}">
         <td class="c-pos">${i+1}</td><td class="c-menge">${p.stk}</td><td class="c-me">Stk.</td>
         <td class="c-bez"><strong>${p.label}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br>
-          <span class="sub">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m² · Schildmaterial: ${p.matName}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}<br>
+          <span class="sub">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m²${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+p.matName}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}<br>
           ${mods.filter(Boolean).map(m=>'<span style="display:block;margin-top:1px;">'+m+'</span>').join('')}
           ${arbStr?'<br>Arbeitsleistungen: '+arbStr:''}
           ${p.montageSeparat?'<br><em style="color:#888;font-size:10px;">Montage separat ausgewiesen</em>':montStr?'<br>Montage: '+montStr:''}
@@ -11610,6 +11673,7 @@ document.addEventListener('DOMContentLoaded',()=>{
 });
 
 window.addEventListener('DOMContentLoaded',()=>{
+  initTheme();
   showPage('kalk',document.querySelector('.nav-pill'));
   const d=new Date();
   const datum=$('datum');if(datum)datum.value=d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
