@@ -339,6 +339,7 @@ a, button, input, select, textarea, label,
   .g2, .g3 { grid-template-columns: 1fr !important; }
   .main { padding: 10px 12px !important; }
 }
+.active-filter{background:var(--accent)!important;color:#111!important;border-color:var(--accent)!important;font-weight:700!important;}
 </style>
 </head>
 <body>
@@ -430,7 +431,7 @@ a, button, input, select, textarea, label,
         </div>
         <div class="field">
           <label>PLZ</label>
-          <input id="adressePLZ" type="text" placeholder="4127" style="max-width:120px;">
+          <input id="adressePLZ" type="text" placeholder="4127" style="max-width:120px;" oninput="onPLZInput()" onblur="onPLZInput()">
         </div>
         <div class="field">
           <label>Ort</label>
@@ -9390,6 +9391,259 @@ function saveServerUrl(){
   setTimeout(()=>location.reload(), 1200);
 }
 
+function dupPos(i){
+  if(i<0||i>=positions.length) return;
+  const original = positions[i];
+  // Deep copy
+  const kopie = JSON.parse(JSON.stringify(original));
+  // Mark as copy
+  kopie.label = (kopie.label||'') + ' (Kopie)';
+  // Insert after original
+  positions.splice(i+1, 0, kopie);
+  renderPos();
+  updateTotals();
+  showToast('✓ Position dupliziert — jetzt bearbeiten');
+}
+
+// PLZ → Ort Lookup (Schweiz, kompakt)
+const PLZ_CH = {
+  "1000":"Lausanne","1003":"Lausanne","1004":"Lausanne","1005":"Lausanne",
+  "1006":"Lausanne","1007":"Lausanne","1008":"Prilly","1009":"Pully",
+  "1010":"Lausanne","1011":"Lausanne","1012":"Lausanne","1015":"Lausanne",
+  "1018":"Lausanne","1020":"Renens VD","1022":"Chavannes-près-Renens",
+  "1023":"Crissier","1024":"Ecublens VD","1025":"Saint-Sulpice VD",
+  "1026":"Echandens","1028":"Préverenges","1030":"Bussigny",
+  "1032":"Romanel-sur-Lausanne","1033":"Cheseaux-sur-Lausanne",
+  "1034":"Boussens","1035":"Bournens","1040":"Echallens",
+  "1052":"Le Mont-sur-Lausanne","1053":"Cugy VD","1054":"Morrens VD",
+  "1055":"Froideville","1058":"Villars-Tiercelin","1060":"Carrouge VD",
+  "1110":"Morges","1112":"Echichens","1113":"Saint-Saphorin-sur-Morges",
+  "1114":"Colombier VD","1115":"Vullierens","1116":"Cottens VD",
+  "1117":"Grancy","1121":"Bremblens","1122":"Romanel-sur-Morges",
+  "1123":"Aclens","1124":"Gollion","1125":"Monnaz","1126":"Vaux-sur-Morges",
+  "1127":"Clarmont","1128":"Reverolle","1131":"Tolochenaz",
+  "1132":"Lully VD","1134":"Vufflens-le-Château","1135":"Denens",
+  "1136":"Bussy-sur-Morges","1141":"Sévery","1142":"Pampigny",
+  "1143":"Apples","1144":"Ballens","1145":"Bière","1146":"Mollens VD",
+  "1147":"Montricher","1148":"Moiry VD","1149":"Berolle",
+  "1162":"Saint-Prex","1163":"Etoy","1164":"Buchillon",
+  "1165":"Allaman","1166":"Perroy","1167":"Lussy-sur-Morges",
+  "1168":"Villars-sous-Yens","1169":"Yens","1170":"Aubonne",
+  "1172":"Bougy-Villars","1173":"Féchy","1174":"Pizy",
+  "1175":"Lavigny","1176":"St-Livres","1177":"Bursins",
+  "1180":"Rolle","1182":"Gilly","1183":"Bursinel",
+  "1184":"Vinzel","1185":"Mont-sur-Rolle","1186":"Essertines-sur-Rolle",
+  "1187":"St-Oyens","1188":"Gimel","1189":"Saubraz",
+  "1196":"Gland","1197":"Prangins","1200":"Genève","1201":"Genève",
+  "1202":"Genève","1203":"Genève","1204":"Genève","1205":"Genève",
+  "1206":"Genève","1207":"Genève","1208":"Genève","1209":"Genève",
+  "1210":"Genève","1211":"Genève","1212":"Grand-Lancy",
+  "1213":"Petit-Lancy","1214":"Vernier","1215":"Genève",
+  "1216":"Cointrin","1217":"Meyrin","1218":"Le Grand-Saconnex",
+  "1219":"Châtelaine","1220":"Les Avanchets","1221":"Genève",
+  "1222":"Vésenaz","1223":"Cologny","1224":"Chêne-Bougeries",
+  "1225":"Chêne-Bourg","1226":"Thônex","1227":"Les Acacias",
+  "1228":"Plan-les-Ouates","1229":"Les Acacias","1231":"Conches",
+  "1232":"Confignon","1233":"Bernex","1234":"Vessy",
+  "1236":"Cartigny","1237":"Avully","1239":"Collex",
+  "1240":"Genthod","1241":"Puplinge","1242":"Satigny",
+  "1243":"Presinge","1244":"Choulex","1245":"Collonge-Bellerive",
+  "1246":"Corsier GE","1247":"Anières","1248":"Hermance",
+  "1251":"Gy","1252":"Meinier","1253":"Vandoeuvres",
+  "1254":"Jussy","1255":"Veyrier","1256":"Troinex",
+  "1257":"La Croix-de-Rozon","1258":"Perly","1260":"Nyon",
+  "1261":"Le Vaud","1262":"Eysins","1263":"Crassier",
+  "1264":"St-Cergue","1265":"La Cure","1266":"Duillier",
+  "1267":"Vich","1268":"Burtigny","1269":"Bassins",
+  "1270":"Trélex","1271":"Givrins","1272":"Genolier",
+  "1273":"Arzier","1274":"Grens","1275":"Chéserex",
+  "1276":"Gingins","1277":"Borex","1278":"La Rippe",
+  "1279":"Chavannes-de-Bogis","1280":"Prevessin","1281":"Russin",
+  "1283":"La Plaine","1284":"Chancy","1285":"Athenaz",
+  "1286":"Soral","1287":"Laconnex","1288":"Aire-la-Ville",
+  "1289":"Sézegnin",
+  // Zürich
+  "8000":"Zürich","8001":"Zürich","8002":"Zürich","8003":"Zürich",
+  "8004":"Zürich","8005":"Zürich","8006":"Zürich","8008":"Zürich",
+  "8032":"Zürich","8037":"Zürich","8038":"Zürich","8041":"Zürich",
+  "8044":"Zürich","8045":"Zürich","8046":"Zürich","8047":"Zürich",
+  "8048":"Zürich","8049":"Zürich","8050":"Zürich","8051":"Zürich",
+  "8052":"Zürich","8053":"Zürich","8055":"Zürich","8057":"Zürich",
+  "8064":"Zürich","8091":"Zürich","8105":"Regensdorf",
+  "8108":"Dällikon","8142":"Uitikon Waldegg","8153":"Rümlang",
+  "8154":"Oberglatt ZH","8157":"Dielsdorf","8162":"Steinmaur",
+  "8173":"Neerach","8174":"Stadel b. Niederglatt","8175":"Windlach",
+  "8180":"Bülach","8181":"Höri","8182":"Hochfelden",
+  "8183":"Bülach","8184":"Bachenbülach","8185":"Winkel",
+  "8187":"Weiach","8192":"Glattfelden","8193":"Eglisau",
+  "8194":"Hüntwangen","8195":"Wasterkingen","8196":"Wil ZH",
+  "8197":"Rafz","8200":"Schaffhausen","8201":"Schaffhausen",
+  "8202":"Schaffhausen","8203":"Schaffhausen","8204":"Schaffhausen",
+  "8205":"Schaffhausen","8207":"Schaffhausen","8208":"Schaffhausen",
+  "8212":"Neuhausen am Rheinfall","8213":"Neunkirch",
+  "8214":"Gächlingen","8215":"Hallau","8216":"Oberhallau",
+  "8217":"Wilchingen","8218":"Osterfingen","8219":"Trasadingen",
+  "8222":"Beringen","8223":"Guntmadingen","8224":"Löhningen",
+  "8225":"Siblingen","8226":"Schleitheim","8228":"Beggingen",
+  "8231":"Hemmental","8232":"Merishausen","8233":"Bargen SH",
+  "8234":"Stetten SH","8235":"Lohn SH","8236":"Opfertshofen SH",
+  "8238":"Büsingen","8239":"Dörflingen",
+  // Bern
+  "3000":"Bern","3001":"Bern","3003":"Bern","3004":"Bern",
+  "3005":"Bern","3006":"Bern","3007":"Bern","3008":"Bern",
+  "3010":"Bern","3011":"Bern","3012":"Bern","3013":"Bern",
+  "3014":"Bern","3015":"Bern","3018":"Bern","3019":"Bern",
+  "3020":"Bern","3027":"Bern","3032":"Hinterkappelen",
+  "3033":"Wohlen b. Bern","3034":"Murzelen","3035":"Frauenkappelen",
+  "3036":"Detligen","3037":"Herrenschwanden","3038":"Kirchlindach",
+  "3040":"Kirchlindach","3041":"Bern","3042":"Ortschwaben",
+  "3043":"Uettligen","3044":"Innerberg","3045":"Meikirch",
+  "3046":"Wahlendorf","3047":"Bremgarten b. Bern","3048":"Worblaufen",
+  "3049":"Säriswil","3052":"Zollikofen","3053":"Münchenbuchsee",
+  "3054":"Schüpfen","3055":"Bern","3063":"Ittigen",
+  "3065":"Bolligen","3066":"Stettlen","3067":"Boll",
+  "3068":"Utzigen","3072":"Ostermundigen","3073":"Gümligen",
+  "3074":"Muri b. Bern","3075":"Rüfenacht BE","3076":"Worb",
+  "3077":"Enggistein","3078":"Richigen","3082":"Schlosswil",
+  "3083":"Trimstein","3084":"Wabern","3085":"Wabern",
+  "3086":"Zimmerwald","3087":"Niedermuhlern","3088":"Rüeggisberg",
+  "3089":"Hinterfultigen","3095":"Spiegel b. Bern","3096":"Oberbalm",
+  "3097":"Liebefeld","3098":"Köniz","3099":"Rüti b. Riggisberg",
+  // Basel
+  "4000":"Basel","4001":"Basel","4002":"Basel","4003":"Basel",
+  "4005":"Basel","4051":"Basel","4052":"Basel","4053":"Basel",
+  "4054":"Basel","4055":"Basel","4056":"Basel","4057":"Basel",
+  "4058":"Basel","4059":"Basel","4102":"Binningen","4103":"Bottmingen",
+  "4104":"Oberwil BL","4105":"Biel-Benken BL","4106":"Therwil",
+  "4107":"Ettingen","4108":"Witterswil","4112":"Bättwil",
+  "4114":"Hofstetten-Flüh","4115":"Mariastein","4116":"Metzerlen",
+  "4117":"Burg im Leimental","4118":"Rodersdorf","4123":"Allschwil",
+  "4124":"Schönenbuch","4125":"Riehen","4126":"Bettingen",
+  "4127":"Birsfelden","4132":"Muttenz","4133":"Pratteln",
+  "4142":"Münchenstein","4143":"Dornach","4144":"Arlesheim",
+  "4145":"Gempen","4146":"Hochwald","4147":"Aesch BL",
+  "4148":"Pfeffingen","4153":"Reinach BL","4302":"Augst",
+  "4303":"Kaiseraugst","4305":"Olsberg","4310":"Rheinfelden",
+  "4312":"Magden","4313":"Möhlin","4314":"Zeiningen",
+  "4315":"Zuzgen","4316":"Hellikon","4317":"Wegenstetten",
+  "4318":"Herznach","4322":"Mumpf","4323":"Wallbach",
+  "4324":"Obermumpf","4325":"Schupfart","4332":"Stein AG",
+  "4333":"Münchwilen AG","4334":"Sisseln",
+  // Luzern
+  "6000":"Luzern","6002":"Luzern","6003":"Luzern","6004":"Luzern",
+  "6005":"Luzern","6006":"Luzern","6010":"Kriens","6012":"Obernau",
+  "6013":"Eigenthal","6014":"Luzern","6015":"Luzern","6016":"Hellbühl",
+  "6017":"Ruswil","6018":"Buttisholz","6019":"Sigigen",
+  "6020":"Emmenbrücke","6021":"Emmenbrücke","6022":"Grosswangen",
+  "6023":"Rothenburg","6024":"Hildisrieden","6025":"Neudorf",
+  "6026":"Rain","6027":"Römerswil LU","6028":"Herlisberg",
+  "6030":"Ebikon","6032":"Emmen","6033":"Buchrain","6034":"Inwil",
+  "6035":"Perlen","6036":"Dierikon","6037":"Root","6038":"Gisikon",
+  "6039":"Root","6040":"Root","6042":"Dietwil","6043":"Adligenswil",
+  "6044":"Udligenswil","6045":"Meggen","6046":"Udligenswil",
+  "6047":"Kastanienbaum","6048":"Horw","6049":"Meggen",
+  // St. Gallen
+  "9000":"St. Gallen","9001":"St. Gallen","9004":"St. Gallen",
+  "9006":"St. Gallen","9007":"St. Gallen","9008":"St. Gallen",
+  "9009":"St. Gallen","9010":"St. Gallen","9011":"St. Gallen",
+  "9012":"St. Gallen","9013":"St. Gallen","9014":"St. Gallen",
+  "9015":"St. Gallen","9016":"St. Gallen","9023":"St. Gallen",
+  "9030":"Abtwil SG","9032":"Engelburg","9033":"Untereggen",
+  "9034":"Eggersriet","9035":"Grub AR","9036":"Grub SG",
+  "9037":"Speicherschwendi","9038":"Rehetobel","9043":"Trogen",
+  "9044":"Wald AR","9052":"Niederteufen","9053":"Teufen AR",
+  "9054":"Haslen AI","9055":"Bühler","9056":"Gais",
+  "9057":"Weissbad","9058":"Brülisau",
+  // Winterthur
+  "8400":"Winterthur","8401":"Winterthur","8402":"Winterthur",
+  "8403":"Winterthur","8404":"Winterthur","8405":"Winterthur",
+  "8406":"Winterthur","8407":"Winterthur","8408":"Winterthur",
+  "8409":"Winterthur","8411":"Winterthur","8412":"Aesch ZH",
+  "8413":"Neftenbach",
+  // Aargau
+  "5000":"Aarau","5001":"Aarau","5004":"Aarau","5012":"Schönenwerd",
+  "5013":"Niedergösgen","5014":"Gretzenbach","5015":"Niedererlinsbach",
+  "5016":"Obererlinsbach","5017":"Barmelweid","5018":"Erlinsbach",
+  "5022":"Rombach","5023":"Biberstein","5024":"Küttigen",
+  "5025":"Asp","5026":"Densbüren","5027":"Herznach",
+  "5028":"Ueken","5032":"Aarau","5033":"Buchs AG",
+  "5034":"Suhr","5035":"Unterentfelden","5036":"Oberentfelden",
+  "5037":"Muhen","5040":"Schöftland","5042":"Hirschthal",
+  "5043":"Holziken","5044":"Schlossrued","5046":"Schmiedrued",
+  "5047":"Schmiedrued","5048":"Sommerau","5053":"Staffelbach",
+  "5054":"Kirchleerau","5055":"Säli-Höfen","5056":"Attelwil",
+  "5057":"Reitnau","5058":"Wiliberg","5062":"Oberhof",
+  "5070":"Frick","5072":"Oeschgen","5073":"Gipf-Oberfrick",
+  "5074":"Eiken","5075":"Hornussen","5076":"Bözen",
+  "5077":"Elfingen","5078":"Effingen","5079":"Zeihen",
+  "5080":"Laufenburg","5082":"Kaisten","5083":"Ittenthal",
+  "5084":"Rheinsulz","5085":"Sulz AG","5102":"Rupperswil",
+  "5103":"Möriken","5105":"Auenstein","5106":"Veltheim AG",
+  "5107":"Schinznach Dorf","5108":"Oberflachs","5112":"Thalheim AG",
+  "5113":"Holderbank AG","5116":"Schinznach Bad","5200":"Brugg AG",
+  "5201":"Brugg AG","5210":"Windisch","5212":"Hausen AG",
+  "5213":"Villnachern","5222":"Umiken","5223":"Riniken",
+  "5224":"Gallenkirch","5225":"Oberbözberg","5226":"Birrenlauf",
+  "5233":"Stilli","5234":"Villigen","5235":"Rüfenach AG",
+  "5236":"Remigen","5237":"Mönthal","5242":"Lupfig",
+  "5243":"Mülligen","5244":"Birrhard","5245":"Habsburg",
+  "5246":"Dachsen","5272":"Gansingen","5273":"Oberhofen AG",
+  "5274":"Mettau","5275":"Etzgen","5276":"Küssaberg",
+  "5277":"Hottwil","5300":"Turgi","5301":"Siggenthal Station",
+  "5302":"Mandach","5303":"Würenlingen","5304":"Endingen",
+  "5305":"Unterendingen","5306":"Tegerfelden","5312":"Döttingen",
+  "5313":"Klingnau","5314":"Kleindöttingen","5315":"Böttstein",
+  "5316":"Leuggern","5317":"Hettenschwil","5318":"Mandach",
+  "5322":"Koblenz AG","5323":"Schwaderloch","5324":"Full-Reuenthal",
+  "5325":"Leibstadt","5326":"Schwaderloch",
+  // Zug
+  "6300":"Zug","6301":"Zug","6302":"Zug","6303":"Zug",
+  "6312":"Steinhausen ZG","6313":"Menzingen","6314":"Unterägeri",
+  "6315":"Morgarten","6317":"Oberwil ZG","6318":"Walchwil",
+  "6319":"Allenwinden","6330":"Cham","6331":"Hünenberg",
+  "6332":"Hagendorn","6333":"Hünenberg See","6340":"Baar",
+  "6341":"Baar","6343":"Rotkreuz","6344":"Meierskappel",
+  "6345":"Neuheim","6353":"Weggis","6354":"Vitznau",
+  "6356":"Rigi Kaltbad","6362":"Stansstad","6363":"Obbürgen",
+  "6364":"Kehrsiten","6365":"Kehrsiten",
+  // Solothurn
+  "4500":"Solothurn","4501":"Solothurn","4502":"Solothurn",
+  "4503":"Solothurn","4512":"Bellach","4513":"Langendorf",
+  "4514":"Lommiswil","4515":"Oberdorf SO","4516":"Hochwald",
+  "4522":"Rüttenen","4523":"Niederwil SO","4524":"Günsberg",
+  "4525":"Balm b. Günsberg","4528":"Zuchwil","4532":"Feldbrunnen",
+  "4533":"Hauenstein-Ifenthal","4534":"Flumenthal","4535":"Kammersrohr",
+  "4536":"Attiswil","4537":"Wiedlisbach","4538":"Oberbipp",
+  "4539":"Rumisberg","4542":"Luterbach","4543":"Deitingen",
+  "4552":"Derendingen","4553":"Subingen","4554":"Etziken",
+  "4556":"Bolken","4557":"Muhlern","4558":"Hersiwil",
+  "4562":"Biberist","4563":"Gerlafingen","4564":"Obergerlafingen",
+  "4565":"Recherswil","4566":"Halten","4571":"Ichertswil",
+  "4573":"Lohn-Ammannsegg","4574":"Lüsslingen","4576":"Tscheppach",
+  "4577":"Hessigkofen","4578":"Bibern SO","4579":"Gossliwil",
+  "4581":"Küttigkofen","4582":"Brügglen","4583":"Mühledorf SO",
+  "4584":"Lüterkofen-Ichertswil","4585":"Olten",
+};
+
+function plzToOrt(plz){
+  return PLZ_CH[plz] || null;
+}
+
+function onPLZInput(){
+  const plz = $('adressePLZ')?.value?.trim();
+  if(plz && plz.length === 4){
+    const ort = plzToOrt(plz);
+    if(ort){
+      const ortEl = $('adresseOrt');
+      if(ortEl && !ortEl.value){
+        ortEl.value = ort;
+        ortEl.style.borderColor = 'var(--green)';
+        setTimeout(()=>{ if(ortEl)ortEl.style.borderColor=''; }, 2000);
+      }
+    }
+  }
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -9457,6 +9711,7 @@ function renderPos(){
       <div style="display:flex;align-items:center;gap:7px;">
         <span class="pc-price">CHF ${p.totalVK.toFixed(2)}</span>
         <button class="icon-btn" onclick="editPos(${i})">✎</button>
+        <button class="icon-btn" onclick="dupPos(${i})" title="Duplizieren" style="opacity:.7;">⧉</button>
         <button class="icon-btn del" onclick="delPos(${i})">✕</button>
       </div>
     </div>`;
@@ -11250,5 +11505,5 @@ function toggleEmailAnalyse(){
 }
 
 </script>
-</body></html.active-filter{background:var(--accent)!important;color:#111!important;border-color:var(--accent)!important;font-weight:700!important;}
->
+</body>
+</html>
