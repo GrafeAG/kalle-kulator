@@ -9109,6 +9109,44 @@ function renderSLArtikelBackend(){
 }
 
 // ═══════════════════════════════════════════════════════
+// AGB HTML — Anhang in Kundenofferte
+// ═══════════════════════════════════════════════════════
+const AGB_HTML = `
+<div style="page-break-before:always;font-family:'Inter',Arial,sans-serif;font-size:9px;color:#333;line-height:1.6;padding:14mm 18mm;">
+  <div style="font-size:14px;font-weight:700;margin-bottom:6mm;border-bottom:1px solid #1c1c1e;padding-bottom:3mm;">
+    Allgemeine Geschäftsbedingungen (AGB) — Grafe AG
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12mm;">
+    <div>
+      <p style="font-weight:700;margin-bottom:2mm;">1. Geltungsbereich</p>
+      <p style="margin-bottom:4mm;">Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Geschäftsbeziehungen zwischen der Grafe AG, Rheinfelderstrasse 12, 4127 Birsfelden (nachfolgend «Grafe AG») und ihren Kunden. Abweichende Bedingungen des Kunden werden nicht anerkannt, es sei denn, Grafe AG stimmt ihrer Geltung ausdrücklich schriftlich zu.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">2. Offerte und Auftragserteilung</p>
+      <p style="margin-bottom:4mm;">Offerten der Grafe AG sind freibleibend und unverbindlich. Ein Vertrag kommt erst durch schriftliche Auftragsbestätigung oder tatsächliche Ausführung des Auftrags durch Grafe AG zustande. Änderungen und Ergänzungen bedürfen der Schriftform.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">3. Preise und Zahlungsbedingungen</p>
+      <p style="margin-bottom:4mm;">Alle Preise verstehen sich in CHF exkl. MwSt., sofern nicht anders angegeben. Rechnungen sind innerhalb von 30 Tagen netto zahlbar. Bei Zahlungsverzug werden Verzugszinsen von 5% p.a. berechnet.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">4. Lieferung und Lieferfristen</p>
+      <p style="margin-bottom:4mm;">Liefertermine sind unverbindlich, sofern nicht ausdrücklich als verbindlich schriftlich vereinbart. Die Lieferfrist beginnt nach vollständiger Auftragsklärung, Zahlungseingang der allfälligen Anzahlung sowie Erhalt sämtlicher für die Ausführung notwendiger Unterlagen.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">5. Gefahrenübergang</p>
+      <p style="margin-bottom:4mm;">Die Gefahr geht mit Übergabe der Ware an den Kunden oder an die Transportperson auf den Kunden über.</p>
+    </div>
+    <div>
+      <p style="font-weight:700;margin-bottom:2mm;">6. Eigentumsvorbehalt</p>
+      <p style="margin-bottom:4mm;">Die gelieferten Waren bleiben bis zur vollständigen Bezahlung Eigentum der Grafe AG.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">7. Mängel und Gewährleistung</p>
+      <p style="margin-bottom:4mm;">Der Kunde hat die Waren unverzüglich nach Erhalt zu prüfen. Mängel sind sofort, spätestens innerhalb von 5 Arbeitstagen schriftlich zu rügen. Bei berechtigten Mängelrügen ist Grafe AG berechtigt, nach eigener Wahl Nachbesserung oder Ersatzlieferung vorzunehmen.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">8. Haftungsbeschränkung</p>
+      <p style="margin-bottom:4mm;">Die Haftung der Grafe AG ist auf direkten Schaden begrenzt. Jede Haftung für Folgeschäden, entgangenen Gewinn oder mittelbare Schäden wird ausgeschlossen.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">9. Urheberrecht / Datenschutz</p>
+      <p style="margin-bottom:4mm;">Alle von Grafe AG erstellten Entwürfe, Zeichnungen und Konzepte bleiben geistiges Eigentum von Grafe AG. Eine Weitergabe an Dritte bedarf der schriftlichen Zustimmung. Grafe AG verarbeitet Kundendaten gemäss den anwendbaren Datenschutzgesetzen.</p>
+      <p style="font-weight:700;margin-bottom:2mm;">10. Gerichtsstand und anwendbares Recht</p>
+      <p style="margin-bottom:4mm;">Für alle Streitigkeiten aus der Geschäftsbeziehung gilt Schweizer Recht. Gerichtsstand ist Basel-Stadt.</p>
+      <p style="margin-top:6mm;color:#666;">Grafe AG · Rheinfelderstrasse 12 · 4127 Birsfelden · Tel. +41 61 421 23 23 · info@grafe.ch · www.grafe.ch</p>
+    </div>
+  </div>
+</div>`;
+
+
+// ═══════════════════════════════════════════════════════
 // KUNDENSTAMM — Autocomplete
 // Lädt kunden.json vom gleichen Ordner wie KALLE
 // ═══════════════════════════════════════════════════════
@@ -10514,7 +10552,7 @@ function printDoc(mode){
     return;
   }
   const isInt=mode==='internal';
-  const agbHtml=isInt?'':AGB_HTML;
+  const agbHtml=isInt?'':(typeof AGB_HTML!=='undefined'?AGB_HTML:'');
   // Strip price info from detail strings in offer mode
   const sp=isInt?s=>s:s=>s
     .replace(/\s*·?\s*CHF\s[\d'.,\s]+/g,'')
