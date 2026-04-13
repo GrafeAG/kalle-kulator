@@ -9644,6 +9644,21 @@ function onPLZInput(){
   }
 }
 
+function loadGlobalMontageData(gm){
+  if(!gm) return;
+  if($('gmLabel'))     $('gmLabel').value          = gm.label     || '';
+  if($('gmNotiz'))     $('gmNotiz').value           = gm.notiz     || '';
+  if($('gmAnfahrtKm')) $('gmAnfahrtKm').value       = gm.anfahrtKm || 0;
+  if($('gmMontStd'))   $('gmMontStd').value         = gm.montStd   || 0;
+  if($('gmMontMA'))    $('gmMontMA').value          = gm.montMA    || 1;
+  const anfahrtAkt = $('gmAnfahrtAkt');
+  if(anfahrtAkt)       anfahrtAkt.checked           = !!gm.anfahrtAkt;
+  const montPersAkt = $('gmMontPersAkt');
+  if(montPersAkt)      montPersAkt.checked          = !!gm.montPersAkt;
+  // Trigger recalculation
+  if(typeof calcGlobalMontage === 'function') calcGlobalMontage();
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -11035,42 +11050,50 @@ function printDoc(mode){
 ${!isInt ? agbHtml : ''}
 
 </body></html>`;
-  // Zuverlässige PDF-Ausgabe via verstecktem iframe (kein Popup-Blocker)
-  const printFrame = document.getElementById('kalle-print-frame') || (() => {
-    const f = document.createElement('iframe');
-    f.id = 'kalle-print-frame';
-    f.style.cssText = 'position:fixed;top:-9999px;left:-9999px;width:1px;height:1px;border:none;';
-    document.body.appendChild(f);
-    return f;
-  })();
-
-  try {
-    const doc = printFrame.contentDocument || printFrame.contentWindow.document;
-    doc.open();
-    doc.write(html);
-    doc.close();
-    setTimeout(() => {
-      try {
-        printFrame.contentWindow.focus();
-        printFrame.contentWindow.print();
-      } catch(e) {
-        // Fallback: neues Fenster
-        const w = window.open('', '_blank');
-        if(w){ w.document.write(html); w.document.close(); setTimeout(()=>w.print(), 600); }
-        else {
-          const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-          const url = URL.createObjectURL(blob);
-          const a = document.createElement('a');
-          a.href = url; a.download = (aufnr||'Offerte')+'.html';
-          a.click();
-          setTimeout(()=>URL.revokeObjectURL(url), 5000);
-        }
+  // PDF Ausgabe — mehrere Methoden, erste die funktioniert wird verwendet
+  function tryPrint(){
+    // Methode 1: Neues Fenster (beste Druckqualität)
+    const w = window.open('', '_blank', 'width=1000,height=1200');
+    if(w && !w.closed){
+      w.document.write(html);
+      w.document.close();
+      w.onload = () => { w.focus(); w.print(); };
+      setTimeout(() => { try{ w.focus(); w.print(); }catch(e){} }, 800);
+      return;
+    }
+    // Methode 2: Blob URL (umgeht Popup-Blocker)
+    try {
+      const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const w2 = window.open(url, '_blank');
+      if(w2){
+        setTimeout(() => URL.revokeObjectURL(url), 10000);
+        return;
       }
-    }, 500);
-  } catch(e) {
-    showToast('PDF-Fehler: ' + e.message, 'error');
-    console.error('[PDF]', e);
+    } catch(e){}
+    // Methode 3: Iframe (funktioniert immer, aber kein separates Fenster)
+    let frame = document.getElementById('kalle-print-frame');
+    if(!frame){
+      frame = document.createElement('iframe');
+      frame.id = 'kalle-print-frame';
+      frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;background:#fff;';
+      document.body.appendChild(frame);
+      // Close button
+      const closeBtn = document.createElement('button');
+      closeBtn.textContent = '✕ Schliessen';
+      closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:100000;padding:8px 16px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:14px;';
+      closeBtn.onclick = () => { frame.remove(); closeBtn.remove(); };
+      document.body.appendChild(closeBtn);
+    }
+    const doc = frame.contentDocument || frame.contentWindow.document;
+    // Add print button to the frame
+    const htmlWithPrint = html.replace('</body>', '<div style="position:fixed;bottom:20px;right:20px;z-index:9999"><button onclick="window.print()" style="padding:12px 24px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:16px;">🖨 Drucken / PDF</button></div></body>');
+    doc.open();
+    doc.write(htmlWithPrint);
+    doc.close();
   }
+  try { tryPrint(); }
+  catch(e){ showToast('PDF Fehler: '+e.message, 'error'); console.error('[PDF]',e); }
 }
 
 
