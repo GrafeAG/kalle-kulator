@@ -1208,7 +1208,20 @@ a, button, input, select, textarea, label,
         <div class="tr" style="margin-bottom:6px;">
           <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="gvAnfahrtAkt" onchange="cGv()"><span class="tsl"></span></label>
             <div><div class="tr-label">Anfahrtspauschale</div><div class="tr-sub" id="gvAnfahrtHint">Einfache Strecke eingeben</div></div></div>
-          <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <div id="gv-fahrstrecke-wrap" style="width:100%;margin-bottom:6px;">
+      <div style="display:flex;gap:5px;align-items:center;">
+        <input type="text" id="gv-fahrstrecke-ort"
+          placeholder="Zielort eingeben (z.B. Zürich, Aarau...)"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                 padding:5px 8px;border-radius:var(--rsm);font-size:11px;"
+          onkeydown="if(event.key==='Enter')berechneFahrstrecke(this.value,'gvAnfahrtKm','gv-fahrstrecke','gv')">
+        <button type="button" class="btn btn-gh"
+          onclick="berechneFahrstrecke(document.getElementById('gv-fahrstrecke-ort')?.value,'gvAnfahrtKm','gv-fahrstrecke','gv')"
+          style="font-size:10px;padding:5px 9px;flex-shrink:0;" title="Entfernung berechnen">📍 km</button>
+      </div>
+      <div id="gv-fahrstrecke" style="font-size:10px;color:var(--muted);margin-top:3px;min-height:14px;"></div>
+    </div>
+  <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
             <input type="number" id="gvAnfahrtKm" value="" min="1" step="1" placeholder="km"
               oninput="const af=$('gvAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;gvAnfahrtUpdate();cGv();"
               style="width:60px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);padding:4px 7px;border-radius:5px;font-size:13px;font-weight:700;text-align:center;">
@@ -1606,7 +1619,20 @@ a, button, input, select, textarea, label,
         <label class="tog" onclick=""><input type="checkbox" id="gmAnfahrtAkt" onchange="calcGlobalMontage()"><span class="tsl"></span></label>
         <div><div class="tr-label">Anfahrtspauschale</div><div class="tr-sub" id="gmAnfahrtHint">Einfache Strecke eingeben</div></div>
       </div>
-      <div class="tr-r" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
+    <div id="gm-fahrstrecke-wrap" style="width:100%;margin-bottom:6px;">
+      <div style="display:flex;gap:5px;align-items:center;">
+        <input type="text" id="gm-fahrstrecke-ort"
+          placeholder="Zielort eingeben (z.B. Zürich, Aarau...)"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                 padding:5px 8px;border-radius:var(--rsm);font-size:11px;"
+          onkeydown="if(event.key==='Enter')berechneFahrstrecke(this.value,'gmAnfahrtKm','gm-fahrstrecke','gm')">
+        <button type="button" class="btn btn-gh"
+          onclick="berechneFahrstrecke(document.getElementById('gm-fahrstrecke-ort')?.value,'gmAnfahrtKm','gm-fahrstrecke','gm')"
+          style="font-size:10px;padding:5px 9px;flex-shrink:0;" title="Entfernung berechnen">📍 km</button>
+      </div>
+      <div id="gm-fahrstrecke" style="font-size:10px;color:var(--muted);margin-top:3px;min-height:14px;"></div>
+    </div>
+  <div class="tr-r" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <input type="number" id="gmAnfahrtKm" value="" min="1" step="1" placeholder="km"
           oninput="const af=$('gmAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;delete this.dataset.ortspauschale;delete this.dataset.ortspreis;gmAnfahrtUpdate();calcGlobalMontage();"
           style="width:60px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);padding:4px 7px;border-radius:5px;font-size:14px;font-weight:700;text-align:center;">
@@ -2201,18 +2227,23 @@ async function analyseEmail(){
 
 async function analyseWithClaude(text,apiKey){
   try{
-    const prompt=`Du analysierst einen E-Mail-Text und extrahierst Kundendaten für ein Werbetechnik-Unternehmen.
+    const prompt=`Du analysierst einen E-Mail-Text und extrahierst Kundendaten für ein Schweizer Werbetechnik-Unternehmen.
 
 Extrahiere folgende Felder (wenn vorhanden):
-- kundenname: Firmenname oder vollständiger Name
+- kundenname: Firmenname oder vollständiger Name des Absenders
 - kontaktperson: Vorname + Nachname der Kontaktperson
-- telefon: Telefonnummer (mit Vorwahl)
-- email: E-Mail-Adresse
-- adresse: Vollständige Adresse (Strasse, PLZ, Ort)
+- telefon: Telefonnummer (mit Vorwahl, z.B. +41 61 123 45 67)
+- email: E-Mail-Adresse des Absenders
+- adresseStrasse: Strasse + Hausnummer (z.B. "Hauptstrasse 12" oder "Rheinfelderstrasse 12")
+- adressePLZ: Postleitzahl (4-stellig, z.B. "4127")
+- adresseOrt: Ortsname (z.B. "Birsfelden")
 - betreff: Kurze Zusammenfassung worum es geht (max 80 Zeichen)
 
+Wichtig: Trenne die Adresse immer in Strasse, PLZ und Ort auf — auch wenn sie in einer Zeile steht.
+Schweizer PLZ sind immer 4-stellig. Deutsche PLZ sind 5-stellig.
+
 Antworte NUR mit einem JSON-Objekt, ohne Erklärungen, ohne Markdown-Backticks:
-{"kundenname":"...","kontaktperson":"...","telefon":"...","email":"...","adresse":"...","betreff":"..."}
+{"kundenname":"...","kontaktperson":"...","telefon":"...","email":"...","adresseStrasse":"...","adressePLZ":"...","adresseOrt":"...","betreff":"..."}
 
 Wenn ein Feld nicht gefunden wird, setze es auf "".
 
@@ -2228,6 +2259,14 @@ ${text}`;
     const data=await resp.json();
     const rawText=data.content.map(b=>b.text||'').join('');
     const json=JSON.parse(rawText.replace(/```json?|```/g,'').trim());
+    // Fallback: wenn Claude doch ein einzelnes 'adresse' Feld zurückgibt → aufteilen
+    if(json.adresse && !json.adresseStrasse){
+      const adrSplit = splitAdresse(json.adresse);
+      json.adresseStrasse = adrSplit.strasse;
+      json.adressePLZ     = adrSplit.plz;
+      json.adresseOrt     = adrSplit.ort;
+      delete json.adresse;
+    }
     fillFields(json);
     setAiStatus('done','✓ Claude hat '+Object.values(json).filter(v=>v).length+' Felder erkannt und ausgefüllt.');
     showExtracted(json);
@@ -2239,7 +2278,7 @@ ${text}`;
 }
 
 function analyseWithRegex(text){
-  const result={kundenname:'',kontaktperson:'',telefon:'',email:'',adresse:'',betreff:''};
+  const result={kundenname:'',kontaktperson:'',telefon:'',email:'',adresseStrasse:'',adressePLZ:'',adresseOrt:'',betreff:''};
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
 
   const emailMatch=text.match(/[\w.+\-]+@[\w\-]+\.[a-zA-Z]{2,6}/);
@@ -2251,10 +2290,32 @@ function analyseWithRegex(text){
   if(!result.telefon){const m=text.match(/(\+41|\+49|\+43)[\s\-\.]?\d{2,3}[\s\-\.]?\d{3}[\s\-\.]?\d{2,4}/);if(m)result.telefon=m[0].trim();}
   if(!result.telefon){const m=text.match(/0[1-9]\d[\s\-\.]?\d{3}[\s\-\.]?\d{2}[\s\-\.]?\d{2}/);if(m)result.telefon=m[0].trim();}
 
-  const adrPat=/([A-Za-zäöüÄÖÜß\-\.]+(?:strasse|str\.|weg|gasse|allee|platz|ring|pfad|rain|matt|matte|feld|berg|bach|fluh|moos|egg|bühl|höhe|gäss)[a-zA-ZäöüÄÖÜ]*)\s+(\d{1,4}[a-zA-Z]?)[,\s]+(\d{4,5})\s+([A-Za-zäöüÄÖÜ\s\-]+)/i;
+  // Adresse aufteilen in Strasse, PLZ, Ort
+  // Methode 1: Strasse Nummer, PLZ Ort (alles in einer Zeile oder mehrzeilig)
+  const adrPat=/([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß\s\-\.]{2,40})\s+(\d{1,4}[a-zA-Z]?)[,\n\s]+([0-9]{4,5})[\s,]+([A-Za-zäöüÄÖÜ][A-Za-zäöüÄÖÜ\s\-]{2,30})/;
   const adrMatch=text.match(adrPat);
-  if(adrMatch)result.adresse=(adrMatch[1]+' '+adrMatch[2]+', '+adrMatch[3]+' '+adrMatch[4].trim()).substring(0,80);
-  if(!result.adresse){const m=text.match(/\d{4}\s+[A-ZÄÖÜ][a-zA-ZäöüÄÖÜ\-]{2,}/);if(m){const idx=text.indexOf(m[0]);const pre=text.substring(Math.max(0,idx-40),idx).match(/[A-Za-zäöüÄÖÜ\-]+\s+\d{1,4}[a-z]?\s*$/);result.adresse=((pre?pre[0]+', ':'')+m[0]).trim().substring(0,80);}}
+  if(adrMatch){
+    result.adresseStrasse = (adrMatch[1].trim()+' '+adrMatch[2]).trim();
+    result.adressePLZ     = adrMatch[3].trim();
+    result.adresseOrt     = adrMatch[4].trim().split(/[\n,]/)[0].trim();
+  }
+  // Methode 2: Nur PLZ + Ort finden, Strasse aus Vorkontext
+  if(!result.adressePLZ){
+    const plzOrtMatch=text.match(/([0-9]{4,5})[\s]+([A-ZÄÖÜ][A-Za-zäöüÄÖÜ\-]{2,30})/);
+    if(plzOrtMatch){
+      result.adressePLZ=plzOrtMatch[1];
+      result.adresseOrt=plzOrtMatch[2];
+      // Strasse aus dem Text vor PLZ suchen
+      const idx=text.indexOf(plzOrtMatch[0]);
+      const before=text.substring(Math.max(0,idx-80),idx);
+      const streetMatch=before.match(/([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß\s\-\.]+\s+\d{1,4}[a-zA-Z]?)\s*[,\n]?\s*$/);
+      if(streetMatch) result.adresseStrasse=streetMatch[1].trim();
+    }
+  }
+  // PLZ → Ort Lookup als Fallback
+  if(result.adressePLZ && !result.adresseOrt){
+    result.adresseOrt = plzToOrt(result.adressePLZ) || '';
+  }
 
   const subjLine=lines.find(l=>/^(betreff|subject|re\s*:|aw\s*:|fwd?\s*:|thema\s*:)/i.test(l));
   if(subjLine)result.betreff=subjLine.replace(/^(betreff|subject|re\s*:|aw\s*:|fwd?\s*:|thema\s*:)\s*/i,'').trim().substring(0,100);
@@ -2299,9 +2360,11 @@ function showExtracted(data){
   const filled=Object.entries(data).filter(([k,v])=>v);
   if(!filled.length){el.style.display='none';return;}
   el.style.display='block';
+  const labels={kundenname:'Firma',kontaktperson:'Person',telefon:'Telefon',email:'E-Mail',
+    adresseStrasse:'Strasse',adressePLZ:'PLZ',adresseOrt:'Ort',betreff:'Betreff'};
   el.innerHTML='<div style="font-size:10px;color:var(--muted);margin-bottom:8px;text-transform:uppercase;letter-spacing:1px;">Erkannte Felder:</div>'+
     filled.map(([k,v])=>`<div style="display:flex;gap:8px;padding:3px 0;font-size:12px;">
-      <span style="color:var(--muted);min-width:100px;">${{kundenname:'Firma',kontaktperson:'Person',telefon:'Telefon',email:'E-Mail',adresse:'Adresse',betreff:'Betreff'}[k]||k}</span>
+      <span style="color:var(--muted);min-width:100px;">${labels[k]||k}</span>
       <span style="color:var(--text);font-weight:500;">${v}</span>
     </div>`).join('');
 }
@@ -3354,6 +3417,19 @@ function buildFrMontageStep(){
     <div><div class="tr-label">Anfahrtspauschale</div>
     <div class="tr-sub" id="frAnfahrtHint">Einfache Strecke eingeben</div></div>
   </div>
+<div id="fr-fahrstrecke-wrap" style="width:100%;margin-bottom:6px;">
+      <div style="display:flex;gap:5px;align-items:center;">
+        <input type="text" id="fr-fahrstrecke-ort"
+          placeholder="Zielort eingeben (z.B. Zürich, Aarau...)"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                 padding:5px 8px;border-radius:var(--rsm);font-size:11px;"
+          onkeydown="if(event.key==='Enter')berechneFahrstrecke(this.value,'frAnfahrtKm','fr-fahrstrecke','fr')">
+        <button type="button" class="btn btn-gh"
+          onclick="berechneFahrstrecke(document.getElementById('fr-fahrstrecke-ort')?.value,'frAnfahrtKm','fr-fahrstrecke','fr')"
+          style="font-size:10px;padding:5px 9px;flex-shrink:0;" title="Entfernung berechnen">📍 km</button>
+      </div>
+      <div id="fr-fahrstrecke" style="font-size:10px;color:var(--muted);margin-top:3px;min-height:14px;"></div>
+    </div>
   <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
     <input type="number" id="frAnfahrtKm" value="" min="1" step="1" placeholder="km"
       oninput="const af=$('frAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;delete this.dataset.ortspauschale;delete this.dataset.ortspreis;frAnfahrtUpdate();cFr();"
@@ -4440,7 +4516,20 @@ function buildFtMontage(){
   const aRow=document.createElement('div');aRow.className='tr';aRow.style.marginBottom='6px';
   aRow.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="ftAnfahrtAkt" onchange="cFt()"><span class="tsl"></span></label>
     <div><div class="tr-label">Anfahrtspauschale</div><div class="tr-sub" id="ftAnfahrtHint">Einfache Strecke eingeben</div></div></div>
-    <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+  <div id="ft-fahrstrecke-wrap" style="width:100%;margin-bottom:6px;">
+      <div style="display:flex;gap:5px;align-items:center;">
+        <input type="text" id="ft-fahrstrecke-ort"
+          placeholder="Zielort eingeben (z.B. Zürich, Aarau...)"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                 padding:5px 8px;border-radius:var(--rsm);font-size:11px;"
+          onkeydown="if(event.key==='Enter')berechneFahrstrecke(this.value,'ftAnfahrtKm','ft-fahrstrecke','ft')">
+        <button type="button" class="btn btn-gh"
+          onclick="berechneFahrstrecke(document.getElementById('ft-fahrstrecke-ort')?.value,'ftAnfahrtKm','ft-fahrstrecke','ft')"
+          style="font-size:10px;padding:5px 9px;flex-shrink:0;" title="Entfernung berechnen">📍 km</button>
+      </div>
+      <div id="ft-fahrstrecke" style="font-size:10px;color:var(--muted);margin-top:3px;min-height:14px;"></div>
+    </div>
+  <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
       <input type="number" id="ftAnfahrtKm" value="" min="1" step="1" placeholder="km"
         oninput="const af=$('ftAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;delete this.dataset.ortspauschale;delete this.dataset.ortspreis;ftAnfahrtUpdate();cFt();"
         style="width:60px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);padding:4px 7px;border-radius:5px;font-size:14px;font-weight:700;text-align:center;">
@@ -6489,6 +6578,19 @@ function buildSlMontageStep(){
       <div class="tr-sub" id="slAnfahrtHint">Einfache Strecke eingeben → Staffel wird automatisch gewählt</div>
     </div>
   </div>
+<div id="sl-fahrstrecke-wrap" style="width:100%;margin-bottom:6px;">
+      <div style="display:flex;gap:5px;align-items:center;">
+        <input type="text" id="sl-fahrstrecke-ort"
+          placeholder="Zielort eingeben (z.B. Zürich, Aarau...)"
+          style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                 padding:5px 8px;border-radius:var(--rsm);font-size:11px;"
+          onkeydown="if(event.key==='Enter')berechneFahrstrecke(this.value,'slAnfahrtKm','sl-fahrstrecke','sl')">
+        <button type="button" class="btn btn-gh"
+          onclick="berechneFahrstrecke(document.getElementById('sl-fahrstrecke-ort')?.value,'slAnfahrtKm','sl-fahrstrecke','sl')"
+          style="font-size:10px;padding:5px 9px;flex-shrink:0;" title="Entfernung berechnen">📍 km</button>
+      </div>
+      <div id="sl-fahrstrecke" style="font-size:10px;color:var(--muted);margin-top:3px;min-height:14px;"></div>
+    </div>
   <div class="tr-r" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
     <input type="number" id="slAnfahrtKm" value="" min="1" step="1" placeholder="km"
       oninput="const af=$('slAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;slAnfahrtUpdate();cSl();"
@@ -9819,6 +9921,109 @@ function slSetFormfaktor(ff, btn){
   cSl();
 }
 
+function splitAdresse(adr){
+  // Teilt "Rheinfelderstrasse 12, 4127 Birsfelden" oder "Rheinfelderstrasse 12 4127 Birsfelden"
+  // in die drei Einzelteile auf
+  const result = {strasse:'', plz:'', ort:''};
+  if(!adr) return result;
+
+  // PLZ (4 oder 5 Stellen) suchen
+  const plzMatch = adr.match(/\b(\d{4,5})\s+([A-ZÄÖÜa-zäöü][A-Za-zäöüÄÖÜ\s\-]+)/);
+  if(plzMatch){
+    result.plz  = plzMatch[1];
+    result.ort  = plzMatch[2].trim().split(/[,;\n]/)[0].trim();
+    // Alles vor der PLZ = Strasse
+    const idx = adr.indexOf(plzMatch[0]);
+    result.strasse = adr.substring(0, idx).replace(/[,\s]+$/, '').trim();
+  } else {
+    result.strasse = adr.trim();
+  }
+  // PLZ→Ort Lookup als zusätzlicher Check
+  if(result.plz && !result.ort){
+    result.ort = plzToOrt(result.plz) || '';
+  }
+  return result;
+}
+
+// ═══════════════════════════════════════════════════════
+// FAHRSTRECKE BERECHNEN — Nominatim + OSRM (kostenlos)
+// Standort Grafe AG: Rheinfelderstrasse 12, 4127 Birsfelden
+// ═══════════════════════════════════════════════════════
+const GRAFE_LNG = 7.6247;
+const GRAFE_LAT = 47.5542;
+
+async function berechneFahrstrecke(ort, kmInputId, hintId, pfx){
+  if(!ort || ort.length < 2) return;
+  const hint = document.getElementById(hintId);
+  if(hint){ hint.textContent = '⏳ Berechne...'; hint.style.color = 'var(--muted)'; }
+
+  try{
+    // 1. Geocoding via Nominatim (OpenStreetMap)
+    const q = encodeURIComponent(ort + ' Schweiz');
+    const geoResp = await fetch(
+      `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=3&countrycodes=ch,de,at,li&accept-language=de`,
+      { headers: { 'Accept-Language': 'de' } }
+    );
+    const geoData = await geoResp.json();
+    if(!geoData.length){
+      // Retry without country filter
+      const geoResp2 = await fetch(
+        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ort)}&format=json&limit=1`,
+        { headers: { 'Accept-Language': 'de' } }
+      );
+      const geoData2 = await geoResp2.json();
+      if(!geoData2.length){
+        if(hint){ hint.textContent = '✗ Ort nicht gefunden'; hint.style.color = 'var(--danger)'; }
+        return;
+      }
+      geoData.push(...geoData2);
+    }
+
+    const { lat, lon, display_name } = geoData[0];
+    const ortName = display_name.split(',').slice(0,2).join(',').trim();
+
+    // 2. Routing via OSRM (kostenlos, kein API-Key)
+    const routeResp = await fetch(
+      `https://router.project-osrm.org/route/v1/driving/${GRAFE_LNG},${GRAFE_LAT};${lon},${lat}?overview=false`
+    );
+    const routeData = await routeResp.json();
+    if(routeData.code !== 'Ok' || !routeData.routes?.length){
+      if(hint){ hint.textContent = '✗ Route nicht berechenbar'; hint.style.color = 'var(--danger)'; }
+      return;
+    }
+
+    const km    = Math.round(routeData.routes[0].distance / 1000);
+    const min   = Math.round(routeData.routes[0].duration / 60);
+    const hours = Math.floor(min / 60);
+    const mins  = min % 60;
+    const fahrzeit = hours > 0 ? `${hours}h ${mins}min` : `${min} Min`;
+
+    // Km-Feld füllen
+    const kmEl = document.getElementById(kmInputId);
+    if(kmEl){
+      kmEl.value = km;
+      kmEl.style.borderColor = 'var(--green)';
+      setTimeout(() => { if(kmEl) kmEl.style.borderColor = ''; }, 2000);
+      // Trigger update
+      kmEl.dispatchEvent(new Event('input'));
+    }
+
+    if(hint){
+      hint.innerHTML = `✓ <strong>${ortName}</strong> — ${km} km · Fahrzeit ca. ${fahrzeit}`;
+      hint.style.color = 'var(--green)';
+    }
+
+    // Update anfahrt table highlight
+    if(typeof slAnfahrtUpdate==='function' && pfx==='sl') slAnfahrtUpdate();
+    if(typeof frAnfahrtUpdate==='function' && pfx==='fr') frAnfahrtUpdate();
+    if(typeof gmAnfahrtUpdate==='function' && pfx==='gm') gmAnfahrtUpdate();
+
+  }catch(e){
+    if(hint){ hint.textContent = '✗ Fehler: ' + e.message; hint.style.color = 'var(--danger)'; }
+    console.warn('[KALLE] Fahrstrecke:', e);
+  }
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -10836,15 +11041,12 @@ function printDoc(mode){
     if(montArbStr)mods.push(`Montage: ${montArbStr}`);
     if(montStr)mods.push(`Befestigung vor Ort: ${montStr}`);
     if(p.montPersAkt&&p.montStd>0)mods.push(`Montagepersonal: ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd} h`);
-    if(p.anfahrtKm>0)mods.push(`Anfahrt: ${p.anfahrtKm} km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''}`);
     return `<tr style="${variantStyle}">
         <td class="c-pos">${i+1}</td><td class="c-menge">${p.stk}</td><td class="c-me">Stk.</td>
         <td class="c-bez"><strong>${p.label}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br>
           <span class="sub">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m²${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+p.matName}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}<br>
           ${mods.filter(Boolean).map(m=>'<span style="display:block;margin-top:1px;">'+m+'</span>').join('')}
-          ${arbStr?'<br>Arbeitsleistungen: '+arbStr:''}
-          ${p.montageSeparat?'<br><em style="color:#888;font-size:10px;">Montage separat ausgewiesen</em>':montStr?'<br>Montage: '+montStr:''}
-          ${(()=>{const s=(p.wtArbeiten||[]).length>0?'<br>Werbetechnikerarbeit: '+p.wtArbeiten.map(a=>a.name+' '+a.min+'Min').join(' · '):'';return s;})()}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}
+
           ${isInt?`<br><span style="color:#999;">Mat.EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Folie EK CHF ${p.folieMatEK?.toFixed(2)}</span>`:''}
           </span>
           ${rabattInline}
