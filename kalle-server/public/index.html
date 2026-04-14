@@ -1634,7 +1634,7 @@ a, button, input, select, textarea, label,
     </div>
   <div class="tr-r" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
         <input type="number" id="gmAnfahrtKm" value="" min="1" step="1" placeholder="km"
-          oninput="const af=$('gmAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;delete this.dataset.ortspauschale;delete this.dataset.ortspreis;gmAnfahrtUpdate();calcGlobalMontage();"
+          oninput="const af=$('gmAnfahrtAkt');if(af&&this.value>0&&!af.checked){af.checked=true;autoActivateMonteur('gm');}delete this.dataset.ortspauschale;delete this.dataset.ortspreis;gmAnfahrtUpdate();calcGlobalMontage();"
           style="width:60px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);padding:4px 7px;border-radius:5px;font-size:14px;font-weight:700;text-align:center;">
         <span style="font-size:11px;color:var(--muted);">km</span>
         <span class="pbadge" id="pb-gmAnfahrt">–</span>
@@ -2797,6 +2797,16 @@ function reBuild(){
   dd.appendChild(mkTR('aktLaminat','Laminat','Gleiche Mindestmenge wie Folie',mkSel(P.laminate,'215MDU'),'pb-laminat'));
   addSecHead(dd,'Drucktechnik','y');
   dd.appendChild(mkTR('aktDruck','Druckart','Auf Druck-Mindestmenge',mkSel(P.druckarten,'Solvent'),'pb-druck'));
+  setTimeout(()=>{
+    const fDruckChk=$('aktDruck');
+    if(fDruckChk){
+      fDruckChk.addEventListener('change',function(){
+        if(this.checked){
+          const s=$('aktSetup');if(s&&!s.checked){s.checked=true;}
+        }
+      });
+    }
+  },50);
   dd.appendChild(mkTR('aktSetup','Setup / Einrichtungskosten',`CHF ${getSetupPreis().toFixed(2)} pauschal`,null,'pb-setup'));
 
   const plottMin=((P.plottbreite||1200)/1000*.5).toFixed(4);
@@ -3430,7 +3440,7 @@ function buildFrMontageStep(){
     </div>
   <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
     <input type="number" id="frAnfahrtKm" value="" min="1" step="1" placeholder="km"
-      oninput="const af=$('frAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;delete this.dataset.ortspauschale;delete this.dataset.ortspreis;frAnfahrtUpdate();cFr();"
+      oninput="const af=$('frAnfahrtAkt');if(af&&this.value>0&&!af.checked){af.checked=true;autoActivateMonteur('fr');}delete this.dataset.ortspauschale;delete this.dataset.ortspreis;frAnfahrtUpdate();cFr();"
       style="width:65px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);
              padding:4px 8px;border-radius:5px;font-size:14px;font-weight:700;text-align:center;">
     <span style="font-size:11px;color:var(--muted);">km</span>
@@ -4379,6 +4389,17 @@ function ftReBuild(){
   mat.appendChild(rFolie);
   mat.appendChild(mkTR('ftAktLaminat','Laminat','Gleiche Mindestmenge wie Folie',mkSel(P.laminate,'215MDU',cFt),'pb-ftLaminat',cFt));
   mat.appendChild(mkTR('ftAktDruck','Druckart','CHF/m²',mkSel(P.druckarten,'Solvent',cFt),'pb-ftDruck',cFt));
+  // Auto-Setup bei Druckart
+  setTimeout(()=>{
+    const ftDruckChk=$('ftAktDruck');
+    if(ftDruckChk){
+      ftDruckChk.addEventListener('change',function(){
+        if(this.checked){
+          const s=$('ftAktSetupPS');if(s&&!s.checked){s.checked=true;cFt();}
+        }
+      });
+    }
+  },50);
 
   const setupDD=mkTR('ftAktSetupDD','Setup Digitaldruck','CHF 35.– einmalig pauschal',null,'pb-ftSetupDD',cFt);
   mat.appendChild(setupDD);
@@ -4528,7 +4549,7 @@ function buildFtMontage(){
     </div>
   <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
       <input type="number" id="ftAnfahrtKm" value="" min="1" step="1" placeholder="km"
-        oninput="const af=$('ftAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;delete this.dataset.ortspauschale;delete this.dataset.ortspreis;ftAnfahrtUpdate();cFt();"
+        oninput="const af=$('ftAnfahrtAkt');if(af&&this.value>0&&!af.checked){af.checked=true;autoActivateMonteur('ft');}delete this.dataset.ortspauschale;delete this.dataset.ortspreis;ftAnfahrtUpdate();cFt();"
         style="width:60px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);padding:4px 7px;border-radius:5px;font-size:14px;font-weight:700;text-align:center;">
       <span style="font-size:11px;color:var(--muted);">km</span>
       <span class="pbadge" id="pb-ftAnfahrt">–</span>
@@ -5210,6 +5231,18 @@ const SL_RAL=[
 function slReBuild(){
   const dd=$('tgSlDD'),ps=$('tgSlPS'),ac=$('tgSlWT');
   if(!dd)return;
+
+  // Snapshot current checkbox/select state BEFORE wiping DOM
+  const _snap = {};
+  ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup'].forEach(id=>{
+    const el=$(id); if(!el)return;
+    _snap[id+'_chk'] = el.checked;
+    const sel=el.closest('.tr')?.querySelector('select');
+    if(sel) _snap[id+'_sel'] = sel.value;
+  });
+  // Plott farben
+  try{ _snap._plottFarben = sessionStorage.getItem('sl_pf_farben'); }catch(e){}
+
   dd.innerHTML='';ps.innerHTML='';
 
   const ddH=document.createElement('div');ddH.className='hint ht';ddH.style.marginBottom='10px';
@@ -5236,6 +5269,18 @@ function slReBuild(){
   dd.appendChild(mkTR('slAktLaminat','Laminat','Gleiche Mindestmenge',mkSel(P.laminate,'215MDU',cSl),'pb-slLaminat'));
   addSecHead(dd,'Drucktechnik','y');
   dd.appendChild(mkTR('slAktDruck','Druckart','Auf Druck-Mindestmenge',mkSel(P.druckarten,'Solvent',cSl),'pb-slDruck'));
+  // Auto-Setup bei Druckart
+  setTimeout(()=>{
+    const slDruckChk=$('slAktDruck');
+    if(slDruckChk){
+      const origOnChange=slDruckChk.onchange;
+      slDruckChk.addEventListener('change',function(){
+        if(this.checked){
+          const s=$('slAktSetup');if(s&&!s.checked){s.checked=true;}
+        }
+      });
+    }
+  },50);
   dd.appendChild(mkTR('slAktSetup','Setup / Einrichtungskosten',`CHF ${getSetupPreis().toFixed(2)} pauschal`,null,'pb-slSetup',cSl));
 
   const plottMin=((P.plottbreite||1200)/1000*.5).toFixed(4);
@@ -5274,7 +5319,39 @@ function slReBuild(){
   slReBuildWT();
   slReBuildArb();
 
-  cSl();
+  // Restore state: prefer live snapshot, fallback to _slEditPos
+  setTimeout(()=>{
+    const snapHasData = _snap && Object.keys(_snap).some(k=>k.endsWith('_chk') && _snap[k]);
+    const ep = window._slEditPos;
+
+    if(snapHasData){
+      // User had already set values — restore snapshot
+      ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup'].forEach(id=>{
+        if(_snap[id+'_chk']===undefined) return;
+        const el=$(id); if(!el) return;
+        el.checked = _snap[id+'_chk'];
+        const sel=el.closest('.tr')?.querySelector('select');
+        if(sel && _snap[id+'_sel']) sel.value = _snap[id+'_sel'];
+      });
+    } else if(ep){
+      // Fresh step switch while editing — restore from position data
+      const restoreOne=(id,txt)=>{
+        if(!txt)return;
+        const el=$(id);if(!el)return;
+        el.checked=true;
+        const sel=el.closest('.tr')?.querySelector('select');
+        if(sel){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;break;}}}
+      };
+      restoreOne('slAktFolie',ep.folie);
+      restoreOne('slAktLaminat',ep.laminat);
+      restoreOne('slAktDruck',ep.druck);
+      restoreOne('slAktTape',ep.tape);
+      const ss=$('slAktSetup');if(ss)ss.checked=!!ep.setup;
+      const sps=$('slAktPlottSetup');if(sps)sps.checked=!!ep.plottSetup;
+      if(ep.plottFarben){slSetPlottFarben(ep.plottFarben);}
+    }
+    cSl();
+  },15);
 }
 
 function slGetPlottFarben(){try{return JSON.parse(sessionStorage.getItem('sl_pf_farben')||'[""]');}catch(e){return[''];}}
@@ -6590,7 +6667,7 @@ function buildSlMontageStep(){
     </div>
   <div class="tr-r" style="display:flex;gap:6px;align-items:center;flex-wrap:wrap;">
     <input type="number" id="slAnfahrtKm" value="" min="1" step="1" placeholder="km"
-      oninput="const af=$('slAnfahrtAkt');if(af&&this.value>0&&!af.checked)af.checked=true;slAnfahrtUpdate();cSl();"
+      oninput="const af=$('slAnfahrtAkt');if(af&&this.value>0&&!af.checked){af.checked=true;autoActivateMonteur('sl');}slAnfahrtUpdate();cSl();"
       style="width:65px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);
              padding:4px 8px;border-radius:5px;font-size:14px;font-weight:700;text-align:center;">
     <span style="font-size:11px;color:var(--muted);">km</span>
@@ -7123,7 +7200,7 @@ function saveSchild(){
     spezMatTyp:$('slSpezMatTyp')?.value||'stueck',
     spezMatEK:parseFloat($('slSpezMatEK')?.value)||0,
     spezMatMarge:parseFloat($('slSpezMatMarge')?.value)||0.4,
-    folie:gC('slAktFolie')?gSelTxtInRow('slAktFolie'):null,
+    folie:gC('slAktFolie')?(gSelTxtInRow('slAktFolie')||$('slAktFolie')?.closest('.tr')?.querySelector('select')?.options?.[0]?.text||''):null,
     laminat:gC('slAktLaminat')?gSelTxtInRow('slAktLaminat'):null,
     plottFarben:slGetPlottFarben(),
     tape:gC('slAktTape')?gSelTxtInRow('slAktTape'):null,
@@ -7453,6 +7530,7 @@ function startPos(type){
     $('schildForm').style.display='block';
     sessionStorage.removeItem('sl_pf_farben');sessionStorage.removeItem('sl_gv_farben');
     window._slFormfaktor = 0.5; // default Rechteck
+    window._slEditPos = null; // clear edit state
     ['slLabel','slGvText','slGvPaste'].forEach(id=>{const e=$(id);if(e)e.value='';});
     if($('slLen'))$('slLen').value=200;if($('slBr'))$('slBr').value=100;if($('slStk'))$('slStk').value=1;
     if($('slGvZManual')){$('slGvZManual').value=0;$('slGvZManual').style.borderColor='var(--green)';}
@@ -10019,6 +10097,28 @@ async function berechneFahrstrecke(ort, kmInputId, hintId, pfx){
   }
 }
 
+function autoActivateMonteur(pfx){
+  // Aktiviert automatisch Montagepersonal wenn Anfahrt aktiviert wird
+  if(pfx === 'gm'){
+    const el=$('gmMontPersAkt');
+    if(el && !el.checked){ el.checked=true; calcGlobalMontage(); }
+    return;
+  }
+  // For sl/fr/ft: find Montage group checkbox
+  const P_arb = typeof P !== 'undefined' ? P.arbeitswerte : [];
+  const montIdx = P_arb.findIndex(a=>a.gruppe==='Montage'&&a.name.toLowerCase().includes('personal'));
+  if(montIdx < 0) return;
+  const chk = document.getElementById(pfx+'-arb'+montIdx)
+           || document.getElementById(pfx+'MontPersAkt');
+  if(chk && !chk.checked){
+    chk.checked = true;
+    // Trigger recalc
+    if(pfx==='sl') cSl && cSl();
+    else if(pfx==='fr') cFr && cFr();
+    else if(pfx==='ft') cFt && cFt();
+  }
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -10168,6 +10268,9 @@ function editPos(i){
         const sel=row?.querySelector('select');
         if(sel){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;break;}}}
       }
+      // Store position data for restore on step switch
+      window._slEditPos = p;
+
       restoreSel2('slAktFolie',P.digitaldruckfolien,p.folie);
       restoreSel2('slAktLaminat',P.laminate,p.laminat);
       restoreSel2('slAktDruck',P.druckarten,p.druck);
@@ -10609,6 +10712,7 @@ function filterOfferten(){
           style="font-size:10px;" title="Laden und bearbeiten">↑ Laden</button>
         <button class="btn btn-gh" onclick="printOfferteFromServer('${o.auftragsnr}')"
           style="font-size:10px;" title="PDF erstellen">⎙ PDF</button>
+
       </div>`;
     liste.appendChild(el);
   });
