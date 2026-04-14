@@ -5434,10 +5434,44 @@ function slSetZuschnitt(btn){
     const fzBasis=(function(){const fz=P.fraes?.fraeszeiten||[];for(let i=0;i<fz.length;i++){if(vh<=fz[i].vh)return fz[i].min;}const l2=fz[fz.length-1];return l2?l2.min+(vh-l2.vh)*(l2.min/l2.vh)*.5:1;})();
     const fzMin=Math.round(fzBasis*stk*(1+nesting)*10)/10;
     const defEntg=Math.round(stk*1.5*10)/10;
-    det.innerHTML=`<div class="hint ht" style="margin-bottom:8px;font-size:10px;">${(m2*10000).toFixed(0)} cm² → äq. VH ${vh}mm · Nesting +${Math.round(nesting*100)}% → ${fzMin} Min</div>
+    const slFormfaktor = window._slFormfaktor || 0.5; // default Rechteck
+    const fzMinAdj = Math.round(fzMin * slFormfaktor * 10) / 10;
+    window._slFzMinBase = fzMin; // store base for recalculation
+    det.innerHTML=`<div class="hint ht" style="margin-bottom:8px;font-size:10px;">${(m2*10000).toFixed(0)} cm² → äq. VH ${vh}mm · Nesting +${Math.round(nesting*100)}% → Basis ${fzMin} Min</div>
+
+    <!-- Formfaktor Selector -->
+    <div style="margin-bottom:10px;">
+      <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px;">Formkomplexität Zuschnitt</div>
+      <div style="display:flex;gap:5px;margin-bottom:6px;">
+        <div class="zopt${slFormfaktor===0.5?' sel':''}" data-ff="0.5" onclick="slSetFormfaktor(0.5,this)"
+          style="flex:1;padding:6px 4px;text-align:center;font-size:10px;">
+          <div style="font-size:13px;">▭</div>
+          <div style="font-weight:600;">Rechteck</div>
+          <div style="font-size:9px;color:var(--muted);">−50% Fräszeit</div>
+          <div style="font-size:9px;color:var(--accent);">× 0.5</div>
+        </div>
+        <div class="zopt${slFormfaktor===0.75?' sel':''}" data-ff="0.75" onclick="slSetFormfaktor(0.75,this)"
+          style="flex:1;padding:6px 4px;text-align:center;font-size:10px;">
+          <div style="font-size:13px;">⬭</div>
+          <div style="font-weight:600;">Oval / Ausschnitte</div>
+          <div style="font-size:9px;color:var(--muted);">−25% Fräszeit</div>
+          <div style="font-size:9px;color:var(--accent);">× 0.75</div>
+        </div>
+        <div class="zopt${slFormfaktor===1.0?' sel':''}" data-ff="1.0" onclick="slSetFormfaktor(1.0,this)"
+          style="flex:1;padding:6px 4px;text-align:center;font-size:10px;">
+          <div style="font-size:13px;">✦</div>
+          <div style="font-weight:600;">Komplex</div>
+          <div style="font-size:9px;color:var(--muted);">volle Fräszeit</div>
+          <div style="font-size:9px;color:var(--accent);">× 1.0</div>
+        </div>
+      </div>
+      <div id="slFormfaktorHint" style="font-size:10px;color:var(--muted);margin-bottom:4px;">
+        Basis ${fzMin} Min × ${slFormfaktor} = <strong style="color:var(--accent);">${fzMinAdj} Min</strong>
+      </div>
+    </div>
     <div class="tr" style="margin-bottom:5px;"><div class="tr-l"><label class="tog"><input type="checkbox" id="slZAkt" onchange="cSl()" checked><span class="tsl"></span></label>
       <div><div class="tr-label">CNC Fräsen Zuschnitt</div><div class="tr-sub">CHF ${fraesRate.toFixed(2)}/Min · ≈${(fraesRate*60).toFixed(0)} CHF/h</div></div></div>
-      <div class="tr-r"><input type="number" id="min-slZ" value="${fzMin}" min="0" step="0.1" oninput="cSl()"
+      <div class="tr-r"><input type="number" id="min-slZ" value="${fzMinAdj}" min="0" step="0.1" oninput="cSl()"
         style="width:50px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;">
       <span style="color:var(--muted);font-size:10px;">Min</span><span class="pbadge" id="pb-slZ">–</span></div></div>
     <div class="tr" style="margin-bottom:5px;"><div class="tr-l"><label class="tog"><input type="checkbox" id="slZSetup" onchange="cSl()" checked><span class="tsl"></span></label>
@@ -7029,6 +7063,7 @@ function saveSchild(){
     befestigungVK:r.befestigungVK||0,
     zuschnittMethode:document.querySelector('#slZuschnittMethode .zopt.sel')?.dataset.val||'kein',
     angeliefertBez:$('slAngeliefertBez')?.value?.trim()||'',
+    slFormfaktor: window._slFormfaktor || 0.5,
     zuschnittVK:r.zuschnittVK||0,
     eloxAkt:gC('slEloxAkt'),frEloxVK:r.eloxVK||0,
     bruenAkt:gC('slBruenAkt'),bruenMin:parseFloat($('slBruen-minuten')?.value)||0,bruenVK:r.bruenVK||0,
@@ -7320,6 +7355,7 @@ function startPos(type){
     $('schildTitle').textContent='Neue Position – Schild';
     $('schildForm').style.display='block';
     sessionStorage.removeItem('sl_pf_farben');sessionStorage.removeItem('sl_gv_farben');
+    window._slFormfaktor = 0.5; // default Rechteck
     ['slLabel','slGvText','slGvPaste'].forEach(id=>{const e=$(id);if(e)e.value='';});
     if($('slLen'))$('slLen').value=200;if($('slBr'))$('slBr').value=100;if($('slStk'))$('slStk').value=1;
     if($('slGvZManual')){$('slGvZManual').value=0;$('slGvZManual').style.borderColor='var(--green)';}
@@ -9765,6 +9801,24 @@ function initTheme(){
   }
 }
 
+function slSetFormfaktor(ff, btn){
+  window._slFormfaktor = ff;
+  // Update button styles
+  const row = btn?.closest('[style*="display:flex"]');
+  if(row){
+    row.querySelectorAll('[data-ff]').forEach(b => b.classList.remove('sel'));
+    btn.classList.add('sel');
+  }
+  // Update hint
+  const minEl = $('min-slZ');
+  const baseMin = window._slFzMinBase || parseFloat(minEl?.value) || 0;
+  const adj = Math.round(baseMin * ff * 10) / 10;
+  const hint = document.getElementById('slFormfaktorHint');
+  if(hint) hint.innerHTML = `Basis ${baseMin} Min × ${ff} = <strong style="color:var(--accent);">${adj} Min</strong>`;
+  if(minEl) minEl.value = adj;
+  cSl();
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -9884,10 +9938,11 @@ function editPos(i){
       const zm = p.zuschnittMethode||'saegen';
       const btn=document.querySelector(`#slZuschnittMethode .zopt[data-val="${zm}"]`);
       if(btn) slSetZuschnitt(btn);
-      // Restore angeliefertBez text
+      // Restore angeliefertBez + formfaktor
       setTimeout(()=>{
         const abEl=$('slAngeliefertBez');
         if(abEl&&p.angeliefertBez) abEl.value=p.angeliefertBez;
+        if(p.slFormfaktor) window._slFormfaktor = p.slFormfaktor;
       },50);
     }, 50);
     if($('slMarge'))$('slMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.5;
