@@ -1553,7 +1553,7 @@ a, button, input, select, textarea, label,
               <div class="sl-pd">Positionsbezogene Montage. Globale Montage am Auftragsende separat.</div>
             </div>
             <div id="tgSlMon"></div>
-            <div id="tgSlMonMat"></div>
+
             <div class="sl-nr">
               <button class="sl-nb" onclick="swSlStep(6)">← Vorbereitungsarbeiten</button>
             </div>
@@ -2883,9 +2883,7 @@ function reBuild(){
     ac.appendChild(mkArbRow('akt-arb'+i,item.name,i,'pb-arb'+i));
   });
 
-  buildMontage('tgFMon','folie');
-  buildMontage('tgFrMon','fraes');
-  buildMontage('tgGvMon','gravur');
+
   cF();
 }
 
@@ -3504,7 +3502,7 @@ function buildFrMontageStep(){
     ac.appendChild(mkArbRow('fr-arb'+i,item.name,i,'pb-frarb'+i,'cFr'));
   });
 
-  const monDiv=document.createElement('div');monDiv.id='tgFrMonMat';monDiv.style.display='none';ac.appendChild(monDiv);
+
 
   // Versand-Sektion
   const frVersandWrap=document.createElement('div');frVersandWrap.id='frVersandWrap';
@@ -3909,8 +3907,7 @@ function cFr(){
     $('frAnfahrtAkt')?.closest('.tr')?.classList.remove('on');
   }
 
-  const frMonMat=calcMon('tgFrMonMat');
-  const montVK=frMonMat+bolzenVK+schabTotal+frEigenBefVK+frAnfahrtVK+frArbVK+frZuschnittVK;
+  const montVK=bolzenVK+schabTotal+frEigenBefVK+frAnfahrtVK+frArbVK+frZuschnittVK;
   const frVersandVK=calcVersandVK('fr')+calcUebergabeVK('fr');
   const total=fraeskosten+matVK+prodAufschlag+lackTotal+frPulverTotal+setup+montVK+frEloxVK+frBruenVK+frVersandVK;
   const proStk=anzGes>0?total/anzGes:0;
@@ -4010,7 +4007,7 @@ function saveFraes(){
     else showToast('Material und VH prüfen','error');
     return;
   }
-  const montD=getMonData('tgFrMonMat');
+  const montD={items:[],total:0};
   const arbeit=[];
   P.arbeitswerte.forEach((item,i)=>{
     const aktEl=$('fr-arb'+i);if(!aktEl||!aktEl.checked)return;
@@ -4092,7 +4089,7 @@ function saveFraes(){
 
 function saveGravur(){
   const r=cGv();if(!r)return;
-  const montD=getMonData('tgGvMon');
+  const montD={items:[],total:0};
   const data={type:'gravur',label:$('gvLabel').value||r.text||'Gravur',
     notiz:$('gvNotiz')?.value||'',text:r.text,l:r.l,b:r.b,m2n:r.m2n,stk:r.stk,vh:r.vh,zeichenTotal:r.zeichenTotal,zeichenProSchild:r.zeichenProSchild,
     matEK:r.matEK,matVK:r.matVK,schildName:r.schildName,
@@ -5046,7 +5043,7 @@ function cGv(){
     const bEl=$('pb-gvarb'+i);if(bEl)bEl.textContent=val>0?'CHF '+val.toFixed(2):'–';
     aktEl.closest('.tr')?.classList.toggle('on',aktEl.checked&&val>0);
   });
-  const montVK=calcMon('tgGvMon')+gvBolzenVK+gvVhbVK+gvAnfahrtVK+gvArbVK;
+  const montVK=gvBolzenVK+gvVhbVK+gvAnfahrtVK+gvArbVK;
   const total=gravurkosten+matVK+farbeTotal+setup+montVK;
   const proStk=stk>0?total/stk:0;
 
@@ -5276,7 +5273,7 @@ function slReBuild(){
 
   slReBuildWT();
   slReBuildArb();
-  buildMontage('tgSlMon','folie');
+
   cSl();
 }
 
@@ -6665,9 +6662,7 @@ function buildSlMontageStep(){
     ac.appendChild(mkArbRow('sl-arb'+i,item.name,i,'pb-slarb'+i,'cSl'));
   });
 
-  addSecHead&&addSecHead(ac,'Befestigung vor Ort','t');
-  const monDiv=document.createElement('div');monDiv.id='tgSlMonMat';ac.appendChild(monDiv);
-  buildMontage('tgSlMonMat','schild','cSl');
+
 
   // Versand-Sektion
   const slVersandWrap=document.createElement('div');slVersandWrap.id='slVersandWrap';
@@ -11039,7 +11034,7 @@ function printDoc(mode){
     // Add montage/arbeit to mods if present
     if(arbStr)mods.push(`Vorbereitungsarbeiten: ${arbStr}`);
     if(montArbStr)mods.push(`Montage: ${montArbStr}`);
-    if(montStr)mods.push(`Befestigung vor Ort: ${montStr}`);
+
     if(p.montPersAkt&&p.montStd>0)mods.push(`Montagepersonal: ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd} h`);
     return `<tr style="${variantStyle}">
         <td class="c-pos">${i+1}</td><td class="c-menge">${p.stk}</td><td class="c-me">Stk.</td>
@@ -11185,7 +11180,7 @@ function printDoc(mode){
       if((p.arbeit||[]).length)detail+='<br>'+(p.arbeit||[]).map(a=>a.label).join(' · ');
       if(isInt)detail+=`<br><span style="color:#999;">Material EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Veredelung/Druck CHF ${p.veredVK?.toFixed(2)}</span>`;
     }
-    if((p.montage||[]).length)detail+='<br>Montage: '+(p.montage||[]).map(m=>`${m.name}${m.detail?' '+m.detail:''}`).join(', ');
+
     return `<tr style="${variantStyle}">
       <td class="c-pos">${i+1}</td>
       <td class="c-menge">${p.stk||1}</td>
