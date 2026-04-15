@@ -1768,36 +1768,65 @@ a, button, input, select, textarea, label,
       </div>
     </div>
 
-  <div style="display:flex;gap:6px;flex-wrap:wrap;margin-bottom:20px;margin-top:8px;border-bottom:1px solid var(--border);padding-bottom:10px;">
-    <button class="btn btn-gh" id="be-tab-preise" onclick="showBeTab('preise')" style="font-size:11px;">🎨 Material & Preise</button>
-    <button class="btn btn-gh" id="be-tab-arbeit" onclick="showBeTab('arbeit')" style="font-size:11px;">⚙ Arbeit & Kosten</button>
-    <button class="btn btn-gh" id="be-tab-team" onclick="showBeTab('team')" style="font-size:11px;">👥 Team & Margen</button>
-    <button class="btn btn-gh" id="be-tab-system" onclick="showBeTab('system')" style="font-size:11px;">🔗 System & Integration</button>
+  <div style="display:flex;gap:5px;flex-wrap:wrap;margin-bottom:16px;margin-top:8px;border-bottom:2px solid var(--border);padding-bottom:12px;">
+    <button class="btn btn-gh" id="be-tab-preise"     onclick="showBeTab('preise')"     style="font-size:11px;">📦 Folien & Material</button>
+    <button class="btn btn-gh" id="be-tab-produktion" onclick="showBeTab('produktion')" style="font-size:11px;">⚙ Produktion</button>
+    <button class="btn btn-gh" id="be-tab-kosten"     onclick="showBeTab('kosten')"     style="font-size:11px;">💰 Kosten & Arbeit</button>
+    <button class="btn btn-gh" id="be-tab-margen"     onclick="showBeTab('margen')"     style="font-size:11px;">📊 Margen</button>
+    <button class="btn btn-gh" id="be-tab-team"       onclick="showBeTab('team')"       style="font-size:11px;">👥 Team</button>
+    <button class="btn btn-gh" id="be-tab-system"     onclick="showBeTab('system')"     style="font-size:11px;">🔗 System</button>
   </div>
 
-    <!-- Tab: Material & Preise -->
-  <div id="be-content-preise">
+  <!-- Zentral-Speichern Banner -->
+  <div id="preisServerBanner" style="position:sticky;top:0;z-index:100;background:var(--surface);border-bottom:2px solid var(--border);padding:9px 16px;display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:-4px -16px 16px -16px;">
+    <div style="flex:1;min-width:0;">
+      <div id="preisServerStatus" style="font-size:11px;color:var(--muted);">Prüfe Verbindung...</div>
+    </div>
+    <button class="btn btn-y" onclick="preiseSpeichernZentral()" id="btnPreiseSpeichern" style="font-size:11px;font-weight:700;">💾 Für alle speichern</button>
+    <button class="btn btn-gh" onclick="preiseNeuLaden()" style="font-size:10px;" title="Preise neu laden">↺ Neu laden</button>
+  </div>
+
+  <!-- Tab: Folien & Material -->
+  <div id="be-content-preise" style="display:block;">
     <div id="beMain"></div>
   </div>
 
-  <!-- Tab: Arbeit & Kosten -->
-  <div id="be-content-arbeit" style="display:none;">
+  <!-- Tab: Produktion -->
+  <div id="be-content-produktion" style="display:none;">
+    <div id="beFraes2"></div>
+    <hr style="margin:20px 0;border-color:var(--border);">
+    <div id="beGravur2"></div>
+    <hr style="margin:20px 0;border-color:var(--border);">
+    <div id="beMontage2"></div>
+  </div>
+
+  <!-- Tab: Kosten & Arbeit -->
+  <div id="be-content-kosten" style="display:none;">
     <div id="beArbeit2"></div>
-    <hr style="margin:16px 0;border-color:var(--border);">
+    <hr style="margin:20px 0;border-color:var(--border);">
     <div id="beElox2"></div>
-    <hr style="margin:16px 0;border-color:var(--border);">
+    <hr style="margin:20px 0;border-color:var(--border);">
     <div id="beNasslack2"></div>
   </div>
 
-  <!-- Tab: Team & Margen -->
-  <div id="be-content-team" style="display:none;">
+  <!-- Tab: Margen -->
+  <div id="be-content-margen" style="display:none;">
     <div id="beMargen"></div>
-    <hr style="margin:16px 0;border-color:var(--border);">
+  </div>
+
+  <!-- Tab: Team -->
+  <div id="be-content-team" style="display:none;">
     <div id="beBearbeiter"></div>
   </div>
 
   <!-- Tab: System -->
   <div id="be-content-system" style="display:none;">
+    <div id="beKundenstamm"></div>
+    <hr style="margin:20px 0;border-color:var(--border);">
+    <div id="beSLArtikel"></div>
+    <hr style="margin:20px 0;border-color:var(--border);">
+    <div id="beIntegrations"></div>
+  </div>  <div id="be-content-system" style="display:none;">
     <div id="beKundenstamm"></div>
   <hr style="margin:16px 0;border-color:var(--border);">
   <div id="beSLArtikel"></div>
@@ -2176,12 +2205,17 @@ function loadP(){
 }
 function saveP(){
   localStorage.setItem('grafe_v5',JSON.stringify(P));
-  // Debounced rebuild so live calc stays in sync with backend changes
+  // Debounced rebuild
   clearTimeout(saveP._rebuildTimer);
   saveP._rebuildTimer=setTimeout(()=>{
     reBuild&&reBuild();
     initBearbeiterSel&&initBearbeiterSel();
   },300);
+  // Debounced server-save (2s nach letzter Änderung)
+  clearTimeout(saveP._serverTimer);
+  saveP._serverTimer=setTimeout(()=>{
+    if(serverVerfuegbar) savePreislisteToServer();
+  }, 2000);
   const frMat=$('frMat');if(frMat)frMat.innerHTML='';
   const frRalWrap=$('frRalWrap');if(frRalWrap)frRalWrap.innerHTML='';
   const frNcsWrap=$('frNcsWrap');if(frNcsWrap)frNcsWrap.innerHTML='';
@@ -7756,21 +7790,39 @@ function initBearbeiterSel(){
     o.textContent=`${b.name} (${b.kuerzel})`;
     sel.appendChild(o);
   });
-  const saved=localStorage.getItem('grafe_bearbeiter');
-  if(saved!==null)sel.value=saved;
+  // Restore by Kürzel (stable) — Index as fallback
+  const savedKuerzel = localStorage.getItem('grafe_bearbeiter_kuerzel');
+  const savedIdx     = localStorage.getItem('grafe_bearbeiter');
+  if(savedKuerzel){
+    // Find by Kürzel
+    const matchIdx = (P.bearbeiter||[]).findIndex(b=>b.kuerzel===savedKuerzel);
+    if(matchIdx >= 0) sel.value = matchIdx;
+    else if(savedIdx !== null) sel.value = savedIdx; // fallback
+  } else if(savedIdx !== null){
+    sel.value = savedIdx;
+  }
 }
 
 function bearbeiterChanged(){
   const sel=$('bearbeiterSel');if(!sel)return;
-  localStorage.setItem('grafe_bearbeiter',sel.value);
+  // Kürzel speichern (stabiler als Index)
+  const b=P.bearbeiter[parseInt(sel.value)];
+  if(b) localStorage.setItem('grafe_bearbeiter_kuerzel', b.kuerzel);
+  localStorage.setItem('grafe_bearbeiter', sel.value); // Index als Fallback
   const anr=$('auftragsnr');
   if(anr&&(!anr.value||anr.dataset.autoGen==='1'))genAuftragsnr();
 }
 
 function getBearbeiter(){
   const sel=$('bearbeiterSel');
-  if(!sel||sel.value==='')return null;
-  return P.bearbeiter[parseInt(sel.value)]||null;
+  if(sel&&sel.value!==''){
+    const b=P.bearbeiter[parseInt(sel.value)];
+    if(b) return b;
+  }
+  // Fallback: find by saved Kürzel
+  const kuerzel=localStorage.getItem('grafe_bearbeiter_kuerzel');
+  if(kuerzel) return (P.bearbeiter||[]).find(b=>b.kuerzel===kuerzel)||null;
+  return null;
 }
 
 function genAuftragsnr(){
@@ -8662,8 +8714,14 @@ function loadAuftragData(a){
     if(a.kundenname)showKundenBadge({nr:a.slKundennummer,name:a.kundenname,ort:a.adresseOrt||''});
   }
   // Set Bearbeiter
-  if(a.bearbeiterKuerzel&&$('bearbeiterSel')){
-    $('bearbeiterSel').value=a.bearbeiterKuerzel;
+  if(a.bearbeiterKuerzel){
+    // Suche Bearbeiter nach Kürzel
+    const bIdx=(P.bearbeiter||[]).findIndex(b=>b.kuerzel===a.bearbeiterKuerzel);
+    if(bIdx>=0&&$('bearbeiterSel')){
+      $('bearbeiterSel').value=bIdx;
+      localStorage.setItem('grafe_bearbeiter_kuerzel',a.bearbeiterKuerzel);
+      localStorage.setItem('grafe_bearbeiter',String(bIdx));
+    }
   }
   // Load positions
   positions=JSON.parse(JSON.stringify(a.positions||[]));
@@ -9021,6 +9079,12 @@ async function ladeBearbliterVomServer(){
       name:b.name, kuerzel:b.kuerzel, email:b.email, tel:b.telefon
     }));
     saveP();
+    // Aktuelle Auswahl sichern bevor Rebuild
+    const curSel=$('bearbeiterSel');
+    const curKuerzel=curSel&&curSel.value!==''
+      ? (P.bearbeiter[parseInt(curSel.value)]?.kuerzel||null)
+      : localStorage.getItem('grafe_bearbeiter_kuerzel');
+    if(curKuerzel) localStorage.setItem('grafe_bearbeiter_kuerzel', curKuerzel);
     initBearbeiterSel&&initBearbeiterSel();
     console.log('[KALLE] Bearbeiter vom Server geladen:', dbBearbeiter.length);
   }catch(e){ /* silent */ }
@@ -10120,6 +10184,55 @@ function autoActivateMonteur(pfx){
     if(pfx==='sl') cSl && cSl();
     else if(pfx==='fr') cFr && cFr();
     else if(pfx==='ft') cFt && cFt();
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+// PREISLISTE — Zentral speichern / laden
+// ═══════════════════════════════════════════════════════
+
+async function preiseSpeichernZentral(){
+  const btn = $('btnPreiseSpeichern');
+  const status = $('preisServerStatus');
+  if(btn){ btn.textContent='⏳ Speichere...'; btn.disabled=true; }
+
+  if(!serverVerfuegbar){
+    showToast('Server nicht erreichbar','error');
+    if(btn){ btn.textContent='💾 Für alle speichern'; btn.disabled=false; }
+    return;
+  }
+
+  const ok = await savePreislisteToServer();
+  if(btn){ btn.textContent='💾 Für alle speichern'; btn.disabled=false; }
+  if(ok && status){
+    const now = new Date().toLocaleTimeString('de-CH');
+    status.innerHTML = `<span style="color:var(--green);">✓ Gespeichert ${now} — alle Benutzer erhalten die neuen Preise beim nächsten Start</span>`;
+  }
+}
+
+async function preiseNeuLaden(){
+  const status = $('preisServerStatus');
+  if(status) status.textContent = '⏳ Lade vom Server...';
+
+  const ok = await ladePricesFromServer();
+  if(ok){
+    if(status) status.innerHTML = '<span style="color:var(--green);">✓ Preisliste vom Server geladen</span>';
+    showToast('✓ Preisliste neu geladen');
+    renderBackend();
+  } else {
+    if(status) status.innerHTML = '<span style="color:var(--danger);">✗ Laden fehlgeschlagen — lokale Preisliste aktiv</span>';
+  }
+}
+
+function updatePreisServerStatus(){
+  const status = $('preisServerStatus');
+  if(!status) return;
+  if(serverVerfuegbar){
+    status.innerHTML = '● Server verbunden — Änderungen werden automatisch für alle gespeichert';
+    status.style.color = 'var(--green)';
+  } else {
+    status.innerHTML = '○ Server offline — Änderungen nur lokal';
+    status.style.color = 'var(--muted)';
   }
 }
 
@@ -11855,7 +11968,7 @@ function renderNasslackBackend(){
 
 
 function showBeTab(tab){
-  ['preise','arbeit','team','system'].forEach(t=>{
+  ['preise','produktion','kosten','margen','team','system'].forEach(t=>{
     const content=document.getElementById('be-content-'+t);
     const btn=document.getElementById('be-tab-'+t);
     if(content)content.style.display=t===tab?'block':'none';
@@ -11866,6 +11979,7 @@ function showBeTab(tab){
     }
   });
   localStorage.setItem('kalle_be_tab',tab);
+  updatePreisServerStatus();
   // Scroll to content area
   const el=document.getElementById('be-content-'+tab);
   if(el)el.scrollIntoView({behavior:'smooth',block:'start'});
@@ -11874,16 +11988,25 @@ function showBeTab(tab){
 function renderBackend(){
   $('be-druck').value=P.druckbreite;$('be-plott').value=P.plottbreite;
   const cols=$('beCols');cols.innerHTML='';
-  const c1=document.createElement('div'),c2=document.createElement('div');
-  BE_SECS.forEach((s,i)=>(i<4?c1:c2).appendChild(beSection(s)));
-  cols.appendChild(c1);cols.appendChild(c2);
+  // Two-column grid for material sections
+  const grid=document.createElement('div');
+  grid.style.cssText='display:grid;grid-template-columns:1fr 1fr;gap:10px;';
+  BE_SECS.forEach((s)=>grid.appendChild(beSection(s)));
+  cols.appendChild(grid);
   renderFraesBackend();renderGravurBackend();renderMontageBackend();
   renderArbBackend();renderEloxAnfahrtBackend();renderNasslackBackend();renderMargenBackend();renderBearbeiterBackend();renderKundenstammBackend();renderSLArtikelBackend();renderIntegrationsBackend();
   // Move sections to correct tabs
   setTimeout(()=>{
-    const arbDiv=$('beArb');const arb2=$('beArbeit2');if(arbDiv&&arb2){arb2.appendChild(arbDiv);}
-    const eloxDiv=$('beEloxAnfahrt');const elox2=$('beElox2');if(eloxDiv&&elox2){elox2.appendChild(eloxDiv);}
-    const nlDiv=$('beNasslack');const nl2=$('beNasslack2');if(nlDiv&&nl2){nl2.appendChild(nlDiv);}
+    // Kosten & Arbeit Tab
+    const arbDiv=$('beArb');        const arb2=$('beArbeit2');  if(arbDiv&&arb2){arb2.appendChild(arbDiv);}
+    const eloxDiv=$('beEloxAnfahrt');const elox2=$('beElox2'); if(eloxDiv&&elox2){elox2.appendChild(eloxDiv);}
+    const nlDiv=$('beNasslack');    const nl2=$('beNasslack2'); if(nlDiv&&nl2){nl2.appendChild(nlDiv);}
+    // Produktion Tab
+    const frDiv=$('beFraes');       const fr2=$('beFraes2');    if(frDiv&&fr2){fr2.appendChild(frDiv);}
+    const gvDiv=$('beGravur');      const gv2=$('beGravur2');   if(gvDiv&&gv2){gv2.appendChild(gvDiv);}
+    const moDiv=$('beMontage');     const mo2=$('beMontage2');  if(moDiv&&mo2){mo2.appendChild(moDiv);}
+    // Margen Tab
+    const mgDiv=$('beMargen');      if(mgDiv) mgDiv.parentNode?.id==='be-content-margen'||$('be-content-margen')?.appendChild(mgDiv);
     // Restore last tab
     const lastTab=localStorage.getItem('kalle_be_tab')||'preise';
     showBeTab(lastTab);
@@ -11891,22 +12014,50 @@ function renderBackend(){
 }
 
 function beSection(sec){
-  const wrap=document.createElement('div');wrap.style.marginBottom='18px';
-  const title=document.createElement('div');title.className='st t';title.textContent=sec.label;wrap.appendChild(title);
+  const wrap=document.createElement('div');
+  wrap.style.cssText='margin-bottom:12px;border:1px solid var(--border);border-radius:10px;overflow:hidden;';
+
   const isArb=sec.key==='arbeitswerte';
+  const count=P[sec.key]?.length||0;
+
+  // Collapsible header
+  const header=document.createElement('div');
+  header.style.cssText='display:flex;align-items:center;justify-content:space-between;padding:10px 14px;'+
+    'background:var(--surface3);cursor:pointer;user-select:none;';
+  header.innerHTML=`
+    <div style="display:flex;align-items:center;gap:10px;">
+      <span style="font-size:12px;font-weight:700;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;">${sec.label}</span>
+      <span style="font-size:10px;color:var(--muted);background:var(--surface2);padding:1px 7px;border-radius:10px;">${count}</span>
+    </div>
+    <span class="be-caret" style="font-size:10px;color:var(--muted);transition:transform .15s;">▼</span>`;
+
+  const body=document.createElement('div');
+  body.style.cssText='padding:12px 14px;';
+
+  header.onclick=()=>{
+    const open=body.style.display!=='none';
+    body.style.display=open?'none':'block';
+    header.querySelector('.be-caret').style.transform=open?'rotate(-90deg)':'rotate(0)';
+  };
+
+  wrap.appendChild(header);
+  wrap.appendChild(body);
+
   const thead=isArb
     ?'<thead><tr><th>Gruppe</th><th>Bezeichnung</th><th>Typ</th><th>Preis CHF</th><th></th></tr></thead>'
     :'<thead><tr><th style="width:55%">Bezeichnung</th><th>Preis CHF</th><th></th></tr></thead>';
   const table=document.createElement('table');table.className='be-table';table.innerHTML=thead;
   const tbody=document.createElement('tbody');tbody.id='betb-'+sec.key;
   P[sec.key].forEach((item,i)=>tbody.appendChild(isArb?beRowArb(i):beRow(sec.key,i)));
-  table.appendChild(tbody);wrap.appendChild(table);
-  const btn=document.createElement('button');btn.className='add-btn';btn.textContent='+ Hinzufügen';
-  btn.onclick=()=>{
+  table.appendChild(tbody);body.appendChild(table);
+
+  const addBtn=document.createElement('button');addBtn.className='add-btn';addBtn.textContent='+ Hinzufügen';
+  addBtn.onclick=()=>{
     if(isArb){P.arbeitswerte.push({name:'Neu',gruppe:'Admin',typ:'min',preis:2.16});saveP();$('betb-arbeitswerte').appendChild(beRowArb(P.arbeitswerte.length-1));reBuild();}
     else{P[sec.key].push({name:'Neu',preis:0});saveP();$('betb-'+sec.key).appendChild(beRow(sec.key,P[sec.key].length-1));reBuild();}
   };
-  wrap.appendChild(btn);return wrap;
+  body.appendChild(addBtn);
+  return wrap;
 }
 function beRow(key,i){
   const item=P[key][i];const tr=document.createElement('tr');
