@@ -18,26 +18,27 @@
 }
 /* ── HELLER MODUS ─────────────────────────────────── */
 body.light-mode{
-  --bg:#f2f2f7;
-  --surface:#ffffff;
-  --surface2:#f2f2f7;
-  --surface3:#e5e5ea;
-  --border:#d1d1d6;
-  --border-light:#c7c7cc;
-  --accent:#b8940a;
-  --accent-dim:rgba(184,148,10,.10);
-  --accent-hover:#9a7c08;
-  --teal:#0a8080;
-  --teal-dim:rgba(10,128,128,.10);
-  --amber:#c07010;
-  --amber-dim:rgba(192,112,16,.10);
-  --green:#248a50;
-  --green-dim:rgba(36,138,80,.10);
-  --text:#1c1c1e;
-  --text2:#3a3a3c;
-  --muted:#8e8e93;
-  --danger:#d70015;
-  --success:#248a50;
+  --bg:#e8eaed;
+  --surface:#f1f3f5;
+  --surface2:#e8eaed;
+  --surface3:#dde0e6;
+  --border:#bfc4ce;
+  --border-light:#ced3dc;
+  --accent:#8a6e00;
+  --accent-dim:rgba(138,110,0,.13);
+  --accent-hover:#725b00;
+  --teal:#0c6060;
+  --teal-dim:rgba(12,96,96,.11);
+  --amber:#8a5200;
+  --amber-dim:rgba(138,82,0,.11);
+  --green:#1a6e3a;
+  --green-dim:rgba(26,110,58,.11);
+  --red:#aa0008;
+  --text:#14171e;
+  --text2:#363b46;
+  --muted:#5e6577;
+  --danger:#aa0008;
+  --success:#1a6e3a;
 }
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0;}
 body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-size:13px;min-height:100vh;line-height:1.5;-webkit-text-size-adjust:100%;}
@@ -10991,13 +10992,17 @@ function printDoc(mode){
   const isInt=mode==='internal';
   const agbHtml=isInt?'':(typeof AGB_HTML!=='undefined'?AGB_HTML:'');
   // Strip price info from detail strings in offer mode
-  const sp=isInt?s=>s:s=>s
-    .replace(/\s*·?\s*CHF\s[\d'.,\s]+/g,'')
-    .replace(/\s*\(EK[^)]*\)/g,'')
-    .replace(/\s*→\s*VK[^<]*/g,'')
-    .replace(/EK CHF[\d\s.,]+/g,'')
-    .replace(/\s*\+\s*CHF[\d\s.,]+/g,'')
+  // cleanKunde: removes ALL price info from a string for customer-facing output
+  const cleanKunde = s => s
+    .replace(/\s*—\s*EK CHF[^→)\n]*(→\s*VK CHF[\d\s.,]+)?/g,'')  // — EK CHF 100 → VK CHF 140
+    .replace(/\s*→\s*VK CHF[\d\s.,]+/g,'')       // → VK CHF 140
+    .replace(/\s*\(EK[^)]*\)/g,'')                 // (EK CHF 100/Stk.)
+    .replace(/EK CHF[\d\s.,]+/g,'')                // EK CHF 100
+    .replace(/\s*·?\s*CHF\s[\d'.,\s]+/g,'')     // · CHF 35.00
+    .replace(/\s*\([\d]+\.[\d]+\)/g,'')         // (28.00) (12.50)
+    .replace(/\s*\+\s*CHF[\d\s.,]+/g,'')         // + CHF 25
     .replace(/\s*·\s*$/,'').trim();
+  const sp = isInt ? s=>s : cleanKunde;
   const kunde=$('kundenname').value||'–';
   const kperson=$('kontaktperson').value||'';
   const aufnr=$('auftragsnr').value||'–';
@@ -11078,7 +11083,9 @@ function printDoc(mode){
     }
     if(p.type==='schild'){
       const mods=[];
-      if(p.folie||p.druck)mods.push(p.folie||p.druck);
+      if(p.druck) mods.push('Druckart: '+sp(p.druck));
+      if(p.folie) mods.push('Digitaldruckfolie: '+sp(p.folie));
+      if(p.laminat) mods.push('Laminat: '+sp(p.laminat));
       if(p.plottFarben?.some(f=>f))mods.push('Plottfolie '+p.plottFarben.filter(f=>f).join('/'));
       if(p.gravurAkt)mods.push(`Beschriftung: Gravur · ${p.gvText||'–'} · ${p.gvZeichen} Zeichen VH ${p.gvVH}mm${(p.gvFarben||[]).filter(f=>f.aktiv&&f.ral).length?' · '+p.gvFarben.filter(f=>f.aktiv&&f.ral).map(f=>f.ral).join('/'):''}`) ;
       if(p.pulverRAL)mods.push(`Pulver RAL ${p.pulverRAL.farbe} ${p.pulverRAL.finish}`);
@@ -11086,7 +11093,7 @@ function printDoc(mode){
       if(p.pulverIGP)mods.push(`IGP ${p.pulverIGP.farbe}`);
       if(p.lack){
         const slOutdoorStr=p.lackOutdoor2k?' · Outdoor 2K Lack':'';
-        mods.push('Nasslack: '+p.lack+(p.lackFarbe?' · '+p.lackFarbe:'')+(p.lackGlanz?' · '+p.lackGlanz:'')+slOutdoorStr);
+        mods.push('Nasslack: '+sp(p.lack)+(p.lackFarbe?' · '+p.lackFarbe:'')+(p.lackGlanz?' · '+p.lackGlanz:'')+slOutdoorStr);
         (p.lackZusatzFarben||[]).forEach((f,fi)=>{
           const fStr=f.farbe?f.farbe:'Farbe '+(fi+2);
           mods.push('Nasslack Farbe '+(fi+2)+': '+fStr);
@@ -11101,7 +11108,7 @@ function printDoc(mode){
         bSteps.push(klarlackStr);
         mods.push(`Brünieren: ${bSteps.join(' · ')}`);
       };
-      if(p.zuschnittVK>0)mods.push(isInt?`Zuschnitt CHF ${(p.zuschnittVK||0).toFixed(2)}`:'Zuschnitt');
+      if(p.zuschnittVK>0||p.zuschnittMethode==='fraes'||p.zuschnittMethode==='saegen')mods.push(isInt?`Zuschnitt CHF ${(p.zuschnittVK||0).toFixed(2)}`:{fraes:'CNC Fräsen Zuschnitt',saegen:'Sägen/Hacken Zuschnitt',kein:''}[p.zuschnittMethode]||'Zuschnitt');
       if(p.bolzenAkt)mods.push(`Montagebolzen ${p.bolzenAnz||4}Stk`);
       if(p.vhbAkt)mods.push(`3M VHB ${p.vhbVariant||''}`);
       if(p.kleberAkt)mods.push('2K-Kleber');
@@ -11111,10 +11118,10 @@ function printDoc(mode){
           :p.eigenBefBez;
         mods.push(eigenStr);
       }
-      const slVStr=versandPdfStr(p);if(slVStr)mods.push(slVStr.replace('<br><strong>Versand:</strong> ','Versand: '));
+      const slVStr=versandPdfStr(p);if(slVStr)mods.push(sp(slVStr.replace('<br><strong>Versand:</strong> ','Versand: ')));
       if(p.uebergabe?.typ==='abholung')mods.push('Übergabe: Abholung durch Kunde');
       else if(p.uebergabe?.typ==='anlieferung'){
-        const anlStr=p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):'kostenlos';
+        const anlStr=isInt&&p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):(p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'gegen Verrechnung':'kostenlos');
         mods.push('Anlieferung durch Grafe: '+anlStr);
       }
       if(p.anfahrtKm>0)mods.push(sp(`Anfahrt ${p.anfahrtKm}km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
@@ -11158,9 +11165,9 @@ function printDoc(mode){
     let detail='';
     if(p.type==='folientechnik'){
       const ftMods=[];
-      if(p.folie)ftMods.push(p.folie.split('(')[0].trim());
-      if(p.laminat)ftMods.push(p.laminat.split('(')[0].trim()+' Laminat');
-      if(p.glasdekorf)ftMods.push(p.glasdekorf.split('(')[0].trim());
+        if(p.folie)ftMods.push('Folie: '+sp(p.folie));
+      if(p.laminat)ftMods.push('Laminat: '+sp(p.laminat));
+      if(p.glasdekorf)ftMods.push('Glasdekorfolie: '+sp(p.glasdekorf));
       if(p.anfahrtKm>0)ftMods.push(sp(`Anfahrt ${p.anfahrtKm}km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
       if(p.montPersAkt&&p.montStd>0)ftMods.push(`Montagepersonal ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd}h`);
       if(p.montageSeparat)ftMods.push('Montagekosten separat ausgewiesen');
@@ -11289,7 +11296,7 @@ function printDoc(mode){
       <td class="c-pos">${i+1}</td>
       <td class="c-menge">${p.stk||1}</td>
       <td class="c-me">Stk.</td>
-      <td class="c-bez">${desc}${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${isInt?detail:detail.replace(/EK CHF [\d.,]+\s*·?\s*/g,'').replace(/→ VK CHF [\d.,]+/g,'').replace(/\(EK [^)]+\)/g,'').replace(/VK CHF [\d.,]+/g,'')}</span>${rabattInline}</td>
+      <td class="c-bez">${desc}${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${isInt?detail:cleanKunde(detail)}</span>${rabattInline}</td>
       <td class="c-ep">${p.totalVK.toFixed(2)}</td>
       <td class="c-gp">${p.totalVK.toFixed(2)}<sup>2</sup></td>
     </tr>`;
