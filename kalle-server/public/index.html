@@ -7241,6 +7241,9 @@ function saveSchild(){
     slFormfaktor: window._slFormfaktor || 0.5,
     zuschnittVK:r.zuschnittVK||0,
     eloxAkt:gC('slEloxAkt'),frEloxVK:r.eloxVK||0,
+    eloxLief:(()=>{const w=$('slEloxWrap');return w?.querySelector('[data-lief].lief-sel')?.dataset.lief||'ateco';})(),
+    eloxManAkt:gC('slElox-manuelAkt'),
+    eloxManPreis:parseFloat($('slElox-manuelEK')?.value)||0,
     bruenAkt:gC('slBruenAkt'),bruenMin:parseFloat($('slBruen-minuten')?.value)||0,bruenVK:r.bruenVK||0,
     bruenStufe:(()=>{const w=$('slBruenWrap');return w?.querySelector('[data-stufe][style*="accent"]')?.dataset.stufe||'dunkel';})(),
     bruenSchliff:(()=>{const w=$('slBruenWrap');return w?.querySelector('[data-schliff][style*="accent"]')?.dataset.schliff||'wirbelschliff';})(),
@@ -10260,6 +10263,19 @@ function editPos(i){
         if($('slSpezMatMarge'))$('slSpezMatMarge').value=p.spezMatMarge||0.4;
       }
       swSlStep(2);
+      window._slEditPos = p;
+
+      // ── Alle Builder sofort aufrufen — nicht auf Schritt-Wechsel warten ──
+      // Schritt 3: Befestigung
+      setTimeout(()=>buildSlBefestigung(), 10);
+      // Schritt 4: Oberfläche (Lack, Elox, Brünen)
+      setTimeout(()=>{ buildSlNasslackUI(); buildSlEloxUI(); buildBruenUI('slBruenWrap','slBruen','cSl',true); }, 20);
+      // Schritt 6: Arbeitswerte
+      setTimeout(()=>slReBuildArb && slReBuildArb(), 10);
+      // Schritt 7: Montage
+      setTimeout(()=>buildSlMontageStep(), 10);
+      // Schritt 5: Beschriftung (Folie/Druck)
+      setTimeout(()=>slReBuild && slReBuild(), 15);
 
       function restoreSel2(id,arr,txt){
         if(!txt)return;
@@ -10269,89 +10285,125 @@ function editPos(i){
         const sel=row?.querySelector('select');
         if(sel){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;break;}}}
       }
-      // Store position data for restore on step switch
-      window._slEditPos = p;
 
-      restoreSel2('slAktFolie',P.digitaldruckfolien,p.folie);
-      restoreSel2('slAktLaminat',P.laminate,p.laminat);
-      restoreSel2('slAktDruck',P.druckarten,p.druck);
-      restoreSel2('slAktTape',P.tape,p.tape);
-      if(p.plottFarben){slSetPlottFarben(p.plottFarben);}
-      const ss=$('slAktSetup');if(ss)ss.checked=!!p.setup;
-      const sps=$('slAktPlottSetup');if(sps)sps.checked=!!p.plottSetup;
+      // ── Restore: alles nach den Buildern (60ms) ───────────────────────
+      setTimeout(()=>{
 
-      const ga=$('slGravurAkt');if(ga)ga.checked=!!p.gravurAkt;
-      if(p.gravurAkt){
-        const sr=$('slGravurSetupRow');if(sr)sr.style.display='block';
-        const gs=$('slGravurSetup');if(gs)gs.checked=p.gravurSetup!==false;
-      }
-      if($('slGvText'))$('slGvText').value=p.gvText||'';
-      if($('slGvVH'))$('slGvVH').value=p.gvVH||5;
-      if($('slGvZManual')){$('slGvZManual').value=p.gvZeichen||0;$('slGvZManual').style.borderColor=p.gvZeichen>0?'var(--accent)':'var(--green)';}
-      if(p.gvFarben){slGvSetFarben(p.gvFarben);slGvRenderFarben();}
+        // Schritt 5 — Folie/Druck/Laminat
+        restoreSel2('slAktFolie',P.digitaldruckfolien,p.folie);
+        restoreSel2('slAktLaminat',P.laminate,p.laminat);
+        restoreSel2('slAktDruck',P.druckarten,p.druck);
+        restoreSel2('slAktTape',P.tape,p.tape);
+        if(p.plottFarben){slSetPlottFarben(p.plottFarben);}
+        const ss=$('slAktSetup');if(ss)ss.checked=!!p.setup;
+        const sps=$('slAktPlottSetup');if(sps)sps.checked=!!p.plottSetup;
 
-      if(p.lack){const la=$('slLackAkt');if(la)la.checked=true;}
-      if(p.lackZusatzFarben&&p.lackZusatzFarben.length)
-        setTimeout(()=>restoreLackZusatz('sl','cSl',p.lackZusatzFarben),80);
-      if(p.lackManAkt){
-        setTimeout(()=>{
+        // Schritt 5 — Gravur
+        const ga=$('slGravurAkt');if(ga)ga.checked=!!p.gravurAkt;
+        if(p.gravurAkt){
+          const sr=$('slGravurSetupRow');if(sr)sr.style.display='block';
+          const gs=$('slGravurSetup');if(gs)gs.checked=p.gravurSetup!==false;
+        }
+        if($('slGvText'))$('slGvText').value=p.gvText||'';
+        if($('slGvVH'))$('slGvVH').value=p.gvVH||5;
+        if($('slGvZManual')){$('slGvZManual').value=p.gvZeichen||0;$('slGvZManual').style.borderColor=p.gvZeichen>0?'var(--accent)':'var(--green)';}
+        if(p.gvFarben){slGvSetFarben(p.gvFarben);slGvRenderFarben();}
+
+        // Schritt 4 — Nasslack
+        if(p.lack){const la=$('slLackAkt');if(la)la.checked=true;}
+        if(p.lackFarbe&&$('slLackFarbe'))$('slLackFarbe').value=p.lackFarbe;
+        if(p.lackGlanz){
+          const glanzBtn=document.querySelector(`#slLackGlanzRow [data-glanz="${p.lackGlanz}"]`);
+          if(glanzBtn){ glanzBtn.classList.add('sel'); glanzBtn.style.borderColor='var(--accent)'; glanzBtn.style.background='var(--accent-dim)'; }
+        }
+        if(p.lack&&$('slLackSel')){
+          const sel=$('slLackSel');
+          for(let j=0;j<sel.options.length;j++){
+            if(sel.options[j].text?.includes(p.lack.substring(0,12))){sel.selectedIndex=j;break;}
+          }
+        }
+        if(p.lackManAkt){
           const m=$('slLackManAkt');if(m)m.checked=true;
           if($('slLackManTyp'))$('slLackManTyp').value=p.lackManTyp||'stueck';
           if($('slLackManPreis'))$('slLackManPreis').value=p.lackManPreis||'';
-        },60);
-      }
-      if(p.lackFarbe&&$('slLackFarbe'))$('slLackFarbe').value=p.lackFarbe;
-      const pra=$('slAktPulverRAL');if(pra)pra.checked=!!p.pulverRAL;
-      if(p.pulverRAL){if($('slPulverRalFarbe'))$('slPulverRalFarbe').value=p.pulverRAL.farbe||'';if($('slPulverRalFinish'))$('slPulverRalFinish').value=p.pulverRAL.finish||'seidenmatt';if($('slPulverRalPreis'))$('slPulverRalPreis').value=p.pulverRAL.preisIdx||0;}
-      const pna=$('slAktPulverNCS');if(pna)pna.checked=!!p.pulverNCS;
-      if(p.pulverNCS&&$('slPulverNcsFarbe'))$('slPulverNcsFarbe').value=p.pulverNCS.farbe||'';
-      const pia=$('slAktPulverIGP');if(pia)pia.checked=!!p.pulverIGP;
-      if(p.pulverIGP&&$('slPulverIgpFarbe'))$('slPulverIgpFarbe').value=p.pulverIGP.farbe||'';
+        }
+        if(p.lackOutdoor2k){const o=$('slOutdoor2kAkt');if(o)o.checked=true;}
+        if(p.lackZusatzFarben&&p.lackZusatzFarben.length)
+          restoreLackZusatz('sl','cSl',p.lackZusatzFarben);
 
-      setTimeout(()=>{
-        buildSlBefestigung();
-        setTimeout(()=>{
-          if(p.bolzenAkt){const e=$('slBolzenAkt');if(e)e.checked=true;}
-          if(p.bolzenAnz&&$('slBolzenAnz'))$('slBolzenAnz').value=p.bolzenAnz;
-          if(p.bolzenPreis&&$('slBolzenPreis'))$('slBolzenPreis').value=p.bolzenPreis;
-          if(p.vhbAkt){const e=$('slKlebeVHB');if(e)e.checked=true;}
-          if(p.vhbVariant&&$('slVhbVariant'))$('slVhbVariant').value=p.vhbVariant;
-          if(p.kleberAkt){const e=$('slKlebeKleber');if(e)e.checked=true;}
-          // Eigene Befestigung
-          if(p.eigenBefAkt){
-            setTimeout(()=>{
-              const c2=$('slEigenBefAkt');if(c2)c2.checked=true;
-              if($('slEigenBefBez'))$('slEigenBefBez').value=p.eigenBefBez||'';
-              if($('slEigenBefTyp'))$('slEigenBefTyp').value=p.eigenBefTyp||'stueck';
-              if($('slEigenBefPreis'))$('slEigenBefPreis').value=p.eigenBefPreis||0;
-            },30);
+        // Schritt 4 — Pulver
+        const pra=$('slAktPulverRAL');if(pra)pra.checked=!!p.pulverRAL;
+        if(p.pulverRAL){
+          if($('slPulverRalFarbe'))$('slPulverRalFarbe').value=p.pulverRAL.farbe||'';
+          if($('slPulverRalFinish'))$('slPulverRalFinish').value=p.pulverRAL.finish||'seidenmatt';
+          if($('slPulverRalPreis'))$('slPulverRalPreis').value=p.pulverRAL.preisIdx||0;
+        }
+        const pna=$('slAktPulverNCS');if(pna)pna.checked=!!p.pulverNCS;
+        if(p.pulverNCS&&$('slPulverNcsFarbe'))$('slPulverNcsFarbe').value=p.pulverNCS.farbe||'';
+        const pia=$('slAktPulverIGP');if(pia)pia.checked=!!p.pulverIGP;
+        if(p.pulverIGP&&$('slPulverIgpFarbe'))$('slPulverIgpFarbe').value=p.pulverIGP.farbe||'';
+
+        // Schritt 4 — Elox
+        if(p.eloxAkt){
+          const ea=$('slEloxAkt');if(ea)ea.checked=true;
+          // Elox Lieferant + Farbe aus gespeichertem Zustand
+          if(p.eloxLief){
+            const liefBtn=document.querySelector(`[data-lief="${p.eloxLief}"]`);
+            if(liefBtn)eloxPickLief(liefBtn,'slEloxWrap','slElox',
+              (parseInt($('slLen')?.value)||200)/10*(parseInt($('slBr')?.value)||100)/10,
+              parseInt($('slStk')?.value)||1,'cSl',false);
           }
-        },20);
-      },20);
+          if(p.eloxManAkt){const m=$('slEloxManAkt');if(m)m.checked=true;}
+          if(p.eloxManPreis&&$('slEloxManEK'))$('slEloxManEK').value=p.eloxManPreis;
+        }
 
-      const sms=$('slMontageSeparat');if(sms)sms.checked=!!p.montageSeparat;
-      setTimeout(()=>{
+        // Schritt 4 — Brünieren
+        if(p.bruenAkt){
+          const ba=$('slBruenAkt');if(ba)ba.checked=true;
+          if(p.bruenMin&&$('slBruen-minuten'))$('slBruen-minuten').value=p.bruenMin;
+          if(p.bruenKlarlack){const bk=$('slBruen-klarlack');if(bk){bk.checked=true;bruenToggleKlarlack('slBruen');}}
+          if(p.bruenKlarlackEK&&$('slBruen-klarlackEK'))$('slBruen-klarlackEK').value=p.bruenKlarlackEK;
+        }
+
+        // Schritt 3 — Befestigung
+        if(p.bolzenAkt){const e=$('slBolzenAkt');if(e)e.checked=true;}
+        if(p.bolzenAnz&&$('slBolzenAnz'))$('slBolzenAnz').value=p.bolzenAnz;
+        if(p.bolzenPreis&&$('slBolzenPreis'))$('slBolzenPreis').value=p.bolzenPreis;
+        if(p.vhbAkt){const e=$('slKlebeVHB');if(e)e.checked=true;}
+        if(p.vhbVariant&&$('slVhbVariant'))$('slVhbVariant').value=p.vhbVariant;
+        if(p.kleberAkt){const e=$('slKlebeKleber');if(e)e.checked=true;}
+        if(p.eigenBefAkt){
+          const c2=$('slEigenBefAkt');if(c2)c2.checked=true;
+          if($('slEigenBefBez'))$('slEigenBefBez').value=p.eigenBefBez||'';
+          if($('slEigenBefTyp'))$('slEigenBefTyp').value=p.eigenBefTyp||'stueck';
+          if($('slEigenBefPreis'))$('slEigenBefPreis').value=p.eigenBefPreis||0;
+        }
+
+        // Schritt 7 — Montage
+        const sms=$('slMontageSeparat');if(sms)sms.checked=!!p.montageSeparat;
         if(p.anfahrtKm>0){
           const km=$('slAnfahrtKm');if(km)km.value=p.anfahrtKm;
           const akt=$('slAnfahrtAkt');if(akt)akt.checked=true;
           slAnfahrtUpdate();
         }
         if(p.anfahrtNMA&&$('montAnzMA'))$('montAnzMA').value=p.anfahrtNMA;
-      },50);
 
-      (p.arbeit||[]).forEach(a=>{
-        const idx=P.arbeitswerte.findIndex(w=>w.name===a.label);if(idx<0)return;
-        const chk=$('sl-arb'+idx);if(chk)chk.checked=true;
-        const minEl=$('min-sl-arb'+idx);if(minEl&&a.min>0)minEl.value=a.min;
-      });
-      (p.montage||[]).forEach(m=>{
-        const idx=P.montage.findIndex(mo=>mo.name===m.name);if(idx<0)return;
-        const chk=$(`makt-tgSlMon-${idx}`);if(chk){chk.checked=true;
-          const minEl=$(`mmin-tgSlMon-${idx}`);if(minEl&&m.min)minEl.value=m.min;
-          const stkEl=$(`mstk-tgSlMon-${idx}`);if(stkEl&&m.stk)stkEl.value=m.stk;
-        }
-      });
-      cSl();
+        // Schritt 6 — Arbeitswerte
+        (p.arbeit||[]).forEach(a=>{
+          const idx=P.arbeitswerte.findIndex(w=>w.name===a.label);if(idx<0)return;
+          const chk=$('sl-arb'+idx);if(chk)chk.checked=true;
+          const minEl=$('min-sl-arb'+idx);if(minEl&&a.min>0)minEl.value=a.min;
+        });
+        (p.montage||[]).forEach(m=>{
+          const idx=P.montage.findIndex(mo=>mo.name===m.name);if(idx<0)return;
+          const chk=$(`makt-tgSlMon-${idx}`);if(chk){chk.checked=true;
+            const minEl=$(`mmin-tgSlMon-${idx}`);if(minEl&&m.min)minEl.value=m.min;
+            const stkEl=$(`mstk-tgSlMon-${idx}`);if(stkEl&&m.stk)stkEl.value=m.stk;
+          }
+        });
+
+        cSl();
+      }, 80);
     },40);
     $('schildForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='fraes'){
@@ -11543,8 +11595,61 @@ ${!isInt ? agbHtml : ''}
 
 </body></html>`;
   // PDF Ausgabe — mehrere Methoden, erste die funktioniert wird verwendet
-  function tryPrint(){
-    // Methode 1: Neues Fenster (beste Druckqualität)
+  // ── Methode 1: Server-PDF (Puppeteer) — kein Druckdialog ────────────────
+  async function tryServerPdf(){
+    const auftragsnr = $('auftragsnr')?.value || 'Offerte';
+    const kunde      = $('kundenname')?.value  || '';
+    const filename   = `${auftragsnr}${kunde?' '+kunde:''}`;
+
+    // Status-Button zeigen
+    const pdfBtn = document.querySelector('[onclick*="printDoc"]');
+    const origTxt = pdfBtn?.textContent;
+    if(pdfBtn){ pdfBtn.textContent='⏳ PDF wird erstellt...'; pdfBtn.disabled=true; }
+
+    try {
+      const resp = await fetch(KALLE_SERVER+'/pdf', {
+        method:  'POST',
+        headers: {'Content-Type':'application/json'},
+        body:    JSON.stringify({ html, filename }),
+      });
+
+      if(!resp.ok){
+        const err = await resp.json().catch(()=>({}));
+        if(err.fallback){
+          // Server hat kein Puppeteer → Fallback auf Druckdialog
+          console.warn('[PDF] Server-PDF nicht verfügbar, Fallback auf Druckdialog');
+          if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
+          tryBrowserPrint();
+          return;
+        }
+        throw new Error(err.error || 'HTTP '+resp.status);
+      }
+
+      // PDF als Download speichern
+      const blob = await resp.blob();
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      a.href     = url;
+      a.download = filename + '.pdf';
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+
+      showToast('✓ '+filename+'.pdf heruntergeladen');
+      if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
+
+    } catch(err) {
+      console.error('[PDF] Server-Fehler:', err);
+      if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
+      // Fallback auf Druckdialog
+      showToast('Server-PDF fehlgeschlagen — öffne Druckdialog', 'error');
+      tryBrowserPrint();
+    }
+  }
+
+  // ── Methode 2: Browser-Druckdialog (Fallback) ────────────────────────────
+  function tryBrowserPrint(){
     const w = window.open('', '_blank', 'width=1000,height=1200');
     if(w && !w.closed){
       w.document.write(html);
@@ -11553,38 +11658,40 @@ ${!isInt ? agbHtml : ''}
       setTimeout(() => { try{ w.focus(); w.print(); }catch(e){} }, 800);
       return;
     }
-    // Methode 2: Blob URL (umgeht Popup-Blocker)
+    // Blob-URL Fallback
     try {
       const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-      const url = URL.createObjectURL(blob);
-      const w2 = window.open(url, '_blank');
-      if(w2){
-        setTimeout(() => URL.revokeObjectURL(url), 10000);
-        return;
-      }
+      const url  = URL.createObjectURL(blob);
+      const w2   = window.open(url, '_blank');
+      if(w2){ setTimeout(()=>URL.revokeObjectURL(url), 10000); return; }
     } catch(e){}
-    // Methode 3: Iframe (funktioniert immer, aber kein separates Fenster)
+    // Iframe Fallback
     let frame = document.getElementById('kalle-print-frame');
     if(!frame){
       frame = document.createElement('iframe');
       frame.id = 'kalle-print-frame';
       frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;background:#fff;';
       document.body.appendChild(frame);
-      // Close button
       const closeBtn = document.createElement('button');
       closeBtn.textContent = '✕ Schliessen';
       closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:100000;padding:8px 16px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:14px;';
-      closeBtn.onclick = () => { frame.remove(); closeBtn.remove(); };
+      closeBtn.onclick = ()=>{ frame.remove(); closeBtn.remove(); };
       document.body.appendChild(closeBtn);
     }
     const doc = frame.contentDocument || frame.contentWindow.document;
-    // Add print button to the frame
     const htmlWithPrint = html.replace('</body>', '<div style="position:fixed;bottom:20px;right:20px;z-index:9999"><button onclick="window.print()" style="padding:12px 24px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:16px;">🖨 Drucken / PDF</button></div></body>');
-    doc.open();
-    doc.write(htmlWithPrint);
-    doc.close();
+    doc.open(); doc.write(htmlWithPrint); doc.close();
   }
-  try { tryPrint(); }
+
+  // Server-PDF versuchen — Fallback auf Druckdialog
+  if(serverVerfuegbar){
+    tryServerPdf();
+  } else {
+    tryBrowserPrint();
+  }
+
+  // (catch-Block bleibt für Kompatibilität)
+  try { void 0; }
   catch(e){ showToast('PDF Fehler: '+e.message, 'error'); console.error('[PDF]',e); }
 }
 
