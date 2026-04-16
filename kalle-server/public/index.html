@@ -5377,9 +5377,17 @@ function slReBuild(){
         const sel=el.closest('.tr')?.querySelector('select');
         if(sel){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;break;}}}
       };
-      restoreOne('slAktFolie',ep.folie);
-      restoreOne('slAktLaminat',ep.laminat);
-      restoreOne('slAktDruck',ep.druck);
+      // Restore mit Index-Fallback
+      function restOneIdx(id,txt,idx){
+        const el=$(id);if(!el)return;
+        el.checked=true;
+        const sel=el.closest('.tr')?.querySelector('select');if(!sel)return;
+        if(txt){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;return;}}}
+        if(idx>=0&&idx<sel.options.length)sel.selectedIndex=idx;
+      }
+      restOneIdx('slAktFolie',ep.folie,ep.folieIdx??-1);
+      restOneIdx('slAktLaminat',ep.laminat,ep.laminatIdx??-1);
+      restOneIdx('slAktDruck',ep.druck,ep.druckIdx??-1);
       restoreOne('slAktTape',ep.tape);
       const ss=$('slAktSetup');if(ss)ss.checked=!!ep.setup;
       const sps=$('slAktPlottSetup');if(sps)sps.checked=!!ep.plottSetup;
@@ -7236,10 +7244,13 @@ function saveSchild(){
     spezMatEK:parseFloat($('slSpezMatEK')?.value)||0,
     spezMatMarge:parseFloat($('slSpezMatMarge')?.value)||0.4,
     folie:gC('slAktFolie')?(gSelTxtInRow('slAktFolie')||$('slAktFolie')?.closest('.tr')?.querySelector('select')?.options?.[0]?.text||''):null,
+    folieIdx:gC('slAktFolie')?($('slAktFolie')?.closest('.tr')?.querySelector('select')?.selectedIndex??-1):-1,
     laminat:gC('slAktLaminat')?gSelTxtInRow('slAktLaminat'):null,
+    laminatIdx:gC('slAktLaminat')?($('slAktLaminat')?.closest('.tr')?.querySelector('select')?.selectedIndex??-1):-1,
     plottFarben:slGetPlottFarben(),
     tape:gC('slAktTape')?gSelTxtInRow('slAktTape'):null,
     druck:gC('slAktDruck')?gSelTxtInRow('slAktDruck'):null,
+    druckIdx:gC('slAktDruck')?($('slAktDruck')?.closest('.tr')?.querySelector('select')?.selectedIndex??-1):-1,
     setup:gC('slAktSetup'),plottSetup:gC('slAktPlottSetup'),
     folieMatEK:r.folieMatEK,folieMatVK:r.folieMatVK,
     veredVK:r.veredVK,
@@ -10378,17 +10389,18 @@ function editPos(i){
       swSlStep(2);
       window._slEditPos = p;
 
-      // ── Alle Builder sofort aufrufen — nicht auf Schritt-Wechsel warten ──
-      // Schritt 3: Befestigung
-      setTimeout(()=>buildSlBefestigung(), 10);
-      // Schritt 4: Oberfläche (Lack, Elox, Brünen)
-      setTimeout(()=>{ buildSlNasslackUI(); buildSlEloxUI(); buildBruenUI('slBruenWrap','slBruen','cSl',true); }, 20);
-      // Schritt 6: Arbeitswerte
-      setTimeout(()=>slReBuildArb && slReBuildArb(), 10);
-      // Schritt 7: Montage
-      setTimeout(()=>buildSlMontageStep(), 10);
-      // Schritt 5: Beschriftung (Folie/Druck)
-      setTimeout(()=>slReBuild && slReBuild(), 15);
+      // ── Alle Builder sofort aufrufen — Reihenfolge wichtig ──────────────
+      // Schritt 3 + 4 sofort
+      setTimeout(()=>{
+        buildSlBefestigung();
+        buildSlNasslackUI();
+        buildSlEloxUI();
+        buildBruenUI('slBruenWrap','slBruen','cSl',true);
+        slReBuildArb && slReBuildArb();
+        buildSlMontageStep();
+        // Schritt 5 ZULETZT — slReBuild darf keine anderen überschreiben
+        slReBuild && slReBuild();
+      }, 30);
 
       function restoreSel2(id,arr,txt){
         if(!txt)return;
@@ -10402,10 +10414,24 @@ function editPos(i){
       // ── Restore: alles nach den Buildern (60ms) ───────────────────────
       setTimeout(()=>{
 
-        // Schritt 5 — Folie/Druck/Laminat
-        restoreSel2('slAktFolie',P.digitaldruckfolien,p.folie);
-        restoreSel2('slAktLaminat',P.laminate,p.laminat);
-        restoreSel2('slAktDruck',P.druckarten,p.druck);
+        // Schritt 5 — Folie/Druck/Laminat (Text + Index Fallback)
+        function restoreSelIdx(id, txt, idx){
+          const chk=$(id); if(!chk) return;
+          const row=chk.closest('.tr');
+          const sel=row?.querySelector('select'); if(!sel) return;
+          chk.checked=true;
+          // 1. Text suchen
+          if(txt){
+            for(let j=0;j<sel.options.length;j++){
+              if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;return;}
+            }
+          }
+          // 2. Index Fallback
+          if(idx>=0 && idx<sel.options.length) sel.selectedIndex=idx;
+        }
+        restoreSelIdx('slAktFolie', p.folie, p.folieIdx??-1);
+        restoreSelIdx('slAktLaminat', p.laminat, p.laminatIdx??-1);
+        restoreSelIdx('slAktDruck', p.druck, p.druckIdx??-1);
         restoreSel2('slAktTape',P.tape,p.tape);
         if(p.plottFarben){slSetPlottFarben(p.plottFarben);}
         const ss=$('slAktSetup');if(ss)ss.checked=!!p.setup;
@@ -10516,8 +10542,7 @@ function editPos(i){
         });
 
         cSl();
-      }, 80);
-    },40);
+      }, 200);    },40);
     $('schildForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='fraes'){
     $('fraesTitle').textContent=`Position ${i+1} bearbeiten – Fräsbuchstaben`;
@@ -11709,15 +11734,14 @@ ${!isInt ? agbHtml : ''}
 </body></html>`;
   // PDF Ausgabe — mehrere Methoden, erste die funktioniert wird verwendet
   // ── Methode 1: Server-PDF (Puppeteer) — kein Druckdialog ────────────────
-  async function tryServerPdf(){
+  async function tryServerPdf(preOpenedWin){
     const auftragsnr = $('auftragsnr')?.value || 'Offerte';
     const kunde      = $('kundenname')?.value  || '';
     const filename   = `${auftragsnr}${kunde?' '+kunde:''}`;
 
-    // Status-Button zeigen
     const pdfBtn = document.querySelector('[onclick*="printDoc"]');
     const origTxt = pdfBtn?.textContent;
-    if(pdfBtn){ pdfBtn.textContent='⏳ PDF wird erstellt...'; pdfBtn.disabled=true; }
+    if(pdfBtn){ pdfBtn.textContent='⏳ PDF...'; pdfBtn.disabled=true; }
 
     try {
       const resp = await fetch(KALLE_SERVER+'/pdf', {
@@ -11728,84 +11752,83 @@ ${!isInt ? agbHtml : ''}
 
       if(!resp.ok){
         const err = await resp.json().catch(()=>({}));
-        if(err.fallback){
-          // Server hat kein Puppeteer → Fallback auf Druckdialog
-          console.warn('[PDF] Server-PDF nicht verfügbar, Fallback auf Druckdialog');
-          if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
-          tryBrowserPrint();
-          return;
-        }
-        throw new Error(err.error || 'HTTP '+resp.status);
+        if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
+        // Fallback: Fenster für Druckdialog nutzen
+        tryBrowserPrint(preOpenedWin);
+        return;
       }
 
-      // PDF als Download speichern
+      // PDF-Download
       const blob = await resp.blob();
       const url  = URL.createObjectURL(blob);
       const a    = document.createElement('a');
-      a.href     = url;
-      a.download = filename + '.pdf';
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
+      a.href=url; a.download=filename+'.pdf';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
       setTimeout(()=>URL.revokeObjectURL(url), 5000);
-
+      // Pre-opened window schliessen da nicht gebraucht
+      if(preOpenedWin && !preOpenedWin.closed) preOpenedWin.close();
       showToast('✓ '+filename+'.pdf heruntergeladen');
       if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
 
     } catch(err) {
-      console.error('[PDF] Server-Fehler:', err);
+      console.error('[PDF]', err);
       if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
-      // Fallback auf Druckdialog
-      showToast('Server-PDF fehlgeschlagen — öffne Druckdialog', 'error');
-      tryBrowserPrint();
+      tryBrowserPrint(preOpenedWin);
     }
   }
 
-  // ── Methode 2: Browser-Druckdialog (Fallback) ────────────────────────────
-  function tryBrowserPrint(){
-    const w = window.open('', '_blank', 'width=1000,height=1200');
-    if(w && !w.closed){
-      w.document.write(html);
+  // ── Methode 2: Browser-Druckdialog ──────────────────────────────────────
+  function tryBrowserPrint(preOpenedWin){
+    // Vorgeöffnetes Fenster verwenden (im User-Gesture-Kontext geöffnet)
+    const w = (preOpenedWin && !preOpenedWin.closed) ? preOpenedWin : null;
+    if(w){
+      const htmlWithPrint = html.replace('</body>',
+        '<div style="position:fixed;bottom:20px;right:20px;z-index:9999;">'+
+        '<button onclick="window.print()" style="padding:14px 28px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:16px;box-shadow:0 4px 12px rgba(0,0,0,.3);">🖨 Drucken / Als PDF speichern</button>'+
+        '</div></body>');
+      w.document.write(htmlWithPrint);
       w.document.close();
-      w.onload = () => { w.focus(); w.print(); };
-      setTimeout(() => { try{ w.focus(); w.print(); }catch(e){} }, 800);
+      w.onload = ()=>{ w.focus(); };
+      setTimeout(()=>{ try{ w.focus(); }catch(e){} }, 500);
       return;
     }
-    // Blob-URL Fallback
+    // Fallback: Blob-URL
     try {
-      const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      const blob = new Blob([html],{type:'text/html;charset=utf-8'});
       const url  = URL.createObjectURL(blob);
-      const w2   = window.open(url, '_blank');
-      if(w2){ setTimeout(()=>URL.revokeObjectURL(url), 10000); return; }
+      const w2   = window.open(url,'_blank');
+      if(w2){ setTimeout(()=>URL.revokeObjectURL(url),10000); return; }
     } catch(e){}
-    // Iframe Fallback
+    // Letzter Fallback: Iframe
     let frame = document.getElementById('kalle-print-frame');
     if(!frame){
       frame = document.createElement('iframe');
-      frame.id = 'kalle-print-frame';
-      frame.style.cssText = 'position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;background:#fff;';
+      frame.id='kalle-print-frame';
+      frame.style.cssText='position:fixed;top:0;left:0;width:100%;height:100%;z-index:99999;border:none;background:#fff;';
       document.body.appendChild(frame);
-      const closeBtn = document.createElement('button');
-      closeBtn.textContent = '✕ Schliessen';
-      closeBtn.style.cssText = 'position:fixed;top:10px;right:10px;z-index:100000;padding:8px 16px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:14px;';
-      closeBtn.onclick = ()=>{ frame.remove(); closeBtn.remove(); };
-      document.body.appendChild(closeBtn);
+      const cb=document.createElement('button');
+      cb.textContent='✕ Schliessen';
+      cb.style.cssText='position:fixed;top:10px;right:10px;z-index:100000;padding:8px 16px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:6px;cursor:pointer;font-size:14px;';
+      cb.onclick=()=>{frame.remove();cb.remove();};
+      document.body.appendChild(cb);
     }
-    const doc = frame.contentDocument || frame.contentWindow.document;
-    const htmlWithPrint = html.replace('</body>', '<div style="position:fixed;bottom:20px;right:20px;z-index:9999"><button onclick="window.print()" style="padding:12px 24px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:16px;">🖨 Drucken / PDF</button></div></body>');
-    doc.open(); doc.write(htmlWithPrint); doc.close();
+    const doc=frame.contentDocument||frame.contentWindow.document;
+    const htmlP=html.replace('</body>','<div style="position:fixed;bottom:20px;right:20px;z-index:9999"><button onclick="window.print()" style="padding:12px 24px;background:#C8A000;color:#111;font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:16px;">🖨 Drucken / PDF</button></div></body>');
+    doc.open();doc.write(htmlP);doc.close();
   }
 
-  // Server-PDF versuchen — Fallback auf Druckdialog
+  // Window SOFORT öffnen (User-Gesture-Kontext), dann Inhalt laden
+  const _pdfWin = window.open('', '_blank', 'width=1050,height=1200');
+
   if(serverVerfuegbar){
-    tryServerPdf();
+    // Server-PDF versuchen — window als Fallback übergeben
+    tryServerPdf(_pdfWin);
   } else {
-    tryBrowserPrint();
+    tryBrowserPrint(_pdfWin);
   }
 
-  // (catch-Block bleibt für Kompatibilität)
   try { void 0; }
-  catch(e){ showToast('PDF Fehler: '+e.message, 'error'); console.error('[PDF]',e); }
+  catch(e){ showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
 }
 
 
