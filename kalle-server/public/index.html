@@ -365,8 +365,6 @@ a, button, input, select, textarea, label,
 }
 .active-filter{background:var(--accent)!important;color:#111!important;border-color:var(--accent)!important;font-weight:700!important;}
 </style>
-  <!-- html2pdf — direkte PDF-Generierung ohne Druckdialog -->
-  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 <header>
@@ -2382,7 +2380,7 @@ function exportPrices(){dl(JSON.stringify(P,null,2),'grafe_preise.json','applica
 function importPrices(e){rdFile(e,d=>{try{P=JSON.parse(d);saveP();renderBackend();reBuild();alert('OK!');}catch(er){alert('Fehler: '+er.message);}});}
 function dl(content,name,type){const b=new Blob([content],{type});const a=document.createElement('a');a.href=URL.createObjectURL(b);a.download=name;a.click();}
 function rdFile(e,cb){const f=e.target.files[0];if(!f)return;const r=new FileReader();r.onload=ev=>cb(ev.target.result);r.readAsText(f);}
-function getSetupPreis(){return P.arbeitswerte.find(a=>a.gruppe==='Setup')?.preis||35;}
+function getSetupPreis(){return (P.arbeitswerte||[]).find(a=>a.gruppe==='Setup')?.preis||35;}
 function $(id){return document.getElementById(id);}
 function gN(id){const e=$(id);return e?parseFloat(e.value)||0:0;}
 function sv(id,val){const e=$(id);if(e)e.textContent=val;}
@@ -12468,71 +12466,61 @@ ${!isInt ? agbHtml : ''}
     doc.open();doc.write(htmlP);doc.close();
   }
 
-  // ── Direkte PDF-Generierung via html2pdf.js ──────────────────────────────
+  // ── PDF: Blob-URL in neuem Tab, Auto-Print ───────────────────────────────
+  // html2pdf/html2canvas schlägt fehl wenn CSS-Variablen & Off-Screen-Rendering
+  // → zuverlässiger: HTML in neuem Tab öffnen, inline-Script triggert window.print()
   const auftragsnr = $('auftragsnr')?.value || 'Offerte';
   const kundeN     = $('kundenname')?.value || '';
   const filename   = `${auftragsnr}${kundeN?' '+kundeN:''}`;
 
-  // Button-Status
-  const pdfBtnEl  = document.querySelector('[onclick*="printDoc"]');
+  const pdfBtnEl   = document.querySelector('[onclick*="printDoc"]');
   const origBtnTxt = pdfBtnEl?.innerHTML;
-  if(pdfBtnEl){ pdfBtnEl.innerHTML='⏳ PDF wird erstellt…'; pdfBtnEl.disabled=true; }
+  if(pdfBtnEl){ pdfBtnEl.innerHTML='⏳ PDF…'; pdfBtnEl.disabled=true; }
+  setTimeout(()=>{ if(pdfBtnEl){ pdfBtnEl.innerHTML=origBtnTxt; pdfBtnEl.disabled=false; } }, 3000);
 
-  function restoreBtn(){ if(pdfBtnEl){ pdfBtnEl.innerHTML=origBtnTxt; pdfBtnEl.disabled=false; } }
+  try {
+    // Print-Button + Auto-Print ins HTML einbauen
+    const htmlWithPrint = html
+      .replace('</body>',
+        `<div class="no-print" style="position:fixed;bottom:20px;right:20px;z-index:9999;">
+          <button onclick="window.print()" style="padding:14px 28px;background:#C8A000;color:#111;
+            font-weight:700;border:none;border-radius:8px;cursor:pointer;font-size:15px;
+            box-shadow:0 4px 16px rgba(0,0,0,.4);">
+            🖨 Als PDF speichern (Strg+P)
+          </button>
+          <div style="font-size:10px;color:#666;margin-top:6px;text-align:center;">
+            Ziel: «Als PDF speichern»
+          </div>
+        </div>
+        <script>
+          // Auto-print nach kurzem Delay damit Fonts geladen sind
+          window.addEventListener('load', function(){
+            setTimeout(function(){ window.print(); }, 800);
+          });
+        <\/script>
+        </body>`
+      );
 
-  // html2pdf verfügbar? → direkte PDF
-  if(typeof html2pdf !== 'undefined'){
-    // Temporäres Container-Element mit dem HTML befüllen
-    const container = document.createElement('div');
-    container.innerHTML = html;
-    container.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;';
-    document.body.appendChild(container);
-
-    const opt = {
-      margin:       [0, 0, 0, 0],
-      filename:     filename + '.pdf',
-      image:        { type: 'jpeg', quality: 0.97 },
-      html2canvas:  { scale: 2, useCORS: true, logging: false, letterRendering: true },
-      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
-      pagebreak:    { mode: ['css', 'legacy'], before: '.page' },
-    };
-
-    html2pdf().set(opt).from(container).save()
-      .then(()=>{
-        document.body.removeChild(container);
-        restoreBtn();
-        showToast('✓ '+filename+'.pdf heruntergeladen');
-      })
-      .catch(err=>{
-        document.body.removeChild(container);
-        restoreBtn();
-        console.error('[PDF]', err);
-        // Fallback auf Blob-URL
-        outputHtmlFallback();
-      });
-  } else {
-    // Fallback: Blob-URL im neuen Tab
-    restoreBtn();
-    outputHtmlFallback();
+    const blob = new Blob([htmlWithPrint], {type:'text/html;charset=utf-8'});
+    const url  = URL.createObjectURL(blob);
+    const w    = window.open(url, '_blank');
+    if(w){
+      setTimeout(()=>URL.revokeObjectURL(url), 60000);
+      showToast('✓ Offerte geöffnet — Druckdialog erscheint automatisch');
+    } else {
+      // Popup geblockt → Download
+      const a = document.createElement('a');
+      a.href=url; a.download=filename+'.html';
+      document.body.appendChild(a); a.click(); document.body.removeChild(a);
+      setTimeout(()=>URL.revokeObjectURL(url), 5000);
+      showToast('📄 HTML heruntergeladen — im Browser öffnen + drucken');
+    }
+  } catch(e2){
+    showToast('PDF Fehler: '+e2.message,'error');
+    console.error('[PDF]',e2);
   }
 
-  function outputHtmlFallback(){
-    try {
-      const blob = new Blob([html], {type:'text/html;charset=utf-8'});
-      const url  = URL.createObjectURL(blob);
-      const w    = window.open(url, '_blank');
-      if(w){ setTimeout(()=>URL.revokeObjectURL(url), 30000); }
-      else {
-        const a = document.createElement('a');
-        a.href=url; a.download=filename+'.html';
-        document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(()=>URL.revokeObjectURL(url),5000);
-        showToast('Als .html gespeichert — im Browser öffnen + drucken');
-      }
-    } catch(e2){ showToast('PDF Fehler: '+e2.message,'error'); }
-  }
-
-  } catch(e){ restoreBtn&&restoreBtn(); showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
+  } catch(e){ if(pdfBtnEl){ pdfBtnEl.innerHTML=origBtnTxt; pdfBtnEl.disabled=false; } showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
 }
 
 
