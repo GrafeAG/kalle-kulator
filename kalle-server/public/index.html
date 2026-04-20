@@ -8771,6 +8771,8 @@ function getServerUrl(){
 const KALLE_SERVER = getServerUrl();
 const KALLE_SERVER_VERSION = '2.0';
 let serverVerfuegbar = false;
+let KUNDEN = [];          // Kundenstamm aus SelectLine
+let kundenLoaded = false; // ob kunden.json geladen wurde
 
 async function checkServer(){
   try{
@@ -8863,7 +8865,11 @@ function loadAuftragData(a){
   if($('kundenname'))$('kundenname').value=a.kundenname||'';
   if($('kontaktperson'))$('kontaktperson').value=a.kontaktperson||'';
   if($('auftragsnr'))$('auftragsnr').value=a.auftragsnr||'';
-  if($('datum'))$('datum').value=a.datum||'';
+  // datum: ISO-String → YYYY-MM-DD für input[type=date]
+  if($('datum')){
+    const d = a.datum||'';
+    $('datum').value = d.includes('T') ? d.split('T')[0] : d;
+  }
   if($('telefon'))$('telefon').value=a.telefon||'';
   if($('email'))$('email').value=a.email||'';
   if($('adresseStrasse'))$('adresseStrasse').value=a.adresseStrasse||'';
@@ -8896,15 +8902,45 @@ function loadAuftragData(a){
 
 async function ladeAuftragVomServer(auftragsnr){
   if(!serverVerfuegbar){showToast('Server nicht erreichbar','error');return;}
+  showToast('⏳ Lade '+auftragsnr+'...');
   try{
-    const r = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/payload');
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const a = await r.json();
+    // Versuche /payload Endpoint (vollständige Daten inkl. Positionen)
+    let a = null;
+    const r1 = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/payload');
+    if(r1.ok){
+      a = await r1.json();
+    } else {
+      // Fallback: /offerten/:nr
+      const r2 = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr);
+      if(!r2.ok) throw new Error('HTTP '+r2.status+' — Auftrag nicht gefunden');
+      a = await r2.json();
+    }
+
+    if(!a) throw new Error('Keine Daten erhalten');
+
+    // positions: aus JSON-String dekodieren falls nötig
+    if(a.positions_json && !a.positions){
+      try{ a.positions = JSON.parse(a.positions_json); }catch(e2){}
+    }
+    if(typeof a.positions === 'string'){
+      try{ a.positions = JSON.parse(a.positions); }catch(e2){}
+    }
+    if(!Array.isArray(a.positions)){
+      throw new Error('Positionen nicht lesbar — Auftrag möglicherweise leer oder beschädigt');
+    }
+
+    // datum: ISO → YYYY-MM-DD
+    if(a.datum && a.datum.includes('T')){
+      a.datum = a.datum.split('T')[0];
+    }
+
     loadAuftragData(a);
-    showPage('kalk');
-    showToast('✓ '+auftragsnr+' geladen');
+    showPage('kalk', document.querySelector('.nav-pill'));
+    showToast('✓ '+auftragsnr+' geladen — '+a.positions.length+' Positionen');
+
   } catch(e){
-    showToast('Fehler beim Laden: '+e.message,'error');
+    console.error('[Laden]', e);
+    showToast('Fehler: '+e.message, 'error');
   }
 }
 
@@ -9680,6 +9716,81 @@ const AGB_HTML = `
 
 </div>
 `;
+
+function sucheKunden(query){
+  if(!query || query.length < 2) return [];
+  const q = query.toLowerCase();
+  return KUNDEN.filter(k =>
+    k.name.toLowerCase().includes(q) ||
+    k.nr.startsWith(query) ||
+    (k.ort && k.ort.toLowerCase().includes(q))
+  ).slice(0, 8);
+}
+
+function showKundenDropdown(results, inputId){
+  document.getElementById('kunden-dropdown')?.remove();
+  if(!results.length) return;
+  const inp = $(inputId); if(!inp) return;
+  const wrapper = inp.parentNode;
+  wrapper.style.position = 'relative';
+  const dd = document.createElement('div');
+  dd.id = 'kunden-dropdown';
+  dd.style.cssText = 'position:absolute;top:100%;left:0;right:0;min-width:320px;z-index:9999;'+
+    'background:var(--surface);border:2px solid var(--accent);border-radius:8px;'+
+    'box-shadow:0 8px 30px rgba(0,0,0,.5);max-height:300px;overflow-y:auto;font-size:12px;margin-top:2px;';
+  results.forEach((k, idx) => {
+    const item = document.createElement('div');
+    item.style.cssText = 'padding:9px 12px;cursor:pointer;display:flex;flex-direction:column;gap:2px;'+
+      (idx < results.length-1 ? 'border-bottom:1px solid var(--border)' : '');
+    item.innerHTML =
+      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
+        '<strong style="font-size:13px;color:var(--text);">' + k.name + '</strong>' +
+        '<span style="font-size:10px;color:var(--accent);font-weight:700;padding:2px 7px;'+
+          'background:var(--surface3);border-radius:4px;border:1px solid var(--accent);">' + k.nr + '</span>' +
+      '</div>' +
+      '<div style="color:var(--muted);font-size:11px;">' +
+        [k.strasse, (k.plz+' '+k.ort).trim()].filter(Boolean).join(' · ') +
+      '</div>' +
+      (k.email ? '<div style="color:var(--teal);font-size:10px;">' + k.email + '</div>' : '');
+    item.addEventListener('pointerdown', function(e){
+      e.preventDefault(); e.stopPropagation();
+      fuelleKundendaten(k); dd.remove();
+    });
+    item.addEventListener('mouseenter', () => item.style.background = 'var(--surface2)');
+    item.addEventListener('mouseleave', () => item.style.background = '');
+    dd.appendChild(item);
+  });
+  wrapper.appendChild(dd);
+  function closeDD(e){ if(!wrapper.contains(e.target)){ dd.remove(); document.removeEventListener('pointerdown', closeDD, true); } }
+  setTimeout(() => document.addEventListener('pointerdown', closeDD, true), 50);
+}
+
+function fuelleKundendaten(k){
+  if($('kundenname'))    $('kundenname').value    = k.name;
+  if($('kontaktperson')) $('kontaktperson').value = k.kontakt || '';
+  if($('email'))         $('email').value         = k.email   || '';
+  if($('telefon'))       $('telefon').value        = k.tel     || '';
+  if($('adresseStrasse'))$('adresseStrasse').value = k.strasse || '';
+  if($('adressePLZ'))    $('adressePLZ').value     = k.plz     || '';
+  if($('adresseOrt'))    $('adresseOrt').value      = k.ort     || '';
+  const slNr = document.getElementById('slKundennummer');
+  if(slNr) slNr.value = k.nr;
+  showKundenBadge(k);
+  showToast('✓ Kunde '+k.name+' (Nr. '+k.nr+') übernommen');
+}
+
+function showKundenBadge(k){
+  let badge = document.getElementById('kundenBadge');
+  if(!badge){
+    badge = document.createElement('div');
+    badge.id = 'kundenBadge';
+    badge.style.cssText = 'font-size:10px;color:var(--accent);margin-top:3px;padding:3px 8px;'+
+      'background:var(--accent-dim);border-radius:4px;display:inline-flex;align-items:center;gap:6px;';
+    $('kundenname')?.parentNode?.appendChild(badge);
+  }
+  badge.innerHTML = '<span style="font-weight:700;">SL-Nr. '+k.nr+'</span> · '+k.ort+
+    ' <span onclick="clearKundenBadge()" style="cursor:pointer;opacity:.6;margin-left:4px;">✕</span>';
+}
 
 function clearKundenBadge(){
   document.getElementById('kundenBadge')?.remove();
@@ -11638,7 +11749,7 @@ function loadAuftrag(id){
   if(!confirm(`Auftrag "${a.auftragsnr}" laden?`))return;
   positions=JSON.parse(JSON.stringify(a.positions));
   $('kundenname').value=a.kundenname;$('kontaktperson').value=a.kontaktperson||'';
-  if(a.slKundennummer){const slEl=document.getElementById('slKundennummer');if(slEl)slEl.value=a.slKundennummer;if(a.kundenname)showKundenBadge({nr:a.slKundennummer,name:a.kundenname,ort:a.adresseOrt||''});}
+  if(a.slKundennummer){const slEl=document.getElementById('slKundennummer');if(slEl)slEl.value=a.slKundennummer;if(a.kundenname&&typeof showKundenBadge==='function')showKundenBadge({nr:a.slKundennummer,name:a.kundenname,ort:a.adresseOrt||''});}
   $('auftragsnr').value=a.auftragsnr;$('datum').value=a.datum;
   $('telefon').value=a.telefon||'';$('email').value=a.email||'';
   if($('adresseStrasse'))$('adresseStrasse').value=a.adresseStrasse||'';
