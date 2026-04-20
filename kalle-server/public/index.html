@@ -10430,12 +10430,30 @@ function updatePreisServerStatus(){
 
 // ═══════════════════════════════════════════════════════
 // PROJEKTORDNER — Grafe AG Ablagesystem
-// Schema A: Firmenkunde  Z:\01-Kundenprojekte\Firmenkunden\[Firma]\[ProjNr - Bez]\
-// Schema B: Objekt       Z:\01-Kundenprojekte\Objekte\[Ort]\[Strasse]\[ProjNr - Bez]\
+// Schema A: Firmenkunde  \\SERVER\Share\01-Kundenprojekte\Firmenkunden\[Firma]\[ProjNr - Bez]\
+// Schema B: Objekt       \\SERVER\Share\01-Kundenprojekte\Objekte\[Ort]\[Strasse]\[ProjNr - Bez]\
+// Konfiguration: NETZLAUFWERK=\\SERVER\Share\01-Kundenprojekte  in .env
 // ═══════════════════════════════════════════════════════
 
-let _projektPfad = '';
-let _projektTyp  = 'firma'; // 'firma' | 'objekt'
+let _projektPfad  = '';
+let _projektTyp   = 'firma'; // 'firma' | 'objekt'
+let _projektBasis = ''; // Wird vom Server geladen (/projekte/info)
+
+// Basispfad vom Server holen (UNC oder lokal — was .env definiert)
+async function ladeProjektBasis(){
+  if(_projektBasis) return _projektBasis;
+  try{
+    const r = await fetch(KALLE_SERVER+'/projekte/info');
+    if(r.ok){
+      const d = await r.json();
+      _projektBasis = d.basis || '';
+      if(!d.zugriffsbar){
+        console.warn('[Projekte] Basispfad nicht erreichbar:', _projektBasis);
+      }
+    }
+  }catch(e){ console.warn('[Projekte] /info Fehler:', e.message); }
+  return _projektBasis;
+}
 
 function toggleProjektordner(){
   const body = $('projektordnerBody');
@@ -10446,7 +10464,7 @@ function toggleProjektordner(){
   if(icon) icon.textContent = open ? '▲' : '▼';
   if(open){
     projAutoSync();      // auto-fill from Auftragsdaten
-    updateProjPfadVorschau();
+    ladeProjektBasis().then(()=>updateProjPfadVorschau()); // UNC-Basis vom Server laden
   }
 }
 
@@ -10470,15 +10488,19 @@ function updateProjPfadVorschau(){
   const nr  = $('projNr')?.value?.trim() || $('auftragsnr')?.value?.trim() || 'KA…';
   const bez = $('projBezeichnung')?.value?.trim() || '…';
   const projektOrdner = `${nr} - ${bez}`;
+  // Basis vom Server oder Fallback-Anzeige
+  const basis = _projektBasis || '\\\\SERVER\\Share\\01-Kundenprojekte';
   let pfad = '';
   if(_projektTyp === 'firma'){
     const firma = $('projFirmaName')?.value?.trim() || '[Firmenname]';
-    pfad = `Z:\\01-Kundenprojekte\\Firmenkunden\\${firma}\\${projektOrdner}\\`;
+    pfad = `${basis}\\Firmenkunden\\${firma}\\${projektOrdner}\\`;
   } else {
     const ort     = $('projOrt')?.value?.trim()     || '[Ort]';
     const strasse = $('projStrasse')?.value?.trim() || '[Strasse Nr.]';
-    pfad = `Z:\\01-Kundenprojekte\\Objekte\\${ort}\\${strasse}\\${projektOrdner}\\`;
+    pfad = `${basis}\\Objekte\\${ort}\\${strasse}\\${projektOrdner}\\`;
   }
+  // UNC-Pfad: doppelte Backslashes am Anfang sicherstellen
+  if(pfad.startsWith('\\\\')) pfad = pfad.replace(/^\\\\\\\\+/, '\\\\\\\\');
   vv.textContent = pfad;
   vv.style.display = 'block';
 }
@@ -10576,7 +10598,7 @@ async function erstelleProjektordner(){
       const neu  = data.erstellteOrdner?.length||0;
       if(statusEl){
         if(warn && !neu){
-          statusEl.innerHTML = `⚠ Netzlaufwerk nicht erreichbar — Pfad gespeichert.<br>
+          statusEl.innerHTML = `⚠ Netzwerkpfad (UNC) nicht erreichbar — Pfad gespeichert.<br>
             <code style="font-size:10px;color:var(--accent);">${_projektPfad}</code>`;
           statusEl.style.color='var(--amber)';
         } else {
