@@ -365,6 +365,8 @@ a, button, input, select, textarea, label,
 }
 .active-filter{background:var(--accent)!important;color:#111!important;border-color:var(--accent)!important;font-weight:700!important;}
 </style>
+  <!-- html2pdf — direkte PDF-Generierung ohne Druckdialog -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
 </head>
 <body>
 <header>
@@ -9590,219 +9592,94 @@ function renderSLArtikelBackend(){
 // AGB HTML — Anhang in Kundenofferte
 // ═══════════════════════════════════════════════════════
 const AGB_HTML = `
-<div class="page" style="page-break-before:always;">
-  <div style="font-size:14px;font-weight:700;margin-bottom:6mm;border-bottom:1px solid #1c1c1e;padding-bottom:3mm;">
-    Allgemeine Geschäftsbedingungen (AGB) — Grafe AG
+<div class="page" style="page-break-before:always;font-family:Arial,Helvetica,sans-serif;padding:8mm 10mm;box-sizing:border-box;">
+
+  <!-- Header -->
+  <div style="border-bottom:2px solid #1c1c1e;padding-bottom:3mm;margin-bottom:5mm;">
+    <div style="font-size:13px;font-weight:700;color:#1c1c1e;">Allgemeine Geschäftsbedingungen (AGB)</div>
+    <div style="font-size:10px;color:#444;">der Grafe AG, Birsfelden</div>
   </div>
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:0 12mm;font-size:9px;color:#333;line-height:1.6;">
-    <div>
-      <p style="font-weight:700;margin-bottom:2mm;">1. Geltungsbereich</p>
-      <p style="margin-bottom:4mm;">Diese Allgemeinen Geschäftsbedingungen (AGB) gelten für alle Geschäftsbeziehungen zwischen der Grafe AG, Rheinfelderstrasse 12, 4127 Birsfelden (nachfolgend «Grafe AG») und ihren Kunden. Abweichende Bedingungen des Kunden werden nicht anerkannt, es sei denn, Grafe AG stimmt ihrer Geltung ausdrücklich schriftlich zu.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">2. Offerte und Auftragserteilung</p>
-      <p style="margin-bottom:4mm;">Offerten der Grafe AG sind freibleibend und unverbindlich. Ein Vertrag kommt erst durch schriftliche Auftragsbestätigung oder tatsächliche Ausführung des Auftrags durch Grafe AG zustande. Änderungen und Ergänzungen bedürfen der Schriftform.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">3. Preise und Zahlungsbedingungen</p>
-      <p style="margin-bottom:4mm;">Alle Preise verstehen sich in CHF exkl. MwSt., sofern nicht anders angegeben. Rechnungen sind innerhalb von 30 Tagen netto zahlbar. Bei Zahlungsverzug werden Verzugszinsen von 5% p.a. berechnet.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">4. Lieferung und Lieferfristen</p>
-      <p style="margin-bottom:4mm;">Liefertermine sind unverbindlich, sofern nicht ausdrücklich als verbindlich schriftlich vereinbart. Die Lieferfrist beginnt nach vollständiger Auftragsklärung, Zahlungseingang der allfälligen Anzahlung sowie Erhalt sämtlicher für die Ausführung notwendiger Unterlagen.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">5. Gefahrenübergang</p>
-      <p style="margin-bottom:4mm;">Die Gefahr geht mit Übergabe der Ware an den Kunden oder an die Transportperson auf den Kunden über.</p>
-    </div>
-    <div>
-      <p style="font-weight:700;margin-bottom:2mm;">6. Eigentumsvorbehalt</p>
-      <p style="margin-bottom:4mm;">Die gelieferten Waren bleiben bis zur vollständigen Bezahlung Eigentum der Grafe AG.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">7. Mängel und Gewährleistung</p>
-      <p style="margin-bottom:4mm;">Der Kunde hat die Waren unverzüglich nach Erhalt zu prüfen. Mängel sind sofort, spätestens innerhalb von 5 Arbeitstagen schriftlich zu rügen. Bei berechtigten Mängelrügen ist Grafe AG berechtigt, nach eigener Wahl Nachbesserung oder Ersatzlieferung vorzunehmen.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">8. Haftungsbeschränkung</p>
-      <p style="margin-bottom:4mm;">Die Haftung der Grafe AG ist auf direkten Schaden begrenzt. Jede Haftung für Folgeschäden, entgangenen Gewinn oder mittelbare Schäden wird ausgeschlossen.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">9. Urheberrecht / Datenschutz</p>
-      <p style="margin-bottom:4mm;">Alle von Grafe AG erstellten Entwürfe, Zeichnungen und Konzepte bleiben geistiges Eigentum von Grafe AG. Eine Weitergabe an Dritte bedarf der schriftlichen Zustimmung. Grafe AG verarbeitet Kundendaten gemäss den anwendbaren Datenschutzgesetzen.</p>
-      <p style="font-weight:700;margin-bottom:2mm;">10. Gerichtsstand und anwendbares Recht</p>
-      <p style="margin-bottom:4mm;">Für alle Streitigkeiten aus der Geschäftsbeziehung gilt Schweizer Recht. Gerichtsstand ist Basel-Stadt.</p>
-      <p style="margin-top:6mm;color:#666;">Grafe AG · Rheinfelderstrasse 12 · 4127 Birsfelden · Tel. +41 61 421 23 23 · info@grafe.ch · www.grafe.ch</p>
-    </div>
+
+  <!-- 3-column layout -->
+  <div style="columns:3;column-gap:5mm;column-rule:1px solid #ddd;font-size:7px;line-height:1.45;color:#222;text-align:justify;">
+
+    <p style="margin:0 0 1.5mm;"><strong>1. Geltungsbereich</strong><br>
+    Diese allgemeinen Geschäftsbedingungen («AGB») sind integrierender Bestandteil aller Rechtsgeschäfte zwischen der Grafe AG und dem Auftraggeber/Kunden, auch wenn auf diese bei zukünftigen Geschäften nicht mehr besonders hingewiesen wird, so z.B. bei Ersatzlieferungen, Garantieleistungen, Reparaturen und Umänderungen. Durch Erteilung des Auftrages anerkennt der Auftraggeber/Kunde die vorliegenden AGB.<br>
+    Änderungen und/oder Ergänzungen der vorliegenden AGB und/oder der den AGB zugrunde liegenden Verträge und Vereinbarungen bedürfen der schriftlichen Zustimmung der Grafe AG. Allgemeine Bedingungen des Auftraggebers/Kunden sind für die Grafe AG unverbindlich. Diese AGB ersetzen alle vorangegangenen und gelten ab 1. Januar 2019.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>2. Vorarbeiten</strong><br>
+    Eine erste Besprechung am Domizil des Auftraggebers/Kunden oder am zukünftigen Standort der bestellten Produkte und/oder Dienstleistungen ist, vorbehaltlich einer anderslautenden Abrede der Parteien, unverbindlich. Sofern für diese Besprechung vonseiten der Grafe AG eine Projektskizze, provisorische Offerte o.ä. ausgearbeitet wird, bleiben solche Inhalte und Produkte, einschliesslich aller Immaterialgüterrechte, im alleinigen Eigentum der Grafe AG. Jede weitere Entwurfsvariante sowie die Anfertigung von Konzepten, Modellen, Prototypen oder Mustern stellen einen gesondert zu honorierenden Auftrag dar. Präsentationsaufträge für Wettbewerbe werden nach Aufwand in Rechnung gestellt.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>3. Offertstellung</strong><br>
+    Alle Angebote der Grafe AG gelten als freibleibend. Ein erteilter Auftrag erhält erst durch schriftliche Auftragsbestätigung Verbindlichkeit. Mündliche Zusagen sind erst verbindlich, wenn sie von einem Zeichnungsberechtigten der Grafe AG schriftlich bestätigt worden sind. Den kommunizierten Preisen liegen die am Tage der Ermittlung gültigen Lohn- und Materialkosten zugrunde.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>4. Vertragsschluss</strong><br>
+    Der Vertragsschluss kommt mit der Auftragsbestätigung durch die Grafe AG zustande. Etwaige Fehler oder Widersprüche sind unverzüglich schriftlich zu rügen. Nach Ablauf von fünf Tagen gilt der Inhalt der Auftragsbestätigung als genehmigt. Massangaben sind durch den Auftraggeber/Kunden zu prüfen. Die auf den Unterlagen angedruckten Farben sind nicht farbverbindlich.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>5. Leistungsänderungen/Annullationen</strong><br>
+    Änderungen oder Annullierung der vereinbarten Leistungen nach Vertragsschluss sind nur mit schriftlichem Einverständnis der Grafe AG sowie gegen volle Schadloshaltung möglich. Bei wesentlichen Änderungen des ursprünglichen Auftrages kann die Grafe AG eine angemessene Entschädigung für bereitgestellte Kapazitäten verrechnen.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>6. Pflichten des Auftraggebers</strong><br>
+    Der Auftraggeber/Kunde verpflichtet sich, die Vergütungen innert der vorgesehenen Zahlungsfrist zu bezahlen. Wird eine Teilzahlung nicht innert Zahlungsfrist geleistet, ist sofort die gesamte Restforderung der Grafe AG zur Zahlung fällig. Der Auftraggeber/Kunde hat der Grafe AG alle nötigen Informationen zu geben, Anweisungen nachzukommen sowie alles zu unterlassen, was die Auftragsausführung behindert. Mehraufwendungen durch nicht rechtzeitige Information oder mangelhafte Unterlagen werden dem Auftraggeber/Kunden in Rechnung gestellt. Haben mehrere Personen gemeinsam einen Auftrag gegeben, haften sie gegenüber der Grafe AG solidarisch.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>7. Leistungsumfang</strong><br>
+    Für die Fertigung und Lieferung ist der Wortlaut der Auftragsbestätigung massgebend. Ohne ausdrückliche Vereinbarung sind Maurerarbeiten, Spenglerarbeiten, Dachdecker-, Verputz- und Malerarbeiten sowie die Stellung von Gerüsten, Hebebühnen, Kranen o.ä. nicht inbegriffen. Untergründe müssen vorgereinigt und frei von Verunreinigungen sein. Die Grafe AG führt lediglich eine stichprobenartige Haftungsprüfung des Untergrunds durch. Bei negativem Ergebnis der Haftungsprüfung oder nicht fachgerecht hergestellten Oberflächen gewährt die Grafe AG keine Garantie. Prototypen und Muster gehören nicht zur Lieferpflicht und sind gesondert zu vergüten.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>8. Montage und Stromzuführung</strong><br>
+    Bei anschlussfertig offerierter Ware erfolgt die Montage durch das Personal der Grafe AG. Der Anschluss an die Stromversorgung erfolgt, sofern nicht anders vereinbart, durch den Auftraggeber/Kunden. Die primärseitige Stromzuführung ist durch einen konzessionierten Elektriker auszuführen. Die entsprechenden Kosten gehen zu Lasten des Auftraggebers/Kunden.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>9. Lieferung und Gefahrenübergang</strong><br>
+    Vorbehaltlich anderer Abreden ist Lieferung «ab Werk» vereinbart. Die Gefahr geht auf den Auftraggeber/Kunden über, wenn die Ware die Fabrik verlässt, auch wenn der Transport durch Fahrzeuge der Grafe AG erfolgt. Liefertermine werden so genau wie möglich angegeben, ohne garantiert zu werden. Bei Vertragsänderungen, Streik, höherer Gewalt oder anderen nicht beeinflussbaren Ereignissen verlängern sich die Lieferfristen angemessen.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>10. Abnahme</strong><br>
+    Als Abnahme gilt der Zeitpunkt der Entgegennahme des Produkts und/oder der Leistung. Der Auftraggeber/Kunde hat gelieferte Produkte unverzüglich nach Abnahme zu prüfen. Möglicherweise entdeckte Mängel sind spätestens innert 5 Werktagen nach Abnahme schriftlich bekanntzugeben. Nachträgliche Mängel sind der Grafe AG spätestens innert 5 Werktagen nach Kenntnisnahme schriftlich mitzuteilen.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>11. Gewährleistung und Haftung</strong><br>
+    Die Gewährleistung erstreckt sich auf alle Arbeiten und Produkte der Grafe AG, die infolge Fabrikations- oder Materialdefekten unbrauchbar oder schadhaft geworden sind. Geringe Abweichungen in Grösse, Form, Farbe oder Qualität stellen keinen Mangel dar. Wird ein Mangel festgestellt, kann die Grafe AG das mangelhafte Produkt nach eigener Wahl nachbessern oder ersetzen. Die Gewährleistungsansprüche verjähren mit Ablauf von einem Jahr nach Abnahme (zwei Jahre für Produkte zum persönlichen Gebrauch). Die Grafe AG übernimmt keine Gewähr für Mängel durch fehlerhafte Installation, Bedienungsfehler, Eingriffe Dritter oder äussere Einwirkung. Die Haftung der Grafe AG für Mangelfolgeschäden ist ausgeschlossen, soweit diese nicht durch grobfahrlässiges oder absichtliches Handeln verursacht wurden.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>12. Annahmeverzug</strong><br>
+    Kann oder will der Auftraggeber/Kunde die Ware nicht zum vereinbarten Termin übernehmen, behält sich die Grafe AG vor, vom Vertrag zurückzutreten. Die Grafe AG ist in diesem Falle nicht mehr an Liefertermine gebunden und haftet nicht für Verspätungsschäden.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>13. Bewilligungen</strong><br>
+    Die Gültigkeit des Kaufvertrages ist unabhängig von der Erteilung behördlicher Bewilligungen. Sofern nicht anders vereinbart, ist deren Beschaffung Sache des Auftraggebers/Kunden. Notwendige Änderungen aufgrund behördlicher Vorschriften entbinden den Auftraggeber/Kunden nicht von der Abnahme- und Zahlungspflicht.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>14. Immaterialgüterrechte</strong><br>
+    Alle Rechte an von der Grafe AG gefertigten Konzepten, Designs, Grafiken, CAD-Zeichnungen, Entwürfen, Modellen, Konstruktionszeichnungen, Anleitungen, Kostenvoranschlägen usw. bleiben bei der Grafe AG. Die Weitergabe sowie Vervielfältigung ist nicht gestattet, soweit die Rechte nicht ausdrücklich schriftlich übertragen wurden. Die Grafe AG ist berechtigt, die Ware mit einem Herstellerhinweis zu versehen.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>15. Verwendung von Bildmaterial</strong><br>
+    Grafe AG ist berechtigt, eigene Fotos der im Rahmen des Auftragsverhältnisses produzierten Arbeiten oder Produkte für eigene Zwecke (Homepage, Print, PR-Massnahmen usw.) uneingeschränkt zu verwenden. Der Auftraggeber/Kunde stimmt einer solchen Verwendung mit Erteilung des Auftrags ausdrücklich zu.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>16. Preise und Zahlungsbedingungen</strong><br>
+    Alle angegebenen Preise verstehen sich netto, exkl. Mehrwertsteuer, in Schweizer Franken, für Lieferung ab Werk. Ohne gegenteilige schriftliche Vereinbarung ist ein Drittel des Preises bei Auftragserteilung, ein Drittel bei Lieferbereitschaft und ein Drittel sofort nach Erhalt der Rechnung zahlbar. Nach Ablauf von 30 Tagen ab Rechnungsdatum ist der geschuldete Preis mit 5% p.a. zu verzinsen. Muss eine Forderung auf dem Betreibungs- oder Rechtsweg geltend gemacht werden, fallen alle ursprünglich zugestandenen Rabatte und Skonti dahin.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>17. Eigentumsvorbehalt</strong><br>
+    Die Grafe AG behält das Eigentumsrecht an sämtlichen gelieferten Waren bis zur vollständigen Abdeckung aller Ansprüche. Sie ist ausdrücklich dazu ermächtigt, den Eigentumsvorbehalt oder ein Bauhandwerkerpfandrecht in das zuständige Register eintragen zu lassen.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>18. Geheimhaltung</strong><br>
+    Die Vertragsparteien verpflichten sich zur Geheimhaltung von Tatsachen und Daten, die ihnen während der Vorbereitung und Erfüllung des Auftrages zugänglich gemacht werden. Im Zweifel sind Tatsachen vertraulich zu behandeln. Diese Geheimhaltungspflicht besteht nach Beendigung des Vertragsverhältnisses weiter.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>19. Verrechnungsverbot</strong><br>
+    Forderungen der Grafe AG können nicht mit Gegenforderungen des Auftraggebers/Kunden verrechnet werden.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>20. Datenschutz</strong><br>
+    Die Grafe AG kann im Zusammenhang mit der Vertragsabwicklung personenbezogene Daten erheben, speichern, bearbeiten und an Dritte weitergeben, unter jederzeitiger Beachtung geltender Datenschutznormen. Daten werden namentlich zur Überprüfung von Voraussetzungen für einen Vertragsschluss, zur Erfüllung vertraglicher Verpflichtungen, zur Pflege der Kundenbeziehung, zur Rechnungsstellung und zu Inkassozwecken verwendet. Der Auftraggeber/Kunde kann eine Kopie, die Berichtigung oder Löschung der personenbezogenen Daten verlangen.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>21. Übertragung</strong><br>
+    Die Übertragung von Rechten und Pflichten auf Dritte darf nur erfolgen, wenn die andere Vertragspartei vorgängig schriftlich zustimmt.</p>
+
+    <p style="margin:0 0 1.5mm;"><strong>22. Gerichtsstand und Erfüllungsort</strong><br>
+    Diese AGB sowie das den AGB zugrunde liegende Vertragsverhältnis unterstehen ausschliesslich schweizerischem Recht, unter Ausschluss des UN-Kaufrechts. Erfüllungsort sowie ausschliesslicher Gerichtsstand für alle Streitigkeiten ist am Sitz der Grafe AG. Zwingende Gerichtsstände bleiben vorbehalten.</p>
+
   </div>
-</div><!-- /page -->`; 
 
+  <!-- Footer -->
+  <div style="margin-top:4mm;padding-top:2mm;border-top:1px solid #ccc;font-size:7px;color:#666;display:flex;justify-content:space-between;">
+    <span>Birsfelden, 1. Januar 2019</span>
+    <span>Grafe AG · Rheinfelderstrasse 12 · 4127 Birsfelden</span>
+  </div>
 
-// ═══════════════════════════════════════════════════════
-// KUNDENSTAMM — Autocomplete
-// Lädt kunden.json vom gleichen Ordner wie KALLE
-// ═══════════════════════════════════════════════════════
-
-let KUNDEN = [];  // globaler Kundenstamm
-let kundenLoaded = false;
-
-async function ladeKundenstamm(){
-  if(kundenLoaded) return;
-
-  // Warte bis checkServer() ausgeführt wurde
-  const doLoad = async () => {
-    // 1. Server verfügbar → /kunden Endpoint
-    if(serverVerfuegbar){
-      try{
-        const r = await fetch(KALLE_SERVER + '/kunden');
-        if(r.ok){
-          const data = await r.json();
-          const liste = Array.isArray(data) ? data : (data.kunden || []);
-          if(liste.length){
-            KUNDEN = liste;
-            kundenLoaded = true;
-            const sl=$('kundenLadeStatus');
-            if(sl)sl.textContent='('+KUNDEN.length+' Kunden)';
-            console.log('[KALLE] Kunden vom Server:', KUNDEN.length);
-            return;
-          }
-        }
-      }catch(e){ console.warn('[KALLE] /kunden Fehler:', e.message); }
-    }
-
-    // 2. Fallback: kunden.json via XHR (file:// kompatibel)
-    await new Promise(resolve => {
-      const xhr = new XMLHttpRequest();
-      xhr.open('GET', 'kunden.json', true);
-      xhr.timeout = 5000;
-      xhr.onload = function(){
-        if(xhr.status === 200 || xhr.status === 0){
-          try{
-            const data = JSON.parse(xhr.responseText);
-            KUNDEN = Array.isArray(data) ? data : (data.kunden || []);
-            kundenLoaded = true;
-            const sl=$('kundenLadeStatus');
-            if(sl)sl.textContent='('+KUNDEN.length+' Kunden)';
-            console.log('[KALLE] Kundenstamm (lokal):', KUNDEN.length, 'Kunden');
-          }catch(e){ console.warn('[KALLE] kunden.json parse error:', e.message); }
-        }
-        resolve();
-      };
-      xhr.onerror = xhr.ontimeout = () => {
-        console.warn('[KALLE] kunden.json nicht erreichbar');
-        const sl=$('kundenLadeStatus');
-        if(sl)sl.textContent='(nicht geladen)';
-        resolve();
-      };
-      xhr.send();
-    });
-  };
-
-  await doLoad();
-}
-
-function sucheKunden(query){
-  if(!query || query.length < 2) return [];
-  const q = query.toLowerCase();
-  return KUNDEN
-    .filter(k =>
-      k.name.toLowerCase().includes(q) ||
-      k.nr.startsWith(query) ||
-      (k.ort && k.ort.toLowerCase().includes(q))
-    )
-    .slice(0, 8); // max 8 Treffer
-}
-
-function showKundenDropdown(results, inputId){
-  // Remove existing
-  document.getElementById('kunden-dropdown')?.remove();
-  if(!results.length) return;
-
-  const inp = $(inputId);
-  if(!inp) return;
-
-  // Insert dropdown right after the input's parent wrapper
-  const wrapper = inp.parentNode;
-  wrapper.style.position = 'relative';
-
-  const dd = document.createElement('div');
-  dd.id = 'kunden-dropdown';
-  dd.style.cssText = [
-    'position:absolute',
-    'top:100%',
-    'left:0',
-    'right:0',
-    'min-width:320px',
-    'z-index:9999',
-    'background:var(--surface)',
-    'border:2px solid var(--accent)',
-    'border-radius:8px',
-    'box-shadow:0 8px 30px rgba(0,0,0,.5)',
-    'max-height:300px',
-    'overflow-y:auto',
-    'font-size:12px',
-    'margin-top:2px',
-  ].join(';');
-
-  results.forEach((k,idx) => {
-    const item = document.createElement('div');
-    item.style.cssText = [
-      'padding:9px 12px',
-      'cursor:pointer',
-      idx < results.length-1 ? 'border-bottom:1px solid var(--border)' : '',
-      'display:flex',
-      'flex-direction:column',
-      'gap:2px',
-    ].join(';');
-    item.innerHTML =
-      '<div style="display:flex;justify-content:space-between;align-items:center;">' +
-        '<strong style="font-size:13px;color:var(--text);">' + k.name + '</strong>' +
-        '<span style="font-size:10px;color:var(--accent);font-weight:700;padding:2px 7px;' +
-          'background:var(--surface3);border-radius:4px;border:1px solid var(--accent);">' + k.nr + '</span>' +
-      '</div>' +
-      '<div style="color:var(--muted);font-size:11px;">' +
-        [k.strasse, (k.plz+' '+k.ort).trim()].filter(Boolean).join(' · ') +
-      '</div>' +
-      (k.email ? '<div style="color:var(--teal);font-size:10px;">' + k.email + '</div>' : '');
-
-    // Use pointerdown — fires before blur
-    item.addEventListener('pointerdown', function(e){
-      e.preventDefault();
-      e.stopPropagation();
-      fuelleKundendaten(k);
-      dd.remove();
-    });
-    item.addEventListener('mouseenter', () => item.style.background = 'var(--surface2)');
-    item.addEventListener('mouseleave', () => item.style.background = '');
-    dd.appendChild(item);
-  });
-
-  wrapper.appendChild(dd);
-
-  // Close when clicking outside
-  function closeDD(e){
-    if(!wrapper.contains(e.target)){
-      dd.remove();
-      document.removeEventListener('pointerdown', closeDD, true);
-    }
-  }
-  setTimeout(() => document.addEventListener('pointerdown', closeDD, true), 50);
-}
-
-function fuelleKundendaten(k){
-  // Kundendaten in alle Felder eintragen
-  if($('kundenname'))   $('kundenname').value   = k.name;
-  if($('kontaktperson'))$('kontaktperson').value = k.kontakt || '';
-  if($('email'))        $('email').value         = k.email   || '';
-  if($('telefon'))      $('telefon').value        = k.tel     || '';
-  if($('adresseStrasse'))$('adresseStrasse').value = k.strasse || '';
-  if($('adressePLZ'))   $('adressePLZ').value    = k.plz     || '';
-  if($('adresseOrt'))   $('adresseOrt').value     = k.ort     || '';
-
-  // SelectLine Kundennummer im Hidden-Field speichern
-  const slNr = document.getElementById('slKundennummer');
-  if(slNr) slNr.value = k.nr;
-
-  // Badge anzeigen
-  showKundenBadge(k);
-  showToast(`✓ Kunde ${k.name} (Nr. ${k.nr}) übernommen`);
-}
-
-function showKundenBadge(k){
-  let badge = document.getElementById('kundenBadge');
-  if(!badge){
-    badge = document.createElement('div');
-    badge.id = 'kundenBadge';
-    badge.style.cssText = 'font-size:10px;color:var(--accent);margin-top:3px;padding:3px 8px;background:var(--accent-dim);border-radius:4px;display:inline-flex;align-items:center;gap:6px;';
-    $('kundenname')?.parentNode?.appendChild(badge);
-  }
-  badge.innerHTML = `<span style="font-weight:700;">SL-Nr. ${k.nr}</span> · ${k.ort} <span onclick="clearKundenBadge()" style="cursor:pointer;opacity:.6;margin-left:4px;">✕</span>`;
+</div>
+`;
 }
 
 function clearKundenBadge(){
@@ -12435,65 +12312,71 @@ ${!isInt ? agbHtml : ''}
     doc.open();doc.write(htmlP);doc.close();
   }
 
-  // ── PDF ausgeben ────────────────────────────────────────────────────────
-  // Primär: Blob-URL (zuverlässiger als document.write, keine Popup-Probleme)
-  function outputPdfBrowser(){
+  // ── Direkte PDF-Generierung via html2pdf.js ──────────────────────────────
+  const auftragsnr = $('auftragsnr')?.value || 'Offerte';
+  const kundeN     = $('kundenname')?.value || '';
+  const filename   = `${auftragsnr}${kundeN?' '+kundeN:''}`;
+
+  // Button-Status
+  const pdfBtnEl  = document.querySelector('[onclick*="printDoc"]');
+  const origBtnTxt = pdfBtnEl?.innerHTML;
+  if(pdfBtnEl){ pdfBtnEl.innerHTML='⏳ PDF wird erstellt…'; pdfBtnEl.disabled=true; }
+
+  function restoreBtn(){ if(pdfBtnEl){ pdfBtnEl.innerHTML=origBtnTxt; pdfBtnEl.disabled=false; } }
+
+  // html2pdf verfügbar? → direkte PDF
+  if(typeof html2pdf !== 'undefined'){
+    // Temporäres Container-Element mit dem HTML befüllen
+    const container = document.createElement('div');
+    container.innerHTML = html;
+    container.style.cssText = 'position:absolute;left:-9999px;top:0;width:210mm;';
+    document.body.appendChild(container);
+
+    const opt = {
+      margin:       [0, 0, 0, 0],
+      filename:     filename + '.pdf',
+      image:        { type: 'jpeg', quality: 0.97 },
+      html2canvas:  { scale: 2, useCORS: true, logging: false, letterRendering: true },
+      jsPDF:        { unit: 'mm', format: 'a4', orientation: 'portrait' },
+      pagebreak:    { mode: ['css', 'legacy'], before: '.page' },
+    };
+
+    html2pdf().set(opt).from(container).save()
+      .then(()=>{
+        document.body.removeChild(container);
+        restoreBtn();
+        showToast('✓ '+filename+'.pdf heruntergeladen');
+      })
+      .catch(err=>{
+        document.body.removeChild(container);
+        restoreBtn();
+        console.error('[PDF]', err);
+        // Fallback auf Blob-URL
+        outputHtmlFallback();
+      });
+  } else {
+    // Fallback: Blob-URL im neuen Tab
+    restoreBtn();
+    outputHtmlFallback();
+  }
+
+  function outputHtmlFallback(){
     try {
       const blob = new Blob([html], {type:'text/html;charset=utf-8'});
       const url  = URL.createObjectURL(blob);
-      const a    = document.createElement('a');
-      // Versuche Fenster öffnen
-      const w = window.open(url, '_blank');
-      if(w){
-        setTimeout(()=>URL.revokeObjectURL(url), 30000);
-      } else {
-        // Popup geblockt → Download-Link
-        a.href = url; a.download = 'Offerte.html';
+      const w    = window.open(url, '_blank');
+      if(w){ setTimeout(()=>URL.revokeObjectURL(url), 30000); }
+      else {
+        const a = document.createElement('a');
+        a.href=url; a.download=filename+'.html';
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
-        setTimeout(()=>URL.revokeObjectURL(url), 5000);
-        showToast('Offerte als .html heruntergeladen — im Browser öffnen und drucken');
+        setTimeout(()=>URL.revokeObjectURL(url),5000);
+        showToast('Als .html gespeichert — im Browser öffnen + drucken');
       }
-    } catch(e2){
-      showToast('PDF Fehler: '+e2.message,'error');
-      console.error('[PDF]',e2);
-    }
+    } catch(e2){ showToast('PDF Fehler: '+e2.message,'error'); }
   }
 
-  if(serverVerfuegbar){
-    // Server-Puppeteer PDF versuchen
-    (async ()=>{
-      const auftragsnr = $('auftragsnr')?.value||'Offerte';
-      const kunde      = $('kundenname')?.value||'';
-      const filename   = `${auftragsnr}${kunde?' '+kunde:''}`;
-      const pdfBtn     = document.querySelector('[onclick*="printDoc"]');
-      const origTxt    = pdfBtn?.textContent;
-      if(pdfBtn){ pdfBtn.textContent='⏳ PDF...'; pdfBtn.disabled=true; }
-      try {
-        const resp = await fetch(KALLE_SERVER+'/pdf',{
-          method:'POST',
-          headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({html, filename}),
-        });
-        if(resp.ok && resp.headers.get('content-type')?.includes('pdf')){
-          const blob2 = await resp.blob();
-          const url2  = URL.createObjectURL(blob2);
-          const a2    = document.createElement('a');
-          a2.href=url2; a2.download=filename+'.pdf';
-          document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
-          setTimeout(()=>URL.revokeObjectURL(url2),5000);
-          showToast('✓ '+filename+'.pdf heruntergeladen');
-          if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
-          return;
-        }
-      } catch(e3){ /* Server PDF nicht verfügbar */ }
-      if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
-      outputPdfBrowser();
-    })();
-  } else {
-    outputPdfBrowser();
-  }
-
-  } catch(e){ showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
+  } catch(e){ restoreBtn&&restoreBtn(); showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
 }
 
 
