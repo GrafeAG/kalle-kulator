@@ -467,6 +467,155 @@ a, button, input, select, textarea, label,
     </div>
   </div>
 
+  <!-- ── PROJEKTORDNER ──────────────────────────────────── -->
+  <div class="sec" style="padding:0;">
+    <div class="st y" onclick="toggleProjektordner()" style="cursor:pointer;display:flex;align-items:center;justify-content:space-between;margin-bottom:0;">
+      <span>📁 Projektordner</span>
+      <span id="projektPfadBadge" style="font-size:10px;color:var(--muted);font-weight:400;max-width:55%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;"></span>
+      <span id="projektordnerIcon" style="font-size:12px;color:var(--muted);">▼</span>
+    </div>
+    <div id="projektordnerBody" style="display:none;padding:12px 0 4px 0;">
+
+      <!-- Typ-Wahl -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <div class="zopt sel" id="projTypFirma" data-typ="firma"
+          onclick="setProjTyp('firma')"
+          style="flex:1;padding:10px;text-align:center;">
+          <div style="font-size:18px;">🏢</div>
+          <div style="font-size:12px;font-weight:700;">Firmenkunde</div>
+          <div style="font-size:10px;color:var(--muted);">Lieferauftrag</div>
+        </div>
+        <div class="zopt" id="projTypObjekt" data-typ="objekt"
+          onclick="setProjTyp('objekt')"
+          style="flex:1;padding:10px;text-align:center;">
+          <div style="font-size:18px;">📍</div>
+          <div style="font-size:12px;font-weight:700;">Objekt</div>
+          <div style="font-size:10px;color:var(--muted);">Montage vor Ort</div>
+        </div>
+      </div>
+
+      <!-- Firma-Felder -->
+      <div id="projFirmaFelder" style="margin-bottom:10px;">
+        <div class="field">
+          <label>Firmenname
+            <span id="projFirmaAutoHint" style="font-size:9px;color:var(--green);margin-left:5px;"></span>
+            <span style="font-size:9px;color:var(--muted);"> — wird geprüft, ggf. bestehender Ordner genutzt</span>
+          </label>
+          <div style="display:flex;gap:6px;align-items:center;">
+            <input type="text" id="projFirmaName" placeholder="Muster AG" style="flex:1;"
+              oninput="$('projFirmaAutoHint').textContent=''">
+            <button type="button" class="btn btn-gh" onclick="projSyncFromAuftrag()"
+              style="font-size:10px;padding:4px 8px;flex-shrink:0;" title="Aus Auftragsdaten übernehmen">↺ Sync</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Objekt-Felder -->
+      <div id="projObjektFelder" style="display:none;margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <span id="projObjektAutoHint" style="font-size:10px;color:var(--green);"></span>
+          <button type="button" class="btn btn-gh" onclick="projSyncFromAuftrag()"
+            style="font-size:10px;padding:4px 8px;" title="Aus Auftragsdaten übernehmen">↺ Aus Auftragsdaten</button>
+        </div>
+        <div class="g2" style="gap:8px;">
+          <div class="field">
+            <label>Ort</label>
+            <input type="text" id="projOrt" placeholder="Basel" style="width:100%;"
+              oninput="$('projObjektAutoHint').textContent=''">
+          </div>
+          <div class="field">
+            <label>Strasse &amp; Hausnummer</label>
+            <input type="text" id="projStrasse" placeholder="Centralbahnstrasse 10" style="width:100%;"
+              oninput="$('projObjektAutoHint').textContent=''">
+          </div>
+        </div>
+      </div>
+
+      <!-- Projektinfos (beide Typen) -->
+      <div class="g2" style="gap:8px;margin-bottom:10px;">
+        <div class="field">
+          <label>Projektnummer <span style="font-size:9px;color:var(--muted);">leer = aus Auftragsnr.</span></label>
+          <input type="text" id="projNr" placeholder="auto" style="width:100%;">
+        </div>
+        <div class="field">
+          <label>Bezeichnung / Projektname</label>
+          <input type="text" id="projBezeichnung" placeholder="Fassadenbeschriftung EG"
+            style="width:100%;border-color:var(--accent);">
+        </div>
+      </div>
+
+      <!-- Drag & Drop + E-Mail Ablage -->
+      <div style="margin-bottom:10px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px;">
+          <label style="font-size:11px;font-weight:600;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;">
+            📎 Dateien ablegen
+          </label>
+          <span style="font-size:10px;color:var(--muted);">.eml .pdf .jpg .png .docx …</span>
+        </div>
+
+        <!-- Drop-Zone -->
+        <div id="projDropZone"
+          ondragover="projDragOver(event)"
+          ondragleave="projDragLeave(event)"
+          ondrop="projDrop(event)"
+          onclick="$('projFileInput').click()"
+          style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;
+                 cursor:pointer;transition:all .15s;background:var(--surface2);min-height:80px;
+                 display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
+          <div style="font-size:28px;">📂</div>
+          <div style="font-size:12px;font-weight:600;color:var(--text);">
+            Dateien hierher ziehen oder klicken
+          </div>
+          <div style="font-size:10px;color:var(--muted);">
+            E-Mails (.eml) · PDFs · Bilder · Dokumente
+          </div>
+        </div>
+        <input type="file" id="projFileInput" multiple
+          accept=".eml,.msg,.pdf,.jpg,.jpeg,.png,.gif,.tiff,.docx,.doc,.xlsx,.xls,.zip,.txt"
+          style="display:none"
+          onchange="projFilesAdded(this.files)">
+
+        <!-- Dateiliste -->
+        <div id="projFileList" style="margin-top:8px;display:none;">
+          <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:5px;font-weight:600;">
+            Warteschlange
+          </div>
+          <div id="projFileItems"></div>
+        </div>
+
+        <!-- Upload-Status -->
+        <div id="projUploadStatus" style="margin-top:6px;display:none;"></div>
+      </div>
+
+      <!-- E-Mail Text (Fallback) -->
+      <div class="field" style="margin-bottom:10px;">
+        <label>📧 E-Mail Text <span style="font-size:9px;color:var(--muted);">optional — oder .eml oben ablegen</span></label>
+        <textarea id="projEmail" rows="2"
+          placeholder="E-Mail-Text direkt eingeben (alternativ .eml Datei oben ablegen)"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                 padding:7px 9px;border-radius:var(--rsm);font-size:11px;resize:vertical;font-family:inherit;"></textarea>
+      </div>
+
+      <!-- Pfad-Vorschau -->
+      <div id="projPfadVorschau" style="font-size:10px;color:var(--muted);background:var(--surface3);
+        border-radius:6px;padding:7px 10px;margin-bottom:10px;font-family:monospace;
+        display:none;word-break:break-all;"></div>
+
+      <!-- Buttons -->
+      <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-bottom:10px;">
+        <button class="btn btn-y" onclick="erstelleProjektordner()" style="font-size:12px;font-weight:700;">
+          📁 Projektordner erstellen &amp; ablegen
+        </button>
+        <button class="btn btn-gh" id="btnPfadKopieren" onclick="pfadKopieren()"
+          style="font-size:11px;display:none;">📋 Pfad kopieren</button>
+        <button class="btn btn-gh" id="btnPfadOeffnen" onclick="pfadOeffnen()"
+          style="font-size:11px;display:none;">📂 Ordner öffnen</button>
+      </div>
+
+      <div id="projektordnerStatus" style="font-size:11px;min-height:16px;"></div>
+    </div>
+  </div>
+
   <div class="sec">
     <div class="st y">Positionen</div>
     <div class="pos-list" id="posList">
@@ -8740,6 +8889,7 @@ function loadAuftragData(a){
   // Load global montage
   if(a.globalMontage)loadGlobalMontageData(a.globalMontage);
   renderPos();updateTotals();
+  restoreProjektMeta(a);
 }
 
 async function ladeAuftragVomServer(auftragsnr){
@@ -10247,6 +10397,473 @@ function updatePreisServerStatus(){
   }
 }
 
+// ═══════════════════════════════════════════════════════
+// PROJEKTORDNER — Grafe AG Ablagesystem
+// Schema A: Firmenkunde  Z:\01-Kundenprojekte\Firmenkunden\[Firma]\[ProjNr - Bez]\
+// Schema B: Objekt       Z:\01-Kundenprojekte\Objekte\[Ort]\[Strasse]\[ProjNr - Bez]\
+// ═══════════════════════════════════════════════════════
+
+let _projektPfad = '';
+let _projektTyp  = 'firma'; // 'firma' | 'objekt'
+
+function toggleProjektordner(){
+  const body = $('projektordnerBody');
+  const icon = $('projektordnerIcon');
+  if(!body) return;
+  const open = body.style.display === 'none';
+  body.style.display = open ? 'block' : 'none';
+  if(icon) icon.textContent = open ? '▲' : '▼';
+  if(open){
+    projAutoSync();      // auto-fill from Auftragsdaten
+    updateProjPfadVorschau();
+  }
+}
+
+function setProjTyp(typ){
+  _projektTyp = typ;
+  // Toggle buttons
+  ['firma','objekt'].forEach(t=>{
+    const btn = $('projTyp'+t.charAt(0).toUpperCase()+t.slice(1));
+    if(btn) btn.classList.toggle('sel', t===typ);
+  });
+  // Toggle fields
+  const fF = $('projFirmaFelder');
+  const oF = $('projObjektFelder');
+  if(fF) fF.style.display = typ==='firma' ? 'block' : 'none';
+  if(oF) oF.style.display = typ==='objekt' ? 'block' : 'none';
+  updateProjPfadVorschau();
+}
+
+function updateProjPfadVorschau(){
+  const vv = $('projPfadVorschau'); if(!vv) return;
+  const nr  = $('projNr')?.value?.trim() || $('auftragsnr')?.value?.trim() || 'KA…';
+  const bez = $('projBezeichnung')?.value?.trim() || '…';
+  const projektOrdner = `${nr} - ${bez}`;
+  let pfad = '';
+  if(_projektTyp === 'firma'){
+    const firma = $('projFirmaName')?.value?.trim() || '[Firmenname]';
+    pfad = `Z:\\01-Kundenprojekte\\Firmenkunden\\${firma}\\${projektOrdner}\\`;
+  } else {
+    const ort     = $('projOrt')?.value?.trim()     || '[Ort]';
+    const strasse = $('projStrasse')?.value?.trim() || '[Strasse Nr.]';
+    pfad = `Z:\\01-Kundenprojekte\\Objekte\\${ort}\\${strasse}\\${projektOrdner}\\`;
+  }
+  vv.textContent = pfad;
+  vv.style.display = 'block';
+}
+
+// Live-Vorschau bei Eingabe
+['projFirmaName','projOrt','projStrasse','projNr','projBezeichnung'].forEach(id=>{
+  setTimeout(()=>{
+    const el = $(id);
+    if(el) el.addEventListener('input', updateProjPfadVorschau);
+  }, 500);
+});
+
+async function erstelleProjektordner(){
+  if(!serverVerfuegbar){
+    showToast('Server nicht erreichbar','error'); return;
+  }
+
+  const nr       = $('projNr')?.value?.trim() || $('auftragsnr')?.value?.trim();
+  const bez      = $('projBezeichnung')?.value?.trim();
+  const email    = $('projEmail')?.value?.trim();
+  const anr      = $('auftragsnr')?.value?.trim() || nr;
+
+  if(!nr)  { showToast('Bitte Projektnummer eingeben','error'); return; }
+  if(!bez) { showToast('Bitte Bezeichnung eingeben','error'); $('projBezeichnung')?.focus(); return; }
+
+  // Typ-spezifische Pflichtfelder
+  if(_projektTyp === 'firma' && !$('projFirmaName')?.value?.trim()){
+    showToast('Bitte Firmenname eingeben','error'); $('projFirmaName')?.focus(); return;
+  }
+  if(_projektTyp === 'objekt'){
+    if(!$('projOrt')?.value?.trim())     { showToast('Bitte Ort eingeben','error'); return; }
+    if(!$('projStrasse')?.value?.trim()) { showToast('Bitte Strasse eingeben','error'); return; }
+  }
+
+  const statusEl = $('projektordnerStatus');
+  if(statusEl){ statusEl.textContent='⏳ Erstelle Projektordner...'; statusEl.style.color='var(--muted)'; }
+
+  // Offerte-Daten
+  const gMont = typeof getGlobalMontageData==='function' ? getGlobalMontageData() : {total:0};
+  const offerteData = {
+    auftragsnr: anr,
+    kundenname:    $('kundenname')?.value||'',
+    kontaktperson: $('kontaktperson')?.value||'',
+    datum:         $('datum')?.value||new Date().toISOString().split('T')[0],
+    bemerkung:     $('bemerkung')?.value||'',
+    adresseStrasse:$('adresseStrasse')?.value||'',
+    adressePLZ:    $('adressePLZ')?.value||'',
+    adresseOrt:    $('adresseOrt')?.value||'',
+    bearbeiter:    typeof getBearbeiter==='function' ? getBearbeiter()?.name||'' : '',
+    total:         (positions||[]).reduce((a,p)=>a+(p.isVariante?0:p.totalVK),0)+(gMont.total||0),
+    positions:     JSON.parse(JSON.stringify(positions||[])),
+    savedAt:       new Date().toISOString(),
+  };
+
+  const body = {
+    typ:         _projektTyp,
+    projektnr:   nr,
+    bezeichnung: bez,
+    auftragsnr:  anr,
+    emailText:   email||'',
+    offerteJson: JSON.stringify(offerteData, null, 2),
+  };
+
+  // Typ-spezifische Felder
+  if(_projektTyp === 'firma'){
+    body.firmaName = $('projFirmaName')?.value?.trim();
+  } else {
+    body.ort     = $('projOrt')?.value?.trim();
+    body.strasse = $('projStrasse')?.value?.trim();
+  }
+
+  try {
+    const resp = await fetch(KALLE_SERVER+'/projekte', {
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify(body),
+    });
+    const data = await resp.json();
+
+    if(data.ok){
+      _projektPfad = data.ordnerpfad;
+
+      // Buttons einblenden
+      const btnK = $('btnPfadKopieren'); if(btnK) btnK.style.display='inline-flex';
+      const btnO = $('btnPfadOeffnen');  if(btnO) btnO.style.display='inline-flex';
+
+      // Badge im Header
+      const badge = $('projektPfadBadge');
+      if(badge){
+        const parts = _projektPfad.split(/[\\\/]/);
+        badge.textContent = '✓ …\\'+parts.slice(-2).join('\\');
+      }
+
+      const warn = data.warnungen?.length||0;
+      const neu  = data.erstellteOrdner?.length||0;
+      if(statusEl){
+        if(warn && !neu){
+          statusEl.innerHTML = `⚠ Netzlaufwerk nicht erreichbar — Pfad gespeichert.<br>
+            <code style="font-size:10px;color:var(--accent);">${_projektPfad}</code>`;
+          statusEl.style.color='var(--amber)';
+        } else {
+          statusEl.innerHTML = `✓ Projektordner erstellt:<br>
+            <code style="font-size:10px;color:var(--green);">${_projektPfad}</code><br>
+            <span style="font-size:10px;color:var(--muted);">${neu} Ordner angelegt</span>`;
+          statusEl.style.color='var(--green)';
+        }
+      }
+      showToast('✓ Projektordner: '+bez);
+
+      // Dateien hochladen falls vorhanden
+      if(_projDropFiles.length > 0){
+        projUploadFiles(data.ordnerpfad);
+      }
+
+      // Pfad in Offerte speichern
+      window._projektMeta = {
+        pfad:_projektPfad, typ:_projektTyp,
+        firma:body.firmaName||'', ort:body.ort||'',
+        strasse:body.strasse||'', nr, bez
+      };
+      if(serverVerfuegbar && (positions||[]).length) saveAuftrag&&saveAuftrag();
+
+    } else {
+      if(statusEl){ statusEl.textContent='✗ '+(data.error||'Fehler'); statusEl.style.color='var(--danger)'; }
+      showToast(data.error||'Fehler','error');
+    }
+  } catch(e){
+    if(statusEl){ statusEl.textContent='✗ '+e.message; statusEl.style.color='var(--danger)'; }
+    showToast('Fehler: '+e.message,'error');
+  }
+}
+
+function pfadKopieren(){
+  if(!_projektPfad) return;
+  const txt = _projektPfad.replace(/\//g,'\\');
+  navigator.clipboard?.writeText(txt).then(()=>showToast('✓ Pfad kopiert'))
+    .catch(()=>{ const el=document.createElement('textarea');el.value=txt;document.body.appendChild(el);el.select();document.execCommand('copy');el.remove();showToast('✓ Pfad kopiert'); });
+}
+
+function pfadOeffnen(){
+  if(!_projektPfad) return;
+  if(serverVerfuegbar){
+    fetch(KALLE_SERVER+'/projekte/open?pfad='+encodeURIComponent(_projektPfad))
+      .then(()=>showToast('📂 Explorer geöffnet'))
+      .catch(()=>pfadAlsBatHerunterladen());
+  } else {
+    pfadAlsBatHerunterladen();
+  }
+}
+
+function pfadAlsBatHerunterladen(){
+  const p = _projektPfad.replace(/\//g,'\\');
+  const bat = '@echo off\r\nexplorer.exe "'+p+'"\r\n';
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([bat],{type:'application/octet-stream'}));
+  a.download = 'ordner_oeffnen.bat'; a.click();
+  showToast('📂 .bat herunterladen und ausführen');
+}
+
+function restoreProjektMeta(auftrag){
+  if(!auftrag?.projektPfad && !auftrag?.projektMeta) return;
+  _projektPfad = auftrag.projektPfad || '';
+  window._projektMeta = auftrag.projektMeta || {};
+  if(_projektPfad){
+    const badge=$('projektPfadBadge');
+    if(badge){ const p=_projektPfad.split(/[\\\/]/); badge.textContent='✓ …\\'+p.slice(-2).join('\\'); }
+    const btnK=$('btnPfadKopieren'); if(btnK) btnK.style.display='inline-flex';
+    const btnO=$('btnPfadOeffnen');  if(btnO) btnO.style.display='inline-flex';
+  }
+  const m = window._projektMeta;
+  if(m?.typ)    setProjTyp(m.typ);
+  if(m?.firma)  { const e=$('projFirmaName'); if(e) e.value=m.firma; }
+  if(m?.ort)    { const e=$('projOrt');       if(e) e.value=m.ort; }
+  if(m?.strasse){ const e=$('projStrasse');   if(e) e.value=m.strasse; }
+  if(m?.nr)     { const e=$('projNr');        if(e) e.value=m.nr; }
+  if(m?.bez)    { const e=$('projBezeichnung'); if(e) e.value=m.bez; }
+  updateProjPfadVorschau();
+}
+
+// ═══════════════════════════════════════════════════════
+// PROJEKTORDNER — Drag & Drop Datei-Upload
+// ═══════════════════════════════════════════════════════
+
+let _projDropFiles = [];  // Warteschlange
+
+// Alle Dateien → 02 Offertphase (manuell änderbar per Dropdown)
+function projGetZielordner(filename){
+  return '02 Offertphase';
+}
+
+function projFileIcon(filename){
+  const ext = filename.split('.').pop().toLowerCase();
+  const icons = {
+    eml:'📧', msg:'📧', pdf:'📄', jpg:'🖼', jpeg:'🖼', png:'🖼',
+    gif:'🖼', tiff:'🖼', docx:'📝', doc:'📝', xlsx:'📊', xls:'📊',
+    zip:'🗜', dxf:'📐', dwg:'📐',
+  };
+  return icons[ext] || '📎';
+}
+
+function projDragOver(e){
+  e.preventDefault(); e.stopPropagation();
+  const zone = $('projDropZone');
+  if(zone){
+    zone.style.borderColor = 'var(--accent)';
+    zone.style.background  = 'var(--accent-dim)';
+  }
+}
+
+function projDragLeave(e){
+  const zone = $('projDropZone');
+  if(zone){
+    zone.style.borderColor = 'var(--border)';
+    zone.style.background  = 'var(--surface2)';
+  }
+}
+
+function projDrop(e){
+  e.preventDefault(); e.stopPropagation();
+  projDragLeave(e);
+  const files = e.dataTransfer?.files;
+  if(files?.length) projFilesAdded(files);
+}
+
+function projFilesAdded(files){
+  if(!files?.length) return;
+  Array.from(files).forEach(f => {
+    // Duplikate verhindern
+    if(_projDropFiles.find(x => x.name===f.name && x.size===f.size)) return;
+    _projDropFiles.push(f);
+  });
+  projRenderFileList();
+}
+
+function projRenderFileList(){
+  const list   = $('projFileList');
+  const items  = $('projFileItems');
+  if(!list || !items) return;
+
+  if(!_projDropFiles.length){
+    list.style.display = 'none';
+    return;
+  }
+
+  list.style.display = 'block';
+  items.innerHTML = '';
+
+  _projDropFiles.forEach((f, i) => {
+    const ziel = projGetZielordner(f.name);
+    const icon = projFileIcon(f.name);
+    const size = f.size < 1024 ? f.size+'B'
+               : f.size < 1024*1024 ? Math.round(f.size/1024)+'KB'
+               : (f.size/1024/1024).toFixed(1)+'MB';
+
+    const row = document.createElement('div');
+    row.id = 'projfile-'+i;
+    row.style.cssText = 'display:flex;align-items:center;gap:8px;padding:6px 10px;'+
+      'background:var(--surface3);border-radius:6px;margin-bottom:4px;';
+    row.innerHTML = `
+      <span style="font-size:18px;flex-shrink:0;">${icon}</span>
+      <div style="flex:1;min-width:0;">
+        <div style="font-size:11px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;">
+          ${f.name}
+        </div>
+        <div style="font-size:9px;color:var(--muted);">
+          ${size} → <span style="color:var(--teal);font-weight:600;">${ziel}</span>
+        </div>
+      </div>
+      <select id="projfile-dir-${i}" onchange="projUpdateZiel(${i},this.value)"
+        style="font-size:10px;background:var(--surface2);border:1px solid var(--border);
+               color:var(--text);padding:3px 5px;border-radius:4px;flex-shrink:0;">
+        ${['01 Korrespondenz','02 Offertphase','03 Ausführung','04 Werkstattdaten',
+           '05 Nachträge','06 Fotos','07 Projektabschluss'].map(d =>
+          `<option value="${d}" ${d===ziel?'selected':''}>${d}</option>`
+        ).join('')}
+      </select>
+      <button onclick="projRemoveFile(${i})"
+        style="background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;
+               padding:2px 4px;flex-shrink:0;" title="Entfernen">✕</button>`;
+    items.appendChild(row);
+  });
+}
+
+function projUpdateZiel(i, neuerOrdner){
+  // Zielordner überschreiben (wird beim Upload verwendet)
+  _projDropFiles[i]._zielOrdner = neuerOrdner;
+}
+
+function projRemoveFile(i){
+  _projDropFiles.splice(i, 1);
+  projRenderFileList();
+}
+
+// Upload-Funktion — wird nach Ordnererstellung aufgerufen
+async function projUploadFiles(projektPfad){
+  if(!_projDropFiles.length) return { uploaded:0, errors:[] };
+  
+  const statusEl = $('projUploadStatus');
+  if(statusEl){ 
+    statusEl.style.display='block';
+    statusEl.innerHTML='<div style="font-size:11px;color:var(--muted);">⏳ Lade Dateien hoch...</div>';
+  }
+  
+  let uploaded = 0;
+  const errors = [];
+
+  for(let i=0; i<_projDropFiles.length; i++){
+    const f = _projDropFiles[i];
+    const ziel = f._zielOrdner || projGetZielordner(f.name);
+    
+    // Status aktualisieren
+    if(statusEl){
+      statusEl.innerHTML = `<div style="font-size:11px;color:var(--muted);">⏳ ${i+1}/${_projDropFiles.length}: ${f.name}</div>`;
+    }
+    
+    // Fortschritt in Liste anzeigen
+    const row = document.getElementById('projfile-'+i);
+    if(row) row.style.background='var(--accent-dim)';
+
+    try {
+      const formData = new FormData();
+      formData.append('file', f);
+      formData.append('projektPfad', projektPfad);
+      formData.append('zielOrdner', ziel);
+
+      const resp = await fetch(KALLE_SERVER+'/projekte/upload', {
+        method: 'POST',
+        body:   formData,
+      });
+      const result = await resp.json();
+      
+      if(result.ok){
+        uploaded++;
+        if(row){
+          row.style.background='var(--green-dim)';
+          row.querySelector('div > div:first-child').innerHTML = '✓ '+f.name;
+        }
+      } else {
+        errors.push(`${f.name}: ${result.error}`);
+        if(row) row.style.background='rgba(200,0,0,.1)';
+      }
+    } catch(e){
+      errors.push(`${f.name}: ${e.message}`);
+      if(row) row.style.background='rgba(200,0,0,.1)';
+    }
+  }
+
+  if(statusEl){
+    if(errors.length){
+      statusEl.innerHTML = `<div style="font-size:11px;color:var(--danger);">
+        ✗ ${errors.length} Fehler · ${uploaded} hochgeladen</div>`;
+    } else {
+      statusEl.innerHTML = `<div style="font-size:11px;color:var(--green);">
+        ✓ ${uploaded} Datei${uploaded!==1?'en':''} abgelegt</div>`;
+      // Nach 3s ausblenden
+      setTimeout(()=>{ if(statusEl) statusEl.style.display='none'; }, 3000);
+    }
+  }
+
+  return { uploaded, errors };
+}
+
+function projSyncFromAuftrag(){
+  // Firmenkunde: Firmenname aus Kundenname
+  const kundenname = $('kundenname')?.value?.trim();
+  const ort        = $('adresseOrt')?.value?.trim();
+  const strasse    = $('adresseStrasse')?.value?.trim();
+  const bez        = $('bemerkung')?.value?.trim();
+
+  if(_projektTyp === 'firma'){
+    if(kundenname){
+      const fn = $('projFirmaName');
+      if(fn) fn.value = kundenname;
+      const hint = $('projFirmaAutoHint');
+      if(hint) hint.textContent = '✓ aus Auftragsdaten';
+    } else {
+      showToast('Kein Kundenname in Auftragsdaten','error');
+    }
+  } else {
+    // Objekt: Ort + Strasse aus Adresse
+    let synced = 0;
+    if(ort){
+      const el = $('projOrt'); if(el) el.value = ort; synced++;
+    }
+    if(strasse){
+      const el = $('projStrasse'); if(el) el.value = strasse; synced++;
+    }
+    const hint = $('projObjektAutoHint');
+    if(synced > 0){
+      if(hint) hint.textContent = '✓ aus Auftragsdaten übernommen';
+    } else {
+      showToast('Keine Adressdaten in Auftragsdaten','error');
+    }
+  }
+
+  // Bezeichnung aus Bemerkung/Betreff wenn noch leer
+  if(bez && !$('projBezeichnung')?.value?.trim()){
+    const el = $('projBezeichnung');
+    if(el) el.value = bez;
+  }
+
+  updateProjPfadVorschau();
+}
+
+// Beim Öffnen der Projektordner-Sektion: auto-sync wenn Felder leer
+function projAutoSync(){
+  if(_projektTyp === 'firma'){
+    const fn = $('projFirmaName');
+    if(fn && !fn.value) projSyncFromAuftrag();
+  } else {
+    const ort = $('projOrt');
+    const str = $('projStrasse');
+    if(ort && !ort.value) projSyncFromAuftrag();
+  }
+}
+
 function renderPos(){
   const list=$('posList');const empty=$('emptyState');
   Array.from(list.querySelectorAll('.pc')).forEach(n=>n.remove());
@@ -11179,6 +11796,7 @@ function printDoc(mode){
     showToast('Keine Positionen vorhanden — zuerst eine Position erfassen','error');
     return;
   }
+  try {
   const isInt=mode==='internal';
   const agbHtml=isInt?'':(typeof AGB_HTML!=='undefined'?AGB_HTML:'');
   // Strip price info from detail strings in offer mode
@@ -11817,18 +12435,65 @@ ${!isInt ? agbHtml : ''}
     doc.open();doc.write(htmlP);doc.close();
   }
 
-  // Window SOFORT öffnen (User-Gesture-Kontext), dann Inhalt laden
-  const _pdfWin = window.open('', '_blank', 'width=1050,height=1200');
-
-  if(serverVerfuegbar){
-    // Server-PDF versuchen — window als Fallback übergeben
-    tryServerPdf(_pdfWin);
-  } else {
-    tryBrowserPrint(_pdfWin);
+  // ── PDF ausgeben ────────────────────────────────────────────────────────
+  // Primär: Blob-URL (zuverlässiger als document.write, keine Popup-Probleme)
+  function outputPdfBrowser(){
+    try {
+      const blob = new Blob([html], {type:'text/html;charset=utf-8'});
+      const url  = URL.createObjectURL(blob);
+      const a    = document.createElement('a');
+      // Versuche Fenster öffnen
+      const w = window.open(url, '_blank');
+      if(w){
+        setTimeout(()=>URL.revokeObjectURL(url), 30000);
+      } else {
+        // Popup geblockt → Download-Link
+        a.href = url; a.download = 'Offerte.html';
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
+        setTimeout(()=>URL.revokeObjectURL(url), 5000);
+        showToast('Offerte als .html heruntergeladen — im Browser öffnen und drucken');
+      }
+    } catch(e2){
+      showToast('PDF Fehler: '+e2.message,'error');
+      console.error('[PDF]',e2);
+    }
   }
 
-  try { void 0; }
-  catch(e){ showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
+  if(serverVerfuegbar){
+    // Server-Puppeteer PDF versuchen
+    (async ()=>{
+      const auftragsnr = $('auftragsnr')?.value||'Offerte';
+      const kunde      = $('kundenname')?.value||'';
+      const filename   = `${auftragsnr}${kunde?' '+kunde:''}`;
+      const pdfBtn     = document.querySelector('[onclick*="printDoc"]');
+      const origTxt    = pdfBtn?.textContent;
+      if(pdfBtn){ pdfBtn.textContent='⏳ PDF...'; pdfBtn.disabled=true; }
+      try {
+        const resp = await fetch(KALLE_SERVER+'/pdf',{
+          method:'POST',
+          headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({html, filename}),
+        });
+        if(resp.ok && resp.headers.get('content-type')?.includes('pdf')){
+          const blob2 = await resp.blob();
+          const url2  = URL.createObjectURL(blob2);
+          const a2    = document.createElement('a');
+          a2.href=url2; a2.download=filename+'.pdf';
+          document.body.appendChild(a2); a2.click(); document.body.removeChild(a2);
+          setTimeout(()=>URL.revokeObjectURL(url2),5000);
+          showToast('✓ '+filename+'.pdf heruntergeladen');
+          if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
+          return;
+        }
+      } catch(e3){ /* Server PDF nicht verfügbar */ }
+      if(pdfBtn){ pdfBtn.textContent=origTxt; pdfBtn.disabled=false; }
+      outputPdfBrowser();
+    })();
+  } else {
+    outputPdfBrowser();
+  }
+
+  } catch(e){ showToast('PDF Fehler: '+e.message,'error'); console.error('[PDF]',e); }
 }
 
 
