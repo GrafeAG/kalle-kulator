@@ -3304,8 +3304,7 @@ function buildFrBefestigung(){
   const stk=Math.max(1,text.length||1)*saetze;
 
   const prevBolzenOn=$('frBolzenAkt')?.checked||false;
-  const prevBolzenAnz=parseInt($('frBolzenAnz')?.value)||4;
-  const prevBolzenP=parseFloat($('frBolzenPreis')?.value)||11;
+  const prevBolzenProBuchst=parseInt($('frBolzenProBuchst')?.value)||2; // Bolzen pro Buchstabe
   const prevVhbOn=$('frKlebeVHB')?.checked||false;
   const prevVhbVariant=$('frVhbVariant')?.value||'4936P';
   const prevKleberOn=$('frKlebeKleber')?.checked||false;
@@ -3323,13 +3322,14 @@ function buildFrBefestigung(){
     <div class="st t" style="margin-bottom:8px;">Montagebolzen</div>
     <div class="tr" style="margin-bottom:6px;">
       <div class="tr-l"><label class="tog"><input type="checkbox" id="frBolzenAkt" onchange="cFr()"${prevBolzenOn?' checked':''}><span class="tsl"></span></label>
-        <div><div class="tr-label">Montagebolzen</div><div class="tr-sub">Preis pro Stk inkl. Zubehör</div></div></div>
+        <div><div class="tr-label">Montagebolzen</div>
+          <div class="tr-sub">${stk} Buchstaben × Bolzen/Buchst × CHF 2.00/Stk</div></div></div>
       <div class="tr-r" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;">
-        <input type="number" id="frBolzenAnz" value="${prevBolzenAnz}" min="1" step="1" oninput="cFr()"
-          style="width:40px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;">
-        <span style="color:var(--muted);font-size:10px;">Stk × CHF</span>
-        <input type="number" id="frBolzenPreis" value="${prevBolzenP}" min="0" step="0.5" oninput="cFr()"
-          style="width:48px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;">
+        <input type="number" id="frBolzenProBuchst" value="${prevBolzenProBuchst}" min="1" max="8" step="1" oninput="cFr()"
+          style="width:44px;background:var(--surface2);border:2px solid var(--accent);color:var(--accent);padding:3px 5px;border-radius:4px;font-size:14px;font-weight:700;text-align:center;"
+          title="Bolzen pro Buchstabe">
+        <span style="color:var(--muted);font-size:10px;">Bolzen/Buchst</span>
+        <span style="color:var(--muted);font-size:10px;">= ${stk * prevBolzenProBuchst} Stk × CHF 2.00</span>
         <span class="pbadge" id="pb-frBolzen">–</span>
       </div>
     </div>
@@ -4031,11 +4031,12 @@ function cFr(){
   } else {const pb=$('pb-frZEntg');if(pb)pb.textContent='–';$('frZEntg')?.closest('.tr')?.classList.remove('on');}
 
   const bolzenAkt=gC('frBolzenAkt');
-  const bolzenAnz=parseFloat($('frBolzenAnz')?.value)||4;
-  const bolzenPreisStk=parseFloat($('frBolzenPreis')?.value)||11;
-  const bolzenVK=bolzenAkt?bolzenAnz*bolzenPreisStk*saetze:0;
+  const bolzenProBuchst=parseInt($('frBolzenProBuchst')?.value)||2;
+  const bolzenGesamtAnz=gezaehlt.length * bolzenProBuchst * saetze; // Buchstaben × Bolzen/Buchst × Sätze
+  const bolzenEP=2.00; // CHF 2.00 pro Bolzen (fest)
+  const bolzenVK=bolzenAkt?bolzenGesamtAnz*bolzenEP:0;
   $('frBolzenAkt')?.closest('.tr')?.classList.toggle('on',bolzenAkt);
-  const pbBolzen=$('pb-frBolzen');if(pbBolzen)pbBolzen.textContent=bolzenAkt?'CHF '+bolzenVK.toFixed(2):'–';
+  const pbBolzen=$('pb-frBolzen');if(pbBolzen)pbBolzen.textContent=bolzenAkt&&bolzenVK>0?`${bolzenGesamtAnz||0}Stk = CHF ${bolzenVK.toFixed(2)}`:'–';
 
   const sc=P.fraes?.schablone||{papier:{preisProMeter:12},klebefolie:{preisProMeter:25},karton:{preisProMeter:18}};
   const schabLaengeM=(vh/1000)*anzGes;
@@ -4242,8 +4243,7 @@ function saveFraes(){
     fraeskosten:r.fraeskosten,prodAufschlag:r.prodAufschlag,
     entgraten:gC('frZEntg')?parseFloat($('min-frZEntg')?.value)||0:null,
     frZuschnittVK:r.frZuschnittVK||0,
-    bolzenAkt:gC('frBolzenAkt'),bolzenAnz:parseFloat($('frBolzenAnz')?.value)||4,
-    bolzenPreis:parseFloat($('frBolzenPreis')?.value)||2,bolzenVK:r.bolzenVK,
+    bolzenAkt:gC('frBolzenAkt'),bolzenProBuchst:parseInt($('frBolzenProBuchst')?.value)||2,bolzenVK:r.bolzenVK,
     vhbAkt:gC('frKlebeVHB'),vhbVariant:$('frVhbVariant')?.value||'',
     schabPap:r.schabPap>0,schabFol:r.schabFol>0,schabKar:r.schabKar>0,
     eigenBefAkt:gC('frEigenBefAkt'),
@@ -5121,6 +5121,8 @@ function saveFolientechnik(){
 
 
 let gvZeilen = [{text:'', vh:5, bezeichnung:'Zeile 1'}];
+
+function saveFolie(){ saveFolientechnik(); }
 
 function gvAddZeile(){
   const defVH = parseInt($('gvVHDefault')?.value)||5;
@@ -10303,14 +10305,14 @@ async function berechneFahrstrecke(ort, kmInputId, hintId, pfx){
     const q = encodeURIComponent(ort + ' Schweiz');
     const geoResp = await fetch(
       `https://nominatim.openstreetmap.org/search?q=${q}&format=json&limit=3&countrycodes=ch,de,at,li&accept-language=de`,
-      { headers: { 'Accept-Language': 'de' } }
+      { headers: { 'Accept-Language': 'de', 'User-Agent': 'KALLE-KULATOR Grafe AG kalle@grafe.ch' } }
     );
     const geoData = await geoResp.json();
     if(!geoData.length){
       // Retry without country filter
       const geoResp2 = await fetch(
         `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(ort)}&format=json&limit=1`,
-        { headers: { 'Accept-Language': 'de' } }
+        { headers: { 'Accept-Language': 'de', 'User-Agent': 'KALLE-KULATOR Grafe AG kalle@grafe.ch' } }
       );
       const geoData2 = await geoResp2.json();
       if(!geoData2.length){
@@ -11471,6 +11473,8 @@ function delPos(i){if(!confirm('Position löschen?'))return;positions.splice(i,1
 function clearAll(){if(!confirm('Alle Positionen und Auftragsdaten löschen?'))return;positions=[];renderPos();updateTotals();['kundenname','kontaktperson','auftragsnr','telefon','email','adresse','bemerkung'].forEach(id=>{const e=$(id);if(e)e.value='';});const d=new Date();$('datum').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;globalMontageActive=false;toggleGlobalMontage(false);}
 
 
+
+function resetAll(){ clearAll(); }
 
 function saveAuftrag(){
   if(!positions.length){showToast('Keine Positionen vorhanden','error');return;}
