@@ -1558,10 +1558,10 @@ a, button, input, select, textarea, label,
 
             <div style="font-size:10px;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin:10px 0 6px;">Zuschnittsart</div>
             <div class="zopt-row" id="slZuschnittMethode">
-              <div class="zopt sel" data-val="kein" onclick="slSetZuschnitt(this)">
+              <div class="zopt" data-val="kein" onclick="slSetZuschnitt(this)">
                 <div>Bereits zugeschnitten / Angeliefert</div><div class="zopt-sub">Kein Aufwand</div>
               </div>
-              <div class="zopt" data-val="saegen" onclick="slSetZuschnitt(this)">
+              <div class="zopt sel" data-val="saegen" onclick="slSetZuschnitt(this)">
                 <div>Manuell sägen</div><div class="zopt-sub">Min × CHF/Min</div>
               </div>
               <div class="zopt" data-val="fraes" onclick="slSetZuschnitt(this)">
@@ -4144,6 +4144,7 @@ function cFr(){
   const frStep2 = bolzenVK + schabTotal;
   const frStep3 = lackTotal + frPulverTotal + frEloxVK + frBruenVK;
   const frStep5 = frArbVK;
+  const frMonMat = 0; // Kein separates Montagematerial bei Reliefschriften
   const frStep6 = frMonMat + frAnfahrtVK;
 
   function frRow(label, val){
@@ -4183,7 +4184,7 @@ function cFr(){
     3: bolzenVK+schabTotal,
     4: lackTotal+frPulverTotal+frEloxVK+frBruenVK,
     5: frArbVK,
-    6: frMonMat+frAnfahrtVK
+    6: (typeof frMonMat!=="undefined"?frMonMat:0)+frAnfahrtVK
   };
   Object.entries(frStepBadges).forEach(([s,v])=>{
     const el=$('frchf-'+s);if(el)el.textContent=v>0?' CHF '+v.toFixed(0):'';
@@ -4191,7 +4192,7 @@ function cFr(){
   const frTotEl=$('frstep-total');if(frTotEl)frTotEl.textContent='CHF '+total.toFixed(2);
 
   updateTotals();
-  return{text,vh,matKey,matName:mat.name,anzahl:gezaehlt.length,saetze,anzGes,fzTotal,
+  return{totalVK:total,text,vh,matKey,matName:mat.name,anzahl:gezaehlt.length,saetze,anzGes,fzTotal,
     matFN,matFM,nesting,matGew,matEK,matVK,fraeskosten,prodAufschlag,
     lackTotal,frPulverTotal,frEloxVK,frBruenVK,frZuschnittVK,
     bolzenVK,schabTotal,frEigenBefVK,frArbVK,frAnfahrtVK,frVersandVK,montVK,setup,total,proStk,proSatz,
@@ -5284,7 +5285,7 @@ function cGv(){
     <div class="sum-row"><span class="sl">Preis/Stück</span><span class="sv">CHF ${proStk.toFixed(2)}</span></div>`;
 
   updateTotals();
-  return{text,l,b,stk,m2n,vh,matEK,matVK,schildName:schildData.name,gravurkosten,farbeTotal,setup,montVK,total,proStk,gravurMin,zeichenTotal,zeichenProSchild,sekZ,marge,gvBolzenVK,gvVhbVK,gvAnfahrtVK,gvArbVK};
+  return{totalVK:total,text,l,b,stk,m2n,vh,matEK,matVK,schildName:schildData.name,gravurkosten,farbeTotal,setup,montVK,total,proStk,gravurMin,zeichenTotal,zeichenProSchild,sekZ,marge,gvBolzenVK,gvVhbVK,gvAnfahrtVK,gvArbVK};
 }
 
 
@@ -7752,25 +7753,27 @@ function startPos(type){
     initFraesForm();
     setTimeout(()=>cFr(),50);
     $('fraesForm').scrollIntoView({behavior:'smooth'});
-    // Restore Herstellungsart
+    // Restore Herstellungsart (nur beim Bearbeiten, p undefined bei neuer Position)
     setTimeout(()=>{
-      if(p.frArt){
-        P.frHerstellungsart=p.frArt;
-        P.frLaserArt=p.frLaserArt||'zukauf';
-        setFrArt(p.frArt);
-        if(p.frArt==='laser')setFrLaserArt(p.frLaserArt||'zukauf');
-      }
-      if(p.zukaufEK){const el=$('frZukaufEK');if(el)el.value=p.zukaufEK;}
-      if(p.zukaufMarge){const el=$('frZukaufMarge');if(el)el.value=p.zukaufMarge;}
-      if(p.zukaufTyp){const el=$('frZukaufTyp');if(el)el.value=p.zukaufTyp;}
-      if(p.zukaufBez){const el=$('frZukaufBez');if(el)el.value=p.zukaufBez;}
-      if(p.laserStaerke){const el=$('frLaserStaerke');if(el)el.value=p.laserStaerke;}
-      if(p.laserMinPro){const el=$('frLaserMin');if(el)el.value=p.laserMinPro;}
-      if(p.laserSA){const el=$('frLaserSA');if(el)el.value=p.laserSA;}
-      if(p.laserRuest){const el=$('frLaserRuest');if(el)el.value=p.laserRuest;}
-      if(p.manualAnzAkt){
-        const cb=$('frManualAnzAkt');if(cb){cb.checked=true;toggleFrManualAnz();}
-        const inp=$('frManualAnz');if(inp)inp.value=p.manualAnz||0;
+      if(typeof p !== 'undefined' && p){
+        if(p.frArt){
+          P.frHerstellungsart=p.frArt;
+          P.frLaserArt=p.frLaserArt||'zukauf';
+          setFrArt(p.frArt);
+          if(p.frArt==='laser')setFrLaserArt(p.frLaserArt||'zukauf');
+        }
+        if(p.zukaufEK){const el=$('frZukaufEK');if(el)el.value=p.zukaufEK;}
+        if(p.zukaufMarge){const el=$('frZukaufMarge');if(el)el.value=p.zukaufMarge;}
+        if(p.zukaufTyp){const el=$('frZukaufTyp');if(el)el.value=p.zukaufTyp;}
+        if(p.zukaufBez){const el=$('frZukaufBez');if(el)el.value=p.zukaufBez;}
+        if(p.laserStaerke){const el=$('frLaserStaerke');if(el)el.value=p.laserStaerke;}
+        if(p.laserMinPro){const el=$('frLaserMin');if(el)el.value=p.laserMinPro;}
+        if(p.laserSA){const el=$('frLaserSA');if(el)el.value=p.laserSA;}
+        if(p.laserRuest){const el=$('frLaserRuest');if(el)el.value=p.laserRuest;}
+        if(p.manualAnzAkt){
+          const cb=$('frManualAnzAkt');if(cb){cb.checked=true;toggleFrManualAnz();}
+          const inp=$('frManualAnz');if(inp)inp.value=p.manualAnz||0;
+        }
       }
       cFr();
     },50);
