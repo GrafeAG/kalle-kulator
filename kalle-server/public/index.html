@@ -385,7 +385,7 @@ a, button, input, select, textarea, label,
     <button class="btn btn-gh" onclick="saveAuftrag()">💾 Sichern</button>
     <button class="btn btn-gh" onclick="resetAll()">↺ Reset</button>
     <button class="btn btn-t" onclick="printDoc('internal')">⬡ Intern</button>
-    <button class="btn btn-y" onclick="printDoc('offer')">↓ Offerte PDF</button>
+    <button class="btn btn-y" onclick="printDocOffer()">↓ Offerte PDF</button>
     <button class="btn" onclick="prepareEmail()" style="background:var(--teal);color:#111;border-color:var(--teal);" title="Outlook E-Mail vorbereiten">✉ E-Mail</button>
     <button class="btn" onclick="exportSelectLineCSV()" style="background:#0055AA;color:#fff;border-color:#0055AA;" title="Als SelectLine CSV exportieren">SL Export</button>
 
@@ -562,7 +562,12 @@ a, button, input, select, textarea, label,
           style="border:2px dashed var(--border);border-radius:10px;padding:20px;text-align:center;
                  cursor:pointer;transition:all .15s;background:var(--surface2);min-height:80px;
                  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:6px;">
-          <div style="font-size:28px;">📂</div>
+          <div style="font-size:28px;position:relative;display:inline-block;">
+            📂
+            <span id="projDropBadge" style="display:none;position:absolute;top:-6px;right:-10px;
+              background:var(--accent);color:#111;font-size:9px;font-weight:800;
+              border-radius:10px;padding:1px 5px;min-width:16px;text-align:center;">0</span>
+          </div>
           <div style="font-size:12px;font-weight:600;color:var(--text);">
             Dateien hierher ziehen oder klicken
           </div>
@@ -10612,7 +10617,7 @@ async function erstelleProjektordner(){
 
       // Dateien hochladen falls vorhanden
       if(_projDropFiles.length > 0){
-        projUploadFiles(data.ordnerpfad);
+        await projUploadFiles(data.ordnerpfad);
       }
 
       // Pfad in Offerte speichern
@@ -10733,12 +10738,27 @@ function projFilesAdded(files){
     _projDropFiles.push(f);
   });
   projRenderFileList();
+
+  // Auto-Upload wenn Projektordner bereits existiert
+  if(_projektPfad && _projDropFiles.length > 0){
+    // Kurz warten damit UI gerendert ist, dann async upload
+    setTimeout(async () => {
+      await projUploadFiles(_projektPfad);
+    }, 300);
+  }
 }
 
 function projRenderFileList(){
   const list   = $('projFileList');
   const items  = $('projFileItems');
   if(!list || !items) return;
+
+  // Badge auf Drop Zone aktualisieren
+  const _dropBadge = document.getElementById('projDropBadge');
+  if(_dropBadge){
+    _dropBadge.textContent = _projDropFiles.length;
+    _dropBadge.style.display = _projDropFiles.length > 0 ? 'inline-block' : 'none';
+  }
 
   if(!_projDropFiles.length){
     list.style.display = 'none';
@@ -10747,6 +10767,36 @@ function projRenderFileList(){
 
   list.style.display = 'block';
   items.innerHTML = '';
+
+  // Header mit Status & Hochladen-Button
+  const header = document.createElement('div');
+  header.style.cssText = 'display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;';
+
+  const hasPfad = !!_projektPfad;
+  const badge = document.createElement('div');
+  badge.style.cssText = 'font-size:10px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;'+
+    'display:flex;align-items:center;gap:6px;';
+  const n = _projDropFiles.length;
+  const nStr = n + ' Datei' + (n!==1?'en':'');
+  badge.innerHTML = hasPfad
+    ? '<span style="background:var(--green);color:#111;padding:2px 8px;border-radius:4px;font-weight:800;">▲ '+nStr+' BEREIT</span>'
+    : '<span style="background:var(--amber);color:#111;padding:2px 8px;border-radius:4px;font-weight:800;animation:pulse 1.5s infinite;">⏳ '+nStr+' WARTEN</span>'+
+      '<span style="color:var(--muted);font-size:10px;margin-left:6px;">→ Projektordner erstellen zum Hochladen</span>';
+
+  header.appendChild(badge);
+
+  if(hasPfad){
+    const uploadBtn = document.createElement('button');
+    uploadBtn.id = 'projUploadNowBtn';
+    uploadBtn.style.cssText = 'background:var(--green);color:#111;font-weight:800;border:none;'+
+      'border-radius:6px;padding:8px 18px;font-size:12px;cursor:pointer;display:flex;align-items:center;gap:6px;'+
+      'box-shadow:0 0 0 2px var(--green);animation:pulse 1.5s infinite;';
+    uploadBtn.innerHTML = '📤 Jetzt in Ordner hochladen';
+    uploadBtn.onclick = () => projUploadFiles(_projektPfad);
+    header.appendChild(uploadBtn);
+  }
+
+  items.appendChild(header);
 
   _projDropFiles.forEach((f, i) => {
     const ziel = projGetZielordner(f.name);
@@ -10823,10 +10873,13 @@ async function projUploadFiles(projektPfad){
     try {
       const formData = new FormData();
       formData.append('file', f);
-      formData.append('projektPfad', projektPfad);
-      formData.append('zielOrdner', ziel);
+      // WICHTIG: projektPfad und zielOrdner als URL-Parameter übergeben
+      // (multer liest req.body erst NACH dem File-Stream → body ist leer)
+      const uploadUrl = KALLE_SERVER+'/projekte/upload'
+        + '?projektPfad=' + encodeURIComponent(projektPfad)
+        + '&zielOrdner='  + encodeURIComponent(ziel);
 
-      const resp = await fetch(KALLE_SERVER+'/projekte/upload', {
+      const resp = await fetch(uploadUrl, {
         method: 'POST',
         body:   formData,
       });
@@ -10854,9 +10907,15 @@ async function projUploadFiles(projektPfad){
         ✗ ${errors.length} Fehler · ${uploaded} hochgeladen</div>`;
     } else {
       statusEl.innerHTML = `<div style="font-size:11px;color:var(--green);">
-        ✓ ${uploaded} Datei${uploaded!==1?'en':''} abgelegt</div>`;
-      // Nach 3s ausblenden
-      setTimeout(()=>{ if(statusEl) statusEl.style.display='none'; }, 3000);
+        ✓ ${uploaded} Datei${uploaded!==1?'en':''} erfolgreich in Projektordner abgelegt</div>`;
+      // Drop-Queue leeren und Badge entfernen
+      setTimeout(()=>{
+        _projDropFiles = [];
+        if(statusEl) statusEl.style.display='none';
+        const qSection = document.getElementById('projQueueSection');
+        if(qSection) qSection.style.display='none';
+        showToast('✓ '+uploaded+' Datei'+(uploaded!==1?'en':'')+' abgelegt in: '+projektPfad.split('\\').pop());
+      }, 2000);
     }
   }
 
@@ -11844,6 +11903,263 @@ Freundliche Grüsse
   document.body.appendChild(modal);
 }
 
+
+// ══════════════════════════════════════════════════════════════════════════
+// OFFERTE ABLEGEN — integrierter Workflow
+// Beim PDF-Klick: Projektordner prüfen → erstellen falls nötig → ablegen
+// ══════════════════════════════════════════════════════════════════════════
+
+// Offerte im Projektordner ablegen (HTML → Server → 02 Offertphase)
+async function ablegenOfferte(htmlContent, auftragsnr){
+  if(!serverVerfuegbar || !_projektPfad) return false;
+  try{
+    const resp = await fetch(KALLE_SERVER+'/projekte/ablegen',{
+      method:'POST',
+      headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({
+        projektPfad: _projektPfad,
+        auftragsnr:  auftragsnr || $('auftragsnr')?.value || '',
+        html:        htmlContent,
+      }),
+    });
+    const data = await resp.json();
+    if(data.ok){
+      console.log('[KALLE] Offerte abgelegt:', data.datei);
+      return true;
+    }
+    console.warn('[KALLE] Ablegen fehlgeschlagen:', data.error);
+    return false;
+  }catch(e){
+    console.warn('[KALLE] Ablegen Fehler:', e.message);
+    return false;
+  }
+}
+
+// Quick-Dialog: Ablageort wählen (auto-ausgefüllt)
+function zeigeAblageDialog(onConfirm, onSkip){
+  // Werte aus Auftragsdaten holen
+  const anr      = $('auftragsnr')?.value?.trim()     || '';
+  const firma    = $('kundenname')?.value?.trim()      || '';
+  const bez      = $('bemerkung')?.value?.trim()       || $('projBezeichnung')?.value?.trim() || '';
+  const existiert = !!_projektPfad;
+
+  // Falls Projektordner schon gesetzt → direkt weiter
+  if(existiert){
+    onConfirm(null);
+    return;
+  }
+
+  const modal = document.createElement('div');
+  modal.id = 'ablageModal';
+  modal.style.cssText = 'position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:9999;'+
+    'display:flex;align-items:center;justify-content:center;';
+
+  modal.innerHTML = `
+    <div style="background:var(--surface);border:1px solid var(--border);border-radius:12px;
+      padding:24px 28px;max-width:460px;width:92%;box-shadow:0 20px 60px rgba(0,0,0,.6);">
+      <div style="font-size:15px;font-weight:800;margin-bottom:4px;">📁 Offerte ablegen</div>
+      <div style="color:var(--muted);font-size:11px;margin-bottom:18px;">
+        Wo soll die Offerte gespeichert werden?
+      </div>
+
+      <!-- Typ-Toggle -->
+      <div style="display:flex;gap:8px;margin-bottom:14px;">
+        <button id="ablTypFirma" onclick="ablSetTyp('firma')"
+          style="flex:1;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+            background:var(--accent);color:#111;border:2px solid var(--accent);">🏢 Firmenkunde</button>
+        <button id="ablTypObjekt" onclick="ablSetTyp('objekt')"
+          style="flex:1;padding:8px;border-radius:6px;font-size:12px;font-weight:600;cursor:pointer;
+            background:var(--surface2);color:var(--text);border:2px solid var(--border);">📍 Objekt</button>
+      </div>
+
+      <!-- Firma-Felder -->
+      <div id="ablFirmaFelder">
+        <div style="margin-bottom:10px;">
+          <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Firmenname</div>
+          <input id="ablFirmaName" type="text" value="${firma}"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+              padding:8px 10px;border-radius:6px;font-size:13px;" placeholder="z.B. Richnerstutz AG">
+        </div>
+      </div>
+
+      <!-- Objekt-Felder -->
+      <div id="ablObjektFelder" style="display:none;">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;">
+          <div>
+            <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Ort</div>
+            <input id="ablOrt" type="text"
+              value="${$('adresseOrt')?.value?.trim()||''}"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                padding:8px 10px;border-radius:6px;font-size:13px;" placeholder="z.B. Liestal">
+          </div>
+          <div>
+            <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Strasse</div>
+            <input id="ablStrasse" type="text"
+              value="${$('adresseStrasse')?.value?.trim()||''}"
+              style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+                padding:8px 10px;border-radius:6px;font-size:13px;" placeholder="z.B. Rathausstrasse 5">
+          </div>
+        </div>
+      </div>
+
+      <!-- Projekt-Felder (immer sichtbar) -->
+      <div style="display:grid;grid-template-columns:140px 1fr;gap:8px;margin-bottom:18px;">
+        <div>
+          <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Projektnr.</div>
+          <input id="ablProjNr" type="text" value="${anr}"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+              padding:8px 10px;border-radius:6px;font-size:13px;" placeholder="KA…">
+        </div>
+        <div>
+          <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Bezeichnung</div>
+          <input id="ablBez" type="text" value="${bez}"
+            style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
+              padding:8px 10px;border-radius:6px;font-size:13px;" placeholder="z.B. Fassadenbeschriftung">
+        </div>
+      </div>
+
+      <div style="display:flex;gap:8px;">
+        <button onclick="ablageBestaetigen()"
+          style="flex:2;padding:11px;background:var(--accent);color:#111;font-weight:700;
+            border:none;border-radius:7px;cursor:pointer;font-size:13px;">
+          📁 Ordner erstellen + PDF ablegen
+        </button>
+        <button onclick="ablageUeberspringen()"
+          style="flex:1;padding:11px;background:var(--surface2);color:var(--muted);
+            border:1px solid var(--border);border-radius:7px;cursor:pointer;font-size:12px;">
+          Nur PDF
+        </button>
+      </div>
+      <div id="ablageStatus" style="margin-top:10px;font-size:11px;color:var(--muted);display:none;text-align:center;">
+        ⏳ Erstelle Projektordner…
+      </div>
+    </div>`;
+
+  document.body.appendChild(modal);
+
+  // Typ-Toggler
+  window._ablTyp = 'firma';
+  window.ablSetTyp = function(t){
+    window._ablTyp = t;
+    document.getElementById('ablFirmaFelder').style.display = t==='firma' ? 'block' : 'none';
+    document.getElementById('ablObjektFelder').style.display = t==='objekt' ? 'block' : 'none';
+    document.getElementById('ablTypFirma').style.background = t==='firma' ? 'var(--accent)' : 'var(--surface2)';
+    document.getElementById('ablTypFirma').style.color      = t==='firma' ? '#111' : 'var(--text)';
+    document.getElementById('ablTypFirma').style.borderColor= t==='firma' ? 'var(--accent)' : 'var(--border)';
+    document.getElementById('ablTypObjekt').style.background = t==='objekt' ? 'var(--accent)' : 'var(--surface2)';
+    document.getElementById('ablTypObjekt').style.color      = t==='objekt' ? '#111' : 'var(--text)';
+    document.getElementById('ablTypObjekt').style.borderColor= t==='objekt' ? 'var(--accent)' : 'var(--border)';
+  };
+
+  window._ablageOnConfirm = onConfirm;
+
+  window.ablageBestaetigen = async function(){
+    const st = document.getElementById('ablageStatus');
+    if(st){ st.style.display='block'; }
+
+    const nr  = document.getElementById('ablProjNr')?.value?.trim();
+    const bez = document.getElementById('ablBez')?.value?.trim();
+    if(!nr || !bez){
+      showToast('Projektnr. und Bezeichnung sind Pflicht','error'); return;
+    }
+
+    // Projektordner via Server erstellen
+    try{
+      const body = {
+        typ:         window._ablTyp,
+        projektnr:   nr,
+        bezeichnung: bez,
+        auftragsnr:  $('auftragsnr')?.value?.trim() || nr,
+      };
+      if(window._ablTyp === 'firma'){
+        body.firmaName = document.getElementById('ablFirmaName')?.value?.trim() || firma;
+      } else {
+        body.ort     = document.getElementById('ablOrt')?.value?.trim();
+        body.strasse = document.getElementById('ablStrasse')?.value?.trim();
+        if(!body.ort||!body.strasse){ showToast('Ort und Strasse sind Pflicht','error'); return; }
+      }
+
+      const resp = await fetch(KALLE_SERVER+'/projekte',{
+        method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify(body),
+      });
+      const data = await resp.json();
+      if(data.ok){
+        _projektPfad = data.ordnerpfad;
+        // Projektordner-Block in KALLE aktualisieren
+        const projBody = $('projektordnerBody');
+        if(projBody && projBody.style.display !== 'none') updateProjPfadVorschau();
+        window._projektMeta = {pfad:_projektPfad, typ:window._ablTyp};
+      }
+    }catch(e){ console.warn('[Ablage] Ordner-Fehler:', e.message); }
+
+    modal.remove();
+    if(window._ablageOnConfirm) window._ablageOnConfirm(_projektPfad);
+  };
+
+  window.ablageUeberspringen = function(){
+    modal.remove();
+    if(onSkip) onSkip();
+  };
+}
+
+// Haupt-Funktion: PDF generieren + automatisch ablegen
+function printDocOffer(){
+  if(!positions||!positions.length){
+    showToast('Keine Positionen vorhanden','error'); return;
+  }
+
+  // Falls kein Server → einfach PDF ohne Ablage
+  if(!serverVerfuegbar){
+    printDoc('offer'); return;
+  }
+
+  zeigeAblageDialog(
+    // onConfirm: Ordner vorhanden/erstellt → PDF + ablegen
+    async function(pfad){
+      // PDF generieren — wir brauchen den HTML-String
+      // Temporär printDoc aufrufen und HTML abfangen
+      let capturedHtml = null;
+      const origOpen = window.open;
+      window.open = function(url, target, feats){
+        // Öffne trotzdem den Tab für den User
+        const w = origOpen.call(window, url, target, feats);
+        return w;
+      };
+
+      // HTML über Blob-Intercept fangen
+      const origBlob = window.Blob;
+      window.Blob = function(parts, opts){
+        if(opts && opts.type && opts.type.includes('html') && parts && parts[0]){
+          capturedHtml = parts[0];
+        }
+        return new origBlob(parts, opts);
+      };
+
+      printDoc('offer');
+
+      // Kurz warten bis Blob erstellt
+      await new Promise(r => setTimeout(r, 300));
+      window.Blob = origBlob;
+      window.open = origOpen;
+
+      // HTML beim Server ablegen
+      if(capturedHtml && _projektPfad){
+        const ok = await ablegenOfferte(capturedHtml, $('auftragsnr')?.value);
+        if(ok){
+          showToast('✓ Offerte PDF geöffnet · In 02 Offertphase abgelegt', '', 4000);
+        } else {
+          showToast('PDF geöffnet · Ablegen fehlgeschlagen ⚠', 'error');
+        }
+      }
+    },
+    // onSkip: Nur PDF
+    function(){
+      printDoc('offer');
+    }
+  );
+}
+
 function printDoc(mode){
   if(!positions||!positions.length){
     showToast('Keine Positionen vorhanden — zuerst eine Position erfassen','error');
@@ -12270,6 +12586,10 @@ function printDoc(mode){
     .page:last-child{page-break-after:auto;}
     .footer{position:fixed;bottom:8mm;}
   }
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 2px var(--green); }
+  50% { box-shadow: 0 0 0 5px rgba(var(--green-rgb, 50,200,100), 0.3); }
+}
 </style>
 </head><body>
 <div class="page">
