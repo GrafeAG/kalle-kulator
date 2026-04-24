@@ -3876,7 +3876,7 @@ function cFr(){
     const lp=$('livePanel');
     if(lp)lp.innerHTML=`<div class="sum-row"><span class="sl">Gesamt VK</span><span class="sv">CHF ${zukaufVK.toFixed(2)}</span></div>`;
     updateTotals();
-    return{text:'',vh:0,matKey:'zukauf',matName:'Zukauf',anzahl:stk,saetze:stk,anzGes:stk,
+    return{totalVK:zukaufVK,text:'',vh:0,matKey:'zukauf',matName:'Zukauf',bolzenVK:0,anzahl:stk,saetze:stk,anzGes:stk,
       fzTotal:0,matFN:0,matFM:0,nesting:1,matGew:0,matEK:0,matVK:0,
       fraeskosten:0,prodAufschlag:0,lackTotal:0,frPulverTotal:0,frEloxVK:0,frBruenVK:0,
       frZuschnittVK:0,bolzenVK:0,schabTotal:0,frEigenBefVK:0,frArbVK:0,frAnfahrtVK:0,
@@ -3899,7 +3899,7 @@ function cFr(){
     const lp=$('livePanel');
     if(lp)lp.innerHTML=`<div class="sum-row"><span class="sl">Laser VK</span><span class="sv">CHF ${laserVK.toFixed(2)}</span></div>`;
     updateTotals();
-    return{text:text2,vh:gN('frVH')||100,matKey:'laser-acryl',matName:'Acrylglas (Laser)',
+    return{totalVK:laserVK,bolzenVK:0,text:text2,vh:gN('frVH')||100,matKey:'laser-acryl',matName:'Acrylglas (Laser)',
       anzahl:gezaehlt2.length,saetze:stk,anzGes:anzGes2,
       fzTotal:gN('frLaserMin')||3,matFN:0,matFM:0,nesting:1,matGew:0,matEK:0,matVK:0,
       fraeskosten:laserVK,prodAufschlag:0,lackTotal:0,frPulverTotal:0,frEloxVK:0,frBruenVK:0,
@@ -4300,11 +4300,11 @@ function saveGravur(){
     vhbAkt:gC('gvVhbAkt'),vhbVK:r.gvVhbVK||0,
     anfahrtKm:parseFloat($('gvAnfahrtKm')?.value)||0,
     anfahrtNMA:parseInt($('gvMontAnzMA')?.value)||1,anfahrtVK:r.gvAnfahrtVK||0,
-    arbVK:r.gvArbVK||0,gvFarben:gvGetFarben(),
+    gvArbVK:r.gvArbVK||0,gvFarben:gvGetFarben(),
     setup:r.setup,montVK:montD.total,
     totalVK:r.total,stueck:r.proStk,gravurMin:r.gravurMin,sekZ:r.sekZ,marge:r.marge,
     gvMatAkt:gC('gvMatAkt'),gvSchildIdx:$('gvSchildSel')?.value||0,
-    veredVK:0,arbVK:0,montage:montD.items};
+    veredVK:0,arbVK:r.gvArbVK||0,montage:montD.items};
   if(editIdx>=0)positions[editIdx]=data;else positions.push(data);
   $('gravurForm').style.display='none';editIdx=-1;renderPos();updateTotals();
   $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
@@ -5102,6 +5102,9 @@ function saveFolientechnik(){
     glasdekorf:gC('ftAktGlasdekorf')?ftSelTxt('ftAktGlasdekorf'):'',
     tape:gC('ftAktTape')?ftSelTxt('ftAktTape'):'',
     setupDD:gC('ftAktSetupDD'),setupPS:gC('ftAktSetupPS'),
+    druck:gC('ftAktDruck')?ftSelTxt('ftAktDruck'):'',
+    druckVK:r.druckVK||0,
+    pEK:r.pEK||0, lEK:r.lEK||0, fEK:r.fEK||0,
     versand:getVersandData('ft'),
     uebergabe:getUebergabeData('ft'),
     totalVK:r.totalVK, stueck:1, proStk:r.proStk,
@@ -7459,6 +7462,8 @@ function saveSchild(){
     anfahrtVK:r.anfahrtVK||0,
     montageSeparat:gC('slMontageSeparat')||false,
     totalVK:r.totalVK,stueck:r.proStk,
+    slFormfaktor:window._slFormfaktor||0.5,
+    zuschnittMethode:document.querySelector('#slZuschnittMethode .zopt.sel')?.dataset?.val||'saegen',
   };
   const wasEdit2=editIdx>=0;
   if(editIdx>=0)positions[editIdx]=data;else positions.push(data);
@@ -11294,6 +11299,23 @@ function editPos(i){
     initFraesForm();
     setTimeout(()=>{
       if($('frMat')&&p.matKey)$('frMat').value=p.matKey;
+      // ── Herstellungsart wiederherstellen ────────────────────────────
+      if(p.frArt && typeof setFrArt==='function'){
+        P.frHerstellungsart = p.frArt;
+        P.frLaserArt = p.frLaserArt||'zukauf';
+        setFrArt(p.frArt);
+        if(p.frArt==='laser' && typeof setFrLaserArt==='function') setFrLaserArt(p.frLaserArt||'zukauf');
+      }
+      // ── Zukauf-Felder ───────────────────────────────────────────────
+      if(p.zukaufEK    && $('frZukaufEK'))   $('frZukaufEK').value   = p.zukaufEK;
+      if(p.zukaufMarge && $('frZukaufMarge'))$('frZukaufMarge').value = p.zukaufMarge;
+      if(p.zukaufTyp   && $('frZukaufTyp'))  $('frZukaufTyp').value  = p.zukaufTyp;
+      if(p.zukaufBez   && $('frZukaufBez'))  $('frZukaufBez').value  = p.zukaufBez;
+      // ── Laser-Felder ────────────────────────────────────────────────
+      if(p.laserStaerke && $('frLaserStaerke')) $('frLaserStaerke').value = p.laserStaerke;
+      if(p.laserMinPro  && $('frLaserMin'))     $('frLaserMin').value     = p.laserMinPro;
+      if(p.laserSA      && $('frLaserSA'))      $('frLaserSA').value      = p.laserSA;
+      if(p.laserRuest   && $('frLaserRuest'))   $('frLaserRuest').value   = p.laserRuest;
 
       if(p.lackAkt){
         const e=$('frLackAkt');if(e)e.checked=true;
@@ -11323,8 +11345,8 @@ function editPos(i){
         buildFrBefestigung();
         setTimeout(()=>{
           if(p.bolzenAkt){const e=$('frBolzenAkt');if(e)e.checked=true;}
-          if(p.bolzenAnz&&$('frBolzenAnz'))$('frBolzenAnz').value=p.bolzenAnz;
-          if(p.bolzenPreis&&$('frBolzenPreis'))$('frBolzenPreis').value=p.bolzenPreis;
+          if(p.bolzenProBuchst&&$('frBolzenProBuchst'))$('frBolzenProBuchst').value=p.bolzenProBuchst;
+          else if(p.bolzenAnz&&$('frBolzenProBuchst'))$('frBolzenProBuchst').value=2; // Migration
           if(p.vhbAkt){const e=$('frKlebeVHB');if(e)e.checked=true;}
           if(p.vhbVariant&&$('frVhbVariant'))$('frVhbVariant').value=p.vhbVariant;
           if(p.schabPap){const e=$('frSchabPap');if(e)e.checked=true;}
@@ -11509,10 +11531,18 @@ function saveAuftrag(){
     savedAt:new Date().toISOString(),
     _version:2};
 
-  saveOfferteToServer(auftrag).then(ok=>{
+  saveOfferteToServer(auftrag).then(async ok=>{
     if(ok){
       showToast('✓ '+anr+' in Datenbank gespeichert');
       renderAuftragListe&&renderAuftragListe();
+      // Offerte automatisch im Projektordner ablegen (falls gesetzt)
+      if(_projektPfad && typeof ablegenOfferte === 'function'){
+        const html = typeof buildOfferteHtml==='function' ? await buildOfferteHtml() : null;
+        if(html){
+          const ok2 = await ablegenOfferte(html, anr);
+          if(ok2) showToast('✓ Offerte in 02 Offertphase abgelegt','',3000);
+        }
+      }
     } else {
       showToast('⚠ Fehler beim Speichern — Server prüfen','error');
     }
@@ -11911,6 +11941,33 @@ Freundliche Grüsse
 }
 
 
+
+// Baut den Offerte-HTML-String (für Ablage, ohne PDF zu öffnen)
+function buildOfferteHtml(){
+  // Kalkulations-HTML direkt aus den Positions-Daten bauen
+  // Wir nutzen printDocOffer's capture-Logik: Blob abfangen
+  return new Promise((resolve) => {
+    const origBlob = window.Blob;
+    let captured = null;
+    window.Blob = function(parts, opts){
+      if(opts && opts.type && opts.type.includes('html') && parts && parts[0] && parts[0].length > 1000){
+        captured = parts[0];
+      }
+      return new origBlob(parts, opts);
+    };
+    // Dummy window.open damit kein Tab öffnet
+    const origOpen = window.open;
+    window.open = function(){ return {close:()=>{}}; };
+    
+    try { printDoc('offer'); } catch(e){}
+    
+    window.Blob = origBlob;
+    window.open = origOpen;
+    
+    setTimeout(()=> resolve(captured), 200);
+  });
+}
+
 // ══════════════════════════════════════════════════════════════════════════
 // OFFERTE ABLEGEN — integrierter Workflow
 // Beim PDF-Klick: Projektordner prüfen → erstellen falls nötig → ablegen
@@ -12168,6 +12225,10 @@ function printDocOffer(){
 }
 
 function printDoc(mode){
+  if(mode==='offerHtml'){
+    // Nur HTML-String zurückgeben, kein PDF öffnen
+    return buildOfferteHtmlString();
+  }
   if(!positions||!positions.length){
     showToast('Keine Positionen vorhanden — zuerst eine Position erfassen','error');
     return;
@@ -12570,7 +12631,14 @@ function printDoc(mode){
   .footnote2{margin-top:4mm;font-size:8px;color:#555;line-height:1.6;}
 
   /* ── FOOTER ── */
-  .footer{position:fixed;bottom:10mm;left:18mm;right:18mm;border-top:1px solid #ccc;padding-top:3mm;font-size:8px;color:#555;display:flex;justify-content:space-between;}
+  .footer{
+    /* Nur auf Seite 1 am Ende — nicht auf jeder Seite wiederholen */
+    margin-top:6mm;
+    padding-top:3mm;
+    border-top:1px solid #ccc;
+    font-size:8px;color:#555;
+    display:flex;justify-content:space-between;
+  }
   .footer-firm{font-weight:600;}
 
   /* ── AGB TEXT ── */
@@ -12579,7 +12647,13 @@ function printDoc(mode){
   /* ── BANKVERBINDUNG ── */
   .bank{margin-top:3mm;font-size:8px;color:#555;}
 
+  @media screen{
+    /* Print-Button und Footer nur im Druck sichtbar */
+    .no-print{ display:flex; }
+    .footer{ display:none; }
+  }
   @media print{
+    .no-print{ display:none !important; }  /* Button beim Drucken verstecken */
     body{background:#fff;}
     @page{size:A4 portrait;margin:0;}
     .page{
@@ -12717,14 +12791,14 @@ function printDoc(mode){
     Bankverbindung: IBAN CH97 0024 8248 6752 3601 P / BIC UBSWCHZH80A &nbsp;|&nbsp; MWST Nr.: CHE-108.098.109 MWST
   </div>
 
-</div><!-- /page -->
+  <!-- FOOTER — direkt unter Bankverbindung, auf Seite 1 -->
+  <div class="footer">
+    <span class="footer-firm">Grafe AG</span>
+    <span>Rheinfelderstrasse 12 · 4127 Birsfelden · Tel. +41 61 421 23 23 · info@grafe.ch · www.grafe.ch</span>
+    <span>${datum}</span>
+  </div>
 
-<!-- FOOTER (nur beim Drucken) -->
-<div class="footer">
-  <span class="footer-firm">Grafe AG</span>
-  <span>Rheinfelderstrasse 12 · 4127 Birsfelden · Tel. +41 61 421 23 23 · info@grafe.ch · www.grafe.ch</span>
-  <span>${datum}</span>
-</div>
+</div><!-- /page -->
 
 <!-- AGB (nur in Kundenofferte) -->
 ${!isInt ? agbHtml : ''}
