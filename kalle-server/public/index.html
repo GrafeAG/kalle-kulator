@@ -2085,21 +2085,48 @@ const DEF={
     {name:"IP 7805 Silver Frost",preis:10.73},
   ],
   schildmaterial:[
-    {name:"1mm Alu Elox farblos",preis:100.88},{name:"2mm Alu Elox farblos",preis:118.43},
-    {name:"3mm Alu Elox farblos",preis:135.98},{name:"4mm Alu Elox farblos",preis:153.53},
-    {name:"1mm Alu roh",preis:17.55},{name:"2mm Alu roh",preis:35.10},
-    {name:"3mm Alu roh",preis:52.65},{name:"4mm Alu roh",preis:70.20},{name:"5mm Alu roh",preis:87.75},
-    {name:"2mm Messing",preis:255.00},{name:"3mm Messing",preis:441.00},
-    {name:"4mm Messing",preis:540.00},{name:"5mm Messing",preis:680.00},
-    {name:"2mm Etalbond D2",preis:22.00},{name:"3mm Dibond",preis:33.00},
-    {name:"3mm Etalbond D2",preis:23.00},{name:"3mm Dibond Butlerfinish",preis:72.00},
-    {name:"3mm WH72 Hinterleuchtung",preis:52.00},{name:"3mm Acryl",preis:33.00},
-    {name:"4mm Acryl",preis:36.00},{name:"5mm Acryl",preis:42.00},
-    {name:"3mm Acryl AR Antireflx",preis:28.00},{name:"8mm weiss",preis:62.00},
-    {name:"10mm Acryl klar",preis:68.00},{name:"3mm Simopor",preis:11.35},
-    {name:"5mm Simopor",preis:17.95},{name:"8mm Simopor",preis:28.50},
-    {name:"10mm Simopor",preis:35.00},{name:"5mm PP Hohlkammer iPrinto",preis:12.80},
-    {name:"Himacs 9mm",preis:155.00},{name:"Himacs 12mm",preis:175.00},
+    // ── Metalle (CHF/kg × Dichte × Dicke = auto CHF/m²) ─────────────────────
+    // name = Bezeichnung ohne Dicke | dicke = mm (eigenes Feld für alle Typen)
+    // platteL/platteB = Standard-Plattenformat in mm
+    {name:"Alu Elox farblos",   dicke:1,  typ:"m2",     platteL:2500,platteB:1250, steg:15, fraesbar:false, preis:100.88},
+    {name:"Alu Elox farblos",   dicke:2,  typ:"m2",     platteL:2500,platteB:1250, steg:15, fraesbar:false, preis:118.43},
+    {name:"Alu Elox farblos",   dicke:3,  typ:"m2",     platteL:2500,platteB:1250, steg:15, fraesbar:false, preis:135.98},
+    {name:"Alu Elox farblos",   dicke:4,  typ:"m2",     platteL:2500,platteB:1250, steg:15, fraesbar:false, preis:153.53},
+    {name:"Alu roh",            dicke:1,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:17.55},
+    {name:"Alu roh",            dicke:2,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:35.10},
+    {name:"Alu roh",            dicke:3,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:52.65},
+    {name:"Alu roh",            dicke:4,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:70.20},
+    {name:"Alu roh",            dicke:5,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:87.75},
+    {name:"Messing",            dicke:2,  typ:"metall",  ekKg:15.00, dichte:8500, platteL:2000,platteB:1000, steg:15, fraesbar:true, preis:255.00},
+    {name:"Messing",            dicke:3,  typ:"metall",  ekKg:17.29, dichte:8500, platteL:2000,platteB:1000, steg:15, fraesbar:true, preis:441.00},
+    {name:"Messing",            dicke:4,  typ:"metall",  ekKg:15.88, dichte:8500, platteL:2000,platteB:1000, steg:15, fraesbar:true, preis:540.00},
+    {name:"Messing",            dicke:5,  typ:"metall",  ekKg:16.00, dichte:8500, platteL:2000,platteB:1000, steg:15, fraesbar:true, preis:680.00},
+    // ── Platten / Verbundwerkstoffe / Kunststoff (CHF/m²) ────────────────────
+    {name:"Etalbond D2",        dicke:2,  typ:"m2",     platteL:2800,platteB:1250, steg:0, fraesbar:false, preis:22.00},
+    {name:"Dibond",             dicke:3,  typ:"m2",     platteL:2800,platteB:1250, steg:15, fraesbar:true, preis:33.00},
+    {name:"Etalbond D2",        dicke:3,  typ:"m2",     platteL:2800,platteB:1250, steg:0, fraesbar:false, preis:23.00},
+    {name:"Dibond Butlerfinish",dicke:3,  typ:"m2",     platteL:2800,platteB:1250, steg:15, fraesbar:true, preis:72.00},
+    {name:"WH72 Hinterleuchtung",dicke:3, typ:"m2",     platteL:2440,platteB:1220, steg:0, fraesbar:false, preis:52.00},
+    {name:"Acryl",              dicke:3,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:33.00},
+    {name:"Acryl",              dicke:4,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:36.00},
+    {name:"Acryl",              dicke:5,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:42.00},
+    {name:"Acryl AR Antireflx", dicke:3,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:28.00},
+    {name:"Acryl weiss",        dicke:8,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:62.00},
+    {name:"Acryl klar",         dicke:10, typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:68.00},
+    {name:"Simopor",            dicke:3,  typ:"m2",     platteL:3050,platteB:1530, steg:0, fraesbar:false, preis:11.35},
+    {name:"Simopor",            dicke:5,  typ:"m2",     platteL:3050,platteB:1530, steg:0, fraesbar:false, preis:17.95},
+    {name:"Simopor",            dicke:8,  typ:"m2",     platteL:3050,platteB:1530, steg:0, fraesbar:false, preis:28.50},
+    {name:"Simopor",            dicke:10, typ:"m2",     platteL:3050,platteB:1530, steg:0, fraesbar:false, preis:35.00},
+    {name:"PP Hohlkammer iPrinto",dicke:5,typ:"m2",     platteL:3000,platteB:1500, steg:0, fraesbar:false, preis:12.80},
+    {name:"Himacs",             dicke:9,  typ:"m2",     platteL:3660,platteB:760,  steg:0, fraesbar:false, preis:155.00},
+    {name:"Himacs",             dicke:12, typ:"m2",     platteL:3660,platteB:760,  steg:0, fraesbar:false, preis:175.00},
+    // ── Nur Fräsen (nicht als Schildmaterial verwendet) ───────────────
+    {name:"Alu roh",            dicke:6,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:105.30},
+    {name:"Alu roh",            dicke:8,  typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:140.40},
+    {name:"Alu roh",            dicke:10, typ:"metall",  ekKg:6.50, dichte:2700, platteL:2500,platteB:1250, steg:15, fraesbar:true, preis:175.50},
+    {name:"Messing",            dicke:6,  typ:"metall",  ekKg:16.00, dichte:8500, platteL:2000,platteB:1000, steg:15, fraesbar:true, preis:816.00},
+    {name:"Dibond",             dicke:4,  typ:"m2",     platteL:2800,platteB:1250, steg:15, fraesbar:true, preis:36.00},
+    {name:"Acryl",              dicke:6,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:48.00},
   ],
   druckarten:[
     {name:"Solvent",preis:35.00},{name:"UV 4c",preis:28.00},{name:"UV 300% Weiss",preis:65.00},
@@ -2352,9 +2379,28 @@ function loadP(){
         }
         return result;
       }
-      return merge(fresh,saved);
+      const merged=merge(fresh,saved);
+      // Fehlende Felder in schildmaterial aus DEF-Defaults ergänzen
+      // (nötig wenn gespeicherte Version neue Felder noch nicht kennt)
+      const defSM = fresh.schildmaterial||[];
+      (merged.schildmaterial||[]).forEach((m,i)=>{
+        const defEntry = defSM.find(d=>d.name===m.name && d.dicke===m.dicke) || defSM[i];
+        if(defEntry){
+          if(m.fraesbar===undefined) m.fraesbar=defEntry.fraesbar??false;
+          if(m.steg===undefined)     m.steg=defEntry.steg??0;
+          if(m.typ===undefined)      m.typ=defEntry.typ||'m2';
+          if(m.dicke===undefined)    m.dicke=defEntry.dicke||0;
+          if(!m.platteL)             m.platteL=defEntry.platteL||2500;
+          if(!m.platteB)             m.platteB=defEntry.platteB||1250;
+        }
+      });
+      // Metall-Preise synchronisieren nach Laden
+      (merged.schildmaterial||[]).forEach(m=>{ if(m.typ==='metall'&&m.ekKg&&m.dichte&&m.dicke) m.preis=parseFloat((m.ekKg*(m.dichte/1000)*m.dicke).toFixed(4)); });
+    return merged;
     }
   }catch(e){}
+  // Metall-Preise in Defaults synchronisieren
+  (fresh.schildmaterial||[]).forEach(m=>{ if(m.typ==='metall'&&m.ekKg&&m.dichte&&m.dicke) m.preis=parseFloat((m.ekKg*(m.dichte/1000)*m.dicke).toFixed(4)); });
   return fresh;
 }
 function saveP(){
@@ -2603,7 +2649,15 @@ function getGravurSek(vh, mat){
 
 function buildMontage(cid,posType,calcFn){
   const monFn=(calcFn||'cF')+'()';
-  const c=$(cid);if(!c)return;c.innerHTML='';
+  const c=$(cid);if(!c)return;
+  // Snapshot aktiver Montage-Einträge vor Wipe
+  if(!window.__montageState) window.__montageState={};
+  if(!window.__montageState[cid]) window.__montageState[cid]={};
+  P.montage.forEach((m,_)=>{
+    const gi=P.montage.indexOf(m);
+    const chk=$(`makt-${cid}-${gi}`);if(chk)window.__montageState[cid][gi]={chk:chk.checked,min:$(`mmin-${cid}-${gi}`)?.value};
+  });
+  c.innerHTML='';
   P.montage.filter(m=>!m.typ||m.typ.includes(posType)).forEach((m,_)=>{
     const gi=P.montage.indexOf(m);
     const row=document.createElement('div');row.className='tr';row.id=`mrow-${cid}-${gi}`;
@@ -2617,6 +2671,13 @@ function buildMontage(cid,posType,calcFn){
       <div><div class="tr-label">${m.name}</div><div class="tr-sub">${sub}</div></div></div>
       <div class="tr-r">${inputHtml}<span class="pbadge" id="mbadge-${cid}-${gi}">–</span></div>`;
     c.appendChild(row);
+  });
+  // Synchroner Restore
+  P.montage.forEach((m,_)=>{
+    const gi=P.montage.indexOf(m);
+    const st=window.__montageState?.[cid]?.[gi];if(!st)return;
+    const chk=$(`makt-${cid}-${gi}`);if(chk&&st.chk)chk.checked=true;
+    const min=$(`mmin-${cid}-${gi}`);if(min&&st.min)min.value=st.min;
   });
 }
 function calcMon(cid){
@@ -2650,7 +2711,7 @@ function mkSelFiltered(filteredArr,defPart){
   const sel=document.createElement('select');
   sel.style.cssText='background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:11px;max-width:100%;';
   filteredArr.forEach((item,i)=>{
-    const o=document.createElement('option');o.value=i;o.textContent=item.name+' — CHF '+item.preis;
+    const o=document.createElement('option');o.value=i;o.textContent=(typeof getMatLabel==='function'&&item.dicke!=null?getMatLabel(item):item.name)+' — CHF '+(typeof calcSchildMatPreis==='function'&&item.typ?calcSchildMatPreis(item):item.preis).toFixed(2)+'/m²';
     if(defPart&&item.name.includes(defPart))sel.selectedIndex=i;
     sel.appendChild(o);
   });
@@ -2667,8 +2728,12 @@ function mkSel(items,defPart,onChangeFn){
   };
   const none=document.createElement('option');none.value='__none__';none.textContent='– Keine –';sel.appendChild(none);
   (items||[]).forEach((item,i)=>{
-    const o=document.createElement('option');o.value=i;o.textContent=`${item.name} (${item.preis.toFixed(2)})`;
-    if(defPart&&item.name.includes(defPart))o.selected=true;
+    const o=document.createElement('option');o.value=i;
+    const _ml=(typeof getMatLabel==='function'&&item.dicke!=null)?getMatLabel(item):item.name;
+    const _mp=(typeof calcSchildMatPreis==='function'&&item.typ)?calcSchildMatPreis(item):(item.preis||0);
+    o.textContent=`${_ml} (${_mp.toFixed(2)})`;
+    const _matchName=typeof getMatLabel==='function'&&item.dicke!=null?getMatLabel(item):item.name;
+    if(defPart&&_matchName.toLowerCase().includes(defPart.toLowerCase()))o.selected=true;
     sel.appendChild(o);
   });
   return sel;
@@ -3046,12 +3111,12 @@ function reBuild(){
   addSecHead(sm,'Pulverbeschichtung','y');
   sm.appendChild(buildPulverUI());
 
-  addSecHead(ac,'Werbetechnik','t');
+  addSecHead(ac,'Arbeitszeit in der Werbetechnik','t');
   (function(){
     const row=document.createElement('div');row.className='tr';
     const arbMin=calcPlottMin();
     row.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="akt-wt-plott" onchange="cF()"><span class="tsl"></span></label>
-      <div><div class="tr-label">Plott, Entgittern, Tapen, Zuschnitt</div>
+      <div><div class="tr-label">Plott, Entgittern, Tapen, Zuschnitt, Aufziehen, Verkleben, etc.</div>
       <div class="tr-sub">CHF ${P.arbeitswerte.find(a=>a.name.includes('Zuschnitt')||a.gruppe==='Zuschnitt')?.preis?.toFixed(2)||'2.00'} / Min — Faustregel: 15 Min + 8 Min/Zusatzfarbe + Flächenzuschlag</div></div></div>
       <div class="tr-r">
         <input type="number" id="min-wt-plott" value="${arbMin}" min="0" step="1" oninput="cF()" style="width:55px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;font-size:11px;">
@@ -3249,14 +3314,32 @@ function swFrObStep(sub){
 
 function initFrMaterial(){
   const sel=$('frMat');
-  if(sel&&sel.options.length===0){
-    const mats=P.fraes?.materialien||{};
-    Object.entries(mats).forEach(([key,m])=>{
-      const o=document.createElement('option');o.value=key;
-      o.textContent=m.name+(m.ekKg?` — CHF ${m.ekKg}/kg`:'');
-      sel.appendChild(o);
-    });
+  if(sel){
+    const prevIdx = sel.value ? parseInt(sel.value) : (sel.options.length>0 ? parseInt(sel.value) : 0);
+    const isOldKey = sel.value && isNaN(parseInt(sel.value)); // legacy key like 'alu3'
+    let selIdx = isOldKey ? getSmIdxFromLegacyKey(sel.value) : (parseInt(sel.value)||0);
+    fillSchildMatSelect(sel, selIdx, 'fraesbar');
   }
+}
+
+// Rückwärtskompatibilität: alten matKey in P.schildmaterial Index umwandeln
+function getSmIdxFromLegacyKey(key){
+  if(!key||typeof key!=='string') return 0;
+  // z.B. 'alu3' → Alu roh 3mm, 'messing4' → Messing 4mm
+  const keyMap = {
+    'alu2':'Alu roh-2','alu3':'Alu roh-3','alu4':'Alu roh-4','alu5':'Alu roh-5',
+    'alu6':'Alu roh-6','alu8':'Alu roh-8','alu10':'Alu roh-10',
+    'messing2':'Messing-2','messing3':'Messing-3','messing4':'Messing-4',
+    'messing6':'Messing-6','dibond3':'Dibond-3','dibond4':'Dibond-4',
+    'acryl3':'Acryl-3','acryl4':'Acryl-4','acryl5':'Acryl-5',
+    'acryl6':'Acryl-6','acryl8':'Acryl weiss-8','acryl10':'Acryl klar-10',
+  };
+  const mapped = keyMap[key]||key;
+  const [targetName, targetDicke] = mapped.split('-');
+  const dickeN = parseFloat(targetDicke)||0;
+  const idx = P.schildmaterial.findIndex(m=>m.fraesbar&&m.dicke===dickeN&&
+    m.name.toLowerCase().replace(/\s+/g,'').includes(targetName.toLowerCase().replace(/\s+/g,'')));
+  return idx>=0 ? idx : P.schildmaterial.findIndex(m=>m.fraesbar&&m.name.includes('Alu')&&m.dicke===3)||0;
 }
 
 function buildFrZuschnitt(){
@@ -3307,6 +3390,10 @@ function buildFrBefestigung(){
   const prevBolzenProBuchst=parseInt($('frBolzenProBuchst')?.value)||2; // Bolzen pro Buchstabe
   const prevVhbOn=$('frKlebeVHB')?.checked||false;
   const prevVhbVariant=$('frVhbVariant')?.value||'4936P';
+  const prevVhbMethode=$('frVhbMethode')?.value||'punktuell';
+  const prevVhbPreistyp=$('frVhbPreistyp')?.value||'buchstabe';
+  const prevVhbPauschal=parseFloat($('frVhbPauschal')?.value)||0;
+  const prevVhbChfProBuchst=parseFloat($('frVhbChfProBuchst')?.value)||9.20;
   const prevKleberOn=$('frKlebeKleber')?.checked||false;
   const prevSchabPap=$('frSchabPap')?.checked||false;
   const prevSchabFol=$('frSchabFol')?.checked||false;
@@ -3336,19 +3423,55 @@ function buildFrBefestigung(){
 
     <div class="st t" style="margin-bottom:8px;">3M VHB Klebeband</div>
     <div class="tr" style="margin-bottom:6px;">
-      <div class="tr-l"><label class="tog"><input type="checkbox" id="frKlebeVHB" onchange="cFr()"${prevVhbOn?' checked':''}><span class="tsl"></span></label>
-        <div><div class="tr-label">3M VHB Klebeband</div><div class="tr-sub">CHF 9.20/Satz (Standard)</div></div></div>
+      <div class="tr-l"><label class="tog"><input type="checkbox" id="frKlebeVHB" onchange="buildFrBefestigung();cFr()"${prevVhbOn?' checked':''}><span class="tsl"></span></label>
+        <div><div class="tr-label">3M VHB Klebeband</div>
+          <div class="tr-sub" id="frVhbSubLabel">wird konfiguriert unten</div></div></div>
       <div class="tr-r" style="display:flex;gap:5px;align-items:center;">
         <select id="frVhbVariant" onchange="cFr()"
           style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:4px;font-size:11px;">
-          <option value="4936P"${prevVhbVariant==='4936P'?' selected':''}>4936P · 0.64mm grau</option>
-          <option value="4941"${prevVhbVariant==='4941'?' selected':''}>4941 · 1.1mm grau</option>
-          <option value="4991"${prevVhbVariant==='4991'?' selected':''}>4991 · 2.3mm grau</option>
+          <option value="4936P"${prevVhbVariant==='4936P'?' selected':''}>4936P · 0.64mm</option>
+          <option value="4941"${prevVhbVariant==='4941'?' selected':''}>4941 · 1.1mm</option>
+          <option value="4991"${prevVhbVariant==='4991'?' selected':''}>4991 · 2.3mm</option>
         </select>
         <span class="pbadge" id="pb-frKlebeVHB">–</span>
       </div>
     </div>
-
+    <div id="frVhbConfig" style="background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:10px;display:${prevVhbOn?'block':'none'};">
+      <div class="g2" style="gap:8px;margin-bottom:8px;">
+        <div class="field">
+          <label>Applikationsmethode</label>
+          <select id="frVhbMethode" onchange="cFr()"
+            style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+            <option value="punktuell"${prevVhbMethode==='punktuell'?' selected':''}>Punktuell aufkleben</option>
+            <option value="kontur"${prevVhbMethode==='kontur'?' selected':''}>Kontur gelasert (präzise)</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>Preisangabe</label>
+          <select id="frVhbPreistyp" onchange="cFr()"
+            style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+            <option value="buchstabe"${prevVhbPreistyp==='buchstabe'?' selected':''}>Pro Buchstabe / Ziffer</option>
+            <option value="pauschal"${prevVhbPreistyp==='pauschal'?' selected':''}>Pauschal für gesamte Position</option>
+          </select>
+        </div>
+      </div>
+      <div class="g2" style="gap:8px;" id="frVhbPreisRow">
+        <div class="field" id="frVhbBuchstField" style="${prevVhbPreistyp==='buchstabe'?'':'display:none;'}">
+          <label id="frVhbChfLabel">CHF / Buchstabe</label>
+          <input type="number" id="frVhbChfProBuchst" value="${prevVhbChfProBuchst}" min="0" step="0.5" oninput="cFr()"
+            style="background:var(--surface2);border:2px solid var(--accent);color:var(--accent);font-weight:700;font-size:14px;padding:7px 9px;border-radius:var(--rsm);width:100%;">
+        </div>
+        <div class="field" id="frVhbPauschalField" style="${prevVhbPreistyp==='pauschal'?'':'display:none;'}">
+          <label>CHF pauschal (ganze Position)</label>
+          <input type="number" id="frVhbPauschal" value="${prevVhbPauschal}" min="0" step="1" oninput="cFr()"
+            style="background:var(--surface2);border:2px solid var(--accent);color:var(--accent);font-weight:700;font-size:14px;padding:7px 9px;border-radius:var(--rsm);width:100%;">
+        </div>
+        <div style="font-size:10px;color:var(--muted);align-self:end;padding-bottom:8px;" id="frVhbHint">
+          ${stk} Buchst. · VH ${vh}mm ·
+          ${prevVhbMethode==='kontur'?'Kontur gelasert: ideal ab VH ≥ 100mm':'Punktuell: ideal bis VH 120mm'}
+        </div>
+      </div>
+    </div>
     <div class="st t" style="margin-bottom:8px;">Montageschablone</div>
     <div style="font-size:10px;color:var(--muted);margin-bottom:6px;" id="schabHint">Länge = ${vh}mm × ${stk} Buchst. = ${schabLaengeM.toFixed(2)} m</div>
     <div class="tr" id="frSchabPapRow" style="margin-bottom:4px;">
@@ -3584,8 +3707,14 @@ function buildFrNasslackUI(){
 }
 
 function buildFrArbUI(){
+    // Snapshot vor Wipe
+  if(!window.__buildFrArbUIState) window.__buildFrArbUIState={};
+  const _uiob = window.__buildFrArbUIState;
+  ['frZEntg', 'frZKleben'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
   const ac=$('tgFrArb');if(!ac)return;ac.innerHTML='';
   let lastGruppe='';
+  // Synchroner Restore
+  (()=>{const ob=window.__buildFrArbUIState||{};['frZEntg', 'frZKleben'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
   const gruppenLabels={Admin:'Administration',Grafik:'Grafik & Layout'};
   P.arbeitswerte.forEach((item,i)=>{
     if(!['Admin','Grafik'].includes(item.gruppe))return;
@@ -3595,7 +3724,15 @@ function buildFrArbUI(){
 }
 
 function buildFrMontageStep(){
-  const ac=$('tgFrMon');if(!ac)return;ac.innerHTML='';
+  const ac=$('tgFrMon');if(!ac)return;
+  // Snapshot vor Wipe
+  if(!window._frMontState) window._frMontState={};
+  const _fms=window._frMontState;
+  const _frAnfEl=$('frAnfahrtAkt'); if(_frAnfEl)_fms.anfahrtAkt=_frAnfEl.checked;
+  const _frAnfKm=$('frAnfahrtKm');  if(_frAnfKm)_fms.anfahrtKm=_frAnfKm.value;
+  const _frMontSep=$('frMontageSeparat'); if(_frMontSep)_fms.montageSeparat=_frMontSep.checked;
+  const _frMontMA=$('frMontAnzMA');  if(_frMontMA)_fms.montAnzMA=_frMontMA.value;
+  ac.innerHTML='';
   const anfahrt=P.anfahrt?.tabelle||[];
   const sepBannerFr=document.createElement('div');
   sepBannerFr.style.cssText='margin-bottom:14px;padding:10px 14px;background:var(--surface3);border:1px solid var(--border);border-radius:8px;display:flex;align-items:center;gap:10px;';
@@ -3911,13 +4048,18 @@ function cFr(){
 
   const text=($('frText')?.value||'').toUpperCase();
   const vh=gN('frVH')||100;
-  const matKey=$('frMat')?.value||'alu3';
+  const frMatVal=$('frMat')?.value;
+  // Unified: frMat-Wert = Index in P.schildmaterial (integer), Legacy: 'alu3' etc.
+  const _frMatIdx=(frMatVal&&!isNaN(parseInt(frMatVal)))?parseInt(frMatVal)
+    :(typeof getSmIdxFromLegacyKey==='function'?getSmIdxFromLegacyKey(frMatVal||'alu3'):0);
+  const matKey='sm:'+_frMatIdx; // kompatibler Schlüssel für save
   const sa=gN('frSA')||120;
   const setup=gN('frSetup')||60;
   const prodPct=gN('frProd')||30;
   const saetze=gN('frSaetze')||1;
   const matMargePct=gN('frMatMarge')||50;
-  const mat=P.fraes.materialien[matKey]||P.fraes.materialien.alu3;
+  const _defMat={name:'Alu roh',dicke:3,dichte:2700,ekKg:6.5,platteL:2500,platteB:1250,steg:15,typ:'metall',preis:52.65,fraesbar:true};
+  const mat=P.schildmaterial[_frMatIdx]||_defMat;
 
   $('frDisplay').textContent=text||'–';
   const valid='ABCDEFGHIJKLMNOPQRSTUVWXYZÄÖÜ0123456789'.split('');
@@ -3966,8 +4108,17 @@ function cFr(){
   const nestingInfo=calcMatFM(vh, anzGes, mat);
   const matFM=nestingInfo.matFM;
   const nesting=matFN>0?(matFM/matFN-1):0; // für Anzeige
-  const matGew=matFM*(mat.dicke/1000)*mat.dichte;
-  const matEK=matGew*mat.ekKg;
+  // Materialgewicht + EK: Metall (kg-basiert) oder m² (direkt)
+  let matGew=0, matEK=0;
+  if(mat.typ==='metall' && mat.ekKg && mat.dichte){
+    matGew=matFM*(mat.dicke/1000)*mat.dichte;
+    matEK=matGew*mat.ekKg;
+  } else {
+    // m²-Materialien: preis direkt (CHF/m²) × benötigte Fläche
+    matGew=matFM*(mat.dicke/1000)*(mat.dichte||1200);
+    const matPreisM2=calcSchildMatPreis(mat);
+    matEK=matPreisM2*matFM; // matFM = Netto-Fläche in m²
+  }
   const matVK=matEK*(1+matMargePct/100);
   const prodBase=fraeskosten+matVK;
   const prodAufschlag=prodBase*(prodPct/100);
@@ -4050,7 +4201,34 @@ function cFr(){
   const schabFol=calcSchab('frSchabFol','pb-frSchabFol',sc.klebefolie.preisProMeter,'frSchabFolRow');
   const schabKar=calcSchab('frSchabKar','pb-frSchabKar',sc.karton.preisProMeter,'frSchabKarRow');
   const frVhbOn=gC('frKlebeVHB');
-  const frVhbVK=frVhbOn?9.20*saetze:0;
+  // Erweiterte VHB-Kalkulation
+  let frVhbVK=0;
+  if(frVhbOn){
+    const vhbMethode=$('frVhbMethode')?.value||'punktuell';
+    const vhbPreistyp=$('frVhbPreistyp')?.value||'buchstabe';
+    const vhbChfProBuchst=parseFloat($('frVhbChfProBuchst')?.value)||9.20;
+    const vhbPauschal=parseFloat($('frVhbPauschal')?.value)||0;
+    // Anzahl Zeichen total (Buchstaben × Sätze)
+    const vhbAnz=Math.max(1,(($('frText')?.value||'').replace(/ /g,'').length||1)*saetze);
+    if(vhbPreistyp==='buchstabe'){
+      frVhbVK=vhbChfProBuchst*vhbAnz;
+    } else {
+      frVhbVK=vhbPauschal;
+    }
+    // Preistyp-Felder ein-/ausblenden
+    const bf=$('frVhbBuchstField');if(bf)bf.style.display=vhbPreistyp==='buchstabe'?'':'none';
+    const pf=$('frVhbPauschalField');if(pf)pf.style.display=vhbPreistyp==='pauschal'?'':'none';
+    // Methode-Hinweis aktualisieren
+    const hint=$('frVhbHint');
+    if(hint)hint.innerHTML=vhbAnz+' Buchst. · VH '+(vh||100)+'mm · '+(vhbMethode==='kontur'?'Kontur gelasert: ideal ab VH ≥ 100mm':'Punktuell: ideal bis VH 120mm');
+    // Sub-Label aktualisieren
+    const subLbl=$('frVhbSubLabel');
+    if(subLbl)subLbl.textContent=(vhbMethode==='kontur'?'Kontur gelasert':'Punktuell')+' · '+(vhbPreistyp==='buchstabe'?'CHF '+vhbChfProBuchst.toFixed(2)+'/Buchst.':'CHF '+vhbPauschal.toFixed(2)+' pauschal');
+    // VHB-Config ein-/ausblenden
+    const cfg=$('frVhbConfig');if(cfg)cfg.style.display='block';
+  } else {
+    const cfg=$('frVhbConfig');if(cfg)cfg.style.display='none';
+  }
   const frVhbPb=$('pb-frKlebeVHB');if(frVhbPb)frVhbPb.textContent=frVhbOn?'CHF '+frVhbVK.toFixed(2):'–';
   $('frKlebeVHB')?.closest('.tr')?.classList.toggle('on',frVhbOn);
   const schabTotal=schabPap+schabFol+schabKar+frVhbVK;
@@ -4177,7 +4355,7 @@ function cFr(){
     </div>`;
 
   const frs_text=$('frstrip-text');if(frs_text)frs_text.textContent=text||'–';
-  const frs_mat=$('frstrip-mat');if(frs_mat)frs_mat.textContent=mat.name+' '+vh+'mm';
+  const frs_mat=$('frstrip-mat');if(frs_mat)frs_mat.textContent=getMatLabel(mat);
   const frs_total=$('frstrip-total');if(frs_total)frs_total.textContent='CHF '+total.toFixed(2);
 
   const frStepBadges={
@@ -4245,6 +4423,10 @@ function saveFraes(){
     frZuschnittVK:r.frZuschnittVK||0,
     bolzenAkt:gC('frBolzenAkt'),bolzenProBuchst:parseInt($('frBolzenProBuchst')?.value)||2,bolzenVK:r.bolzenVK,
     vhbAkt:gC('frKlebeVHB'),vhbVariant:$('frVhbVariant')?.value||'',
+    vhbMethode:$('frVhbMethode')?.value||'punktuell',
+    vhbPreistyp:$('frVhbPreistyp')?.value||'buchstabe',
+    vhbChfProBuchst:parseFloat($('frVhbChfProBuchst')?.value)||9.20,
+    vhbPauschal:parseFloat($('frVhbPauschal')?.value)||0,
     schabPap:r.schabPap>0,schabFol:r.schabFol>0,schabKar:r.schabKar>0,
     eigenBefAkt:gC('frEigenBefAkt'),
     versand:getVersandData('fr'),
@@ -4313,20 +4495,14 @@ function saveGravur(){
 
 function gvInitFarben(){
   const sel=$('gvSchildSel');
-  if(sel&&sel.options.length===0){
-    P.schildmaterial.forEach((m,i)=>{
-      const o=document.createElement('option');o.value=i;
-      o.textContent=m.name+' — CHF '+m.preis.toFixed(2);
-      sel.appendChild(o);
-    });
-  }
+  { fillSchildMatSelect(sel); }
   gvRenderFarben();
 }
 
 function gvSchildChange(){
   const sel=$('gvSchildSel');const idx=sel?parseInt(sel.value):0;
   const mat=P.schildmaterial[isNaN(idx)?0:idx];
-  const sub=$('gvMatSubLbl');if(sub&&mat)sub.textContent=mat.name+' — CHF '+mat.preis.toFixed(2);
+  const sub=$('gvMatSubLbl');if(sub&&mat)sub.textContent=getMatLabel(mat)+' — CHF '+calcSchildMatPreis(mat).toFixed(2)+'/m²';
   cGv();
 }
 
@@ -4424,10 +4600,11 @@ function gvGetSchildVK(marge){
   const idx=sel?parseInt(sel.value):0;
   const mat=P.schildmaterial[isNaN(idx)?0:idx]||{preis:0,name:''};
   const margeD=marge>1?marge/100:marge;  // accept both 40 and 0.4
-  const ek=mat.preis*stk;const vk=ek*(1+margeD);
+  const _matPrM2=calcSchildMatPreis(mat);
+  const ek=_matPrM2*stk;const vk=ek*(1+margeD);
   const b=$('pb-gvMat');if(b)b.textContent='EK CHF '+ek.toFixed(2)+' | VK CHF '+vk.toFixed(2);
   const row=$('gvMatAkt')?.closest('.tr');if(row)row.classList.add('on');
-  return{ek,vk,name:mat.name};
+  return{ek,vk,name:getMatLabel(mat)};
 }
 
 function showGvBeispiele(){
@@ -4552,7 +4729,14 @@ function swFtStep(n){
 }
 
 function ftReBuild(){
-  const mat=$('tgFtMat');if(!mat)return;mat.innerHTML='';
+  const mat=$('tgFtMat');if(!mat)return;
+  // Snapshot aktuellen State in _ftObState VOR DOM-Wipe
+  if(!window._ftObState) window._ftObState={};
+  const _fob = window._ftObState;
+  ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktSetupDD','ftAktSetupPS','ftAktTape','ftAktGlasdekorf'].forEach(id=>{
+    const el=$(id); if(el){ _fob[id+'_chk']=el.checked; const sel=el.closest('.tr')?.querySelector('select'); if(sel)_fob[id+'_sel']=sel.selectedIndex; }
+  });
+  mat.innerHTML='';
 
   function ftAddHead(label){
     const h=document.createElement('div');h.className='st t';
@@ -4635,7 +4819,7 @@ function ftReBuild(){
   const wtSep=document.createElement('hr');wtSep.style.cssText='margin:12px 0 6px;border-color:var(--border);';mat.appendChild(wtSep);
   const wtHead=document.createElement('div');wtHead.className='st t';
   wtHead.style.cssText='font-size:9px;margin-bottom:5px;';
-  wtHead.textContent='Werbetechnikerarbeit';mat.appendChild(wtHead);
+  wtHead.textContent='Arbeitszeit in der Werbetechnik';mat.appendChild(wtHead);
   const wtHint=document.createElement('div');
   wtHint.style.cssText='font-size:10px;color:var(--muted);margin-bottom:8px;padding:5px 8px;background:var(--surface3);border-radius:4px;';
   wtHint.textContent='Zeitaufwand Entgittern, Tapen, Konfektionieren etc. — CHF 130/h (CHF 2.16/Min.)';
@@ -4673,7 +4857,17 @@ function ftReBuild(){
   nav3.innerHTML='<button class="sl-nb" onclick="swFtStep(2)">← Vorbereitungsarbeiten</button>';
   const step3div=$('ftstep-3');if(step3div)step3div.appendChild(nav3);
 
-  cFt();
+  // Synchroner Restore aus _ftObState
+  (()=>{
+    const ob=window._ftObState||{};
+    ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktSetupDD','ftAktSetupPS','ftAktTape','ftAktGlasdekorf'].forEach(id=>{
+      const el=$(id); if(!el)return;
+      if(ob[id+'_chk']!==undefined){ el.checked=ob[id+'_chk']; }
+      const sel=el.closest('.tr')?.querySelector('select');
+      if(sel&&ob[id+'_sel']!==undefined&&ob[id+'_sel']>=0&&ob[id+'_sel']<sel.options.length) sel.selectedIndex=ob[id+'_sel'];
+    });
+  })();
+    cFt();
 }
 
 function ftInitPlottFarben(){
@@ -4710,6 +4904,10 @@ function ftInitPlottFarben(){
 }
 
 function buildFtMontage(){
+    // Snapshot vor Wipe
+  if(!window.__buildFtMontageState) window.__buildFtMontageState={};
+  const _uiob = window.__buildFtMontageState;
+  ['ftAnfahrtAkt', 'ftMontPersAkt'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
   const ac=$('tgFtMon');if(!ac)return;ac.innerHTML='';
 
   const sep=document.createElement('div');
@@ -4805,6 +5003,8 @@ function buildFtMontage(){
   const ftVersandWrap=document.createElement('div');ftVersandWrap.id='ftVersandWrap';
   ac.appendChild(ftVersandWrap);
   buildVersandSection(ftVersandWrap,'ft','cFt');
+  // Synchroner Restore
+  (()=>{const ob=window.__buildFtMontageState||{};['ftAnfahrtAkt', 'ftMontPersAkt'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
   const ftUebWrap=document.createElement('div');ftUebWrap.id='ftUebWrap';
   ac.appendChild(ftUebWrap);
   buildAbholungSection(ftUebWrap,'ft','cFt');
@@ -4904,7 +5104,8 @@ function cFt(){
       const pbEl=$(pbId);
       if(pbEl&&rowVal>0){
         const checked=gC(chkId);
-        pbEl.textContent='EK CHF '+rowVal.toFixed(2);
+        const rowVK=rowVal*(1+mPlot);
+        pbEl.textContent='VK CHF '+rowVK.toFixed(2);
         pbEl.style.opacity=checked?'1':'0.4';
         pbEl.style.color=checked?'var(--teal)':'var(--muted)';
         pbEl.style.background=checked?'var(--teal-dim)':'var(--surface3)';
@@ -5098,11 +5299,16 @@ function saveFolientechnik(){
     montStd:parseFloat($('ftMontStd')?.value)||0,
     montageSeparat:gC('ftMontageSeparat')||false,
     folie:gC('ftAktFolie')?ftSelTxt('ftAktFolie'):'',
+    folieIdx:(()=>{const chk=$('ftAktFolie');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     laminat:gC('ftAktLaminat')?ftSelTxt('ftAktLaminat'):'',
+    laminatIdx:(()=>{const chk=$('ftAktLaminat');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     glasdekorf:gC('ftAktGlasdekorf')?ftSelTxt('ftAktGlasdekorf'):'',
+    glasdekorfIdx:(()=>{const chk=$('ftAktGlasdekorf');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     tape:gC('ftAktTape')?ftSelTxt('ftAktTape'):'',
+    tapeIdx:(()=>{const chk=$('ftAktTape');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     setupDD:gC('ftAktSetupDD'),setupPS:gC('ftAktSetupPS'),
     druck:gC('ftAktDruck')?ftSelTxt('ftAktDruck'):'',
+    druckIdx:(()=>{const chk=$('ftAktDruck');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     druckVK:r.druckVK||0,
     pEK:r.pEK||0, lEK:r.lEK||0, fEK:r.fEK||0,
     versand:getVersandData('ft'),
@@ -5370,12 +5576,9 @@ function swFrTab(n){
 
 function initSchildForm(){
   const sel=$('slMat');
-  if(sel&&sel.options.length===0){
-    P.schildmaterial.forEach((m,i)=>{
-      const o=document.createElement('option');o.value=i;
-      o.textContent=m.name+' — CHF '+m.preis.toFixed(2)+'/m²';
-      sel.appendChild(o);
-    });
+  if(sel){
+    const prevIdx=parseInt(sel.value)||0;
+    fillSchildMatSelect(sel, prevIdx);
   }
   const lsel=$('slLackSel');
   if(lsel&&lsel.options.length===0){
@@ -5427,134 +5630,148 @@ function slReBuild(){
   const dd=$('tgSlDD'),ps=$('tgSlPS'),ac=$('tgSlWT');
   if(!dd)return;
 
-  // Snapshot current checkbox/select state BEFORE wiping DOM
-  const _snap = {};
-  ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup'].forEach(id=>{
-    const el=$(id); if(!el)return;
-    _snap[id+'_chk'] = el.checked;
-    const sel=el.closest('.tr')?.querySelector('select');
-    if(sel) _snap[id+'_sel'] = sel.value;
-  });
-  // Plott farben
-  try{ _snap._plottFarben = sessionStorage.getItem('sl_pf_farben'); }catch(e){}
+  // Persistenten State lesen (nicht aus DOM — das ist unzuverlässig)
+  if(!window._slObState) window._slObState = {folie:false,folieIdx:-1,laminat:false,laminatIdx:-1,druck:false,druckIdx:-1,tape:false,setup:false,plottSetup:false,plottFarben:[]};
+  const ob = window._slObState;
 
   dd.innerHTML='';ps.innerHTML='';
 
   const ddH=document.createElement('div');ddH.className='hint ht';ddH.style.marginBottom='10px';
   ddH.innerHTML='Digitaldruck auf Folie — Mindestmenge: Bahnbreite × 0.5 lfm.';dd.appendChild(ddH);
   addSecHead(dd,'Material','t');
-  const rFolie=mkTR('slAktFolie','Digitaldruckfolie','Mindest: Bahnbreite × 0.5m',mkSel(P.digitaldruckfolien,'3551 (',cSl),'pb-slFolie');
-  rFolie.querySelector('#slAktFolie').onchange=function(){
-    if(this.checked){
-      const s=$('slAktSetup');if(s&&!s.checked)s.checked=true;
-      const lChk=$('slAktLaminat');if(lChk&&!lChk.checked){
-        lChk.checked=true;
-        const lRow=lChk.closest('.tr');const lSel=lRow?.querySelector('select');
-        if(lSel){for(let j=0;j<lSel.options.length;j++){if(lSel.options[j].text?.includes('215MDU')||lSel.options[j].text?.includes('210MDU')){lSel.selectedIndex=j;break;}}}
-      }
-      const dChk=$('slAktDruck');if(dChk&&!dChk.checked){
-        dChk.checked=true;
-        const dRow=dChk.closest('.tr');const dSel=dRow?.querySelector('select');
-        if(dSel){for(let j=0;j<dSel.options.length;j++){if(dSel.options[j].text?.toLowerCase().includes('solvent')){dSel.selectedIndex=j;break;}}}
-      }
-    }
-    cSl();
+
+  // Helper: onchange → _slObState sofort aktualisieren
+  const bindChk=(id,key,extraFn)=>{
+    const el=$(id);if(!el)return;
+    el.onchange=function(){
+      ob[key]=this.checked;
+      if(extraFn)extraFn(this.checked);
+      cSl();
+    };
   };
+  const bindSel=(id,keyIdx)=>{
+    const el=$(id);if(!el)return;
+    const sel=el.closest('.tr')?.querySelector('select');
+    if(!sel)return;
+    sel.onchange=()=>{ob[keyIdx]=sel.selectedIndex;cSl();};
+  };
+
+  // Folie
+  const rFolie=mkTR('slAktFolie','Digitaldruckfolie','Mindest: Bahnbreite × 0.5m',mkSel(P.digitaldruckfolien,'3551 (',cSl),'pb-slFolie');
   dd.appendChild(rFolie);
-  dd.appendChild(mkTR('slAktLaminat','Laminat','Gleiche Mindestmenge',mkSel(P.laminate,'215MDU',cSl),'pb-slLaminat'));
-  addSecHead(dd,'Drucktechnik','y');
-  dd.appendChild(mkTR('slAktDruck','Druckart','Auf Druck-Mindestmenge',mkSel(P.druckarten,'Solvent',cSl),'pb-slDruck'));
-  // Auto-Setup bei Druckart
-  setTimeout(()=>{
-    const slDruckChk=$('slAktDruck');
-    if(slDruckChk){
-      const origOnChange=slDruckChk.onchange;
-      slDruckChk.addEventListener('change',function(){
-        if(this.checked){
-          const s=$('slAktSetup');if(s&&!s.checked){s.checked=true;}
-        }
-      });
+  bindChk('slAktFolie','folie',(checked)=>{
+    if(checked){
+      const s=$('slAktSetup');if(s&&!s.checked){s.checked=true;ob.setup=true;}
+      const lChk=$('slAktLaminat');
+      if(lChk&&!lChk.checked){
+        lChk.checked=true;ob.laminat=true;
+        const lRow=lChk.closest('.tr');const lSel=lRow?.querySelector('select');
+        if(lSel){for(let j=0;j<lSel.options.length;j++){if(lSel.options[j].text?.includes('215MDU')||lSel.options[j].text?.includes('210MDU')){lSel.selectedIndex=j;ob.laminatIdx=j;break;}}}
+      }
+      const dChk=$('slAktDruck');
+      if(dChk&&!dChk.checked){
+        dChk.checked=true;ob.druck=true;
+        const dRow=dChk.closest('.tr');const dSel=dRow?.querySelector('select');
+        if(dSel){for(let j=0;j<dSel.options.length;j++){if(dSel.options[j].text?.toLowerCase().includes('solvent')){dSel.selectedIndex=j;ob.druckIdx=j;break;}}}
+      }
     }
-  },50);
-  dd.appendChild(mkTR('slAktSetup','Setup / Einrichtungskosten',`CHF ${getSetupPreis().toFixed(2)} pauschal`,null,'pb-slSetup',cSl));
-
-  const plottMin=((P.plottbreite||1200)/1000*.5).toFixed(4);
-  const psH=document.createElement('div');psH.className='hint ht';psH.style.marginBottom='10px';
-  psH.innerHTML=`Plottschnitt — Mindestmenge: <strong>${P.plottbreite||1200}mm × 0.5m = ${plottMin} m²</strong>`;ps.appendChild(psH);
-  addSecHead(ps,'Material','t');
-
-  const pfCont=document.createElement('div');pfCont.id='slPlottFarbenCont';ps.appendChild(pfCont);
-  function renderSlPlottFarben(){
-    pfCont.innerHTML='';
-    const farben=slGetPlottFarben();
-    farben.forEach((f,fi)=>{
-      const r=mkTR('slAktPlott'+(fi===0?'':'_f'+fi),'Plottfolie Farbe '+(fi+1),'Mindest: Plotterbreite × 0.5m',mkSel(P.plottfolien,f,cSl),'pb-slPlott'+(fi===0?'':'_f'+fi));
-      const chk=r.querySelector('input[type=checkbox]');
-      if(chk){chk.id='slAktPlott'+(fi===0?'':'_f'+fi);chk.checked=false;
-        chk.onchange=function(){if(this.checked&&fi===0){const s=$('slAktPlottSetup');if(s&&!s.checked)s.checked=true;}cSl();};
-      }
-      if(fi>0){
-        const del=document.createElement('button');del.textContent='✕';
-        del.style.cssText='background:none;border:none;color:var(--danger,#ff453a);cursor:pointer;font-size:12px;padding:0 3px;';
-        del.onclick=()=>{const fa=slGetPlottFarben();fa.splice(fi,1);slSetPlottFarben(fa);renderSlPlottFarben();cSl();};
-        r.querySelector('.tr-r')?.prepend(del);
-      }
-      pfCont.appendChild(r);
-    });
-    const addBtn=document.createElement('button');addBtn.className='btn btn-gh';
-    addBtn.style.cssText='font-size:10px;padding:3px 9px;margin-top:4px;';addBtn.textContent='+ Farbe hinzufügen';
-    addBtn.onclick=()=>{const fa=slGetPlottFarben();fa.push('');slSetPlottFarben(fa);renderSlPlottFarben();cSl();};
-    pfCont.appendChild(addBtn);
-  }
-  renderSlPlottFarben();
-  ps.appendChild(mkTR('slAktTape','Montagetape','Gleiche Mindestmenge wie Plottfolie',mkSel(P.tape,'',cSl),'pb-slTape'));
-  addSecHead(ps,'Grundkosten','y');
-  ps.appendChild(mkTR('slAktPlottSetup','Setup-Pauschale Folienplott','CHF 25.– einmalig',null,'pb-slPlottSetup',cSl));
+  });
+  dd.appendChild(mkTR('slAktLaminat','Laminat','Gleiche Mindestmenge',mkSel(P.laminate,'215MDU',cSl),'pb-slLaminat'));
+  bindChk('slAktLaminat','laminat');
+  addSecHead(dd,'Drucktechnik','y');
+  dd.appendChild(mkTR('slAktDruck','Druckart','Auf Druck-Mindestmenge',mkSel(P.druckarten||[],'Solvent',cSl),'pb-slDruck'));
+  bindChk('slAktDruck','druck');
+  dd.appendChild(mkTR('slAktSetup','Setup / Einrichtungskosten',`CHF ${getSetupPreis('dd')} einmalig`,null,'pb-slDDSetup'));
+  bindChk('slAktSetup','setup');
 
   slReBuildWT();
   slReBuildArb();
 
-  // Restore state: prefer live snapshot, fallback to _slEditPos
-  setTimeout(()=>{
-    const snapHasData = _snap && Object.keys(_snap).some(k=>k.endsWith('_chk') && _snap[k]);
-    const ep = window._slEditPos;
+  // Plott-Sektion
+  const stk=parseInt($('slStk')?.value)||1;
+  const plottMin=(gN('slLen')/1000*(gN('slBr')/1000)*stk);
+  const psH=document.createElement('div');psH.className='hint ht';psH.style.marginBottom='10px';
+  psH.innerHTML=`Folienplott — Mindest: Bahnbreite × 0.5m · Fläche <strong>${plottMin.toFixed(2)} m²</strong>`;ps.appendChild(psH);
+  // Folienplott: Folie-Auswahl pro Farbe
+  const pfCont=document.createElement('div');pfCont.id='slPlottFarbenCont';ps.appendChild(pfCont);
 
-    if(snapHasData){
-      // User had already set values — restore snapshot
-      ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup'].forEach(id=>{
-        if(_snap[id+'_chk']===undefined) return;
-        const el=$(id); if(!el) return;
-        el.checked = _snap[id+'_chk'];
-        const sel=el.closest('.tr')?.querySelector('select');
-        if(sel && _snap[id+'_sel']) sel.value = _snap[id+'_sel'];
-      });
-    } else if(ep){
-      // Fresh step switch while editing — restore from position data
-      const restoreOne=(id,txt)=>{
-        if(!txt)return;
-        const el=$(id);if(!el)return;
-        el.checked=true;
-        const sel=el.closest('.tr')?.querySelector('select');
-        if(sel){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;break;}}}
-      };
-      // Restore mit Index-Fallback
-      function restOneIdx(id,txt,idx){
-        const el=$(id);if(!el)return;
-        el.checked=true;
-        const sel=el.closest('.tr')?.querySelector('select');if(!sel)return;
-        if(txt){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;return;}}}
-        if(idx>=0&&idx<sel.options.length)sel.selectedIndex=idx;
+  function renderSlPlottFarben(){
+    pfCont.innerHTML='';
+    const farben=ob.plottFarben||[''];
+    farben.forEach((pf,fi)=>{
+      const sfx=fi===0?'':'_f'+fi;
+      const id='slAktPlott'+sfx;
+      const pbId='pb-slPlott'+sfx;
+      const sel=mkSel(P.plottfolien,'651',cSl);
+      // Restore gespeicherten Folie-Index
+      if(typeof pf==='object'&&pf.folieIdx>=0&&pf.folieIdx<sel.options.length-1)sel.selectedIndex=pf.folieIdx+1;
+      const row=mkTR(id,'Plottfolie'+(farben.length>1?' Farbe '+(fi+1):''),'Mindest: Plotterbreite × 0.5m',sel,pbId,cSl);
+      // Löschen-Button wenn >1 Farbe
+      if(farben.length>1){
+        const del=document.createElement('button');del.textContent='✕';del.className='btn btn-gh';
+        del.style.cssText='font-size:9px;padding:2px 5px;margin-left:4px;';
+        del.onclick=()=>{ob.plottFarben.splice(fi,1);slSetPlottFarben(ob.plottFarben.map(f=>typeof f==='object'?f.farbe||'':f));renderSlPlottFarben();cSl();};
+        row.querySelector('.tr-r')?.appendChild(del);
       }
-      restOneIdx('slAktFolie',ep.folie,ep.folieIdx??-1);
-      restOneIdx('slAktLaminat',ep.laminat,ep.laminatIdx??-1);
-      restOneIdx('slAktDruck',ep.druck,ep.druckIdx??-1);
-      restoreOne('slAktTape',ep.tape);
-      const ss=$('slAktSetup');if(ss)ss.checked=!!ep.setup;
-      const sps=$('slAktPlottSetup');if(sps)sps.checked=!!ep.plottSetup;
-      if(ep.plottFarben){slSetPlottFarben(ep.plottFarben);}
-    }
+      // onchange → ob + sessionStorage aktualisieren
+      const selEl=row.querySelector('select');
+      if(selEl)selEl.addEventListener('change',()=>{
+        if(!ob.plottFarben[fi])ob.plottFarben[fi]={};
+        if(typeof ob.plottFarben[fi]==='string')ob.plottFarben[fi]={farbe:ob.plottFarben[fi]};
+        ob.plottFarben[fi].folieIdx=selEl.selectedIndex-1;
+        slSetPlottFarben(ob.plottFarben.map(f=>typeof f==='object'?f.farbe||'':f));
+        cSl();
+      });
+      pfCont.appendChild(row);
+    });
+    // + Farbe Button
+    const addBtn=document.createElement('button');addBtn.textContent='+ Farbe';addBtn.className='btn btn-gh';
+    addBtn.style.cssText='font-size:10px;margin-top:4px;';
+    addBtn.onclick=()=>{
+      ob.plottFarben=[...(ob.plottFarben||['']),{farbe:'',folieIdx:-1}];
+      slSetPlottFarben(ob.plottFarben.map(f=>typeof f==='object'?f.farbe||'':f));
+      renderSlPlottFarben();cSl();
+    };
+    pfCont.appendChild(addBtn);
+    // sessionStorage sync
+    slSetPlottFarben((ob.plottFarben||['']).map(f=>typeof f==='object'?f.farbe||'':f));
+  }
+  renderSlPlottFarben();
+  ps.appendChild(mkTR('slAktTape','Montagetape','Gleiche Mindestmenge wie Plottfolie',mkSel(P.tapes||[],'',cSl),'pb-slTape'));
+  bindChk('slAktTape','tape');
+  addSecHead(ps,'Grundkosten','y');
+  ps.appendChild(mkTR('slAktPlottSetup','Setup-Pauschale Folienplott','CHF 25.– einmalig',null,'pb-slPSSetup'));
+  bindChk('slAktPlottSetup','plottSetup');
+
+  // State SYNCHRON aus _slObState restoren (kein setTimeout nötig)
+  const restoreState=()=>{
+    const ep = window._slEditPos;
+    const src = (ob.folie||ob.laminat||ob.druck||ob.setup||ob.plottSetup||ob.tape) ? ob
+              : (ep ? {folie:!!ep.folie,folieIdx:ep.folieIdx??-1,laminat:!!ep.laminat,laminatIdx:ep.laminatIdx??-1,druck:!!ep.druck,druckIdx:ep.druckIdx??-1,tape:!!ep.tape,setup:!!ep.setup,plottSetup:!!ep.plottSetup,plottFarben:ep.plottFarben||[]}
+              : null);
+    if(!src) return;
+
+    // Folie
+    const fEl=$('slAktFolie'); if(fEl){fEl.checked=!!src.folie;ob.folie=!!src.folie;}
+    if(src.folie&&src.folieIdx>=0){const sel=fEl?.closest('.tr')?.querySelector('select');if(sel&&src.folieIdx<sel.options.length)sel.selectedIndex=src.folieIdx;}
+    // Laminat
+    const lEl=$('slAktLaminat'); if(lEl){lEl.checked=!!src.laminat;ob.laminat=!!src.laminat;}
+    if(src.laminat&&src.laminatIdx>=0){const sel=lEl?.closest('.tr')?.querySelector('select');if(sel&&src.laminatIdx<sel.options.length)sel.selectedIndex=src.laminatIdx;}
+    // Druck
+    const dEl=$('slAktDruck'); if(dEl){dEl.checked=!!src.druck;ob.druck=!!src.druck;}
+    if(src.druck&&src.druckIdx>=0){const sel=dEl?.closest('.tr')?.querySelector('select');if(sel&&src.druckIdx<sel.options.length)sel.selectedIndex=src.druckIdx;}
+    // Tape
+    const tEl=$('slAktTape'); if(tEl){tEl.checked=!!src.tape;ob.tape=!!src.tape;}
+    // Setup
+    const sEl=$('slAktSetup'); if(sEl){sEl.checked=!!src.setup;ob.setup=!!src.setup;}
+    const spEl=$('slAktPlottSetup'); if(spEl){spEl.checked=!!src.plottSetup;ob.plottSetup=!!src.plottSetup;}
+    // Plott-Farben
+    if(src.plottFarben?.length){ob.plottFarben=JSON.parse(JSON.stringify(src.plottFarben));renderSlPlottFarben();}
     cSl();
-  },15);
+  };
+
+  // Synchroner Restore (sofort, kein Delay)
+  restoreState();
 }
 
 function slGetPlottFarben(){try{return JSON.parse(sessionStorage.getItem('sl_pf_farben')||'[""]');}catch(e){return[''];}}
@@ -5562,7 +5779,7 @@ function slSetPlottFarben(a){sessionStorage.setItem('sl_pf_farben',JSON.stringif
 
 function slReBuildWT(){
   const ac=$('tgSlWT');if(!ac)return;ac.innerHTML='';
-  addSecHead(ac,'Werbetechnik','t');
+  addSecHead(ac,'Arbeitszeit in der Werbetechnik','t');
   const wtRate=P.arbeitswerte.find(a=>a.gruppe==='Zuschnitt')?.preis||2.00;
   (function(){
     const l=gN('slLen')||200,b=gN('slBr')||100,stk=gN('slStk')||1;
@@ -5570,8 +5787,8 @@ function slReBuildWT(){
     const m2=(l/1000)*(b/1000)*stk;
     let min=15+(farben-1)*8+(m2>1?10:m2>0.5?5:0);
     const row=document.createElement('div');row.className='tr';
-    row.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="slAktWtPlott" onchange="cSl()"><span class="tsl"></span></label>
-      <div><div class="tr-label">Plott, Entgittern, Tapen, Zuschnitt</div>
+    row.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="slAktWtPlott" onchange="(window._slObState=window._slObState||{}).wtPlott=this.checked;cSl()"><span class="tsl"></span></label>
+      <div><div class="tr-label">Plott, Entgittern, Tapen, Zuschnitt, Aufziehen, Verkleben, etc.</div>
       <div class="tr-sub">CHF ${wtRate.toFixed(2)}/Min — ${min} Min Schätzung</div></div></div>
       <div class="tr-r"><input type="number" id="min-slWtPlott" value="${min}" min="0" step="1" oninput="cSl()" style="width:55px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;font-size:11px;">
       <span style="color:var(--muted);font-size:10px;">Min</span><span class="pbadge" id="pb-slWtPlott">–</span></div>`;
@@ -5584,23 +5801,44 @@ function slReBuildWT(){
     const lfm=m2e/breite;
     const min=Math.round(8+Math.max(0,Math.ceil(lfm-1))*2);
     const row=document.createElement('div');row.className='tr';
-    row.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="slAktWtLam" onchange="cSl()"><span class="tsl"></span></label>
+    row.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="slAktWtLam" onchange="(window._slObState=window._slObState||{}).wtLam=this.checked;cSl()"><span class="tsl"></span></label>
       <div><div class="tr-label">Laminieren</div>
       <div class="tr-sub">CHF ${(P.arbeitswerte.find(a=>a.gruppe==='Zuschnitt')?.preis||2).toFixed(2)}/Min — ${min} Min Schätzung</div></div></div>
       <div class="tr-r"><input type="number" id="min-slWtLam" value="${min}" min="0" step="1" oninput="cSl()" style="width:55px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 6px;border-radius:3px;font-size:11px;">
       <span style="color:var(--muted);font-size:10px;">Min</span><span class="pbadge" id="pb-slWtLam">–</span></div>`;
     ac.appendChild(row);
   })();
+  // Synchroner Restore aus _slObState
+  const _ob=window._slObState||{};
+  const wpEl=$('slAktWtPlott');if(wpEl){wpEl.checked=!!_ob.wtPlott;}
+  const wlEl=$('slAktWtLam');if(wlEl){wlEl.checked=!!_ob.wtLam;}
+  // Modus-Dropdown wiederherstellen
+  const selMod=$('sel-slWtPlottModus');if(selMod&&_ob.wtPlottModus)selMod.value=_ob.wtPlottModus;
+  // Min-Werte wiederherstellen
+  if(_ob.wtPlottMin&&$('min-slWtPlott'))$('min-slWtPlott').value=_ob.wtPlottMin;
+  if(_ob.wtLamMin&&$('min-slWtLam'))$('min-slWtLam').value=_ob.wtLamMin;
 }
 
 function slReBuildArb(){
-  const ac=$('tgSlArb');if(!ac)return;ac.innerHTML='';
+  const ac=$('tgSlArb');if(!ac)return;
+  // Snapshot aktiver Arbeiten vor Wipe
+  if(!window._slArbState) window._slArbState={};
+  P.arbeitswerte.forEach((item,i)=>{
+    const chk=$('sl-arb'+i);if(chk)window._slArbState['sl-arb'+i]={chk:chk.checked,min:$('min-sl-arb'+i)?.value};
+  });
+  ac.innerHTML='';
   let lastGruppe='';
   const gruppenLabels={Admin:'Administration',Grafik:'Grafik & Layout'};
   P.arbeitswerte.forEach((item,i)=>{
     if(!['Admin','Grafik'].includes(item.gruppe))return;
     if(item.gruppe!==lastGruppe){lastGruppe=item.gruppe;addSecHead(ac,gruppenLabels[item.gruppe]||item.gruppe,'t');}
     ac.appendChild(mkArbRow('sl-arb'+i,item.name,i,'pb-slarb'+i,'cSl'));
+  });
+  // Synchroner Restore
+  P.arbeitswerte.forEach((item,i)=>{
+    const st=window._slArbState?.['sl-arb'+i];if(!st)return;
+    const chk=$('sl-arb'+i);if(chk&&st.chk)chk.checked=true;
+    const min=$('min-sl-arb'+i);if(min&&st.min)min.value=st.min;
   });
 }
 
@@ -5854,6 +6092,10 @@ function slSetZuschnitt(btn){
 }
 
 function buildSlBefestigung(){
+    // Snapshot vor Wipe
+  if(!window.__buildSlBefestigungState) window.__buildSlBefestigungState={};
+  const _uiob = window.__buildSlBefestigungState;
+  ['slBolzenAkt', 'slKlebeVHB', 'slAnfahrtAkt'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
   const ac=$('tgSlBefestigung');if(!ac)return;ac.innerHTML='';
   const l=parseInt($('slLen')?.value)||0;
   const b=parseInt($('slBr')?.value)||0;
@@ -5955,6 +6197,8 @@ function buildSlBefestigung(){
     <div class="tr-r"><span class="pbadge" id="pb-slEigenBef">–</span></div>`;
   ac.appendChild(eigenRow);
 
+  // Synchroner Restore
+  (()=>{const ob=window.__buildSlBefestigungState||{};['slBolzenAkt', 'slKlebeVHB', 'slAnfahrtAkt'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
   const eigenDetail=document.createElement('div');
   eigenDetail.id='slEigenBefDetail';
   eigenDetail.style.cssText='background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;';
@@ -6833,6 +7077,10 @@ function calcBruenVK(cbIdBase, stk, onChangeFn){
 
 
 function buildSlMontageStep(){
+    // Snapshot vor Wipe
+  if(!window.__buildSlMontageStepState) window.__buildSlMontageStepState={};
+  const _uiob = window.__buildSlMontageStepState;
+  ['slAnfahrtAkt', 'slMontageSeparat'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
   const ac=$('tgSlMon');if(!ac)return;ac.innerHTML='';
   const anfahrt=P.anfahrt?.tabelle||[];
   const sepBanner=document.createElement('div');
@@ -6948,6 +7196,8 @@ function buildSlMontageStep(){
   const slVersandWrap=document.createElement('div');slVersandWrap.id='slVersandWrap';
   ac.appendChild(slVersandWrap);
   buildVersandSection(slVersandWrap,'sl','cSl');
+  // Synchroner Restore
+  (()=>{const ob=window.__buildSlMontageStepState||{};['slAnfahrtAkt', 'slMontageSeparat'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
   const slUebWrap=document.createElement('div');slUebWrap.id='slUebWrap';
   ac.appendChild(slUebWrap);
   buildAbholungSection(slUebWrap,'sl','cSl');
@@ -7047,6 +7297,55 @@ function slSpezMatToggle(){
   cSl();
 }
 
+
+// ── Schildmaterial Preis-Helper ──────────────────────────────────────
+// Beschriftung: "Bezeichnung - Xmm" für alle Dropdowns
+function getMatLabel(mat){
+  if(!mat) return '';
+  const dicke = mat.dicke!=null ? mat.dicke+'mm' : '';
+  return dicke ? mat.name+' - '+dicke : mat.name;
+}
+
+// Berechnet CHF/m² aus Metall-Parametern oder gibt direkten m²-Preis
+function calcSchildMatPreis(mat){
+  if(!mat) return 0;
+  if(mat.typ==='metall' && mat.ekKg && mat.dichte && mat.dicke){
+    // CHF/kg × kg/m³ × m (dicke in mm → /1000)
+    return mat.ekKg * (mat.dichte/1000) * mat.dicke;
+  }
+  return mat.preis || 0;
+}
+
+// Aktualisiert preis-Felder aller Metall-Materialien in P.schildmaterial
+function syncSchildMatPreise(){
+  (P.schildmaterial||[]).forEach(m=>{
+    if(m.typ==='metall') m.preis = parseFloat(calcSchildMatPreis(m).toFixed(4));
+    // fraesbar sicherstellen: falls undefined, aus Name ableiten
+    if(m.fraesbar===undefined){
+      const n=(m.name||'').toLowerCase();
+      m.fraesbar = n.includes('alu')&&n.includes('roh')||n.includes('messing')||
+                   n.includes('dibond')||n.includes('acryl')||n.includes('butlerfinish');
+    }
+  });
+}
+
+// Befüllt ein <select>-Element mit Schildmaterialien
+// filter: null=alle, 'fraesbar'=nur fraesbare, 'schild'=alle (inkl. nicht-fraesbare)
+function fillSchildMatSelect(sel, selectedIdx, filter){
+  if(!sel) return;
+  sel.innerHTML='';
+  syncSchildMatPreise();
+  P.schildmaterial.forEach((m,i)=>{
+    if(filter==='fraesbar' && m.fraesbar === false) return;
+    const o=document.createElement('option');o.value=i;
+    const preis=calcSchildMatPreis(m);
+    o.textContent=getMatLabel(m)+' — CHF '+preis.toFixed(2)+'/m²';
+    if(i===selectedIdx) o.selected=true;
+    sel.appendChild(o);
+  });
+}
+
+
 function cSl(){
   if($('schildForm')?.style.display==='none'){updateTotals();return null;}
 
@@ -7063,13 +7362,15 @@ function cSl(){
   const zuschnittSel=document.querySelector('#slZuschnittMethode .zopt.sel');
   const zuschnittVal=zuschnittSel?.dataset?.val||'kein'; // kein sel → kein Materialpreis
   const istZugeschnitten=(zuschnittVal==='kein');
-  let matEK=istZugeschnitten?0:mat.preis*m2n;
+  const _matPreisM2=calcSchildMatPreis(mat);
+  let matEK=istZugeschnitten?0:_matPreisM2*m2n;
   let matVK=istZugeschnitten?0:matEK*(1+marge);
   const matBadge=$('slMatBadge');
   if(matBadge){
-    if(mat.preis>0){
+    if(_matPreisM2>0){
       matBadge.style.display='block';
-      matBadge.textContent=`${mat.name} · EK CHF ${matEK.toFixed(2)} / m² | VK CHF ${matVK.toFixed(2)}`;
+      const _matBadgeTxt=mat.typ==='metall'?`${getMatLabel(mat)} · EK ${mat.ekKg} CHF/kg = CHF ${_matPreisM2.toFixed(2)}/m² | VK CHF ${matVK.toFixed(2)}`:`${getMatLabel(mat)} · EK CHF ${_matPreisM2.toFixed(2)}/m² | VK CHF ${matVK.toFixed(2)}`;
+      matBadge.textContent=_matBadgeTxt;
     } else matBadge.style.display='none';
   }
 
@@ -7201,7 +7502,12 @@ function cSl(){
 
   const wtRate=P.arbeitswerte.find(a=>a.gruppe==='Zuschnitt')?.preis||2.00;
   let wtVK=0;
-  if(gC('slAktWtPlott')){const min=parseFloat($('min-slWtPlott')?.value)||0;wtVK+=min*wtRate;const b=$('pb-slWtPlott');if(b)b.textContent='CHF '+(min*wtRate).toFixed(2);$('slAktWtPlott')?.closest('.tr')?.classList.add('on');}
+  if(gC('slAktWtPlott')){
+    const minBase=parseFloat($('min-slWtPlott')?.value)||0;
+    const wtModus=(window._slObState?.wtPlottModus)||'pos';
+    const stk=parseInt($('slStk')?.value)||1;
+    const minTotal=wtModus==='stk'?minBase*stk:minBase;
+    wtVK+=minTotal*wtRate;const b=$('pb-slWtPlott');if(b)b.textContent='CHF '+(minTotal*wtRate).toFixed(2);$('slAktWtPlott')?.closest('.tr')?.classList.add('on');}
   else{const b=$('pb-slWtPlott');if(b)b.textContent='–';$('slAktWtPlott')?.closest('.tr')?.classList.remove('on');}
   if(gC('slAktWtLam')){const min=parseFloat($('min-slWtLam')?.value)||0;wtVK+=min*wtRate;const b=$('pb-slWtLam');if(b)b.textContent='CHF '+(min*wtRate).toFixed(2);$('slAktWtLam')?.closest('.tr')?.classList.add('on');}
   else{const b=$('pb-slWtLam');if(b)b.textContent='–';$('slAktWtLam')?.closest('.tr')?.classList.remove('on');}
@@ -7374,7 +7680,7 @@ function cSl(){
   const slsb=$('slstrip-folie');if(slsb)slsb.textContent=(folieMatVK+gravurVK)>0?'Beschr. CHF '+(folieMatVK+gravurVK).toFixed(0):'Beschr. –';
 
   updateTotals();
-  return{l,b,stk,m2n,m2e,marge,matEK,matVK,matName:mat.name,
+  return{l,b,stk,m2n,m2e,marge,matEK,matVK,matName:getMatLabel(mat),
     folieMatEK,folieMatVK,veredVK,gravurVK,wtVK,arbVK,spezMatVK,montVK,slVersandVK,totalVK,proStk,
     gravurAkt,gvText:$('slGvText')?.value||'',gvVH:gN('slGvVH')||5,
     gvZeichen:parseInt($('slGvZManual')?.value)||0};
@@ -7407,7 +7713,14 @@ function saveSchild(){
     folieIdx:gC('slAktFolie')?($('slAktFolie')?.closest('.tr')?.querySelector('select')?.selectedIndex??-1):-1,
     laminat:gC('slAktLaminat')?gSelTxtInRow('slAktLaminat'):null,
     laminatIdx:gC('slAktLaminat')?($('slAktLaminat')?.closest('.tr')?.querySelector('select')?.selectedIndex??-1):-1,
-    plottFarben:slGetPlottFarben(),
+    plottFarben:(()=>{
+      const fa=slGetPlottFarben();
+      return fa.map((f,fi)=>{
+        const sfx=fi===0?'':'_f'+fi;
+        const selEl=$('slAktPlott'+sfx)?.closest('.tr')?.querySelector('select');
+        return {farbe:f, folieIdx:selEl?selEl.selectedIndex-1:-1};
+      });
+    })(),
     tape:gC('slAktTape')?gSelTxtInRow('slAktTape'):null,
     druck:gC('slAktDruck')?gSelTxtInRow('slAktDruck'):null,
     druckIdx:gC('slAktDruck')?($('slAktDruck')?.closest('.tr')?.querySelector('select')?.selectedIndex??-1):-1,
@@ -7462,6 +7775,10 @@ function saveSchild(){
     anfahrtVK:r.anfahrtVK||0,
     montageSeparat:gC('slMontageSeparat')||false,
     totalVK:r.totalVK,stueck:r.proStk,
+    wtPlott:gC('slAktWtPlott'), wtLam:gC('slAktWtLam'),
+    wtPlottModus:(window._slObState?.wtPlottModus)||'pos',
+    wtPlottMin:parseFloat($('min-slWtPlott')?.value)||0,
+    wtLamMin:parseFloat($('min-slWtLam')?.value)||0,
     slFormfaktor:window._slFormfaktor||0.5,
     zuschnittMethode:document.querySelector('#slZuschnittMethode .zopt.sel')?.dataset?.val||'saegen',
   };
@@ -7537,12 +7854,18 @@ function buildGmAnfahrtTable(){
 
 
 function buildGlobalMontage(){
+    // Snapshot vor Wipe
+  if(!window.__buildGlobalMontageState) window.__buildGlobalMontageState={};
+  const _uiob = window.__buildGlobalMontageState;
+  [].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
   const ac=$('tgGlobalMon');if(!ac)return;ac.innerHTML='';
   P.arbeitswerte.forEach((item,i)=>{
     if(item.gruppe!=='Zusatz')return;
     ac.appendChild(mkArbRow('gm-arb'+i,item.name,i,'pb-gmarb'+i,'calcGlobalMontage'));
   });
   buildGmAnfahrtTable();
+  // Synchroner Restore
+  (()=>{const ob=window.__buildGlobalMontageState||{};[].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
   calcGlobalMontage();
 }
 
@@ -7612,6 +7935,7 @@ function saveGlobalMontage(){
     montVK:r.gmMontVK,
     zusatzVK:r.gmZusatzVK,
     totalVK:r.total,stueck:1,
+    wtArbeiten:(()=>{const res=[];P.montage&&P.montage.forEach((m,i)=>{const chk=$('makt-gm-'+i);if(chk?.checked){const min=parseFloat($('mmin-gm-'+i)?.value)||0;res.push({name:m.name,min,val:min*m.preis});}});return res;})(),
   };
   if(editIdx>=0)positions[editIdx]=data;else positions.push(data);
   toggleGlobalMontage(false);
@@ -7742,6 +8066,19 @@ function startPos(type){
     sessionStorage.removeItem('sl_pf_farben');sessionStorage.removeItem('sl_gv_farben');
     window._slFormfaktor = 0.5; // default Rechteck
     window._slEditPos = null; // clear edit state
+    // Persistenten Oberflächen-State zurücksetzen (sauberer Start)
+    window._slObState = {
+      folie:false, folieIdx:-1, laminat:false, laminatIdx:-1,
+      druck:false, druckIdx:-1, tape:false, setup:false, plottSetup:false,
+      plottFarben:[], wtPlott:false, wtLam:false
+    };
+    window._slArbState={}; // Arbeiten-State zurücksetzen
+    // Reset alle Checkboxen für sauberen Start
+    ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup',
+     'slLackAkt','slOutdoor2kAkt','slLackManAkt','slAktPulverRAL','slAktPulverNCS','slAktPulverIGP',
+     'slBolzenAkt','slKlebeVHB','slKlebeKleber','slAnfahrtAkt','slMontageSeparat',
+     'slAktElox','slAktBruen','slGravurSetup','slAktWtPlott','slAktWtLam','slAktGlasdekorf','slSpezMatAkt'
+    ].forEach(id=>{const e=$(id);if(e)e.checked=false;});
     ['slLabel','slGvText','slGvPaste'].forEach(id=>{const e=$(id);if(e)e.value='';});
     if($('slLen'))$('slLen').value=200;if($('slBr'))$('slBr').value=100;if($('slStk'))$('slStk').value=1;
     if($('slGvZManual')){$('slGvZManual').value=0;$('slGvZManual').style.borderColor='var(--green)';}
@@ -7757,6 +8094,12 @@ function startPos(type){
     ['frLabel','frText'].forEach(id=>{const e=$(id);if(e)e.value='';});
     if($('frSaetze'))$('frSaetze').value=1;
     if($('frVH'))$('frVH').value=100;
+    // Reset alle Checkboxen für sauberen Start
+    ['frBolzenAkt','frKlebeVHB','frKlebeKleber','frSchabPap','frSchabFol','frSchabKar',
+     'frLackAkt','frLackManAkt','frAktPulverRAL','frAktPulverNCS','frAktPulverIGP',
+     'frAktElox','frAktBruen','frAnfahrtAkt','frEigenBefAkt','frManualAnzAkt'
+    ].forEach(id=>{const e=$(id);if(e)e.checked=false;});
+    window._frMontState={}; // Montage-State zurücksetzen
     initFraesForm();
     setTimeout(()=>cFr(),50);
     $('fraesForm').scrollIntoView({behavior:'smooth'});
@@ -7798,6 +8141,11 @@ function startPos(type){
     if($('ftLabel'))$('ftLabel').value='';
     if($('ftNotiz'))$('ftNotiz').value='';
     if($('ftLen'))$('ftLen').value=1000;
+    ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktTape','ftAktSetupDD','ftAktSetupPS',
+     'ftAktGlasdekorf','ftAktWtPlott','ftAktWtLam','ftAnfahrtAkt'
+    ].forEach(id=>{const e=$(id);if(e)e.checked=false;});
+    // _ftObState zurücksetzen
+    window._ftObState={};
     if($('ftBr'))$('ftBr').value=500;
     if($('ftStk'))$('ftStk').value=1;
     if($('ftMarge'))$('ftMarge').value='0.5';
@@ -7806,8 +8154,8 @@ function startPos(type){
     swFtStep(1);
     setTimeout(()=>{ftReBuild();},30);
     $('folientechnikForm').scrollIntoView({behavior:'smooth'});
-    // Restore Werbetechnikerarbeit
-    if(p.wtArbeiten&&p.wtArbeiten.length){
+    // Restore Werbetechnikerarbeit (nur beim Bearbeiten)
+    if(typeof p!=='undefined'&&p&&p.wtArbeiten&&p.wtArbeiten.length){
       setTimeout(()=>{
         P.arbeitswerte.forEach((item,i)=>{
           if(item.gruppe!=='Werbetechniker')return;
@@ -7833,6 +8181,21 @@ function startPos(type){
     $('liveHint').textContent='💡 Rabatt auf alle oder ausgewählte Positionen.';
     cRb();
     $('rabattForm').scrollIntoView({behavior:'smooth'});
+  } else if(p.type==='montage'){
+    // Montage-Position bearbeiten: Formular öffnen und Werte laden
+    toggleGlobalMontage(true);
+    setTimeout(()=>{
+      if($('gmLabel'))$('gmLabel').value=p.label||'';
+      if($('gmNotiz'))$('gmNotiz').value=p.notiz||'';
+      if($('gmAnfahrtKm')&&p.anfahrtKm>0){
+        $('gmAnfahrtKm').value=p.anfahrtKm;
+        const aktEl=$('gmAnfahrtAkt');if(aktEl)aktEl.checked=true;
+        if(typeof gmAnfahrtUpdate==='function')gmAnfahrtUpdate();
+      }
+      if($('gmMontMA'))$('gmMontMA').value=p.montMA||p.anfahrtNMA||1;
+      if(p.montPersAkt){const e=$('gmMontPersAkt');if(e)e.checked=true;}
+      if($('gmMontStd')&&p.montStd)$('gmMontStd').value=p.montStd;
+    },100);
   }
 }
 
@@ -11073,6 +11436,7 @@ function updateTotals(){
     else if(p.type==='folientechnik')a.folie=(a.folie||0)+p.totalVK;
     else if(p.type==='rabatt')a.rabatt=(a.rabatt||0)+p.totalVK; // negative
     else if(p.type==='schild'){a.schild+=p.totalVK;a.ek+=p.matEK||0;a.mvk+=p.matVK||0;}
+    else if(p.type==='montage'){a.mont+=p.totalVK||0;}
     else{a.ek+=p.matEK||0;a.mvk+=p.matVK||0;a.vered+=p.veredVK||0;a.arb+=p.arbVK||0;}
     a.mont+=(p.montVK||0);a.total+=p.totalVK;a.stk+=(p.stk||p.anzahl*p.saetze||1);
     return a;
@@ -11113,10 +11477,29 @@ function editPos(i){
       },50);
     }, 50);
     if($('slMarge'))$('slMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.5;
+    // Oberflächen-State aus Position-Daten befüllen (vor DOM-Rebuild für slReBuild)
+    window._slObState = {
+      folie:   !!p.folie,    folieIdx:   p.folieIdx??-1,
+      laminat: !!p.laminat,  laminatIdx: p.laminatIdx??-1,
+      druck:   !!p.druck,    druckIdx:   p.druckIdx??-1,
+      tape:    !!p.tape,
+      setup:   !!p.setup,    plottSetup: !!p.plottSetup,
+      plottFarben: p.plottFarben||[],
+      wtPlott: !!(p.wtPlott||p.wtPlottMin),  wtLam: !!(p.wtLam||p.wtLamMin),
+      wtPlottModus: p.wtPlottModus||'pos',
+      wtPlottMin:   p.wtPlottMin||(typeof p.wtPlott==='number'?p.wtPlott:0)||0,
+      wtLamMin:     p.wtLamMin||(typeof p.wtLam==='number'?p.wtLam:0)||0,
+    };
     reBuild();
+    // Reset alle Oberflächen-Checkboxen vor Restore (verhindert DOM-State-Pollution)
+    ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup',
+     'slLackAkt','slOutdoor2kAkt','slLackManAkt','slAktPulverRAL','slAktPulverNCS','slAktPulverIGP',
+     'slBolzenAkt','slKlebeVHB','slKlebeKleber','slAnfahrtAkt','slMontageSeparat',
+     'slAktElox','slAktBruen','slGravurSetup','slAktWtPlott','slAktWtLam','slAktGlasdekorf',
+     'slSpezMatAkt'].forEach(id=>{const e=$(id);if(e)e.checked=false;});
     setTimeout(()=>{
       initSchildForm();
-      if($('slMat')&&p.matIdx!=null)$('slMat').value=p.matIdx;
+      if($('slMat')&&p.matIdx!=null){ fillSchildMatSelect($('slMat'),p.matIdx); $('slMat').value=p.matIdx; }
       if(p.spezMatAkt){
         const c2=$('slSpezMatAkt');if(c2)c2.checked=true;
         const det=$('slSpezMatDetail');if(det)det.style.display='block';
@@ -11296,9 +11679,21 @@ function editPos(i){
     if(p.setup&&$('frSetup'))$('frSetup').value=p.setup;
     if(p.prodPct&&$('frProd'))$('frProd').value=p.prodPct;
     if(p.matMargePct&&$('frMatMarge'))$('frMatMarge').value=p.matMargePct;
+    // Reset fraes Checkboxen vor Restore
+    ['frBolzenAkt','frKlebeVHB','frKlebeKleber','frSchabPap','frSchabFol','frSchabKar',
+     'frLackAkt','frLackManAkt','frAktPulverRAL','frAktPulverNCS','frAktPulverIGP',
+     'frAktElox','frAktBruen','frAnfahrtAkt','frZEntg','frEigenBefAkt','frManualAnzAkt',
+     'frVersandAkt'].forEach(id=>{const e=$(id);if(e)e.checked=false;});
     initFraesForm();
     setTimeout(()=>{
-      if($('frMat')&&p.matKey)$('frMat').value=p.matKey;
+      // Material: neuer Index oder Legacy-Key
+      if($('frMat')){
+        if(p.matSmIdx!=null && !isNaN(p.matSmIdx)){
+          $('frMat').value=p.matSmIdx; // neuer Index
+        } else if(p.matKey && typeof getSmIdxFromLegacyKey==='function'){
+          $('frMat').value=getSmIdxFromLegacyKey(p.matKey); // legacy 'alu3' etc.
+        }
+      }
       // ── Herstellungsart wiederherstellen ────────────────────────────
       if(p.frArt && typeof setFrArt==='function'){
         P.frHerstellungsart = p.frArt;
@@ -11347,7 +11742,17 @@ function editPos(i){
           if(p.bolzenAkt){const e=$('frBolzenAkt');if(e)e.checked=true;}
           if(p.bolzenProBuchst&&$('frBolzenProBuchst'))$('frBolzenProBuchst').value=p.bolzenProBuchst;
           else if(p.bolzenAnz&&$('frBolzenProBuchst'))$('frBolzenProBuchst').value=2; // Migration
-          if(p.vhbAkt){const e=$('frKlebeVHB');if(e)e.checked=true;}
+          if(p.vhbAkt){
+        const e=$('frKlebeVHB');if(e){e.checked=true;e.dispatchEvent(new Event('change',{bubbles:true}));}
+        setTimeout(()=>{
+          if($('frVhbVariant')&&p.vhbVariant)$('frVhbVariant').value=p.vhbVariant;
+          if($('frVhbMethode')&&p.vhbMethode)$('frVhbMethode').value=p.vhbMethode;
+          if($('frVhbPreistyp')&&p.vhbPreistyp)$('frVhbPreistyp').value=p.vhbPreistyp;
+          if($('frVhbChfProBuchst')&&p.vhbChfProBuchst)$('frVhbChfProBuchst').value=p.vhbChfProBuchst;
+          if($('frVhbPauschal')&&p.vhbPauschal!=null)$('frVhbPauschal').value=p.vhbPauschal;
+          cFr();
+        },50);
+      }
           if(p.vhbVariant&&$('frVhbVariant'))$('frVhbVariant').value=p.vhbVariant;
           if(p.schabPap){const e=$('frSchabPap');if(e)e.checked=true;}
           if(p.schabFol){const e=$('frSchabFol');if(e)e.checked=true;}
@@ -11386,6 +11791,8 @@ function editPos(i){
       setTimeout(()=>{
         buildFrMontageStep();
         setTimeout(()=>{
+          // _frMontState aus Position befüllen
+          window._frMontState={anfahrtAkt:p.anfahrtKm>0, anfahrtKm:p.anfahrtKm||'', montageSeparat:!!p.montageSeparat, montAnzMA:p.montAnzMA||1};
           if(p.anfahrtKm>0){
             const km=$('frAnfahrtKm');if(km)km.value=p.anfahrtKm;
             const akt=$('frAnfahrtAkt');if(akt)akt.checked=true;
@@ -11425,17 +11832,40 @@ function editPos(i){
     if($('ftNotiz'))$('ftNotiz').value=p.notiz||'';
     if($('ftLen'))$('ftLen').value=p.l||1000;if($('ftBr'))$('ftBr').value=p.b||500;if($('ftStk'))$('ftStk').value=p.stk||1;
     if($('ftMarge'))$('ftMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.4;
+    // Reset folientechnik Checkboxen und _ftObState aus Position befüllen
+    ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktTape','ftAktSetupDD','ftAktSetupPS','ftAktGlasdekorf',
+     'ftAktWtPlott','ftAktWtLam','ftAnfahrtAkt'].forEach(id=>{const e=$(id);if(e)e.checked=false;});
+    // State aus Position-Daten vorladen (ftReBuild liest _ftObState synchron)
+    window._ftObState = {
+      'ftAktFolie_chk':      !!p.folie,       'ftAktFolie_sel':      p.folieIdx??-1,
+      'ftAktLaminat_chk':    !!p.laminat,     'ftAktLaminat_sel':    p.laminatIdx??-1,
+      'ftAktDruck_chk':      !!(p.druck),     'ftAktDruck_sel':      p.druckIdx??-1,
+      'ftAktSetupDD_chk':    !!p.setupDD,     'ftAktSetupPS_chk':    !!p.setupPS,
+      'ftAktTape_chk':       !!(p.tape),      'ftAktTape_sel':       p.tapeIdx??-1,
+      'ftAktGlasdekorf_chk': !!(p.glasdekorf),'ftAktGlasdekorf_sel': p.glasdekorfIdx??-1,
+    };
     swFtStep(1);ftReBuild();
     setTimeout(()=>{
       function restoreFtSel(id,txt){if(!txt)return;const chk=$(id);if(!chk)return;chk.checked=true;const sel=chk.closest('.tr')?.querySelector('select');if(sel){for(let j=0;j<sel.options.length;j++){if(sel.options[j].text?.includes(txt.substring(0,15))){sel.selectedIndex=j;break;}}}}
       restoreFtSel('ftAktFolie',p.folie);
       restoreFtSel('ftAktLaminat',p.laminat);
+      restoreFtSel('ftAktDruck',p.druck);
+      restoreFtSel('ftAktTape',p.tape);
       restoreFtSel('ftAktGlasdekorf',p.glasdekorf);
+      if(p.setupDD){const e=$('ftAktSetupDD');if(e)e.checked=true;}
+      if(p.setupPS){const e=$('ftAktSetupPS');if(e)e.checked=true;}
       if(p.anfahrtKm>0){const km=$('ftAnfahrtKm');if(km)km.value=p.anfahrtKm;const akt=$('ftAnfahrtAkt');if(akt)akt.checked=true;ftAnfahrtUpdate();}
       if(p.anfahrtNMA&&$('ftMontMA'))$('ftMontMA').value=p.anfahrtNMA;
       if(p.montPersAkt){const e=$('ftMontPersAkt');if(e)e.checked=true;}
       if(p.montStd&&$('ftMontStd'))$('ftMontStd').value=p.montStd;
       const fms=$('ftMontageSeparat');if(fms)fms.checked=!!p.montageSeparat;
+      // Arbeitszeit-Positionen restore
+      (p.wtArbeiten||[]).forEach(a=>{
+        const idx=P.arbeitswerte.findIndex(w=>w.name===a.label||w.name===a.name);
+        if(idx<0)return;
+        const chk=document.getElementById('ft-wt'+idx);if(chk)chk.checked=true;
+        const minEl=document.getElementById('min-ft-wt'+idx);if(minEl&&a.min>0)minEl.value=a.min;
+      });
       cFt();
     },40);
     $('folientechnikForm').scrollIntoView({behavior:'smooth'});
@@ -11476,6 +11906,8 @@ function editPos(i){
       gvZeilen=[{text:p.text||'',vh:p.vh||5,bezeichnung:'Zeile 1'}];
     }
     if($('gvVHDefault')&&gvZeilen[0])$('gvVHDefault').value=gvZeilen[0].vh||5;
+    // Reset gravur Checkboxen
+    ['gvMatAkt','gvBolzenAkt','gvVhbAkt','gvAnfahrtAkt'].forEach(id=>{const e=$(id);if(e)e.checked=false;});
     reBuild();
     setTimeout(()=>{
       gvInitZeilen();
@@ -11490,6 +11922,16 @@ function editPos(i){
     $('gravurForm').scrollIntoView({behavior:'smooth'});
   }
 }
+
+function dupePos(i){
+  if(i<0||i>=positions.length)return;
+  const clone=JSON.parse(JSON.stringify(positions[i]));
+  clone.label=(clone.label||'')+' (Kopie)';
+  positions.splice(i+1,0,clone);
+  renderPos();updateTotals();
+  showToast('Position dupliziert');
+}
+
 
 function delPos(i){if(!confirm('Position löschen?'))return;positions.splice(i,1);renderPos();updateTotals();}
 function clearAll(){if(!confirm('Alle Positionen und Auftragsdaten löschen?'))return;positions=[];renderPos();updateTotals();['kundenname','kontaktperson','auftragsnr','telefon','email','adresse','bemerkung'].forEach(id=>{const e=$(id);if(e)e.value='';});const d=new Date();$('datum').value=`${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;globalMontageActive=false;toggleGlobalMontage(false);}
@@ -11669,11 +12111,36 @@ function filterOfferten(){
           style="font-size:10px;" title="Laden und bearbeiten">↑ Laden</button>
         <button class="btn btn-gh" onclick="printOfferteFromServer('${o.auftragsnr}')"
           style="font-size:10px;" title="PDF erstellen">⎙ PDF</button>
+        <button class="btn" onclick="loescheOfferte('${o.auftragsnr}','${(o.kundenname||'–').replace(/'/g,'\'')}')"
+          style="font-size:10px;background:rgba(220,50,50,.15);border:1px solid rgba(220,50,50,.4);color:#e55;padding:4px 8px;border-radius:4px;"
+          title="Offerte löschen">🗑</button>
 
       </div>`;
     liste.appendChild(el);
   });
 }
+
+async function loescheOfferte(auftragsnr, kundenname){
+  if(!confirm(`Offerte ${auftragsnr} (${kundenname}) wirklich löschen?\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
+  try{
+    const r = await fetch(KALLE_SERVER+'/offerten/'+encodeURIComponent(auftragsnr), {method:'DELETE'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const data = await r.json();
+    if(data.ok||data.deleted){
+      showToast('✓ Offerte '+auftragsnr+' gelöscht');
+      alleOfferten = alleOfferten.filter(o=>o.auftragsnr!==auftragsnr);
+      filterOfferten();
+      // Subtitle aktualisieren
+      const sub=$('offertenSubtitle');
+      if(sub) sub.textContent=alleOfferten.length+' Offerten in Datenbank';
+    } else {
+      showToast('Fehler beim Löschen: '+(data.error||'Unbekannt'),'error');
+    }
+  } catch(e){
+    showToast('Fehler: '+e.message,'error');
+  }
+}
+
 
 function setBearbeiterFilter(kuerzel){
   filterBearbeiter = kuerzel;
@@ -13124,6 +13591,7 @@ function showBeTab(tab){
 }
 
 function renderBackend(){
+  syncSchildMatPreise();
   $('be-druck').value=P.druckbreite;$('be-plott').value=P.plottbreite;
   const cols=$('beCols');cols.innerHTML='';
   // Two-column grid for material sections
@@ -13181,17 +13649,40 @@ function beSection(sec){
   wrap.appendChild(header);
   wrap.appendChild(body);
 
+  const isSchildmat = sec.key==='schildmaterial';
   const thead=isArb
     ?'<thead><tr><th>Gruppe</th><th>Bezeichnung</th><th>Typ</th><th>Preis CHF</th><th></th></tr></thead>'
+    :isSchildmat
+    ?'<thead><tr><th style="text-align:left">Bezeichnung</th><th style="text-align:center">Dicke mm</th><th style="text-align:center">Typ</th><th style="text-align:center">Fräsb.</th><th style="text-align:center">Steg mm</th><th>EK CHF/kg</th><th>Dichte g/cm³</th><th style="color:var(--accent)">CHF/m²</th><th>Platte L</th><th>Platte B</th><th></th></tr></thead>'
     :'<thead><tr><th style="width:55%">Bezeichnung</th><th>Preis CHF</th><th></th></tr></thead>';
   const table=document.createElement('table');table.className='be-table';table.innerHTML=thead;
   const tbody=document.createElement('tbody');tbody.id='betb-'+sec.key;
-  P[sec.key].forEach((item,i)=>tbody.appendChild(isArb?beRowArb(i):beRow(sec.key,i)));
+  P[sec.key].forEach((item,i)=>tbody.appendChild(isArb?beRowArb(i):isSchildmat?beRowSchildmat(i):beRow(sec.key,i)));
   table.appendChild(tbody);body.appendChild(table);
+
+  // Hinweis für Schildmaterial
+  if(isSchildmat){
+    const hint=document.createElement('div');
+    hint.style.cssText='font-size:10px;color:var(--muted);margin-top:6px;padding:6px 8px;background:var(--surface3);border-radius:5px;';
+    hint.innerHTML='<strong>Metall (CHF/kg):</strong> Preis = EK CHF/kg × Dichte[g/cm³] × Dicke[mm] &nbsp;|&nbsp; '
+      +'<strong>Platte (CHF/m²):</strong> Direktpreis pro m² &nbsp;|&nbsp; '
+      +'<strong>Fräsb.:</strong> Material erscheint in Reliefschriften-Dropdown &nbsp;|&nbsp; <strong>Steg:</strong> Abstand zwischen Buchstaben auf der Platte';
+    body.appendChild(hint);
+  }
 
   const addBtn=document.createElement('button');addBtn.className='add-btn';addBtn.textContent='+ Hinzufügen';
   addBtn.onclick=()=>{
     if(isArb){P.arbeitswerte.push({name:'Neu',gruppe:'Admin',typ:'min',preis:2.16});saveP();$('betb-arbeitswerte').appendChild(beRowArb(P.arbeitswerte.length-1));reBuild();}
+    else if(isSchildmat){
+      // Typ-Auswahl bei neuem Schildmaterial
+      const typ=confirm('Metall (CHF/kg)? → OK\nPlatte (CHF/m²)? → Abbrechen')?'metall':'m2';
+      const newMat=typ==='metall'
+        ?{name:'Neues Metall',dicke:3,typ:'metall',ekKg:6.5,dichte:2700,platteL:2500,platteB:1250,preis:52.65}
+        :{name:'Neues Material',dicke:3,typ:'m2',platteL:2500,platteB:1250,preis:0};
+      P.schildmaterial.push(newMat);saveP();
+      $('betb-schildmaterial').appendChild(beRowSchildmat(P.schildmaterial.length-1));
+      syncSchildMatPreise();reBuild();
+    }
     else{P[sec.key].push({name:'Neu',preis:0});saveP();$('betb-'+sec.key).appendChild(beRow(sec.key,P[sec.key].length-1));reBuild();}
   };
   body.appendChild(addBtn);
@@ -13207,6 +13698,129 @@ function beRow(key,i){
   btnD.onclick=()=>{if(P[key].length<=1)return alert('Mind. 1 Eintrag.');P[key].splice(i,1);saveP();renderBackend();reBuild();};
   tdD.appendChild(btnD);tr.appendChild(tdD);return tr;
 }
+function beRowSchildmat(i){
+  const item=P.schildmaterial[i];
+  const isMetall=item.typ==='metall';
+  const tr=document.createElement('tr');
+  const iSt='background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:2px 4px;border-radius:3px;font-size:11px;';
+
+  // ── Name ───────────────────────────────────────────────────────────
+  const tdN=document.createElement('td');
+  const inN=document.createElement('input');inN.type='text';inN.value=item.name;inN.style=iSt+'width:100%';
+  inN.onchange=()=>{P.schildmaterial[i].name=inN.value;saveP();fillSchildMatSelect($('slMat'),parseInt($('slMat')?.value)||0);fillSchildMatSelect($('gvSchildSel'),parseInt($('gvSchildSel')?.value)||0);};
+  tdN.appendChild(inN);tr.appendChild(tdN);
+
+  // ── Dicke mm (für ALLE Typen) ───────────────────────────────────────
+  const tdDi=document.createElement('td');tdDi.style.textAlign='center';
+  const inDi=document.createElement('input');inDi.type='number';inDi.step='0.5';inDi.value=item.dicke!=null?item.dicke:1;
+  inDi.style=iSt+'width:48px;text-align:center;font-weight:600;color:var(--accent);border-color:var(--accent);';
+  inDi.title='Materialdicke in mm';
+  inDi.onchange=()=>{
+    P.schildmaterial[i].dicke=parseFloat(inDi.value)||0;
+    syncSchildMatPreise();saveP();
+    const preisCell=tr.querySelector('.sl-auto-preis');
+    if(preisCell)preisCell.textContent='CHF '+calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);
+    fillSchildMatSelect($('slMat'),parseInt($('slMat')?.value)||0);
+    fillSchildMatSelect($('gvSchildSel'),parseInt($('gvSchildSel')?.value)||0);
+  };
+  tdDi.appendChild(inDi);tr.appendChild(tdDi);
+
+  // ── Typ ─────────────────────────────────────────────────────────────
+  const tdT=document.createElement('td');tdT.style.textAlign='center';
+  const selT=document.createElement('select');
+  selT.style=iSt+'font-size:10px;';
+  selT.innerHTML='<option value="m2">m²</option><option value="metall">Metall</option>';
+  selT.value=item.typ||'m2';
+  selT.onchange=()=>{
+    P.schildmaterial[i].typ=selT.value;
+    if(selT.value==='metall'&&!P.schildmaterial[i].ekKg){
+      P.schildmaterial[i].ekKg=6.5;P.schildmaterial[i].dichte=2700;
+    }
+    syncSchildMatPreise();saveP();renderBackend();reBuild();
+  };
+  tdT.appendChild(selT);tr.appendChild(tdT);
+
+  // ── Fräsbar + Steg ────────────────────────────────────────────────────
+  const tdFr=document.createElement('td');tdFr.style.textAlign='center';
+  const chkFr=document.createElement('input');chkFr.type='checkbox';chkFr.checked=!!item.fraesbar;
+  chkFr.title='Fräsbar (Reliefschriften / Fräsbuchstaben)';
+  chkFr.onchange=()=>{P.schildmaterial[i].fraesbar=chkFr.checked;saveP();
+    fillSchildMatSelect($('frMat'),parseInt($('frMat')?.value)||0,'fraesbar');};
+  tdFr.appendChild(chkFr);
+  const lblFr=document.createElement('div');lblFr.style.cssText='font-size:8px;color:var(--muted);';
+  lblFr.textContent='Fräsb.';tdFr.appendChild(lblFr);
+  tr.appendChild(tdFr);
+
+  // ── Steg mm (für Fräsen) ───────────────────────────────────────────────
+  const tdSt=document.createElement('td');tdSt.style.textAlign='right';
+  const inSt=document.createElement('input');inSt.type='number';inSt.step='1';inSt.value=item.steg??15;
+  inSt.style=iSt+'width:44px;text-align:right;';inSt.title='Steg zwischen Buchstaben auf der Platte (mm)';
+  inSt.disabled=!item.fraesbar;
+  inSt.onchange=()=>{P.schildmaterial[i].steg=parseInt(inSt.value)||15;saveP();};
+  tdSt.appendChild(inSt);tr.appendChild(tdSt);
+
+  // ── EK CHF/kg (nur Metall) ───────────────────────────────────────────
+  const tdEK=document.createElement('td');tdEK.style.textAlign='right';
+  if(isMetall){
+    const inEK=document.createElement('input');inEK.type='number';inEK.step='0.01';inEK.value=item.ekKg||0;
+    inEK.style=iSt+'width:58px;text-align:right;';
+    inEK.onchange=()=>{P.schildmaterial[i].ekKg=parseFloat(inEK.value)||0;syncSchildMatPreise();saveP();
+      const pc=tr.querySelector('.sl-auto-preis');if(pc)pc.textContent='CHF '+calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);reBuild();};
+    tdEK.appendChild(inEK);
+  } else { tdEK.innerHTML='<span style="color:var(--muted);font-size:10px;">–</span>'; }
+  tr.appendChild(tdEK);
+
+  // ── Dichte g/cm³ (nur Metall) ────────────────────────────────────────
+  const tdD=document.createElement('td');tdD.style.textAlign='right';
+  if(isMetall){
+    const inD=document.createElement('input');inD.type='number';inD.step='0.01';inD.value=(item.dichte/1000)||2.7;
+    inD.style=iSt+'width:52px;text-align:right;';
+    inD.title='Dichte g/cm³ (Alu=2.70, Messing=8.50, Stahl=7.85)';
+    inD.onchange=()=>{P.schildmaterial[i].dichte=parseFloat(inD.value)*1000||2700;syncSchildMatPreise();saveP();
+      const pc=tr.querySelector('.sl-auto-preis');if(pc)pc.textContent='CHF '+calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);reBuild();};
+    tdD.appendChild(inD);
+  } else { tdD.innerHTML='<span style="color:var(--muted);font-size:10px;">–</span>'; }
+  tr.appendChild(tdD);
+
+  // ── CHF/m² (auto bei Metall, editierbar bei m2) ───────────────────────
+  const tdP=document.createElement('td');tdP.style.textAlign='right';
+  if(isMetall){
+    const span=document.createElement('span');span.className='sl-auto-preis';
+    span.style='color:var(--accent);font-weight:600;font-size:12px;cursor:default;';
+    span.textContent='CHF '+calcSchildMatPreis(item).toFixed(2);
+    span.title='Auto: '+item.ekKg+' CHF/kg × '+(item.dichte/1000).toFixed(2)+' g/cm³ × '+item.dicke+'mm';
+    tdP.appendChild(span);
+  } else {
+    const inP=document.createElement('input');inP.type='number';inP.step='0.01';inP.value=item.preis||0;
+    inP.style=iSt+'width:65px;text-align:right;';
+    inP.onchange=()=>{P.schildmaterial[i].preis=parseFloat(inP.value)||0;saveP();reBuild();};
+    tdP.appendChild(inP);
+  }
+  tr.appendChild(tdP);
+
+  // ── Platte L mm (für ALLE Typen) ─────────────────────────────────────
+  const tdPL=document.createElement('td');tdPL.style.textAlign='right';
+  const inPL=document.createElement('input');inPL.type='number';inPL.step='50';inPL.value=item.platteL||2500;
+  inPL.style=iSt+'width:62px;text-align:right;';inPL.title='Standardplattenformat Länge in mm';
+  inPL.onchange=()=>{P.schildmaterial[i].platteL=parseInt(inPL.value)||2500;saveP();};
+  tdPL.appendChild(inPL);tr.appendChild(tdPL);
+
+  // ── Platte B mm (für ALLE Typen) ─────────────────────────────────────
+  const tdPB=document.createElement('td');tdPB.style.textAlign='right';
+  const inPB=document.createElement('input');inPB.type='number';inPB.step='50';inPB.value=item.platteB||1250;
+  inPB.style=iSt+'width:62px;text-align:right;';inPB.title='Standardplattenformat Breite in mm';
+  inPB.onchange=()=>{P.schildmaterial[i].platteB=parseInt(inPB.value)||1250;saveP();};
+  tdPB.appendChild(inPB);tr.appendChild(tdPB);
+
+  // ── Löschen ──────────────────────────────────────────────────────────
+  const tdDel=document.createElement('td');
+  const btnD=document.createElement('button');btnD.className='del-btn';btnD.textContent='✕';
+  btnD.onclick=()=>{if(P.schildmaterial.length<=1)return alert('Mind. 1 Eintrag.');
+    P.schildmaterial.splice(i,1);saveP();renderBackend();reBuild();};
+  tdDel.appendChild(btnD);tr.appendChild(tdDel);
+  return tr;
+}
+
 function beRowArb(i){
   const item=P.arbeitswerte[i];const tr=document.createElement('tr');
   const gruppenOpts=['Zuschnitt','Admin','Grafik','Montage','Zusatz','Setup'];
@@ -13278,70 +13892,16 @@ function renderFraesBackend(){
   fb.appendChild(fc1);fb.appendChild(fc2);fb.appendChild(fc3);fb.appendChild(fc4);
 
   const matSection=document.createElement('div');
-  matSection.style.cssText='margin-top:20px;';
-  const matH=document.createElement('div');matH.className='st a';matH.textContent='Materialien & Plattengrössen';
-  matSection.appendChild(matH);
-
-  const hint=document.createElement('div');hint.className='hint ht';hint.style.marginBottom='10px';
-  hint.innerHTML='Plattengrösse bestimmt den <strong>Streifen-Verschnitt</strong> in der Kalkulation. Steg = Sicherheitsabstand zwischen Buchstaben.';
-  matSection.appendChild(hint);
-
-  const tbl=document.createElement('table');
-  tbl.style.cssText='width:100%;border-collapse:collapse;font-size:11px;';
-  tbl.innerHTML=`<thead><tr style="border-bottom:1.5px solid var(--border);">
-    <th style="text-align:left;padding:5px 8px;color:var(--accent);">Material</th>
-    <th style="text-align:right;padding:5px 6px;color:var(--accent);">EK CHF/kg</th>
-    <th style="text-align:right;padding:5px 6px;color:var(--accent);">Platte L (mm)</th>
-    <th style="text-align:right;padding:5px 6px;color:var(--accent);">Platte B (mm)</th>
-    <th style="text-align:right;padding:5px 6px;color:var(--accent);">Steg (mm)</th>
-    <th style="text-align:right;padding:5px 6px;color:var(--muted);">Buch/Platte VH100</th>
-  </tr></thead><tbody id="beMatBody"></tbody>`;
-  matSection.appendChild(tbl);
-
-  const saveBtn=document.createElement('button');
-  saveBtn.className='btn btn-y';saveBtn.style.marginTop='12px';
-  saveBtn.textContent='✓ Materialien speichern';
-  saveBtn.onclick=()=>{
-    const mats=P.fraes?.materialien||{};
-    Object.entries(mats).forEach(([key,m])=>{
-      const ekEl=document.getElementById('be-ek-'+key);
-      const lEl=document.getElementById('be-pl-'+key);
-      const bEl=document.getElementById('be-pb-'+key);
-      const sEl=document.getElementById('be-steg-'+key);
-      if(ekEl) m.ekKg=parseFloat(ekEl.value)||m.ekKg;
-      if(lEl)  m.platteL=parseInt(lEl.value)||m.platteL;
-      if(bEl)  m.platteB=parseInt(bEl.value)||m.platteB;
-      if(sEl)  m.steg=parseInt(sEl.value)||m.steg;
-    });
-    saveP();renderFraesBackend();
-    saveBtn.textContent='✓ Gespeichert!';setTimeout(()=>saveBtn.textContent='✓ Materialien speichern',1500);
-  };
-  matSection.appendChild(saveBtn);
+  matSection.style.cssText='margin-top:20px;padding:12px 14px;background:var(--surface3);border-radius:8px;border:1px solid var(--border);';
+  const matH2=document.createElement('div');matH2.className='st a';matH2.style.marginBottom='8px';matH2.textContent='Materialien & Plattengrössen';matSection.appendChild(matH2);
+  const matHint=document.createElement('div');matHint.className='hint hg';
+  matHint.innerHTML='Materialien für Schilder <em>und</em> Reliefschriften werden gemeinsam unter <strong>Administration → Schildmaterial</strong> verwaltet.<br>Materialien mit <strong>Fräsb.</strong>-Häkchen erscheinen im Reliefschriften-Dropdown.';
+  matSection.appendChild(matHint);
+  const matLinkBtn=document.createElement('button');matLinkBtn.className='btn btn-y';matLinkBtn.style.cssText='margin-top:8px;font-size:11px;';matLinkBtn.textContent='→ Schildmaterial verwalten';
+  matLinkBtn.onclick=()=>{const panels=document.querySelectorAll('.be-sec-wrap');panels.forEach(p=>{if(p.dataset.key==='schildmaterial')p.scrollIntoView({behavior:'smooth'});});};
+  matSection.appendChild(matLinkBtn);
   fb.appendChild(matSection);
 
-  const tbody=document.getElementById('beMatBody');
-  if(tbody){
-    Object.entries(P.fraes?.materialien||{}).forEach(([key,m])=>{
-      const steg=m.steg||15;
-      const nutzB=(m.platteB||1000)-40;
-      const nutzL=(m.platteL||2000)-40;
-      const bps=Math.max(1,Math.floor(nutzB/(100*0.70+steg)));
-      const bpl=Math.max(1,Math.floor(nutzL/(100+steg)));
-      const buchProPlatte=bps*bpl;
-
-      const inpStyle='width:70px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:right;';
-      const tr=document.createElement('tr');
-      tr.style.borderBottom='0.5px solid var(--border)';
-      tr.innerHTML=`
-        <td style="padding:5px 8px;font-weight:500;">${m.name}</td>
-        <td style="padding:5px 6px;text-align:right;"><input id="be-ek-${key}" type="number" value="${m.ekKg}" step="0.1" style="${inpStyle}"></td>
-        <td style="padding:5px 6px;text-align:right;"><input id="be-pl-${key}" type="number" value="${m.platteL||2000}" step="100" style="${inpStyle}"></td>
-        <td style="padding:5px 6px;text-align:right;"><input id="be-pb-${key}" type="number" value="${m.platteB||1000}" step="100" style="${inpStyle}"></td>
-        <td style="padding:5px 6px;text-align:right;"><input id="be-steg-${key}" type="number" value="${m.steg||15}" step="1" style="width:50px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:right;"></td>
-        <td style="padding:5px 6px;text-align:right;color:var(--muted);">${buchProPlatte}</td>`;
-      tbody.appendChild(tr);
-    });
-  }
 }
 
 function renderGravurBackend(){
@@ -13410,6 +13970,7 @@ function renderMontageBackend(){
 }
 
 document.addEventListener('DOMContentLoaded',()=>{
+  syncSchildMatPreise();
   // iOS vh fix
   const setH=()=>document.documentElement.style.setProperty('--app-height',window.innerHeight+'px');
   setH();
