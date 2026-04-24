@@ -5746,7 +5746,7 @@ function slReBuild(){
   // State SYNCHRON aus _slObState restoren (kein setTimeout nötig)
   const restoreState=()=>{
     const ep = window._slEditPos;
-    const src = (ob.folie||ob.laminat||ob.druck||ob.setup||ob.plottSetup||ob.tape) ? ob
+    const src = (ob.folie||ob.laminat||ob.druck||ob.setup||ob.plottSetup||ob.tape||ob.wtPlott||ob.wtLam) ? ob
               : (ep ? {folie:!!ep.folie,folieIdx:ep.folieIdx??-1,laminat:!!ep.laminat,laminatIdx:ep.laminatIdx??-1,druck:!!ep.druck,druckIdx:ep.druckIdx??-1,tape:!!ep.tape,setup:!!ep.setup,plottSetup:!!ep.plottSetup,plottFarben:ep.plottFarben||[]}
               : null);
     if(!src) return;
@@ -5817,6 +5817,17 @@ function slReBuildWT(){
   // Min-Werte wiederherstellen
   if(_ob.wtPlottMin&&$('min-slWtPlott'))$('min-slWtPlott').value=_ob.wtPlottMin;
   if(_ob.wtLamMin&&$('min-slWtLam'))$('min-slWtLam').value=_ob.wtLamMin;
+  // Badges direkt setzen (synchron) + cSl für totalVK
+  const wtRate2=P.arbeitswerte.find(a=>a.groupe==='Zuschnitt'||a.gruppe==='Zuschnitt')?.preis||2.00;
+  const bP=$('pb-slWtPlott');
+  if(bP) bP.textContent=_ob.wtPlott?'CHF '+((parseFloat($('min-slWtPlott')?.value)||0)*wtRate2).toFixed(2):'–';
+  if(_ob.wtPlott) $('slAktWtPlott')?.closest('.tr')?.classList.add('on');
+  else $('slAktWtPlott')?.closest('.tr')?.classList.remove('on');
+  const bL=$('pb-slWtLam');
+  if(bL) bL.textContent=_ob.wtLam?'CHF '+((parseFloat($('min-slWtLam')?.value)||0)*wtRate2).toFixed(2):'–';
+  if(_ob.wtLam) $('slAktWtLam')?.closest('.tr')?.classList.add('on');
+  else $('slAktWtLam')?.closest('.tr')?.classList.remove('on');
+  setTimeout(()=>cSl&&cSl(),0);
 }
 
 function slReBuildArb(){
@@ -7675,7 +7686,7 @@ function cSl(){
     </div>`;
 
   slUpdateStepBadges(zuschnittVK,befestigungVK,pulverVK+lackVK+eloxVK+bruenVK,
-    folieMatVK+druckVK+setupVK,gravurVK,wtVK+arbVK,montVK+anfahrtVK,totalVK);
+    folieMatVK+druckVK+setupVK+wtVK,gravurVK,arbVK,montVK+anfahrtVK,totalVK);
   const slsf=$('slstrip-mat');if(slsf)slsf.textContent=matVK>0?'Mat CHF '+matVK.toFixed(0):'Material –';
   const slsb=$('slstrip-folie');if(slsb)slsb.textContent=(folieMatVK+gravurVK)>0?'Beschr. CHF '+(folieMatVK+gravurVK).toFixed(0):'Beschr. –';
 
