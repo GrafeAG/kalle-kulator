@@ -1255,6 +1255,16 @@ a, button, input, select, textarea, label,
         </div>
       </div>
 
+      <!-- ── Gravur-Modus: Buchstaben / Logo ─────────────────── -->
+      <div style="display:flex;gap:8px;margin-bottom:10px;">
+        <button id="gvModusBtnText" class="btn btn-y" onclick="gvSetModus('text')"
+          style="flex:1;font-size:11px;padding:6px 0;">✦ Buchstaben / Text</button>
+        <button id="gvModusBtnLogo" class="btn btn-gh" onclick="gvSetModus('logo')"
+          style="flex:1;font-size:11px;padding:6px 0;">◈ Logo / Piktogramm</button>
+      </div>
+
+      <!-- ── BUCHSTABEN-Bereich ──────────────────────────────── -->
+      <div id="gvBereichText">
       <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px;">
         Gravurtext — mehrere Zeilen &amp; Schriftgrössen
       </div>
@@ -1287,6 +1297,72 @@ a, button, input, select, textarea, label,
           <span style="font-size:10px;color:var(--muted);" id="gvZeitHint"></span>
         </div>
       </div>
+      </div><!-- /gvBereichText -->
+
+      <!-- ── LOGO-Bereich ──────────────────────────────────────── -->
+      <div id="gvBereichLogo" style="display:none;">
+        <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px;">
+          Logo / Piktogramm — Flächengravur
+        </div>
+        <div class="g2" style="margin-bottom:10px;">
+          <div class="field">
+            <label>Berechnungsart</label>
+            <select id="gvLogoModus" onchange="gvLogoModusChange();cGv()">
+              <option value="flaeche">Fläche (cm²) → Zeit auto</option>
+              <option value="zeit">Zeit direkt (Minuten)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Logo-Bezeichnung</label>
+            <input id="gvLogoName" type="text" placeholder="z.B. Firmenlogo, Wappen..." oninput="cGv()">
+          </div>
+        </div>
+        <div id="gvLogoFlaecheFelder">
+          <div class="g3" style="margin-bottom:8px;">
+            <div class="field">
+              <label>Breite Logo (mm)</label>
+              <input id="gvLogoBreite" type="number" value="50" min="1" oninput="gvLogoCalcCm2();cGv()" style="border-color:var(--accent);font-weight:700;">
+            </div>
+            <div class="field">
+              <label>Höhe Logo (mm)</label>
+              <input id="gvLogoHoehe" type="number" value="50" min="1" oninput="gvLogoCalcCm2();cGv()" style="border-color:var(--accent);font-weight:700;">
+            </div>
+            <div class="field">
+              <label>Fläche (cm²)</label>
+              <input id="gvLogoCm2" type="number" step="0.1" min="0.1" oninput="cGv()" readonly style="background:var(--surface3);color:var(--muted);">
+            </div>
+          </div>
+          <div class="hint ht" id="gvLogoFlaecheHint" style="margin-bottom:8px;">–</div>
+        </div>
+        <div id="gvLogoZeitFelder" style="display:none;">
+          <div class="g2" style="margin-bottom:8px;">
+            <div class="field">
+              <label>Gravurzeit (Minuten)</label>
+              <input id="gvLogoMin" type="number" value="10" min="0.5" step="0.5" oninput="cGv()" style="border-color:var(--accent);font-weight:700;font-size:16px;">
+            </div>
+            <div class="field">
+              <div class="hint ht" style="padding:8px;font-size:10px;margin-top:22px;">Zeit direkt eingeben — aus Erfahrungswert oder Messung</div>
+            </div>
+          </div>
+        </div>
+        <div class="g2" style="margin-bottom:8px;">
+          <div class="field">
+            <label>Logos pro Schild</label>
+            <input id="gvLogoAnzProSchild" type="number" value="1" min="1" oninput="cGv()" style="font-weight:700;">
+          </div>
+          <div class="field">
+            <label>Einlegefarbe</label>
+            <select id="gvLogoFarbe" onchange="cGv()">
+              <option value="keine">Keine</option>
+              <option value="schwarz">Schwarz (+ CHF 4.–/Logo)</option>
+              <option value="weiss">Weiss (+ CHF 4.–/Logo)</option>
+              <option value="gold">Gold (+ CHF 6.–/Logo)</option>
+              <option value="silber">Silber (+ CHF 6.–/Logo)</option>
+            </select>
+          </div>
+        </div>
+        <div id="gvLogoZeitResult" class="hint hg" style="margin-bottom:8px;font-size:11px;font-weight:600;">–</div>
+      </div><!-- /gvBereichLogo -->
 
       <div class="g2" style="margin-bottom:8px;">
         <div class="field"><label>Gravurmaterial (Maschine)</label>
@@ -4473,7 +4549,17 @@ function saveGravur(){
   const r=cGv();if(!r)return;
   const montD={items:[],total:0};
   const data={type:'gravur',label:$('gvLabel').value||r.text||'Gravur',
-    notiz:$('gvNotiz')?.value||'',text:r.text,l:r.l,b:r.b,m2n:r.m2n,stk:r.stk,vh:r.vh,zeichenTotal:r.zeichenTotal,zeichenProSchild:r.zeichenProSchild,
+    notiz:$('gvNotiz')?.value||'',text:r.text,l:r.l,b:r.b,m2n:r.m2n,stk:r.stk,vh:r.vh,
+    zeichenTotal:r.zeichenTotal,zeichenProSchild:r.zeichenProSchild,
+    gvModus:window._gvModus||'text',
+    logoName:$('gvLogoName')?.value||'',
+    logoModus:$('gvLogoModus')?.value||'flaeche',
+    logoBreite:parseFloat($('gvLogoBreite')?.value)||0,
+    logoHoehe:parseFloat($('gvLogoHoehe')?.value)||0,
+    logoCm2:parseFloat($('gvLogoCm2')?.value)||0,
+    logoMin:parseFloat($('gvLogoMin')?.value)||0,
+    logoAnzProSchild:parseInt($('gvLogoAnzProSchild')?.value)||1,
+    logoFarbe:$('gvLogoFarbe')?.value||'keine',
     matEK:r.matEK,matVK:r.matVK,schildName:r.schildName,
     gravurkosten:r.gravurkosten,
     farbeTotal:r.farbeTotal,
@@ -5395,6 +5481,58 @@ function gvInitZeilen(){
 }
 
 
+
+// ── Gravur-Modus Umschalter ─────────────────────────────────────────
+function gvSetModus(modus){
+  window._gvModus = modus;
+  const isLogo = modus==='logo';
+  const bText=$('gvBereichText'), bLogo=$('gvBereichLogo');
+  if(bText)bText.style.display=isLogo?'none':'';
+  if(bLogo)bLogo.style.display=isLogo?'':'none';
+  const btnT=$('gvModusBtnText'), btnL=$('gvModusBtnLogo');
+  if(btnT){btnT.className=isLogo?'btn btn-gh':'btn btn-y';}
+  if(btnL){btnL.className=isLogo?'btn btn-y':'btn btn-gh';}
+  gvLogoCalcCm2();
+  cGv();
+}
+
+function gvLogoModusChange(){
+  const m=$('gvLogoModus')?.value||'flaeche';
+  const ff=$('gvLogoFlaecheFelder'), zf=$('gvLogoZeitFelder');
+  if(ff)ff.style.display=m==='flaeche'?'':'none';
+  if(zf)zf.style.display=m==='zeit'?'':'none';
+}
+
+function gvLogoCalcCm2(){
+  const b=parseFloat($('gvLogoBreite')?.value)||0;
+  const h=parseFloat($('gvLogoHoehe')?.value)||0;
+  const cm2=(b*h)/100;
+  const el=$('gvLogoCm2');if(el)el.value=cm2>0?cm2.toFixed(1):'';
+}
+
+// Berechnet Logo-Gravurzeit in Minuten
+function calcLogoMin(mat, stk){
+  const modus=$('gvLogoModus')?.value||'flaeche';
+  const anzProSchild=parseInt($('gvLogoAnzProSchild')?.value)||1;
+  let minProSchild=0;
+  if(modus==='flaeche'){
+    const cm2=parseFloat($('gvLogoCm2')?.value)||0;
+    const cm2ProMin=(P.gravur.logoCm2ProMin||{})[mat]||2.5;
+    minProSchild=cm2>0?(cm2/cm2ProMin):0;
+  } else {
+    minProSchild=parseFloat($('gvLogoMin')?.value)||0;
+  }
+  return minProSchild * anzProSchild * stk;
+}
+
+// Einlegefarbe-Aufschlag für Logo
+function getLogoFarbeVK(stk){
+  const farbe=$('gvLogoFarbe')?.value||'keine';
+  const anzProSchild=parseInt($('gvLogoAnzProSchild')?.value)||1;
+  const preise={keine:0, schwarz:4, weiss:4, gold:6, silber:6};
+  return (preise[farbe]||0)*anzProSchild*stk;
+}
+
 function cGv(){
   if($('gravurForm')?.style.display==='none')return null;
   if(typeof gvSyncGvText==='function')gvSyncGvText();
@@ -5418,22 +5556,38 @@ function cGv(){
 
   const gvMat=$('gvMat')?.value||'alu';
   const sekZ=getGravurSek(vh, gvMat);
-  let multiRowGravurMin=0;
-  if(typeof gvZeilen!=='undefined'&&gvZeilen.some(z=>z.text)){
-    gvZeilen.forEach(z=>{
-      const zt=z.text||'';const zvh=z.vh||5;
-      const zsek=getGravurSek(zvh, gvMat);
-      multiRowGravurMin+=(zt.replace(/ /g,'').length*zsek)/60;
-    });
-    multiRowGravurMin*=stk;
+
+  // ── Modus: Logo oder Buchstaben ─────────────────────────────────────
+  const _isLogo = (window._gvModus==='logo');
+  let gravurMin=0;
+  if(_isLogo){
+    gravurMin=calcLogoMin(gvMat, stk);
+    // Hint und Result aktualisieren
+    const logoM=$('gvLogoModus')?.value||'flaeche';
+    const cm2=parseFloat($('gvLogoCm2')?.value)||0;
+    const cm2ProMin=(P.gravur.logoCm2ProMin||{})[gvMat]||2.5;
+    const hint=$('gvLogoFlaecheHint');
+    if(hint)hint.innerHTML=`${cm2.toFixed(1)} cm² ÷ ${cm2ProMin} cm²/Min (${gvMat}) = <strong>${(cm2/cm2ProMin).toFixed(1)} Min</strong> × ${parseInt($('gvLogoAnzProSchild')?.value)||1} Logo/Schild × ${stk} Stk = <strong>${gravurMin.toFixed(1)} Min total</strong>`;
+    const res=$('gvLogoZeitResult');
+    if(res)res.textContent=`Gravurzeit: ${gravurMin.toFixed(1)} Min → CHF ${((gravurMin/60)*sa).toFixed(2)} | Stundenansatz CHF ${sa}.–/h`;
+  } else {
+    let multiRowGravurMin=0;
+    if(typeof gvZeilen!=='undefined'&&gvZeilen.some(z=>z.text)){
+      gvZeilen.forEach(z=>{
+        const zt=z.text||'';const zvh=z.vh||5;
+        const zsek=getGravurSek(zvh, gvMat);
+        multiRowGravurMin+=(zt.replace(/ /g,'').length*zsek)/60;
+      });
+      multiRowGravurMin*=stk;
+    }
+    gravurMin=multiRowGravurMin>0?multiRowGravurMin:(zeichenTotal*sekZ)/60;
   }
-  const gravurMin=multiRowGravurMin>0?multiRowGravurMin:(zeichenTotal*sekZ)/60;
   const gravurkosten=(gravurMin/60)*sa;
 
   const schildData=gvGetSchildVK(marge);
   const matEK=schildData.ek;const matVK=schildData.vk;
 
-  const farbeTotal=gvGetFarbeTotal(stk);
+  const farbeTotal=_isLogo?getLogoFarbeVK(stk):gvGetFarbeTotal(stk);
 
   const gvBolzenAkt=gC('gvBolzenAkt');
   const gvBolzenAnz=parseFloat($('gvBolzenAnz')?.value)||4;
@@ -5475,8 +5629,8 @@ function cGv(){
   if(g)g.innerHTML=`
     <div class="ggi"><div class="ggi-l">Format</div><div class="ggi-v">${l}×${b}mm · ${stk}Stk</div></div>
     <div class="ggi"><div class="ggi-l">m² netto</div><div class="ggi-v">${m2n.toFixed(4)} m²</div></div>
-    <div class="ggi"><div class="ggi-l">Zeichen total</div><div class="ggi-v">${zeichenTotal}</div></div>
-    <div class="ggi"><div class="ggi-l">Gravurzeit</div><div class="ggi-v">${gravurMin.toFixed(1)} Min (${sekZ}s/Z)</div></div>
+    ${_isLogo?`<div class="ggi"><div class="ggi-l">Logo-Modus</div><div class="ggi-v">${($("gvLogoModus")?.value==="flaeche"?"Fläche "+($("gvLogoCm2")?.value||"–")+" cm²":"Zeit direkt")}</div></div>`:'<div class="ggi"><div class="ggi-l">Zeichen total</div><div class="ggi-v">'+zeichenTotal+'</div></div>'}
+    <div class="ggi"><div class="ggi-l">Gravurzeit</div><div class="ggi-v">${gravurMin.toFixed(1)} Min</div></div>
     <div class="ggi"><div class="ggi-l">Gravurkosten</div><div class="ggi-v">CHF ${gravurkosten.toFixed(2)}</div></div>
     <div class="ggi"><div class="ggi-l">Schildmaterial VK</div><div class="ggi-v">CHF ${matVK.toFixed(2)}</div></div>
     <div class="ggi"><div class="ggi-l">Einlegefarbe(n)</div><div class="ggi-v">CHF ${farbeTotal.toFixed(2)}</div></div>
@@ -8146,6 +8300,20 @@ function startPos(type){
       const b=$('globalMontageBlock');
       if(b) b.scrollIntoView({behavior:'smooth'});
     },50);
+  }else if(type==='gravur'){
+    $('gravurTitle').textContent='Neue Position – Gravur';
+    $('gravurForm').style.display='block';
+    window._gvModus='text';
+    if(typeof gvSetModus==='function')setTimeout(()=>gvSetModus('text'),50);
+    if(typeof initGravurForm==='function')initGravurForm();
+    else {
+      if(typeof gvReset==='function')gvReset();
+      ['gvLabel','gvNotiz','gvText'].forEach(id=>{const e=$(id);if(e)e.value='';});
+      if($('gvStk'))$('gvStk').value=1;
+      if($('gvLen'))$('gvLen').value=200;
+      if($('gvBr'))$('gvBr').value=100;
+    }
+    cGv&&cGv();
   }else if(type==='folientechnik'){
     $('folientechnikTitle').textContent='Neue Position – Folientechnik';
     $('folientechnikForm').style.display='block';
@@ -11911,6 +12079,20 @@ function editPos(i){
     if($('gvMargeP'))$('gvMargeP').value=p.marge||40;
     if($('gvSA'))$('gvSA').value=p.sa||120;
     if($('gvMat'))$('gvMat').value=p.mat||'alu';
+    // Logo-Felder restoren
+    if(p.gvModus){
+      window._gvModus=p.gvModus;
+      gvSetModus(p.gvModus);
+    }
+    if(p.logoModus&&$('gvLogoModus'))$('gvLogoModus').value=p.logoModus;
+    if(p.logoName&&$('gvLogoName'))$('gvLogoName').value=p.logoName;
+    if(p.logoBreite&&$('gvLogoBreite'))$('gvLogoBreite').value=p.logoBreite;
+    if(p.logoHoehe&&$('gvLogoHoehe'))$('gvLogoHoehe').value=p.logoHoehe;
+    if(p.logoCm2&&$('gvLogoCm2'))$('gvLogoCm2').value=p.logoCm2;
+    if(p.logoMin&&$('gvLogoMin'))$('gvLogoMin').value=p.logoMin;
+    if(p.logoAnzProSchild&&$('gvLogoAnzProSchild'))$('gvLogoAnzProSchild').value=p.logoAnzProSchild;
+    if(p.logoFarbe&&$('gvLogoFarbe'))$('gvLogoFarbe').value=p.logoFarbe;
+    gvLogoModusChange();
     if(p.zeilen&&p.zeilen.length>0){
       gvZeilen=JSON.parse(JSON.stringify(p.zeilen));
     } else if(p.vh||p.text) {
