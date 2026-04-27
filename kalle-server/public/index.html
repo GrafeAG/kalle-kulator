@@ -1722,6 +1722,16 @@ a, button, input, select, textarea, label,
         </div>
         <div id="slGravurDetail" style="display:none;margin-top:10px;">
           
+          <!-- Modus: Buchstaben / Logo -->
+          <div style="display:flex;gap:8px;margin-bottom:10px;">
+            <button id="slGvModusBtnText" class="btn btn-y" onclick="slGvSetModus('text')"
+              style="flex:1;font-size:11px;padding:6px 0;">✦ Buchstaben / Text</button>
+            <button id="slGvModusBtnLogo" class="btn btn-gh" onclick="slGvSetModus('logo')"
+              style="flex:1;font-size:11px;padding:6px 0;">◈ Logo / Piktogramm</button>
+          </div>
+
+          <!-- ─── BUCHSTABEN-Bereich ─────────────────────────── -->
+          <div id="slGvBereichText">
           <div class="field" style="margin-bottom:6px;">
             <label>Gravurtext (pro Schild)</label>
             <div style="display:flex;gap:6px;">
@@ -1753,7 +1763,69 @@ a, button, input, select, textarea, label,
             <div class="field"><label>Schriftgrösse VH (mm)</label><input id="slGvVH" type="number" value="5" min="1" oninput="cSl()"></div>
             <div class="field"><label>Stundenansatz Gravur (CHF/h)</label><input id="slGvSA" type="number" value="120" min="50" oninput="cSl()"></div>
           </div>
-          
+          </div><!-- /slGvBereichText -->
+
+          <!-- ─── LOGO-Bereich ───────────────────────────────── -->
+          <div id="slGvBereichLogo" style="display:none;">
+            <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:8px;">
+              Logo / Piktogramm — Flächengravur
+            </div>
+            <div class="g2" style="margin-bottom:8px;">
+              <div class="field">
+                <label>Berechnungsart</label>
+                <select id="slGvLogoModus" onchange="slGvLogoModusChange();cSl()">
+                  <option value="flaeche">Fläche (cm²) → Zeit auto</option>
+                  <option value="zeit">Zeit direkt (Minuten)</option>
+                </select>
+              </div>
+              <div class="field">
+                <label>Logo-Bezeichnung</label>
+                <input id="slGvLogoName" type="text" placeholder="z.B. Firmenlogo, Wappen..." oninput="cSl()">
+              </div>
+            </div>
+            <!-- Flächen-Modus -->
+            <div id="slGvLogoFlaecheFelder">
+              <div class="g3" style="margin-bottom:8px;">
+                <div class="field">
+                  <label>Breite (mm)</label>
+                  <input id="slGvLogoBreite" type="number" value="50" min="1" oninput="slGvLogoCalcCm2();cSl()" style="border-color:var(--accent);font-weight:700;">
+                </div>
+                <div class="field">
+                  <label>Höhe (mm)</label>
+                  <input id="slGvLogoHoehe" type="number" value="50" min="1" oninput="slGvLogoCalcCm2();cSl()" style="border-color:var(--accent);font-weight:700;">
+                </div>
+                <div class="field">
+                  <label>Fläche (cm²)</label>
+                  <input id="slGvLogoCm2" type="number" step="0.1" min="0.1" oninput="cSl()" readonly style="background:var(--surface3);color:var(--muted);">
+                </div>
+              </div>
+              <div class="hint ht" id="slGvLogoFlaecheHint" style="margin-bottom:8px;">–</div>
+            </div>
+            <!-- Zeit-Modus -->
+            <div id="slGvLogoZeitFelder" style="display:none;">
+              <div class="g2" style="margin-bottom:8px;">
+                <div class="field">
+                  <label>Gravurzeit (Minuten)</label>
+                  <input id="slGvLogoMin" type="number" value="10" min="0.5" step="0.5" oninput="cSl()" style="border-color:var(--accent);font-weight:700;font-size:16px;">
+                </div>
+                <div class="field">
+                  <div class="hint ht" style="padding:8px;font-size:10px;margin-top:22px;">Zeit direkt eingeben — aus Erfahrungswert oder Messung</div>
+                </div>
+              </div>
+            </div>
+            <div class="g2" style="margin-bottom:8px;">
+              <div class="field">
+                <label>Logos pro Schild</label>
+                <input id="slGvLogoAnz" type="number" value="1" min="1" oninput="cSl()" style="font-weight:700;">
+              </div>
+              <div class="field">
+                <label>Stundenansatz (CHF/h)</label>
+                <input id="slGvLogoSA" type="number" value="120" min="50" oninput="cSl()">
+              </div>
+            </div>
+            <div id="slGvLogoResult" class="hint hg" style="margin-bottom:8px;font-size:11px;font-weight:600;">–</div>
+          </div><!-- /slGvBereichLogo -->
+
           <div class="st g" style="font-size:9px;margin-bottom:6px;">Einlegefarbe(n)</div>
           <div class="hint hg" style="margin-bottom:6px;">CHF 5.–/Stk pro Farbe.</div>
           <div id="slGvFarbenContainer"></div>
@@ -4489,7 +4561,7 @@ function saveFraes(){
     // Manual count
     manualAnzAkt:$('frManualAnzAkt')?.checked||false,
     manualAnz:parseInt($('frManualAnz')?.value)||0,label:$('frLabel').value||r.text,
-    notiz:$('frNotiz')?.value||'',text:r.text,vh:r.vh,matName:r.matName,matKey:r.matKey,
+    notiz:$('frNotiz')?.value||'',text:r.text,vh:r.vh,matName:r.matName,matKey:r.matKey,matSmIdx:parseInt($('frMat')?.value)||0,
     sa:r.sa,setup:r.setup,prodPct:r.prodPct,matMargePct:r.matMargePct,
     anzahl:r.anzahl,saetze:r.saetze,anzGes:r.anzGes,
     fzTotal:r.fzTotal,matFN:r.matFN,matFM:r.matFM,nesting:r.nesting,
@@ -4505,6 +4577,11 @@ function saveFraes(){
     vhbPauschal:parseFloat($('frVhbPauschal')?.value)||0,
     schabPap:r.schabPap>0,schabFol:r.schabFol>0,schabKar:r.schabKar>0,
     eigenBefAkt:gC('frEigenBefAkt'),
+    versandAkt:document.getElementById('frDpdAkt')?.checked||document.getElementById('frCamionAkt')?.checked||false,
+    versandDpdAkt:document.getElementById('frDpdAkt')?.checked||false,
+    versandDpdKlasse:document.getElementById('frDpdKlasse')?.value||'0',
+    versandCamionAkt:document.getElementById('frCamionAkt')?.checked||false,
+    versandCamionEK:parseFloat(document.getElementById('frCamionEK')?.value)||0,
     versand:getVersandData('fr'),
     uebergabe:getUebergabeData('fr'),
     eigenBefBez:$('frEigenBefBez')?.value||'',
@@ -5397,6 +5474,10 @@ function saveFolientechnik(){
     druckIdx:(()=>{const chk=$('ftAktDruck');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     druckVK:r.druckVK||0,
     pEK:r.pEK||0, lEK:r.lEK||0, fEK:r.fEK||0,
+    versandDpdAkt:document.getElementById('ftDpdAkt')?.checked||false,
+    versandDpdKlasse:document.getElementById('ftDpdKlasse')?.value||'0',
+    versandCamionAkt:document.getElementById('ftCamionAkt')?.checked||false,
+    versandCamionEK:parseFloat(document.getElementById('ftCamionEK')?.value)||0,
     versand:getVersandData('ft'),
     uebergabe:getUebergabeData('ft'),
     totalVK:r.totalVK, stueck:1, proStk:r.proStk,
@@ -7628,21 +7709,42 @@ function cSl(){
   if(gravurAkt){
     const detail=$('slGravurDetail');if(detail)detail.style.display='block';
     const setupRow=$('slGravurSetupRow');if(setupRow)setupRow.style.display='block';
-    const gvVH=gN('slGvVH')||5;const gvSA=gN('slGvSA')||120;
-    const manualZ=parseInt($('slGvZManual')?.value)||0;
-    const rawTxt=$('slGvText')?.value||'';
-    const autoZ=rawTxt.replace(/\s/g,'').length;
-    const zPS=manualZ>0?manualZ:autoZ;
-    const dispEl=$('slGvDisplay');if(dispEl)dispEl.textContent=rawTxt||'–';
-    const zanzEl=$('slGvZAnz');if(zanzEl)zanzEl.textContent=(zPS).toString();
-    if(autoZ>0){const m=$('slGvZManual');if(m&&(parseInt(m.value)||0)===0){m.value=autoZ;}}
-    const zeichenTotal=zPS*stk;
-    const sekZ=getGravurSek(gvVH);
-    const gravurMin=(zeichenTotal*sekZ)/60;
-    gravurVK=(gravurMin/60)*gvSA;
-    const hint=$('slGvZeitHint');if(hint)hint.textContent=`${sekZ}s/Z · ca. ${gravurMin.toFixed(1)} Min`;
-    const zEl=$('slGvZAnz');if(zEl)zEl.textContent=zeichenTotal.toString();
-    const disp=$('slGvDisplay');if(disp)disp.textContent=$('slGvText')?.value||'–';
+    const _slGvIsLogo=(window._slGvModus==='logo');
+    const gvMat=$('gvMat')?.value||($('slMat')?.value==='metall'?'messing':'alu');
+    // Variablen für Hint (brauchen Scope ausserhalb des if/else)
+    let _slGvSekZ=0, _slGvGravurMin=0, _slGvZeichenTotal=0;
+    if(_slGvIsLogo){
+      // ── Logo-Kalkulation ──────────────────────────────────────────
+      const gvSA=gN('slGvLogoSA')||gN('slGvSA')||120;
+      const logoMin=slGvCalcLogoMin(gvMat, stk);
+      gravurVK=(logoMin/60)*gvSA;
+      // Flächen-Hint aktualisieren
+      const cm2=parseFloat($('slGvLogoCm2')?.value)||0;
+      const cm2ProMin=(P.gravur?.logoCm2ProMin||{})[gvMat]||2.5;
+      const logoModusVal=$('slGvLogoModus')?.value||'flaeche';
+      const hint=$('slGvLogoFlaecheHint');
+      if(hint&&logoModusVal==='flaeche')hint.innerHTML=`${cm2.toFixed(1)} cm² ÷ ${cm2ProMin} cm²/Min (${gvMat}) = <strong>${(cm2/cm2ProMin).toFixed(1)} Min</strong>/Logo × ${parseInt($('slGvLogoAnz')?.value)||1} × ${stk} Stk = <strong>${logoMin.toFixed(1)} Min total</strong>`;
+      const res=$('slGvLogoResult');
+      if(res)res.textContent=`Gravurzeit: ${logoMin.toFixed(1)} Min → CHF ${gravurVK.toFixed(2)} (CHF ${gvSA}/h)`;
+    } else {
+      // ── Buchstaben-Kalkulation (unverändert) ─────────────────────
+      const gvVH=gN('slGvVH')||5;const gvSA=gN('slGvSA')||120;
+      const manualZ=parseInt($('slGvZManual')?.value)||0;
+      const rawTxt=$('slGvText')?.value||'';
+      const autoZ=rawTxt.replace(/\s/g,'').length;
+      const zPS=manualZ>0?manualZ:autoZ;
+      const dispEl=$('slGvDisplay');if(dispEl)dispEl.textContent=rawTxt||'–';
+      const zanzEl=$('slGvZAnz');if(zanzEl)zanzEl.textContent=(zPS).toString();
+      if(autoZ>0){const m=$('slGvZManual');if(m&&(parseInt(m.value)||0)===0){m.value=autoZ;}}
+      const zeichenTotal=zPS*stk;
+      const sekZ=getGravurSek(gvVH);
+      const gravurMin=(zeichenTotal*sekZ)/60;
+      gravurVK=(gravurMin/60)*gvSA;
+      _slGvSekZ=sekZ; _slGvGravurMin=gravurMin; _slGvZeichenTotal=zeichenTotal;
+    } // end else Buchstaben
+    const hint=$('slGvZeitHint');if(hint&&!_slGvIsLogo)hint.textContent=`${_slGvSekZ}s/Z · ca. ${_slGvGravurMin.toFixed(1)} Min`;
+    const zEl=$('slGvZAnz');if(zEl&&!_slGvIsLogo)zEl.textContent=_slGvZeichenTotal.toString();
+    const disp=$('slGvDisplay');if(disp&&!_slGvIsLogo)disp.textContent=$('slGvText')?.value||'–';
     let gvFarbeTotal=0;
     slGvGetFarben().forEach((f,fi)=>{
       if(!f.aktiv)return;
@@ -7902,6 +8004,14 @@ function saveSchild(){
     pulverNCS:gC('slAktPulverNCS')?{farbe:$('slPulverNcsFarbe')?.value||'',finish:$('slPulverNcsFinish')?.value||'',preisIdx:$('slPulverNcsPreis')?.value||0}:null,
     pulverIGP:gC('slAktPulverIGP')?{farbe:$('slPulverIgpFarbe')?.value||'',preisIdx:$('slPulverIgpPreis')?.value||0}:null,
     gravurAkt:r.gravurAkt,gvText:r.gvText,gvVH:r.gvVH,gvZeichen:r.gvZeichen,
+    slGvModus:window._slGvModus||'text',
+    slGvLogoName:$('slGvLogoName')?.value||'',
+    slGvLogoModus:$('slGvLogoModus')?.value||'flaeche',
+    slGvLogoBreite:parseFloat($('slGvLogoBreite')?.value)||0,
+    slGvLogoHoehe:parseFloat($('slGvLogoHoehe')?.value)||0,
+    slGvLogoCm2:parseFloat($('slGvLogoCm2')?.value)||0,
+    slGvLogoMin:parseFloat($('slGvLogoMin')?.value)||0,
+    slGvLogoAnz:parseInt($('slGvLogoAnz')?.value)||1,
     gvFarben:slGvGetFarben(),gravurVK:r.gravurVK,
     gravurSetup:gC('slGravurSetup'),
     wtPlott:gC('slAktWtPlott')?parseFloat($('min-slWtPlott')?.value)||0:null,
@@ -7913,6 +8023,10 @@ function saveSchild(){
     vhbAkt:gC('slKlebeVHB'),vhbVariant:$('slVhbVariant')?.value||'',
     kleberAkt:gC('slKlebeKleber'),
     eigenBefAkt:gC('slEigenBefAkt'),
+    versandDpdAkt:document.getElementById('slDpdAkt')?.checked||false,
+    versandDpdKlasse:document.getElementById('slDpdKlasse')?.value||'0',
+    versandCamionAkt:document.getElementById('slCamionAkt')?.checked||false,
+    versandCamionEK:parseFloat(document.getElementById('slCamionEK')?.value)||0,
     versand:getVersandData('sl'),
     uebergabe:getUebergabeData('sl'),
     eigenBefBez:$('slEigenBefBez')?.value||'',
@@ -8238,6 +8352,7 @@ function startPos(type){
       plottFarben:[], wtPlott:false, wtLam:false
     };
     window._slArbState={}; // Arbeiten-State zurücksetzen
+    window._slGvModus='text'; // Gravur-Modus zurücksetzen
     // Reset alle Checkboxen für sauberen Start
     ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup',
      'slLackAkt','slOutdoor2kAkt','slLackManAkt','slAktPulverRAL','slAktPulverNCS','slAktPulverIGP',
@@ -11748,6 +11863,18 @@ function editPos(i){
         if($('slGvVH'))$('slGvVH').value=p.gvVH||5;
         if($('slGvZManual')){$('slGvZManual').value=p.gvZeichen||0;$('slGvZManual').style.borderColor=p.gvZeichen>0?'var(--accent)':'var(--green)';}
         if(p.gvFarben){slGvSetFarben(p.gvFarben);slGvRenderFarben();}
+        // Gravur Logo-Modus restore
+        if(p.slGvModus){
+          window._slGvModus=p.slGvModus;
+          if(typeof slGvSetModus==='function')setTimeout(()=>slGvSetModus(p.slGvModus),80);
+        }
+        if(p.slGvLogoModus&&$('slGvLogoModus'))$('slGvLogoModus').value=p.slGvLogoModus;
+        if(p.slGvLogoName&&$('slGvLogoName'))$('slGvLogoName').value=p.slGvLogoName;
+        if(p.slGvLogoBreite&&$('slGvLogoBreite'))$('slGvLogoBreite').value=p.slGvLogoBreite;
+        if(p.slGvLogoHoehe&&$('slGvLogoHoehe'))$('slGvLogoHoehe').value=p.slGvLogoHoehe;
+        if(p.slGvLogoCm2&&$('slGvLogoCm2'))$('slGvLogoCm2').value=p.slGvLogoCm2;
+        if(p.slGvLogoMin&&$('slGvLogoMin'))$('slGvLogoMin').value=p.slGvLogoMin;
+        if(p.slGvLogoAnz&&$('slGvLogoAnz'))$('slGvLogoAnz').value=p.slGvLogoAnz;
 
         // Schritt 4 — Nasslack
         if(p.lack){const la=$('slLackAkt');if(la)la.checked=true;}
@@ -11827,6 +11954,15 @@ function editPos(i){
           slAnfahrtUpdate();
         }
         if(p.anfahrtNMA&&$('montAnzMA'))$('montAnzMA').value=p.anfahrtNMA;
+        // Versand restore
+        if(p.versandDpdAkt){
+          const el=document.getElementById('slDpdAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
+          setTimeout(()=>{const k=document.getElementById('slDpdKlasse');if(k&&p.versandDpdKlasse)k.value=p.versandDpdKlasse;cSl&&cSl();},30);
+        }
+        if(p.versandCamionAkt){
+          const el=document.getElementById('slCamionAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
+          setTimeout(()=>{const k=document.getElementById('slCamionEK');if(k&&p.versandCamionEK)k.value=p.versandCamionEK;cSl&&cSl();},30);
+        }
 
         // Schritt 6 — Arbeitswerte
         (p.arbeit||[]).forEach(a=>{
@@ -11978,6 +12114,15 @@ function editPos(i){
             frAnfahrtUpdate();
           }
           if(p.anfahrtNMA&&$('frMontAnzMA'))$('frMontAnzMA').value=p.anfahrtNMA;
+          // Versand restore
+          if(p.versandDpdAkt){
+            const el=document.getElementById('frDpdAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
+            setTimeout(()=>{const k=document.getElementById('frDpdKlasse');if(k&&p.versandDpdKlasse)k.value=p.versandDpdKlasse;cFr&&cFr();},20);
+          }
+          if(p.versandCamionAkt){
+            const el=document.getElementById('frCamionAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
+            setTimeout(()=>{const k=document.getElementById('frCamionEK');if(k&&p.versandCamionEK)k.value=p.versandCamionEK;cFr&&cFr();},20);
+          }
         },15);
       },50);
 
@@ -12038,6 +12183,22 @@ function editPos(i){
       if(p.montPersAkt){const e=$('ftMontPersAkt');if(e)e.checked=true;}
       if(p.montStd&&$('ftMontStd'))$('ftMontStd').value=p.montStd;
       const fms=$('ftMontageSeparat');if(fms)fms.checked=!!p.montageSeparat;
+      // Versand restore
+      if(p.versandDpdAkt){
+        const el=document.getElementById('ftDpdAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
+        setTimeout(()=>{const k=document.getElementById('ftDpdKlasse');if(k&&p.versandDpdKlasse)k.value=p.versandDpdKlasse;cFt&&cFt();},20);
+      }
+      if(p.versandCamionAkt){
+        const el=document.getElementById('ftCamionAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
+        setTimeout(()=>{const k=document.getElementById('ftCamionEK');if(k&&p.versandCamionEK)k.value=p.versandCamionEK;cFt&&cFt();},20);
+      }
+      // Übergabe/Abholung restore
+      if(p.uebergabe){
+        const ut=document.getElementById('ftUebergabeTyp');if(ut&&p.uebergabe.typ)ut.value=p.uebergabe.typ;
+        const aa=document.getElementById('ftAnlieferungArt');if(aa&&p.uebergabe.art)aa.value=p.uebergabe.art;
+        const ap=document.getElementById('ftAnlieferungPreis');if(ap&&p.uebergabe.betrag)ap.value=p.uebergabe.betrag;
+        cFt&&setTimeout(()=>cFt(),10);
+      }
       // Arbeitszeit-Positionen restore
       (p.wtArbeiten||[]).forEach(a=>{
         const idx=P.arbeitswerte.findIndex(w=>w.name===a.label||w.name===a.name);
