@@ -7592,6 +7592,50 @@ function fillSchildMatSelect(sel, selectedIdx, filter){
 }
 
 
+
+// ── Schild Gravur (slGravurDetail) Logo-Modus ──────────────────────
+function slGvSetModus(modus){
+  window._slGvModus = modus;
+  const isLogo = modus==='logo';
+  const bT=$('slGvBereichText'), bL=$('slGvBereichLogo');
+  if(bT)bT.style.display=isLogo?'none':'';
+  if(bL)bL.style.display=isLogo?'':'none';
+  const btnT=$('slGvModusBtnText'), btnL=$('slGvModusBtnLogo');
+  if(btnT)btnT.className=isLogo?'btn btn-gh':'btn btn-y';
+  if(btnL)btnL.className=isLogo?'btn btn-y':'btn btn-gh';
+  slGvLogoCalcCm2();
+  cSl();
+}
+
+function slGvLogoModusChange(){
+  const m=$('slGvLogoModus')?.value||'flaeche';
+  const ff=$('slGvLogoFlaecheFelder'), zf=$('slGvLogoZeitFelder');
+  if(ff)ff.style.display=m==='flaeche'?'':'none';
+  if(zf)zf.style.display=m==='zeit'?'':'none';
+}
+
+function slGvLogoCalcCm2(){
+  const b=parseFloat($('slGvLogoBreite')?.value)||0;
+  const h=parseFloat($('slGvLogoHoehe')?.value)||0;
+  const cm2=(b*h)/100;
+  const el=$('slGvLogoCm2');if(el)el.value=cm2>0?cm2.toFixed(1):'';
+}
+
+// Berechnet Logo-Gravurzeit in Minuten (Schild-Kontext)
+function slGvCalcLogoMin(mat, stk){
+  const modus=$('slGvLogoModus')?.value||'flaeche';
+  const anzProSchild=parseInt($('slGvLogoAnz')?.value)||1;
+  let minProSchild=0;
+  if(modus==='flaeche'){
+    const cm2=parseFloat($('slGvLogoCm2')?.value)||0;
+    const cm2ProMin=(P.gravur?.logoCm2ProMin||{})[mat]||2.5;
+    minProSchild=cm2>0?(cm2/cm2ProMin):0;
+  } else {
+    minProSchild=parseFloat($('slGvLogoMin')?.value)||0;
+  }
+  return minProSchild * anzProSchild * stk;
+}
+
 function cSl(){
   if($('schildForm')?.style.display==='none'){updateTotals();return null;}
 
