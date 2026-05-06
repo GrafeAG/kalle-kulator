@@ -12259,15 +12259,23 @@ function editPos(i){
         const ap=document.getElementById('ftAnlieferungPreis');if(ap&&p.uebergabe.betrag)ap.value=p.uebergabe.betrag;
         cFt&&setTimeout(()=>cFt(),10);
       }
-      // Arbeitszeit-Positionen restore
-      (p.wtArbeiten||[]).forEach(a=>{
-        const idx=P.arbeitswerte.findIndex(w=>w.name===a.label||w.name===a.name);
-        if(idx<0)return;
-        const chk=document.getElementById('ft-wt'+idx);if(chk)chk.checked=true;
-        const minEl=document.getElementById('min-ft-wt'+idx);if(minEl&&a.min>0)minEl.value=a.min;
-      });
       cFt();
     },40);
+    // WT Arbeitszeit: nach ftReBuild restoren (DOM existiert erst dann)
+    if(p.wtArbeiten&&p.wtArbeiten.length>0){
+      window._ftObState = window._ftObState||{};
+      window._ftObState._pendingWtArbeiten = p.wtArbeiten;
+      setTimeout(()=>{
+        (window._ftObState?._pendingWtArbeiten||[]).forEach(a=>{
+          const idx=P.arbeitswerte.findIndex(w=>w.name===a.label||w.name===a.name);
+          if(idx<0)return;
+          const chk=document.getElementById('ft-wt'+idx);if(chk)chk.checked=true;
+          const minEl=document.getElementById('min-ft-wt'+idx);if(minEl&&a.min>0)minEl.value=a.min;
+        });
+        delete window._ftObState._pendingWtArbeiten;
+        cFt&&cFt();
+      },200);
+    }
     $('folientechnikForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='rabatt'){
     $('rabattTitle').textContent=`Position ${i+1} bearbeiten – Rabatt`;
