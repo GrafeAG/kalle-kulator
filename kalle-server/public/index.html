@@ -5932,7 +5932,7 @@ function slReBuild(){
 
   function renderSlPlottFarben(){
     pfCont.innerHTML='';
-    const farben=ob.plottFarben||[''];
+    const farben=(ob.plottFarben&&ob.plottFarben.length>0)?ob.plottFarben:[{farbe:'',folieIdx:-1}];
     farben.forEach((pf,fi)=>{
       const sfx=fi===0?'':'_f'+fi;
       const id='slAktPlott'+sfx;
@@ -8398,7 +8398,7 @@ function startPos(type){
     window._slObState = {
       folie:false, folieIdx:-1, laminat:false, laminatIdx:-1,
       druck:false, druckIdx:-1, tape:false, setup:false, plottSetup:false,
-      plottFarben:[], wtPlott:false, wtLam:false
+      plottFarben:[{farbe:'',folieIdx:-1}], wtPlott:false, wtLam:false
     };
     window._slArbState={}; // Arbeiten-State zurücksetzen
     window._slGvModus='text'; // Gravur-Modus zurücksetzen
@@ -11838,7 +11838,7 @@ function editPos(i){
       druck:   !!p.druck,    druckIdx:   p.druckIdx??-1,
       tape:    !!p.tape,
       setup:   !!p.setup,    plottSetup: !!p.plottSetup,
-      plottFarben: p.plottFarben||[],
+      plottFarben: (p.plottFarben&&p.plottFarben.length>0)?p.plottFarben:[{farbe:'',folieIdx:-1}],
       wtPlott: !!(p.wtPlott||p.wtPlottMin),  wtLam: !!(p.wtLam||p.wtLamMin),
       wtPlottModus: p.wtPlottModus||'pos',
       wtPlottMin:   p.wtPlottMin||(typeof p.wtPlott==='number'?p.wtPlott:0)||0,
