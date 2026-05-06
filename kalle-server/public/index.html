@@ -2504,7 +2504,7 @@ const DEF={
   },
 };
 
-let P=loadP();
+let P=loadP(); window.P=P; // Test-Zugriff
 function loadP(){
   const fresh=JSON.parse(JSON.stringify(DEF));
   try{
@@ -8081,6 +8081,11 @@ function saveSchild(){
     angeliefertBez:$('slAngeliefertBez')?.value?.trim()||'',
     slFormfaktor: window._slFormfaktor || 0.5,
     zuschnittVK:r.zuschnittVK||0,
+    slZAkt:!!$('slZAkt')?.checked,
+    slZMin:parseFloat($('min-slZ')?.value)||0,
+    slZSetupAkt:!!$('slZSetup')?.checked,
+    slZEntgAkt:!!$('slZEntg')?.checked,
+    slZEntgMin:parseFloat($('min-slZEntg')?.value)||0,
     eloxAkt:gC('slEloxAkt'),frEloxVK:r.eloxVK||0,
     eloxLief:(()=>{const w=$('slEloxWrap');return w?.querySelector('[data-lief].lief-sel')?.dataset.lief||'ateco';})(),
     eloxManAkt:gC('slElox-manuelAkt'),
@@ -11807,6 +11812,17 @@ function editPos(i){
       const zm = p.zuschnittMethode||'saegen';
       const btn=document.querySelector(`#slZuschnittMethode .zopt[data-val="${zm}"]`);
       if(btn) slSetZuschnitt(btn);
+      // Restore der manuell eingegebenen Zuschnitt-Minuten (überschreibt Auto-Calc)
+      setTimeout(()=>{
+        if(p.slZAkt != null){
+          const zChk=$('slZAkt');if(zChk)zChk.checked=p.slZAkt;
+        }
+        if(p.slZMin>0){const inp=$('min-slZ');if(inp)inp.value=p.slZMin;}
+        if(p.slZSetupAkt!=null){const s=$('slZSetup');if(s)s.checked=p.slZSetupAkt;}
+        if(p.slZEntgAkt!=null){const e=$('slZEntg');if(e)e.checked=p.slZEntgAkt;}
+        if(p.slZEntgMin>0){const inp=$('min-slZEntg');if(inp)inp.value=p.slZEntgMin;}
+        cSl&&cSl();
+      },30);
       // Restore angeliefertBez + formfaktor
       setTimeout(()=>{
         const abEl=$('slAngeliefertBez');
