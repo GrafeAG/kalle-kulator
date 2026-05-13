@@ -2846,11 +2846,11 @@ function getMonData(cid){
   const items=[];let total=0;
   P.montage.forEach((m,gi)=>{
     const chk=$(`makt-${cid}-${gi}`);if(!chk||!chk.checked)return;
-    let val=0,detail='';
-    if(m.einheit==='CHF/Min'){const min=parseFloat($(`mmin-${cid}-${gi}`)?.value)||0;val=min*m.preis;detail=`${min}Min`;}
-    else if(m.einheit==='pro Stk'){const stk=parseInt($(`mstk-${cid}-${gi}`)?.value)||1;val=stk*m.preis;detail=`${stk}Stk`;}
+    let val=0,detail='',min=0,stk=0;
+    if(m.einheit==='CHF/Min'){min=parseFloat($(`mmin-${cid}-${gi}`)?.value)||0;val=min*m.preis;detail=`${min}Min`;}
+    else if(m.einheit==='pro Stk'){stk=parseInt($(`mstk-${cid}-${gi}`)?.value)||1;val=stk*m.preis;detail=`${stk}Stk`;}
     else val=m.preis;
-    total+=val;items.push({name:m.name,val,detail});
+    total+=val;items.push({name:m.name,val,detail,min,stk});
   });
   return{total,items};
 }
@@ -7327,6 +7327,15 @@ function buildSlMontageStep(){
   if(!window.__buildSlMontageStepState) window.__buildSlMontageStepState={};
   const _uiob = window.__buildSlMontageStepState;
   ['slAnfahrtAkt', 'slMontageSeparat'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
+  // Anfahrt + Personal Werte sichern VOR Wipe
+  const _afKmEl=$('slAnfahrtKm');if(_afKmEl)_uiob._afKm=parseFloat(_afKmEl.value)||0;
+  const _montAnzEl=$('montAnzMA');if(_montAnzEl)_uiob._montAnz=parseInt(_montAnzEl.value)||1;
+  P.arbeitswerte&&P.arbeitswerte.forEach((item,i)=>{
+    if(item.gruppe==='Setup')return;
+    const chk=$('sl-arb'+i);const minEl=$('min-sl-arb'+i);
+    if(chk)_uiob['_arb'+i+'_chk']=chk.checked;
+    if(minEl)_uiob['_arb'+i+'_min']=parseFloat(minEl.value)||0;
+  });
   const ac=$('tgSlMon');if(!ac)return;ac.innerHTML='';
   const anfahrt=P.anfahrt?.tabelle||[];
   const sepBanner=document.createElement('div');
@@ -7337,7 +7346,7 @@ function buildSlMontageStep(){
       <div style="font-size:10px;color:var(--muted);">Wenn aktiv: Montagekosten dieser Position werden nicht kalkuliert — stattdessen via «Montage Gesamtauftrag».</div>
     </div>`;
   ac.appendChild(sepBanner);
-  const nMA=parseInt($('montAnzMA')?.value)||1;
+  const nMA=_uiob._montAnz||parseInt($('montAnzMA')?.value)||1;
 
   addSecHead&&addSecHead(ac,'Anfahrtspauschale','t');
 
@@ -7443,7 +7452,19 @@ function buildSlMontageStep(){
   ac.appendChild(slVersandWrap);
   buildVersandSection(slVersandWrap,'sl','cSl');
   // Synchroner Restore
-  (()=>{const ob=window.__buildSlMontageStepState||{};['slAnfahrtAkt', 'slMontageSeparat'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
+  (()=>{
+    const ob=window.__buildSlMontageStepState||{};
+    ['slAnfahrtAkt','slMontageSeparat'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});
+    const afKmEl=$('slAnfahrtKm');if(afKmEl&&ob._afKm)afKmEl.value=ob._afKm;
+    const montAnzEl=$('montAnzMA');if(montAnzEl&&ob._montAnz)montAnzEl.value=ob._montAnz;
+    P.arbeitswerte&&P.arbeitswerte.forEach((item,i)=>{
+      if(item.gruppe==='Setup')return;
+      const chk=$('sl-arb'+i);const minEl=$('min-sl-arb'+i);
+      if(chk&&ob['_arb'+i+'_chk']!==undefined)chk.checked=ob['_arb'+i+'_chk'];
+      if(minEl&&ob['_arb'+i+'_min']>0)minEl.value=ob['_arb'+i+'_min'];
+    });
+    if(ob._afKm>0||ob['slAnfahrtAkt_chk'])slAnfahrtUpdate&&slAnfahrtUpdate();
+  })();
   const slUebWrap=document.createElement('div');slUebWrap.id='slUebWrap';
   ac.appendChild(slUebWrap);
   buildAbholungSection(slUebWrap,'sl','cSl');
@@ -8098,6 +8119,7 @@ function saveSchild(){
     bruenGlanz:(()=>{const w=$('slBruenWrap');return w?.querySelector('[data-glanz].sel')?.dataset.glanz||'G50';})(),
     lackFarbe:$('slLackFarbe')?.value||'',
     lackGlanz:document.querySelector('#slLackGlanzRow [data-glanz].sel')?.dataset.glanz||'',
+    anfahrtAkt:!!$('slAnfahrtAkt')?.checked,
     anfahrtKm:parseFloat($('slAnfahrtKm')?.value)||0,
     anfahrtNMA:parseInt($('montAnzMA')?.value)||1,
     anfahrtVK:r.anfahrtVK||0,
@@ -8105,8 +8127,8 @@ function saveSchild(){
     totalVK:r.totalVK,stueck:r.proStk,
     wtPlott:gC('slAktWtPlott'), wtLam:gC('slAktWtLam'),
     wtPlottModus:(window._slObState?.wtPlottModus)||'pos',
-    wtPlottMin:parseFloat($('min-slWtPlott')?.value)||0,
-    wtLamMin:parseFloat($('min-slWtLam')?.value)||0,
+    wtPlottMin:gC('slAktWtPlott')?(parseFloat($('min-slWtPlott')?.value)||0):0,
+    wtLamMin:gC('slAktWtLam')?(parseFloat($('min-slWtLam')?.value)||0):0,
     slFormfaktor:window._slFormfaktor||0.5,
     zuschnittMethode:document.querySelector('#slZuschnittMethode .zopt.sel')?.dataset?.val||'saegen',
   };
@@ -11839,7 +11861,7 @@ function editPos(i){
       tape:    !!p.tape,
       setup:   !!p.setup,    plottSetup: !!p.plottSetup,
       plottFarben: (p.plottFarben&&p.plottFarben.length>0)?p.plottFarben:[{farbe:'',folieIdx:-1}],
-      wtPlott: !!(p.wtPlott||p.wtPlottMin),  wtLam: !!(p.wtLam||p.wtLamMin),
+      wtPlott: p.wtPlott!=null?(p.wtPlott>0||p.wtPlott===true):false,  wtLam: p.wtLam!=null?(p.wtLam>0||p.wtLam===true):false,
       wtPlottModus: p.wtPlottModus||'pos',
       wtPlottMin:   p.wtPlottMin||(typeof p.wtPlott==='number'?p.wtPlott:0)||0,
       wtLamMin:     p.wtLamMin||(typeof p.wtLam==='number'?p.wtLam:0)||0,
@@ -12008,10 +12030,10 @@ function editPos(i){
 
         // Schritt 7 — Montage
         const sms=$('slMontageSeparat');if(sms)sms.checked=!!p.montageSeparat;
-        if(p.anfahrtKm>0){
-          const km=$('slAnfahrtKm');if(km)km.value=p.anfahrtKm;
+        if(p.anfahrtAkt||p.anfahrtKm>0){
           const akt=$('slAnfahrtAkt');if(akt)akt.checked=true;
-          slAnfahrtUpdate();
+          const km=$('slAnfahrtKm');if(km&&p.anfahrtKm)km.value=p.anfahrtKm;
+          slAnfahrtUpdate&&slAnfahrtUpdate();
         }
         if(p.anfahrtNMA&&$('montAnzMA'))$('montAnzMA').value=p.anfahrtNMA;
         // Versand restore
