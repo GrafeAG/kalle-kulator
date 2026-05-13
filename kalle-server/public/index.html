@@ -13243,7 +13243,12 @@ function printDoc(mode){
       if(p.folie) mods.push('Digitaldruckfolie: '+sp(p.folie));
       if(p.laminat) mods.push('Laminat: '+sp(p.laminat));
       if(p.plottFarben?.some(f=>f))mods.push('Plottfolie '+p.plottFarben.filter(f=>f).join('/'));
-      if(p.gravurAkt)mods.push(`Beschriftung: Gravur · ${p.gvText||'–'} · ${p.gvZeichen} Zeichen VH ${p.gvVH}mm${(p.gvFarben||[]).filter(f=>f.aktiv&&f.ral).length?' · '+p.gvFarben.filter(f=>f.aktiv&&f.ral).map(f=>f.ral).join('/'):''}`) ;
+      if(p.gravurAkt){
+        const _isLogo=(p.slGvModus==='logo');
+        const _gravDesc=_isLogo
+          ?`Logo${p.slGvLogoName?' · '+p.slGvLogoName:''} · ca. ${p.gravurMin?.toFixed(1)||'?'} Min.`
+          :`${p.gvText||'–'} · ${p.gvZeichen||0} Zeichen · VH ${p.gvVH}mm`;
+        mods.push(`Beschriftung: Gravur · ${_gravDesc}${(p.gvFarben||[]).filter(f=>f.aktiv&&f.ral).length?' · Einlegefarbe: '+p.gvFarben.filter(f=>f.aktiv&&f.ral).map(f=>f.ral).join('/'):''}`);}
       if(p.pulverRAL)mods.push(`Pulver RAL ${p.pulverRAL.farbe} ${p.pulverRAL.finish}`);
       if(p.pulverNCS)mods.push(`Pulver NCS ${p.pulverNCS.farbe} ⚠ Verfügbarkeit klären`);
       if(p.pulverIGP)mods.push(`IGP ${p.pulverIGP.farbe}`);
@@ -13423,7 +13428,11 @@ function printDoc(mode){
       const zeilenStr=(p.zeilen&&p.zeilen.length>1)?
         p.zeilen.filter(z=>z.text).map(z=>`${z.text} (VH ${z.vh}mm)`).join(' · ')
         :(p.text||'');
-      detail=`<strong>Beschriftung: Gravur</strong> · Format: ${p.l||'?'}×${p.b||'?'}mm · ${p.stk} Stk. · ${p.m2n?.toFixed(4)||'?'} m²<br>${zeilenStr} · ${p.zeichenTotal} Zeichen · ${p.gravurMin?.toFixed(1)} Min.${p.schildName?' · Schildmaterial: '+p.schildName:''}${_gfc2?' · Einlegefarbe: '+_gfc2:''}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
+      const _saIsLogo=(p.gvModus==='logo');
+      const _saGravStr=_saIsLogo
+        ?`Logo${p.logoBreite&&p.logoHoehe?' · '+p.logoBreite+'×'+p.logoHoehe+'mm':''}${p.gravurMin?' · ca. '+p.gravurMin.toFixed(1)+' Min.':''}`
+        :`${zeilenStr} · ${p.zeichenTotal||0} Zeichen · ${p.gravurMin?.toFixed(1)||'?'} Min.`;
+      detail=`<strong>Beschriftung: Gravur</strong> · Format: ${p.l||'?'}×${p.b||'?'}mm · ${p.stk} Stk. · ${p.m2n?.toFixed(4)||'?'} m²<br>${_saGravStr}${p.schildName?' · Schildmaterial: '+p.schildName:''}${_gfc2?' · Einlegefarbe: '+_gfc2:''}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
       if(isInt)detail+=`<br><span style="color:#999;">Material EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)}</span>`;
     }else if(p.type==='montage'){
       const mparts=[];
