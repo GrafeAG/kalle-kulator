@@ -117,7 +117,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .btn-d:hover{background:rgba(255,69,58,.1);}
 
 /* POSITION CARDS */
-.pos-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:180px;overflow-y:auto;}
+.pos-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:420px;overflow-y:auto;}
 .drag-handle{cursor:grab;color:var(--muted);padding:0 6px 0 2px;font-size:16px;line-height:1;flex-shrink:0;user-select:none;opacity:.5;transition:opacity .15s;}
 .pc:hover .drag-handle{opacity:1;}
 .pc.drag-over{border:2px dashed var(--accent)!important;opacity:.7;}
@@ -4026,7 +4026,9 @@ function frAnfahrtUpdate(){
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   const activeRow=document.getElementById('frafrow-'+row.bisKm);
   if(activeRow)activeRow.style.background='var(--accent-dim)';
-  if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}`;
+  if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
+  cGv&&cGv();
+  cFr&&cFr();
 }
 
 function frInitPulver(){
@@ -4880,7 +4882,8 @@ function gvAnfahrtUpdate(){
   if(km>105){if(hint)hint.textContent='Über 105 km — individuelle Offerte';return;}
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
-  if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}`;
+  if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
+  cFt&&cFt();
 }
 
 
@@ -7529,7 +7532,8 @@ function slAnfahrtUpdate(){
   const activeRow=document.getElementById('afrow-'+row.bisKm);
   if(activeRow)activeRow.style.background='var(--accent-dim)';
 
-  if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → Staffel bis ${row.bisKm} km · CHF ${preis}`;
+  if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → Staffel bis ${row.bisKm} km · CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
+  cSl&&cSl();
 }
 
 
