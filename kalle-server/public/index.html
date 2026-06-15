@@ -118,6 +118,10 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 
 /* POSITION CARDS */
 .pos-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:180px;overflow-y:auto;}
+.drag-handle{cursor:grab;color:var(--muted);padding:0 6px 0 2px;font-size:16px;line-height:1;flex-shrink:0;user-select:none;opacity:.5;transition:opacity .15s;}
+.pc:hover .drag-handle{opacity:1;}
+.pc.drag-over{border:2px dashed var(--accent)!important;opacity:.7;}
+.pc.dragging{opacity:.4;}
 .pc{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);animation:fi .2s;}
 .pc.tf{border-left:3px solid var(--accent);}
 .pc.tfr{border-left:3px solid var(--amber);}
@@ -4534,7 +4538,7 @@ function saveFraes(){
     else showToast('Material und VH prüfen','error');
     return;
   }
-  const montD={items:[],total:0};
+  const montD=getMonData('tgFrMon');
   const arbeit=[];
   P.arbeitswerte.forEach((item,i)=>{
     const aktEl=$('fr-arb'+i);if(!aktEl||!aktEl.checked)return;
@@ -4624,7 +4628,7 @@ function saveFraes(){
 
 function saveGravur(){
   const r=cGv();if(!r)return;
-  const montD={items:[],total:0};
+  const montD=getMonData('tgGvMon');
   const data={type:'gravur',label:$('gvLabel').value||r.text||'Gravur',
     notiz:$('gvNotiz')?.value||'',text:r.text,l:r.l,b:r.b,m2n:r.m2n,stk:r.stk,vh:r.vh,
     zeichenTotal:r.zeichenTotal,zeichenProSchild:r.zeichenProSchild,
@@ -4896,6 +4900,12 @@ function ftReBuild(){
   // Snapshot aktuellen State in _ftObState VOR DOM-Wipe
   if(!window._ftObState) window._ftObState={};
   const _fob = window._ftObState;
+  P.arbeitswerte&&P.arbeitswerte.forEach((item,i)=>{
+    if(!['Admin','Grafik'].includes(item.gruppe))return;
+    const chk=$('ft-arb'+i);const minEl=$('min-ft-arb'+i);
+    if(chk)_fob['ftArb'+i+'_chk']=chk.checked;
+    if(minEl)_fob['ftArb'+i+'_min']=parseFloat(minEl.value)||0;
+  });
   ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktSetupDD','ftAktSetupPS','ftAktTape','ftAktGlasdekorf'].forEach(id=>{
     const el=$(id); if(el){ _fob[id+'_chk']=el.checked; const sel=el.closest('.tr')?.querySelector('select'); if(sel)_fob[id+'_sel']=sel.selectedIndex; }
   });
@@ -5023,7 +5033,13 @@ function ftReBuild(){
   // Synchroner Restore aus _ftObState
   (()=>{
     const ob=window._ftObState||{};
-    ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktSetupDD','ftAktSetupPS','ftAktTape','ftAktGlasdekorf'].forEach(id=>{
+    P.arbeitswerte&&P.arbeitswerte.forEach((item,i)=>{
+    if(!['Admin','Grafik'].includes(item.gruppe))return;
+    const chk=$('ft-arb'+i);const minEl=$('min-ft-arb'+i);
+    if(chk&&ob['ftArb'+i+'_chk']!==undefined)chk.checked=ob['ftArb'+i+'_chk'];
+    if(minEl&&ob['ftArb'+i+'_min']>0)minEl.value=ob['ftArb'+i+'_min'];
+  });
+  ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktSetupDD','ftAktSetupPS','ftAktTape','ftAktGlasdekorf'].forEach(id=>{
       const el=$(id); if(!el)return;
       if(ob[id+'_chk']!==undefined){ el.checked=ob[id+'_chk']; }
       const sel=el.closest('.tr')?.querySelector('select');
@@ -5439,6 +5455,20 @@ function saveFolientechnik(){
   const data={
     type:'folientechnik',
     label:$('ftLabel')?.value||'Folientechnik',
+    ftArbeit:(()=>{
+      const res=[];
+      P.arbeitswerte.forEach((item,i)=>{
+        if(!['Admin','Grafik'].includes(item.gruppe))return;
+        const chk=document.getElementById('ft-arb'+i);
+        if(!chk||!chk.checked)return;
+        const minEl=document.getElementById('min-ft-arb'+i);
+        const min=parseFloat(minEl?.value)||0;
+        const isPauschal=item.typ==='pauschal'||item.typ==='Pauschal';
+        const val=isPauschal?item.preis:min*item.preis;
+        res.push({name:item.name,min,val});
+      });
+      return res;
+    })(),
     wtArbeiten:(()=>{
       const res=[];
       P.arbeitswerte.forEach((item,i)=>{
@@ -5460,6 +5490,8 @@ function saveFolientechnik(){
     anfahrtVK:r.ftAnfahrtVK,
     montPersAkt:gC('ftMontPersAkt'),
     montStd:parseFloat($('ftMontStd')?.value)||0,
+    montage:getMonData('tgFtMon').items,
+    montageVK:getMonData('tgFtMon').total,
     montageSeparat:gC('ftMontageSeparat')||false,
     folie:gC('ftAktFolie')?ftSelTxt('ftAktFolie'):'',
     folieIdx:(()=>{const chk=$('ftAktFolie');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
@@ -11723,6 +11755,33 @@ function renderPos(){
     const card=document.createElement('div');
     const tc=p.type==='fraes'?'tfr':p.type==='gravur'?'tg':p.type==='rabatt'?'trb':'tf';
     card.className='pc '+tc;
+    card.draggable=true;
+    card.dataset.posIdx=i;
+    // Drag Events
+    card.addEventListener('dragstart',e=>{
+      window._dragSrcIdx=i;
+      card.classList.add('dragging');
+      e.dataTransfer.effectAllowed='move';
+      e.dataTransfer.setData('text/plain',i);
+    });
+    card.addEventListener('dragend',()=>{
+      card.classList.remove('dragging');
+      document.querySelectorAll('.pc.drag-over').forEach(el=>el.classList.remove('drag-over'));
+    });
+    card.addEventListener('dragover',e=>{
+      e.preventDefault();e.dataTransfer.dropEffect='move';
+      card.classList.add('drag-over');
+    });
+    card.addEventListener('dragleave',()=>card.classList.remove('drag-over'));
+    card.addEventListener('drop',e=>{
+      e.preventDefault();card.classList.remove('drag-over');
+      const from=window._dragSrcIdx;const to=i;
+      if(from===to||from==null)return;
+      const moved=positions.splice(from,1)[0];
+      positions.splice(to,0,moved);
+      renderPos();updateGesamtVK&&updateGesamtVK();
+      window._dragSrcIdx=null;
+    });
     let sub='',badge='Schild';
     if(p.type==='text'){
       typeLabel='¶ Textposition';
@@ -11774,6 +11833,7 @@ function renderPos(){
     }
     card.innerHTML=`<div class="pc-hdr">
       <div style="display:flex;align-items:center;flex:1;">
+        <span class="drag-handle" title="Verschieben" onmousedown="event.stopPropagation()" style="cursor:grab;color:var(--muted);padding:0 6px 0 0;font-size:18px;line-height:1;opacity:.45;flex-shrink:0;user-select:none;">⠿</span>
         <span class="pc-num">${String(i+1).padStart(2,'0')}</span>
         <div><div style="font-size:12px;font-weight:500;">${p.label}<span class="tbadge">${badge}</span></div>
         <div style="font-size:10px;color:var(--muted);">${sub}${p.montVK>0?` · Montage CHF ${p.montVK.toFixed(2)}`:''}</div></div>
@@ -12035,6 +12095,13 @@ function editPos(i){
           const km=$('slAnfahrtKm');if(km&&p.anfahrtKm)km.value=p.anfahrtKm;
           slAnfahrtUpdate&&slAnfahrtUpdate();
         }
+        // Montagekosten Checkboxen restoren
+        (p.montage||[]).forEach(m=>{
+          const idx=P.montage.findIndex(mo=>mo.name===m.name);if(idx<0)return;
+          const chk=$('makt-tgSlMon-'+idx);if(chk)chk.checked=true;
+          const minEl=$('mmin-tgSlMon-'+idx);if(minEl&&m.min>0)minEl.value=m.min;
+          const stkEl=$('mstk-tgSlMon-'+idx);if(stkEl&&m.stk>0)stkEl.value=m.stk;
+        });
         if(p.anfahrtNMA&&$('montAnzMA'))$('montAnzMA').value=p.anfahrtNMA;
         // Versand restore
         if(p.versandDpdAkt){
@@ -12189,7 +12256,7 @@ function editPos(i){
         buildFrMontageStep();
         setTimeout(()=>{
           // _frMontState aus Position befüllen
-          window._frMontState={anfahrtAkt:p.anfahrtKm>0, anfahrtKm:p.anfahrtKm||'', montageSeparat:!!p.montageSeparat, montAnzMA:p.montAnzMA||1};
+          window._frMontState={anfahrtAkt:p.anfahrtKm>0, anfahrtKm:p.anfahrtKm||'', montageSeparat:!!p.montageSeparat, montAnzMA:p.montAnzMA||1, montageItems:p.montage||[]};
           if(p.anfahrtKm>0){
             const km=$('frAnfahrtKm');if(km)km.value=p.anfahrtKm;
             const akt=$('frAnfahrtAkt');if(akt)akt.checked=true;
@@ -12208,6 +12275,16 @@ function editPos(i){
         },15);
       },50);
 
+      // Montagekosten restore
+      setTimeout(()=>{
+        (p.montage||[]).forEach(m=>{
+          const idx=P.montage.findIndex(mo=>mo.name===m.name);if(idx<0)return;
+          const chk=$('makt-tgFrMon-'+idx);if(chk)chk.checked=true;
+          const minEl=$('mmin-tgFrMon-'+idx);if(minEl&&m.min>0)minEl.value=m.min;
+          const stkEl=$('mstk-tgFrMon-'+idx);if(stkEl&&m.stk>0)stkEl.value=m.stk;
+        });
+        cFr&&cFr();
+      },200);
       cFr();
     },40);
     $('fraesForm').scrollIntoView({behavior:'smooth'});
@@ -12262,6 +12339,15 @@ function editPos(i){
       if(p.setupPS){const e=$('ftAktSetupPS');if(e)e.checked=true;}
       if(p.anfahrtKm>0){const km=$('ftAnfahrtKm');if(km)km.value=p.anfahrtKm;const akt=$('ftAnfahrtAkt');if(akt)akt.checked=true;ftAnfahrtUpdate();}
       if(p.anfahrtNMA&&$('ftMontMA'))$('ftMontMA').value=p.anfahrtNMA;
+      setTimeout(()=>{
+        (p.montage||[]).forEach(m=>{
+          const idx=P.montage.findIndex(mo=>mo.name===m.name);if(idx<0)return;
+          const chk=$('makt-tgFtMon-'+idx);if(chk)chk.checked=true;
+          const minEl=$('mmin-tgFtMon-'+idx);if(minEl&&m.min>0)minEl.value=m.min;
+          const stkEl=$('mstk-tgFtMon-'+idx);if(stkEl&&m.stk>0)stkEl.value=m.stk;
+        });
+        cFt&&cFt();
+      },250);
       if(p.montPersAkt){const e=$('ftMontPersAkt');if(e)e.checked=true;}
       if(p.montStd&&$('ftMontStd'))$('ftMontStd').value=p.montStd;
       const fms=$('ftMontageSeparat');if(fms)fms.checked=!!p.montageSeparat;
@@ -12283,11 +12369,20 @@ function editPos(i){
       }
       cFt();
     },40);
-    // WT Arbeitszeit: nach ftReBuild restoren (DOM existiert erst dann)
-    if(p.wtArbeiten&&p.wtArbeiten.length>0){
+    // Vorbereitungsarbeiten (Admin/Grafik = ft-arb) + WT restoren nach ftReBuild
+    if((p.ftArbeit&&p.ftArbeit.length>0)||(p.wtArbeiten&&p.wtArbeiten.length>0)){
       window._ftObState = window._ftObState||{};
-      window._ftObState._pendingWtArbeiten = p.wtArbeiten;
+      window._ftObState._pendingWtArbeiten = p.wtArbeiten||[];
+      window._ftObState._pendingFtArbeit = p.ftArbeit||[];
       setTimeout(()=>{
+        // Vorbereitungsarbeiten (ft-arb)
+        (window._ftObState?._pendingFtArbeit||[]).forEach(a=>{
+          const idx=P.arbeitswerte.findIndex(w=>w.name===a.name);
+          if(idx<0)return;
+          const chk=document.getElementById('ft-arb'+idx);if(chk)chk.checked=true;
+          const minEl=document.getElementById('min-ft-arb'+idx);if(minEl&&a.min>0)minEl.value=a.min;
+        });
+        // WT Arbeitszeit (ft-wt)
         (window._ftObState?._pendingWtArbeiten||[]).forEach(a=>{
           const idx=P.arbeitswerte.findIndex(w=>w.name===a.label||w.name===a.name);
           if(idx<0)return;
@@ -12295,6 +12390,7 @@ function editPos(i){
           const minEl=document.getElementById('min-ft-wt'+idx);if(minEl&&a.min>0)minEl.value=a.min;
         });
         delete window._ftObState._pendingWtArbeiten;
+        delete window._ftObState._pendingFtArbeit;
         cFt&&cFt();
       },200);
     }
@@ -12361,6 +12457,18 @@ function editPos(i){
       if(p.gvSchildIdx!=null&&$('gvSchildSel'))$('gvSchildSel').value=p.gvSchildIdx;
       gvInitFarben();
       if(p.gvFarben){gvSetFarben&&gvSetFarben(p.gvFarben);}
+      // Montagekosten restore
+      (p.montage||[]).forEach(m=>{
+        const idx=P.montage.findIndex(mo=>mo.name===m.name);if(idx<0)return;
+        const chk=$('makt-tgGvMon-'+idx);if(chk)chk.checked=true;
+        const minEl=$('mmin-tgGvMon-'+idx);if(minEl&&m.min>0)minEl.value=m.min;
+        const stkEl=$('mstk-tgGvMon-'+idx);if(stkEl&&m.stk>0)stkEl.value=m.stk;
+      });
+      if(p.anfahrtKm>0){
+        const akt=$('gvAnfahrtAkt');if(akt)akt.checked=true;
+        const km=$('gvAnfahrtKm');if(km)km.value=p.anfahrtKm;
+      }
+      if(p.anfahrtNMA&&$('gvMontAnzMA'))$('gvMontAnzMA').value=p.anfahrtNMA;
       cGv();
     },40);
     $('gravurForm').scrollIntoView({behavior:'smooth'});
@@ -13670,7 +13778,7 @@ function printDoc(mode){
     const details=[];
     if(afAkt&&km>0)details.push(`Anfahrt: ${km} km, ${nMA} Monteur${nMA>1?'e':''}`);
     if(persAkt&&std>0)details.push(`Montagepersonal: ${nMA} Monteur${nMA>1?'e':''} × ${std} h`);
-    return `<div style="margin-top:6mm;border-top:1px solid #ccc;padding-top:3mm;">
+    return `<div style="margin-top:6mm;border-top:1px solid #ccc;padding-top:3mm;page-break-inside:avoid;break-inside:avoid;">
     <table style="width:100%;font-size:10px;border-collapse:collapse;">
       <tr><td colspan="5" style="color:#555;font-weight:600;padding:2mm 2mm 1mm;">${gLabel}${details.length?' · '+details.join(' · '):''}</td></tr>
       ${gmd.items.map(m=>`<tr><td colspan="5" style="padding:1mm 2mm;color:#555;">${m.name}${m.min>0?' · '+m.min+' Min':''}</td><td style="text-align:right;padding:1mm 2mm;">CHF ${m.val.toFixed(2)}</td></tr>`).join('')}
