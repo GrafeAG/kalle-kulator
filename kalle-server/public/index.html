@@ -10637,10 +10637,10 @@ function renderKundenstammBackend(){
   // File import button
   const importBtn=document.createElement('button');
   importBtn.className='btn btn-gh';importBtn.style.cssText='width:100%;margin-bottom:8px;';
-  importBtn.textContent='📂 kunden.json / Excel importieren';
+  importBtn.textContent='📂 Kundenliste importieren (Excel / JSON / CSV)';
   importBtn.onclick=()=>{
     const inp=document.createElement('input');
-    inp.type='file'; inp.accept='.json,.csv';
+    inp.type='file'; inp.accept='.json,.csv,.xlsx,.xls';
     inp.onchange=async function(){
       const file=this.files[0]; if(!file)return;
       showToast('Kundenstamm wird geladen...');
@@ -10650,6 +10650,37 @@ function renderKundenstammBackend(){
           const txt=await file.text();
           const data=JSON.parse(txt);
           kunden=Array.isArray(data)?data:(data.kunden||[]);
+        } else if(file.name.match(/\.xlsx?$/i)){
+          // Excel: SheetJS im Browser
+          // SelectLine Excel: Firma=Firmenname, Name=Kontaktperson
+          const mapRow=obj=>{
+            const firma=(obj['Firma']||'').toString().trim();
+            const name =(obj['Name'] ||'').toString().trim();
+            return {
+              nr:      (obj['Nummer']  ||obj['nr']   ||'').toString().replace(/\.0$/,'').trim(),
+              name:    firma||name,
+              kontakt: '',
+              strasse: (obj['Strasse'] ||obj['strasse']||'').toString().trim(),
+              plz:     (obj['PLZ']     ||obj['plz']  ||'').toString().trim(),
+              ort:     (obj['Ort']     ||obj['ort']  ||'').toString().trim(),
+              tel:     (obj['Telefon1']||obj['tel']  ||'').toString().trim(),
+              email:   (obj['Email']   ||obj['email']||'').toString().trim(),
+            };
+          };
+          // SheetJS dynamisch laden
+          if(!window.XLSX){
+            await new Promise((res,rej)=>{
+              const s=document.createElement('script');
+              s.src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js';
+              s.onload=res; s.onerror=rej;
+              document.head.appendChild(s);
+            });
+          }
+          const ab=await file.arrayBuffer();
+          const wb=XLSX.read(ab,{type:'array'});
+          const ws=wb.Sheets[wb.SheetNames[0]];
+          const rows=XLSX.utils.sheet_to_json(ws,{defval:''});
+          kunden=rows.map(mapRow).filter(k=>k.nr&&k.name);
         } else {
           // CSV: SelectLine Format (Semikolon-getrennt)
           const txt=await file.text();
@@ -10658,18 +10689,19 @@ function renderKundenstammBackend(){
           kunden=lines.slice(1).map(l=>{
             const v=l.split(';').map(x=>x.replace(/"/g,'').trim());
             const obj={};header.forEach((h,i)=>obj[h]=v[i]||'');
+            const f=(obj['Firma']||'').trim();
+            const n=(obj['Name']||obj['name']||'').trim();
             return{
-              nr:    obj['Nummer']   ||obj['nr']   ||'',
-              name:  obj['Firma']    ||obj['Name'] ||obj['name']||'',
-              firma: obj['Firma']    ||'',
-              kontakt:obj['Name']   ||'',
-              strasse:obj['Strasse'] ||obj['strasse']||'',
-              plz:   obj['PLZ']     ||obj['plz']  ||'',
-              ort:   obj['Ort']     ||obj['ort']  ||'',
-              tel:   obj['Telefon1']||obj['tel']  ||'',
-              email: obj['Email']   ||obj['email']||'',
+              nr:      (obj['Nummer']||obj['nr']||'').trim(),
+              name:    f||n,
+              kontakt: '',
+              strasse: (obj['Strasse']||obj['strasse']||'').trim(),
+              plz:     (obj['PLZ']||obj['plz']||'').trim(),
+              ort:     (obj['Ort']||obj['ort']||'').trim(),
+              tel:     (obj['Telefon1']||obj['tel']||'').trim(),
+              email:   (obj['Email']||obj['email']||'').trim(),
             };
-          }).filter(k=>k.name&&k.name!=='NICHT MEHR VERWENDEN');
+          }).filter(k=>k.nr&&k.name);
         }
 
         // Lokal laden
