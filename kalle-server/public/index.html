@@ -2493,6 +2493,7 @@ const DEF={
     {name:'Marc Reisenauer', email:'marc.reisenauer@grafe.ch', tel:'061 421 36 69', kuerzel:'MRE'},
     {name:'Benjamin Scheuring', email:'benjamin.scheuring@grafe.ch', tel:'061 561 59 01', kuerzel:'BSC'},
     {name:'Jessica Schlienger', email:'jessica.schlienger@grafe.ch', tel:'061 561 59 04', kuerzel:'JSC'},
+    {name:'Michael Ludwig',     email:'michael.ludwig@grafe.ch',    tel:'061 561 59 05', kuerzel:'MLU'},
   ],
   globalMontage:{
     stundenansatz:1.75,
@@ -4027,8 +4028,8 @@ function frAnfahrtUpdate(){
   const activeRow=document.getElementById('frafrow-'+row.bisKm);
   if(activeRow)activeRow.style.background='var(--accent-dim)';
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
-  cGv&&cGv();
-  cFr&&cFr();
+  if(!window.__cGvUpdating){ window.__cGvUpdating=true; setTimeout(()=>{ cGv&&cGv(); window.__cGvUpdating=false; },0); }
+  if(!window.__cFrUpdating){ window.__cFrUpdating=true; setTimeout(()=>{ cFr&&cFr(); window.__cFrUpdating=false; },0); }
 }
 
 function frInitPulver(){
@@ -4883,7 +4884,7 @@ function gvAnfahrtUpdate(){
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
-  cFt&&cFt();
+  if(!window.__cFtUpdating){ window.__cFtUpdating=true; setTimeout(()=>{ cFt&&cFt(); window.__cFtUpdating=false; },0); }
 }
 
 
@@ -7533,7 +7534,7 @@ function slAnfahrtUpdate(){
   if(activeRow)activeRow.style.background='var(--accent-dim)';
 
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → Staffel bis ${row.bisKm} km · CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
-  cSl&&cSl();
+  if(!window.__cSlUpdating){ window.__cSlUpdating=true; setTimeout(()=>{ cSl&&cSl(); window.__cSlUpdating=false; },0); }
 }
 
 
