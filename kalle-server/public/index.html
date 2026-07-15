@@ -10248,7 +10248,7 @@ function exportSelectLineCSV(){
     bearKuerz,      // Mitarbeiter
   ];
 
-  const csvBeleg = 'sep=;\n' + belegFelder.map(f=>
+  const csvBeleg = belegFelder.map(f=>
     typeof f==='string'&&f.includes(';') ? `"${f}"` : f
   ).join(';');
 
@@ -10300,7 +10300,7 @@ function exportSelectLineCSV(){
     ].map(f=>typeof f==='string'&&f.includes(';')?`"${f}"`:f).join(';'));
   });
 
-  const csvBelegP = 'sep=;\n' + belegpRows.join('\n');
+  const csvBelegP = belegpRows.join('\n');
 
   // ── Modal anzeigen + Download triggern ────────────────────────────────
   const modal = document.createElement('div');
