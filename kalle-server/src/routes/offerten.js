@@ -62,6 +62,35 @@ router.get('/', async (req, res) => {
   }
 });
 
+// GET /offerten/nextnr?prefix=KA150726SKU — Nächste freie Auftragsnummer (atomar aus DB)
+router.get('/nextnr', async (req, res) => {
+  const { prefix } = req.query;
+  if (!prefix || !prefix.match(/^KA\d{6}/)) {
+    return res.status(400).json({ error: 'Ungültiger prefix' });
+  }
+  try {
+    const result = await query(
+      `SELECT auftragsnr FROM offerten
+       WHERE auftragsnr LIKE $1
+       ORDER BY auftragsnr DESC
+       LIMIT 1`,
+      [prefix + '%']
+    );
+    let next = 1;
+    if (result.rows.length) {
+      const m = result.rows[0].auftragsnr.match(/(\d+)$/);
+      if (m) next = parseInt(m[1]) + 1;
+    }
+    const nr = prefix + String(next).padStart(2, '0');
+    console.log(`[Offerten] nextnr: ${nr}`);
+    res.json({ nr, next, prefix });
+  } catch (e) {
+    console.error('[Offerten] nextnr Fehler:', e.message);
+    const ts = Date.now().toString().slice(-4);
+    res.json({ nr: prefix + ts, next: parseInt(ts), prefix });
+  }
+});
+
 // GET /offerten/:id — Einzelne Offerte (vollständiger Payload)
 router.get('/:id', async (req, res) => {
   try {
@@ -168,6 +197,32 @@ router.post('/', async (req, res) => {
   } catch (err) {
     console.error('[Offerten] Speichern fehlgeschlagen:', err.message);
     res.status(500).json({ error: err.message });
+  }
+});
+
+// PATCH /offerten — sl_exportiert + projektPfad aktualisieren
+router.patch('/', async (req, res) => {
+  try {
+    const { auftragsnr, slExportiert, slExportiertAm, slPfad, projektPfad } = req.body;
+    if (!auftragsnr) return res.status(400).json({ error: 'auftragsnr fehlt' });
+    const updates = [];
+    const params = [];
+    let pi = 1;
+    if (slExportiert !== undefined) { updates.push(`sl_exportiert=$${pi++}`); params.push(slExportiert); }
+    if (slExportiertAm)             { updates.push(`sl_exportiert_am=$${pi++}`); params.push(slExportiertAm); }
+    if (slPfad)                     { updates.push(`sl_pfad=$${pi++}`); params.push(slPfad); }
+    if (projektPfad)                { updates.push(`projekt_pfad=$${pi++}`); params.push(projektPfad); }
+    if (!updates.length) return res.status(400).json({ error: 'Keine Felder zum Aktualisieren' });
+    updates.push(`geaendert_am=NOW()`);
+    params.push(auftragsnr);
+    await query(
+      `UPDATE offerten SET ${updates.join(',')} WHERE auftragsnr=$${pi}`,
+      params
+    );
+    res.json({ ok: true });
+  } catch (e) {
+    console.error('[Offerten] PATCH Fehler:', e.message);
+    res.status(500).json({ error: e.message });
   }
 });
 
