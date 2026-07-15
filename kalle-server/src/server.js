@@ -27,6 +27,7 @@ app.use('/preise',       require('./routes/preise'));
 app.use('/offerten',     require('./routes/offerten'));
 app.use('/projekte',     require('./routes/projekte'));
 app.use('/bearbeiter',   require('./routes/bearbeiter'));
+app.use('/kunden',       require('./routes/kunden'));
 app.use('/auswertungen', require('./routes/auswertungen'));
 
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
