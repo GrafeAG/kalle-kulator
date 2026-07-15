@@ -118,6 +118,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 
 /* POSITION CARDS */
 .pos-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:420px;overflow-y:auto;}
+.pc.tsb{border-left:3px solid #ff9900;}
 .drag-handle{cursor:grab;color:var(--muted);padding:0 6px 0 2px;font-size:16px;line-height:1;flex-shrink:0;user-select:none;opacity:.5;transition:opacity .15s;}
 .pc:hover .drag-handle{opacity:1;}
 .pc.drag-over{border:2px dashed var(--accent)!important;opacity:.7;}
@@ -662,6 +663,11 @@ a, button, input, select, textarea, label,
           <div class="type-btn-icon">◈</div>
           <div class="type-btn-name">Folientechnik</div>
           <div class="type-btn-sub">Digitaldruck · Plott · Glasdekor</div>
+        </div>
+        <div class="type-btn" id="tb-sbb" onclick="startPos('sbb')" style="border-color:#ff9900;">
+          <div class="type-btn-icon" style="color:#ff9900;">▤</div>
+          <div class="type-btn-name">SBB Provisorien</div>
+          <div class="type-btn-sub">FIS-Schilder · M&amp;M Publicdesign</div>
         </div>
         <div class="type-btn stl" id="tb-montage" onclick="startPos('montage')">
           <div class="type-btn-icon">⌖</div>
@@ -2013,6 +2019,81 @@ a, button, input, select, textarea, label,
 </div>
 </div>
 
+
+<!-- ═══ SBB PROVISORIEN ═══ -->
+<div id="sbbForm" style="display:none;">
+  <div class="sec">
+    <div class="st y" id="sbbTitle">Neue Position – SBB Provisorien</div>
+
+    <div class="hint ht" style="margin-bottom:10px;">
+      FIS-Schild eingeben (wie M&amp;M bestellt) — Produktionsgrösse inkl. orangem Rand wird automatisch berechnet.
+      Rand = 1/5 der Schildhöhe, aussen angesetzt.
+    </div>
+
+    <div class="fg" style="margin-bottom:10px;">
+      <label>Variante</label>
+      <div id="sbbVariante" class="zsel" style="display:flex;gap:6px;">
+        <div class="zopt sel" data-val="dibond" onclick="sbbSetVariante('dibond')" style="flex:1;">
+          <div style="font-weight:700;font-size:12px;">UV-Druck auf Dibond</div>
+          <div style="font-size:10px;color:var(--muted);">direkt bedruckt</div>
+        </div>
+        <div class="zopt" data-val="folie" onclick="sbbSetVariante('folie')" style="flex:1;">
+          <div style="font-weight:700;font-size:12px;">Druck auf Folie</div>
+          <div style="font-size:10px;color:var(--muted);">Folie pur oder auf Dibond geklebt</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="fr">
+      <div class="fg"><label>Bezeichnung</label><input id="sbbLabel" type="text" placeholder="SBB Provisorien Bahnhof..." oninput="cSb()"></div>
+      <div class="fg"><label>Notiz / Zusatzinfo</label><input id="sbbNotiz" type="text" placeholder="Erscheint in Offerte" oninput="cSb()"></div>
+    </div>
+
+    <div class="st y" style="margin-top:14px;">Schilder</div>
+    <datalist id="dlSbbH"><option value="200"><option value="250"><option value="300"><option value="400"><option value="500"></datalist>
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:12px;" id="sbbMatrix">
+        <thead>
+          <tr style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;">
+            <th style="text-align:left;padding:4px 6px;">Höhe mm</th>
+            <th style="text-align:left;padding:4px 6px;">Länge mm</th>
+            <th style="text-align:center;padding:4px 6px;">Rand</th>
+            <th style="text-align:left;padding:4px 6px;">Seiten</th>
+            <th style="text-align:left;padding:4px 6px;">Menge</th>
+            <th style="text-align:center;padding:4px 6px;" class="sbbColDib">auf Dibond</th>
+            <th style="text-align:left;padding:4px 6px;">Produktion</th>
+            <th style="text-align:right;padding:4px 6px;">VK/Stk</th>
+            <th style="text-align:center;padding:4px 6px;">Ref.</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody id="sbbRows"></tbody>
+      </table>
+    </div>
+    <button class="btn btn-gh" onclick="sbbAddRow()" style="font-size:11px;margin-top:8px;">+ Zeile</button>
+
+    <div class="st y" style="margin-top:16px;">Material &amp; Druck</div>
+    <div id="sbbMatSel"></div>
+
+    <div class="st y" style="margin-top:16px;">Zuschläge</div>
+    <div id="sbbZuschlaege"></div>
+
+    <div class="fr" style="margin-top:10px;">
+      <div class="fg" style="max-width:180px;">
+        <label>Marge Material</label>
+        <input id="sbbMarge" type="number" step="0.05" value="0.5" oninput="cSb()">
+      </div>
+    </div>
+
+    <div class="st y" style="margin-top:16px;">Kalkulation</div>
+    <div id="sbbBreakdown" style="font-size:11px;"></div>
+
+    <div style="display:flex;gap:8px;margin-top:16px;">
+      <button class="btn btn-y" onclick="saveSbb()" style="flex:1;">Position speichern</button>
+      <button class="btn btn-gh" onclick="cancelEdit()">Abbrechen</button>
+    </div>
+  </div>
+</div>
 </div>
 
 <div class="page" id="page-auftraege">
@@ -2081,6 +2162,7 @@ a, button, input, select, textarea, label,
     <button class="btn btn-gh" id="be-tab-margen"     onclick="showBeTab('margen')"     style="font-size:11px;">📊 Margen</button>
     <button class="btn btn-gh" id="be-tab-team"       onclick="showBeTab('team')"       style="font-size:11px;">👥 Team</button>
     <button class="btn btn-gh" id="be-tab-system"     onclick="showBeTab('system')"     style="font-size:11px;">🔗 System</button>
+    <button class="btn btn-gh" id="be-tab-sbb"        onclick="showBeTab('sbb')"        style="font-size:11px;border-color:#ff9900;">▤ SBB / M&amp;M</button>
   </div>
 
   <!-- Zentral-Speichern Banner -->
@@ -2095,6 +2177,11 @@ a, button, input, select, textarea, label,
   <!-- Tab: Folien & Material -->
   <div id="be-content-preise" style="display:block;">
     <div id="beMain"></div>
+  </div>
+
+  <!-- Tab: SBB / M&M -->
+  <div id="be-content-sbb" style="display:none;">
+    <div id="beSbb"></div>
   </div>
 
   <!-- Tab: Produktion -->
@@ -2483,6 +2570,25 @@ const DEF={
       bearbeiterColId:'text',
       dateColId:'date',
     },
+  },
+  // ═══ SBB Provisorien (M&M Publicdesign) ═══
+  sbb:{
+    stundensatz:      70.00,   // CHF/h Werbetechniker — M&M-Sondersatz
+    grafikSatz:      120.00,   // CHF/h Grafik/Layout
+    auftragspauschale:30.00,   // 1x pro Auftrag
+    minFolieLfm:       0.50,
+    minLaminatLfm:     0.75,
+    minSchnittLfm:     1.00,
+    konturschnitt:[12,18,25,30,35],  // min bei 1..5 Rollen-lfm
+    konturschnittPlus: 5,            // +min je weiterem lfm
+    aufklebenFix1:     0.50,   // saeubern + Druck ansetzen
+    aufklebenRakel:    1.00,   // anrakeln je 250x250-Feld
+    aufklebenFix2:     1.25,   // Endkontrolle / Kantenschnitt
+    refSockel:        56.00,   // Referenzformel Preisliste 2026
+    refF1:           125.60,   // einseitig
+    refF2:           216.60,   // zweiseitig
+    marge:             0.50,
+    hoehen:[200,250,300,400,500],
   },
   bearbeiter:[
     {name:'Sven Kurtz', email:'sven.kurtz@grafe.ch', tel:'061 421 24 02', kuerzel:'SKU'},
@@ -3302,6 +3408,7 @@ function reBuild(){
 
 
   cF();
+  if(typeof buildBeSbb==='function') buildBeSbb();
 }
 
 
@@ -8054,6 +8161,484 @@ function cSl(){
     gvZeichen:parseInt($('slGvZManual')?.value)||0};
 }
 
+// ═══════════════════════════════════════════════════════════════════════
+// SBB PROVISORIEN (cSb) — Kunde M&M Publicdesign / Endkunde SBB
+// Spez. 15.07.2026 — FIS-Normgeometrie, bottom-up Kalkulation
+// ═══════════════════════════════════════════════════════════════════════
+let _sbbVariante = 'dibond';
+let _sbbRowSeq   = 0;
+
+function sbbCfg(){ return P.sbb || {}; }
+
+function sbbSetVariante(v){
+  _sbbVariante = v;
+  document.querySelectorAll('#sbbVariante .zopt').forEach(o=>o.classList.toggle('sel', o.dataset.val===v));
+  const show = (v==='folie');
+  document.querySelectorAll('.sbbColDib, .sbbCellDib').forEach(e=>e.style.display = show ? '' : 'none');
+  sbbBuildMatSel();
+  cSb();
+}
+
+// Längen-Vorschläge: Raster = halbe Schildhöhe, ab Länge >= Höhe
+function sbbLaengenDatalist(dlId, h){
+  const dl = document.getElementById(dlId);
+  if(!dl || !h) return;
+  const raster = h/2;
+  let out = '';
+  for(let l=h; l<=h*14 && l<=6000; l+=raster) out += '<option value="'+Math.round(l)+'">';
+  dl.innerHTML = out;
+}
+
+function sbbRowChanged(el){
+  const tr = el.closest('tr');
+  const h  = parseFloat(tr.querySelector('.sbbH')?.value)||0;
+  const dl = tr.querySelector('datalist');
+  if(dl && h) sbbLaengenDatalist(dl.id, h);
+  cSb();
+}
+
+function sbbAddRow(d){
+  const tb = document.getElementById('sbbRows'); if(!tb) return;
+  d = d || {};
+  const i      = _sbbRowSeq++;
+  const h      = d.h ?? 250;
+  const l      = d.l ?? 1125;
+  const rand   = d.rand !== undefined ? d.rand : true;
+  const seiten = d.seiten ?? 1;
+  const menge  = d.menge ?? 1;
+  const dib    = !!d.aufDibond;
+  const tr = document.createElement('tr');
+  tr.style.borderTop = '1px solid var(--border)';
+  tr.innerHTML =
+    '<td style="padding:3px 6px;"><input class="sbbH" list="dlSbbH" type="number" step="10" value="'+h+'" oninput="sbbRowChanged(this)" style="width:72px;"></td>'+
+    '<td style="padding:3px 6px;"><input class="sbbL" list="dlSbbL'+i+'" type="number" step="5" value="'+l+'" oninput="cSb()" style="width:84px;"><datalist id="dlSbbL'+i+'"></datalist></td>'+
+    '<td style="padding:3px 6px;text-align:center;"><input class="sbbRand" type="checkbox" '+(rand?'checked':'')+' onchange="cSb()"></td>'+
+    '<td style="padding:3px 6px;"><select class="sbbSeiten" onchange="cSb()" style="width:82px;"><option value="1"'+(seiten==1?' selected':'')+'>1-seitig</option><option value="2"'+(seiten==2?' selected':'')+'>2-seitig</option></select></td>'+
+    '<td style="padding:3px 6px;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:62px;"></td>'+
+    '<td class="sbbCellDib" style="padding:3px 6px;text-align:center;"><input class="sbbDibond" type="checkbox" '+(dib?'checked':'')+' onchange="cSb()"></td>'+
+    '<td class="sbbProd" style="padding:3px 6px;color:var(--muted);font-size:11px;white-space:nowrap;">–</td>'+
+    '<td class="sbbVK" style="padding:3px 6px;text-align:right;font-weight:700;white-space:nowrap;">–</td>'+
+    '<td class="sbbAmp" style="padding:3px 6px;text-align:center;" title="Vergleich mit Preisliste 2026">–</td>'+
+    '<td style="padding:3px 6px;"><button class="btn btn-gh" onclick="sbbDelRow(this)" style="font-size:10px;padding:2px 7px;">✕</button></td>';
+  tb.appendChild(tr);
+  sbbLaengenDatalist('dlSbbL'+i, h);
+  const show = (_sbbVariante==='folie');
+  tr.querySelectorAll('.sbbCellDib').forEach(e=>e.style.display = show ? '' : 'none');
+  cSb();
+}
+
+function sbbDelRow(btn){
+  const tb = document.getElementById('sbbRows');
+  if(tb && tb.children.length<=1){ showToast('Mindestens eine Zeile erforderlich','error'); return; }
+  btn.closest('tr')?.remove();
+  cSb();
+}
+
+// Material-/Druck-Auswahl je nach Variante
+function sbbBuildMatSel(){
+  const w = document.getElementById('sbbMatSel'); if(!w) return;
+  const S = sbbCfg();
+  const prev = {
+    folie:   parseInt(document.getElementById('sbbFolie')?.value),
+    laminat: parseInt(document.getElementById('sbbLaminat')?.value),
+    druck:   parseInt(document.getElementById('sbbDruck')?.value),
+    dibond:  parseInt(document.getElementById('sbbDibondMat')?.value),
+  };
+  const opt = (arr,sel,fmt) => (arr||[]).map((x,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>'+(fmt?fmt(x):x.name)+'</option>').join('');
+  const dibIdx = prev.dibond ?? sbbDefaultDibondIdx();
+  let html = '<div class="fr">';
+  if(_sbbVariante==='folie'){
+    html +=
+      '<div class="fg"><label>Digitaldruckfolie</label><select id="sbbFolie" onchange="cSb()">'+
+        opt(P.digitaldruckfolien, isNaN(prev.folie)?0:prev.folie, x=>x.name+' ('+x.preis.toFixed(2)+')')+'</select></div>'+
+      '<div class="fg"><label>Laminat</label><select id="sbbLaminat" onchange="cSb()">'+
+        opt(P.laminate, isNaN(prev.laminat)?0:prev.laminat, x=>x.name+' ('+x.preis.toFixed(2)+')')+'</select></div>';
+  }
+  html +=
+    '<div class="fg"><label>Druckart</label><select id="sbbDruck" onchange="cSb()">'+
+      opt(P.druckarten, isNaN(prev.druck)?sbbDefaultDruckIdx():prev.druck, x=>x.name+' ('+x.preis.toFixed(2)+')')+'</select></div>'+
+    '<div class="fg"><label>Dibond / Trägermaterial</label><select id="sbbDibondMat" onchange="cSb()">'+
+      opt(P.schildmaterial, isNaN(dibIdx)?0:dibIdx, x=>x.name+' '+x.dicke+'mm')+'</select></div>'+
+  '</div>';
+  w.innerHTML = html;
+}
+
+function sbbDefaultDibondIdx(){
+  const i = (P.schildmaterial||[]).findIndex(m=>m.name==='Dibond' && m.dicke===3);
+  return i<0 ? 0 : i;
+}
+function sbbDefaultDruckIdx(){
+  const i = (P.druckarten||[]).findIndex(d=>/UV 4c$/i.test(d.name));
+  return i<0 ? 0 : i;
+}
+
+function sbbBuildZuschlaege(){
+  const w = document.getElementById('sbbZuschlaege'); if(!w) return;
+  const S = sbbCfg();
+  if(w.dataset.built==='1') return;
+  w.dataset.built='1';
+  w.innerHTML =
+    '<div class="tr"><div class="tr-l"><label class="tog"><input type="checkbox" id="sbbSetup" checked onchange="cSb()"><span class="tsl"></span></label>'+
+      '<div><div class="tr-label">Setup Druck</div><div class="tr-sub">Einrichtungskosten, 1x pro Auftrag</div></div></div>'+
+      '<div class="tr-r"><span class="pbadge" id="pb-sbbSetup">–</span></div></div>'+
+    '<div class="tr"><div class="tr-l"><label class="tog"><input type="checkbox" id="sbbPauschale" checked onchange="cSb()"><span class="tsl"></span></label>'+
+      '<div><div class="tr-label">Auftragspauschale</div><div class="tr-sub">Auftragserfassung + Admin, 1x pro Auftrag</div></div></div>'+
+      '<div class="tr-r"><span class="pbadge" id="pb-sbbPauschale">–</span></div></div>'+
+    '<div class="tr"><div class="tr-l"><label class="tog"><input type="checkbox" id="sbbGrafikAkt" onchange="cSb()"><span class="tsl"></span></label>'+
+      '<div><div class="tr-label">Grafik / Layout</div><div class="tr-sub">Zeit x Satz, pro Auftrag</div></div></div>'+
+      '<div class="tr-r"><input type="number" id="sbbGrafikMin" value="0" min="0" step="5" oninput="cSb()" style="width:64px;text-align:right;"><span style="font-size:10px;color:var(--muted);margin:0 6px;">Min</span><span class="pbadge" id="pb-sbbGrafik">–</span></div></div>';
+}
+
+// ── Rechenkern ────────────────────────────────────────────────────────
+function cSb(){
+  const form = document.getElementById('sbbForm');
+  if(!form || form.style.display==='none'){ updateTotals(); return null; }
+
+  const S      = sbbCfg();
+  const _mIn   = parseFloat(document.getElementById('sbbMarge')?.value);
+  const marge  = isNaN(_mIn) ? (S.marge ?? 0.50) : _mIn;   // Materialmarge
+  const mDd    = marge, mLam = marge, mDib = marge;
+  const variante = _sbbVariante;
+  const breite = P.druckbreite || 1300;
+  const satz   = S.stundensatz ?? 70;
+  const gSatz  = S.grafikSatz ?? 120;
+
+  // ── Zeilen lesen + Normgeometrie ──
+  const rows = [];
+  document.querySelectorAll('#sbbRows tr').forEach(tr=>{
+    const h      = parseFloat(tr.querySelector('.sbbH')?.value)||0;
+    const l      = parseFloat(tr.querySelector('.sbbL')?.value)||0;
+    if(!h || !l) return;
+    const rand   = !!tr.querySelector('.sbbRand')?.checked;
+    const seiten = parseInt(tr.querySelector('.sbbSeiten')?.value)||1;
+    const menge  = parseInt(tr.querySelector('.sbbMenge')?.value)||1;
+    const aufDibond = variante==='dibond' ? true : !!tr.querySelector('.sbbDibond')?.checked;
+    const E  = rand ? h/5 : 0;
+    const Hp = h + 2*E;
+    const Lp = l + 2*E;
+    const m2Stk = (Hp/1000)*(Lp/1000);
+    rows.push({h,l,rand,seiten,menge,aufDibond,E,Hp,Lp,m2Stk,m2:m2Stk*menge,tr});
+  });
+
+  const stkTotal = rows.reduce((a,r)=>a+r.menge,0);
+  const m2Total  = rows.reduce((a,r)=>a+r.m2,0);
+
+  // ── Rollen-lfm: Nesting je Produktionshöhe über volle Rollenbreite ──
+  const gruppen = {};
+  rows.forEach(r=>{
+    const fak = (variante==='folie') ? r.seiten : 1;   // 2-seitig = 2x Folie
+    const key = Math.round(r.Hp);
+    if(!gruppen[key]) gruppen[key] = {Hp:r.Hp, len:0};
+    gruppen[key].len += r.Lp * r.menge * fak;
+  });
+  let lfmRoh = 0;
+  const gList = Object.values(gruppen).map(g=>{
+    g.bahnen = Math.max(1, Math.floor(breite / g.Hp));
+    g.lfm    = (g.len/1000) / g.bahnen;
+    lfmRoh  += g.lfm;
+    return g;
+  });
+
+  // ── Material ──
+  let folieVK=0, folieEK=0, lamVK=0, lamEK=0, folieLfm=0, lamLfm=0, folieM2=0, lamM2=0;
+  let minFolieAktiv=false, minLamAktiv=false;
+  const fIdx = parseInt(document.getElementById('sbbFolie')?.value)||0;
+  const lIdx = parseInt(document.getElementById('sbbLaminat')?.value)||0;
+  const dIdx = parseInt(document.getElementById('sbbDruck')?.value);
+  const dibIdx = parseInt(document.getElementById('sbbDibondMat')?.value);
+  const folieObj = (P.digitaldruckfolien||[])[fIdx] || {preis:0,name:''};
+  const lamObj   = (P.laminate||[])[lIdx] || {preis:0,name:''};
+  const druckObj = (P.druckarten||[])[isNaN(dIdx)?sbbDefaultDruckIdx():dIdx] || {preis:0,name:''};
+  const dibObj   = (P.schildmaterial||[])[isNaN(dibIdx)?sbbDefaultDibondIdx():dibIdx] || {preis:0,name:'',dicke:0};
+
+  if(variante==='folie'){
+    const minF = S.minFolieLfm ?? 0.50;
+    const minL = S.minLaminatLfm ?? 0.75;
+    folieLfm = Math.max(lfmRoh, minF);  minFolieAktiv = lfmRoh < minF;
+    lamLfm   = Math.max(lfmRoh, minL);  minLamAktiv   = lfmRoh < minL;
+    folieM2  = folieLfm * breite/1000;   // immer volle Rollenbreite
+    lamM2    = lamLfm   * breite/1000;
+    folieEK  = folieObj.preis * folieM2;
+    lamEK    = lamObj.preis   * lamM2;
+    folieVK  = folieEK * (1+mDd);
+    lamVK    = lamEK   * (1+mLam);
+  }
+
+  // ── Dibond ──
+  const dibondM2 = rows.filter(r=>r.aufDibond).reduce((a,r)=>a+r.m2,0);
+  const dibPreisM2 = (typeof calcSchildMatPreis==='function') ? calcSchildMatPreis(dibObj) : (dibObj.preis||0);
+  const dibEK = dibPreisM2 * dibondM2;
+  const dibVK = dibEK * (1+mDib);
+  // Nesting-Info (Rohtafel)
+  let dibPlatten = 0, dibNutzen = 0;
+  if(dibondM2 > 0 && dibObj.platteL && dibObj.platteB){
+    const steg = dibObj.steg || 15;
+    rows.filter(r=>r.aufDibond).forEach(r=>{
+      const a = Math.floor((dibObj.platteL+steg)/(r.Lp+steg)) * Math.floor((dibObj.platteB+steg)/(r.Hp+steg));
+      const b = Math.floor((dibObj.platteL+steg)/(r.Hp+steg)) * Math.floor((dibObj.platteB+steg)/(r.Lp+steg));
+      const n = Math.max(a,b,0);
+      dibNutzen = Math.max(dibNutzen, n);
+      if(n>0) dibPlatten += r.menge / n;
+    });
+    dibPlatten = Math.ceil(dibPlatten*100)/100;
+  }
+
+  // ── Druck ──
+  const m2DruckRoh = rows.reduce((a,r)=>a + r.m2*r.seiten, 0);
+  const m2Druck = (variante==='folie') ? Math.max(m2DruckRoh, folieM2) : m2DruckRoh;
+  const druckVK = druckObj.preis * m2Druck;   // Druckpreis ist bereits VK
+
+  // ── Setup Druck ──
+  const setupAkt = !!document.getElementById('sbbSetup')?.checked;
+  const setupVK  = setupAkt ? ((typeof getSetupPreis==='function' ? getSetupPreis() : 35) || 35) : 0;
+
+  // ── Konturschnitt (nur Folie) ──
+  let schnittLfm=0, schnittLfmCeil=0, schnittMin=0, schnittVK=0, minSchnittAktiv=false;
+  if(variante==='folie'){
+    const minS = S.minSchnittLfm ?? 1.00;
+    schnittLfm = Math.max(lfmRoh, minS);
+    minSchnittAktiv = lfmRoh < minS;
+    schnittLfmCeil = Math.max(1, Math.ceil(schnittLfm));
+    const tab = S.konturschnitt || [12,18,25,30,35];
+    schnittMin = (schnittLfmCeil <= tab.length)
+      ? tab[schnittLfmCeil-1]
+      : tab[tab.length-1] + (schnittLfmCeil - tab.length) * (S.konturschnittPlus ?? 5);
+    schnittVK = schnittMin/60 * satz;
+  }
+
+  // ── Aufkleben Folie auf Dibond ──
+  let aufklebenMin = 0;
+  if(variante==='folie'){
+    const f1 = S.aufklebenFix1 ?? 0.50, rk = S.aufklebenRakel ?? 1.00, f2 = S.aufklebenFix2 ?? 1.25;
+    rows.filter(r=>r.aufDibond).forEach(r=>{
+      const t = f1 + rk * Math.ceil(r.Lp/250) * (r.Hp/250) + f2;
+      aufklebenMin += t * r.menge * r.seiten;
+    });
+  }
+  const aufklebenVK = aufklebenMin/60 * satz;
+
+  // ── Grafik / Layout ──
+  const grafikAkt = !!document.getElementById('sbbGrafikAkt')?.checked;
+  const grafikMin = grafikAkt ? (parseFloat(document.getElementById('sbbGrafikMin')?.value)||0) : 0;
+  const grafikVK  = grafikMin/60 * gSatz;
+
+  // ── Auftragspauschale ──
+  const pauschaleAkt = !!document.getElementById('sbbPauschale')?.checked;
+  const pauschaleVK  = pauschaleAkt ? (S.auftragspauschale ?? 30) : 0;
+
+  // ── Summen ──
+  const matVK  = folieVK + lamVK + dibVK;
+  const matEK  = folieEK + lamEK + dibEK;
+  const arbVK  = schnittVK + aufklebenVK + grafikVK;
+  const totalVK = matVK + druckVK + setupVK + arbVK + pauschaleVK;
+  const stkVK   = stkTotal>0 ? totalVK/stkTotal : 0;
+
+  // ── Referenzpreis Preisliste 2026 + Ampel je Zeile ──
+  const sockel = S.refSockel ?? 56.00, f1r = S.refF1 ?? 125.60, f2r = S.refF2 ?? 216.60;
+  let refTotal = 0;
+  rows.forEach(r=>{
+    const f = (r.seiten===2) ? f2r : f1r;
+    r.refStk = Math.round((sockel + r.m2Stk * f)/0.05)*0.05;
+    r.refSum = r.refStk * r.menge;
+    refTotal += r.refSum;
+  });
+  // Zeilen-VK: Umlage nach m²-Anteil (inkl. Seiten)
+  const gewSum = rows.reduce((a,r)=>a + r.m2*r.seiten, 0) || 1;
+  rows.forEach(r=>{
+    r.anteil = (r.m2*r.seiten)/gewSum;
+    r.vkSum  = totalVK * r.anteil;
+    r.vkStk  = r.menge>0 ? r.vkSum/r.menge : 0;
+  });
+
+  // ── UI ──
+  rows.forEach(r=>{
+    const pe = r.tr.querySelector('.sbbProd');
+    if(pe) pe.textContent = Math.round(r.Hp)+' × '+Math.round(r.Lp)+' mm · '+(r.m2Stk).toFixed(4)+' m²';
+    const ve = r.tr.querySelector('.sbbVK');
+    if(ve) ve.textContent = 'CHF '+r.vkStk.toFixed(2);
+    const ae = r.tr.querySelector('.sbbAmp');
+    if(ae){
+      const q = r.refStk>0 ? r.vkStk/r.refStk : 0;
+      const col = q<=0.95 ? 'var(--ok)' : q<=1.05 ? 'var(--accent)' : 'var(--danger)';
+      ae.innerHTML = '<span style="color:'+col+';font-weight:700;" title="Liste 2026: CHF '+r.refStk.toFixed(2)+' → '+(q*100).toFixed(0)+'%">●</span>';
+    }
+  });
+  const badge = (id,val)=>{ const e=document.getElementById(id); if(e) e.textContent = val>0 ? 'CHF '+val.toFixed(2) : '–'; };
+  badge('pb-sbbSetup', setupVK);
+  badge('pb-sbbPauschale', pauschaleVK);
+  badge('pb-sbbGrafik', grafikVK);
+
+  const bd = document.getElementById('sbbBreakdown');
+  if(bd){
+    const line = (lbl,val,sub,warn) =>
+      '<div style="display:flex;justify-content:space-between;padding:3px 0;border-bottom:1px solid var(--border);'+(warn?'color:var(--accent);':'')+'">'+
+      '<div>'+lbl+(sub?'<span style="color:var(--muted);font-size:10px;"> · '+sub+'</span>':'')+'</div>'+
+      '<div style="font-variant-numeric:tabular-nums;">'+(val===null?'':'CHF '+val.toFixed(2))+'</div></div>';
+    let h = '';
+    if(variante==='folie'){
+      h += line('Folie '+folieObj.name, folieVK, folieLfm.toFixed(2)+' lfm × '+(breite/1000).toFixed(2)+' m = '+folieM2.toFixed(3)+' m²'+(minFolieAktiv?' — Mindestverbrauch':''), minFolieAktiv);
+      h += line('Laminat '+lamObj.name, lamVK, lamLfm.toFixed(2)+' lfm = '+lamM2.toFixed(3)+' m²'+(minLamAktiv?' — Mindestverbrauch':''), minLamAktiv);
+    }
+    if(dibondM2>0) h += line('Dibond '+dibObj.name+' '+dibObj.dicke+'mm', dibVK, dibondM2.toFixed(3)+' m² netto'+(dibPlatten?' · ca. '+dibPlatten.toFixed(2)+' Rohtafeln':''));
+    h += line('Druck '+druckObj.name, druckVK, m2Druck.toFixed(3)+' m²');
+    if(setupVK>0) h += line('Setup Druck', setupVK, '1x pro Auftrag');
+    if(variante==='folie') h += line('Konturschnitt', schnittVK, lfmRoh.toFixed(2)+' → '+schnittLfmCeil+' lfm · '+schnittMin+' min @ '+satz.toFixed(2)+'/h'+(minSchnittAktiv?' — Anbruch':''), minSchnittAktiv);
+    if(aufklebenVK>0) h += line('Aufkleben auf Dibond', aufklebenVK, aufklebenMin.toFixed(2)+' min @ '+satz.toFixed(2)+'/h');
+    if(grafikVK>0) h += line('Grafik / Layout', grafikVK, grafikMin+' min @ '+gSatz.toFixed(2)+'/h');
+    if(pauschaleVK>0) h += line('Auftragspauschale', pauschaleVK, '1x pro Auftrag');
+    h += '<div style="display:flex;justify-content:space-between;padding:7px 0;margin-top:4px;border-top:2px solid var(--accent);font-weight:800;font-size:13px;">'+
+         '<div>Total VK · '+stkTotal+' Stk</div><div>CHF '+totalVK.toFixed(2)+'</div></div>';
+    h += '<div style="display:flex;justify-content:space-between;padding:2px 0;color:var(--muted);font-size:11px;">'+
+         '<div>Ø pro Stück</div><div>CHF '+stkVK.toFixed(2)+'</div></div>';
+    const q = refTotal>0 ? totalVK/refTotal : 0;
+    const col = q<=0.95 ? 'var(--ok)' : q<=1.05 ? 'var(--accent)' : 'var(--danger)';
+    h += '<div style="display:flex;justify-content:space-between;padding:2px 0;font-size:11px;">'+
+         '<div style="color:var(--muted);">Referenz Preisliste 2026</div>'+
+         '<div style="color:'+col+';">CHF '+refTotal.toFixed(2)+' · '+(q*100).toFixed(0)+'%</div></div>';
+    if(gList.length) h += '<div style="color:var(--muted);font-size:10px;margin-top:6px;">Nesting: '+
+      gList.map(g=>Math.round(g.Hp)+'mm → '+g.bahnen+' Bahnen à '+(g.len/g.bahnen/1000).toFixed(2)+' lfm').join(' · ')+'</div>';
+    bd.innerHTML = h;
+  }
+
+  const lh = document.getElementById('liveHint');
+  if(lh) lh.textContent = 'SBB Provisorien · '+stkTotal+' Stk · '+m2Total.toFixed(3)+' m² · CHF '+totalVK.toFixed(2);
+
+  updateTotals();
+
+  // ⚠ ALLE berechneten Variablen im Return-Objekt (sonst Speicherfehler)
+  return {
+    variante, marge, breite, satz, gSatz,
+    rowsData: rows.map(r=>({h:r.h,l:r.l,rand:r.rand,seiten:r.seiten,menge:r.menge,aufDibond:r.aufDibond,
+                            Hp:r.Hp,Lp:r.Lp,m2Stk:r.m2Stk,m2:r.m2,vkStk:r.vkStk,refStk:r.refStk})),
+    stkTotal, m2Total, lfmRoh,
+    folieIdx:fIdx, laminatIdx:lIdx, druckIdx:isNaN(dIdx)?sbbDefaultDruckIdx():dIdx, dibondIdx:isNaN(dibIdx)?sbbDefaultDibondIdx():dibIdx,
+    folieName:folieObj.name, laminatName:lamObj.name, druckName:druckObj.name, dibondName:dibObj.name, dibondDicke:dibObj.dicke,
+    folieLfm, lamLfm, folieM2, lamM2, folieEK, folieVK, lamEK, lamVK,
+    minFolieAktiv, minLamAktiv, minSchnittAktiv,
+    dibondM2, dibEK, dibVK, dibPlatten, dibNutzen,
+    m2Druck, druckVK,
+    setupAkt, setupVK,
+    schnittLfm, schnittLfmCeil, schnittMin, schnittVK,
+    aufklebenMin, aufklebenVK,
+    grafikAkt, grafikMin, grafikVK,
+    pauschaleAkt, pauschaleVK,
+    matEK, matVK, arbVK,
+    totalVK, stkVK, refTotal,
+    gruppen:gList.map(g=>({Hp:g.Hp,bahnen:g.bahnen,lfm:g.lfm})),
+  };
+}
+
+// ── Speichern ─────────────────────────────────────────────────────────
+function saveSbb(){
+  const r = cSb();
+  if(!r){ showToast('Fehler: cSb() liefert null','error'); return; }
+  if(!r.rowsData.length){ showToast('Mindestens eine Zeile mit Höhe und Länge erfassen','error'); return; }
+  const anzStk = r.stkTotal;
+  const lbl = (document.getElementById('sbbLabel')?.value||'').trim()
+            || 'SBB Provisorien '+(r.variante==='dibond'?'UV auf Dibond':'Druck auf Folie');
+  const data = {
+    type:'sbb',
+    label: lbl,
+    notiz: document.getElementById('sbbNotiz')?.value||'',
+    stk: anzStk,
+    m2n: r.m2Total,
+    ...r,
+  };
+  data.id = editIdx>=0 ? (positions[editIdx].id||Date.now()) : Date.now();
+  const wasEdit = editIdx>=0;
+  if(wasEdit) positions[editIdx]=data; else positions.push(data);
+  document.getElementById('sbbForm').style.display='none';
+  editIdx=-1;
+  renderPos(); updateTotals();
+  const pl=document.getElementById('posList');
+  if(pl) pl.scrollIntoView({behavior:'smooth',block:'nearest'});
+  showToast(wasEdit ? 'SBB Provisorien aktualisiert ✓ · CHF '+r.totalVK.toFixed(2)
+                    : 'SBB Provisorien gespeichert ✓ · '+anzStk+' Stk · CHF '+r.totalVK.toFixed(2));
+}
+
+// ── Backend-Tab: SBB / M&M ────────────────────────────────────────────
+function sbbSetCfg(key, val, isInt){
+  if(!P.sbb) P.sbb = {};
+  P.sbb[key] = isInt ? (parseInt(val)||0) : (parseFloat(val)||0);
+  saveP();
+  if(typeof cSb==='function') cSb();
+}
+function sbbSetSchnitt(i, val){
+  if(!P.sbb) P.sbb = {};
+  if(!Array.isArray(P.sbb.konturschnitt)) P.sbb.konturschnitt = [12,18,25,30,35];
+  P.sbb.konturschnitt[i] = parseFloat(val)||0;
+  saveP();
+  if(typeof cSb==='function') cSb();
+}
+
+function buildBeSbb(){
+  const w = document.getElementById('beSbb'); if(!w) return;
+  const S = P.sbb || {};
+  const num = (label, key, val, step, sub, isInt) =>
+    '<div class="fg" style="min-width:150px;"><label>'+label+'</label>'+
+    '<input type="number" step="'+(step||'0.05')+'" value="'+val+'" '+
+    'onchange="sbbSetCfg(&quot;'+key+'&quot;,this.value'+(isInt?',true':'')+')">'+
+    (sub?'<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+sub+'</div>':'')+'</div>';
+  const tab = S.konturschnitt || [12,18,25,30,35];
+
+  w.innerHTML =
+    '<div class="st y">SBB Provisorien — M&amp;M Publicdesign</div>'+
+    '<div class="hint ht" style="margin-bottom:12px;">'+
+      'Sondersätze für M&amp;M-Aufträge. Folienbreite, Folien-/Laminat-/Dibondpreise und Druckarten '+
+      'kommen aus den Tabs <strong>Folien &amp; Material</strong> bzw. <strong>Kosten &amp; Arbeit</strong>. '+
+      'Aktuelle Rollenbreite: <strong>'+(P.druckbreite||1300)+' mm</strong>.'+
+    '</div>'+
+
+    '<div class="st y" style="margin-top:8px;">Sätze &amp; Pauschalen</div>'+
+    '<div class="fr">'+
+      num('Stundensatz Werbetechniker','stundensatz',(S.stundensatz??70),'1','CHF/h — M&amp;M-Sondersatz (Standard KALLE: 129.60)')+
+      num('Stundensatz Grafik / Layout','grafikSatz',(S.grafikSatz??120),'1','CHF/h')+
+      num('Auftragspauschale','auftragspauschale',(S.auftragspauschale??30),'1','CHF, 1x pro Auftrag')+
+      num('Marge Material','marge',(S.marge??0.5),'0.05','0.5 = 50 % Aufschlag')+
+    '</div>'+
+
+    '<div class="st y" style="margin-top:16px;">Mindestverbräuche</div>'+
+    '<div class="fr">'+
+      num('Folie','minFolieLfm',(S.minFolieLfm??0.5),'0.05','lfm über volle Rollenbreite')+
+      num('Laminat','minLaminatLfm',(S.minLaminatLfm??0.75),'0.05','lfm — unabhängige Untergrenze')+
+      num('Konturschnitt-Zeit','minSchnittLfm',(S.minSchnittLfm??1),'0.05','lfm — entspricht Anbruch')+
+    '</div>'+
+
+    '<div class="st y" style="margin-top:16px;">Konturschnitt — Zeit je Rollen-lfm</div>'+
+    '<div class="hint ht" style="margin-bottom:8px;">Laminieren + Plotten + Entgittern. Angefangene lfm werden aufgerundet.</div>'+
+    '<div class="fr">'+
+      tab.map((v,i)=>'<div class="fg" style="min-width:88px;"><label>'+(i+1)+' lfm</label>'+
+        '<input type="number" step="1" value="'+v+'" onchange="sbbSetSchnitt('+i+',this.value)">'+
+        '<div style="font-size:10px;color:var(--muted);margin-top:2px;">min</div></div>').join('')+
+      num('&gt; 5 lfm','konturschnittPlus',(S.konturschnittPlus??5),'1','min je weiterem lfm')+
+    '</div>'+
+
+    '<div class="st y" style="margin-top:16px;">Aufkleben Folie auf Dibond</div>'+
+    '<div class="hint ht" style="margin-bottom:8px;">'+
+      't = Fix1 + Anrakeln × ⌈L/250⌉ × (H/250) + Fix2 — Basiswerte gelten für 250 mm Höhe.'+
+    '</div>'+
+    '<div class="fr">'+
+      num('Säubern + ansetzen','aufklebenFix1',(S.aufklebenFix1??0.5),'0.05','min, fix')+
+      num('Anrakeln je 250×250','aufklebenRakel',(S.aufklebenRakel??1),'0.05','min, skaliert')+
+      num('Endkontrolle / Kantenschnitt','aufklebenFix2',(S.aufklebenFix2??1.25),'0.05','min, fix')+
+    '</div>'+
+    '<div style="font-size:11px;color:var(--muted);margin-top:6px;">'+
+      'Kontrolle: 250×250 = '+(((S.aufklebenFix1??0.5)+(S.aufklebenRakel??1)*1*1+(S.aufklebenFix2??1.25)).toFixed(2))+' min · '+
+      '1500×250 = '+(((S.aufklebenFix1??0.5)+(S.aufklebenRakel??1)*6*1+(S.aufklebenFix2??1.25)).toFixed(2))+' min · '+
+      '2700×700 = '+(((S.aufklebenFix1??0.5)+(S.aufklebenRakel??1)*11*2.8+(S.aufklebenFix2??1.25)).toFixed(2))+' min'+
+    '</div>'+
+
+    '<div class="st y" style="margin-top:16px;">Referenzformel Preisliste 2026 (Plausibilitätskontrolle)</div>'+
+    '<div class="hint ht" style="margin-bottom:8px;">'+
+      'VK = MROUND( Sockel + m²(Produktion) × Faktor ; 0.05 ) — nur für die DB-Ampel, nicht kalkulationsrelevant.'+
+    '</div>'+
+    '<div class="fr">'+
+      num('Sockel','refSockel',(S.refSockel??56),'0.05','CHF pro Stück')+
+      num('Faktor einseitig','refF1',(S.refF1??125.6),'0.1','CHF/m²')+
+      num('Faktor zweiseitig','refF2',(S.refF2??216.6),'0.1','CHF/m²')+
+    '</div>';
+}
+
 function saveSchild(){
   try{
   const r=cSl();
@@ -8396,7 +8981,7 @@ function getLastSchildFormat(){
 
 function openTypeDialog(){
   editIdx=-1;
-  ['folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm'].forEach(id=>$(id).style.display='none');
+  ['folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm','sbbForm'].forEach(id=>$(id).style.display='none');
   const last=getLastSchildFormat();
   const banner=$('copyBanner');const info=$('copyBannerInfo');
   if(last&&last.l&&last.b&&banner&&info){
@@ -8445,7 +9030,7 @@ function startPosWithCopy(type){
 function startPos(type){
   if(type==='text'){openTextForm();return;}
   $('typeDialog').style.display='none';
-  ['folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm'].forEach(id=>$(id).style.display='none');
+  ['folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm','sbbForm'].forEach(id=>$(id).style.display='none');
   if(type==='schild'){
     $('schildTitle').textContent='Neue Position – Schild';
     $('schildForm').style.display='block';
@@ -8571,6 +9156,19 @@ function startPos(type){
         cFt();
       },60);
     }
+  }else if(type==='sbb'){
+    document.getElementById('sbbTitle').textContent='Neue Position – SBB Provisorien';
+    document.getElementById('sbbForm').style.display='block';
+    _sbbRowSeq=0;
+    const _lb=document.getElementById('sbbLabel'); if(_lb) _lb.value='';
+    const _nz=document.getElementById('sbbNotiz'); if(_nz) _nz.value='';
+    const _mg=document.getElementById('sbbMarge'); if(_mg) _mg.value=(P.sbb&&P.sbb.marge!=null)?P.sbb.marge:0.5;
+    const _tb=document.getElementById('sbbRows'); if(_tb) _tb.innerHTML='';
+    const _z=document.getElementById('sbbZuschlaege'); if(_z) _z.dataset.built='';
+    sbbBuildZuschlaege();
+    sbbSetVariante('dibond');
+    sbbAddRow({h:250,l:1125,rand:true,seiten:1,menge:1});
+    document.getElementById('sbbForm').scrollIntoView({behavior:'smooth'});
   }else if(type==='rabatt'){
     $('rabattTitle').textContent='Neue Position – Rabatt';
     $('rabattForm').style.display='block';
@@ -8601,7 +9199,7 @@ function startPos(type){
 }
 
 function cancelEdit(){
-  ['typeDialog','folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
+  ['typeDialog','folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm','sbbForm'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
   editIdx=-1;
   $('livePanel').innerHTML='<div class="sum-row"><span class="sl">–</span><span class="sv">Keine aktive Eingabe</span></div>';
 }
@@ -8776,6 +9374,13 @@ function _genAuftragsnrLokal(prefix){
   return (todayNrs.length?Math.max(...todayNrs):0)+1;
 }
 
+function resetProjektState(){
+  _projektPfad='';
+  window._projektMeta={};
+  window._slExportiert=false;
+  window._slExportiertAm=null;
+}
+
 async function genAuftragsnr(){
   const b=getBearbeiter();
   const kuerzel=b?b.kuerzel:'GRA';
@@ -8903,6 +9508,10 @@ async function saveToOneDrive(){
     const gMont=getGlobalMontageData();
     const payload={
       auftragsnr:anr,
+      projektPfad:_projektPfad||'',
+      projektMeta:window._projektMeta||{},
+      slExportiert:!!window._slExportiert,
+      slExportiertAm:window._slExportiertAm||null,
     slKundennummer:document.getElementById('slKundennummer')?.value||'',
       kundenname:$('kundenname')?.value||'',
       kontaktperson:$('kontaktperson')?.value||'',
@@ -10201,6 +10810,7 @@ function initFrHerstellungsart(){
 // Sobald Artikelnummern von Grafe AG bekannt sind
 // ══════════════════════════════════════════════════════
 const SL_ARTIKEL = {
+  sbb:           'GR-SCHILD',    // SBB Provisorien
   schild:        'GR-SCHILD',    // ← Artikelnummer Schild
   fraes:         'GR-RELIEF',   // ← Artikelnummer Reliefschriften
   folientechnik: 'GR-FOLIE',    // ← Artikelnummer Folientechnik
@@ -10334,6 +10944,9 @@ function exportSelectLineCSV(){
       _freiText1 = [`"${_s(pos.text||'').substring(0,25)}" VH ${pos.vh||'?'}mm`, pos.matName, _obfl].filter(Boolean).join(' · ').substring(0,80);
     } else if(pos.type==='folientechnik'){
       _freiText1 = [`${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`, pos.folie, pos.laminat?'laminiert':''].filter(Boolean).join(' · ').substring(0,80);
+    } else if(pos.type==='sbb'){
+      _freiText1 = ((pos.variante==='dibond'?'UV auf Dibond':'Druck auf Folie')+' · '+
+        (pos.rowsData||[]).map(r=>r.menge+'x '+r.h+'/'+r.l+(r.rand?'R':'')).join(' ')).substring(0,80);
     } else if(pos.type==='gravur'){
       _freiText1 = (pos.slGvModus==='logo'
         ? `Logo ${pos.slGvLogoBreite||'?'}×${pos.slGvLogoHoehe||'?'}mm`
@@ -10476,6 +11089,8 @@ function exportSelectLineCSV(){
           await navigator.clipboard.writeText(slPfad).catch(()=>{});
           showToast('✓ BELEG.CSV + BELEGP.CSV gespeichert in Offerte\\Selectline_Export → Pfad in Zwischenablage');
           // SL Export Status in gespeicherter Offerte vermerken
+          window._slExportiert = true;
+          window._slExportiertAm = new Date().toISOString();
           const _slAnr = $('auftragsnr')?.value;
           if(_slAnr && serverVerfuegbar){
             fetch(KALLE_SERVER+'/offerten', {
@@ -10495,6 +11110,8 @@ function exportSelectLineCSV(){
         console.warn('[SL Export] Projektordner-Upload Fehler:',e.message);
       }
     })();
+  } else if(!_projektPfad){
+    showToast('⚠ Kein Projektordner verlinkt — CSV nur als Download. Projektordner oben verknüpfen und erneut exportieren.','error');
   } else if(_projektPfad){
     // Kein Server — trotzdem Pfad kopieren
     const slPfad = _projektPfad.replace(/[\\/]+$/,'') + '\\Offerte\\Selectline_Export';
@@ -11949,7 +12566,7 @@ function renderPos(){
   empty.style.display='none';
   positions.forEach((p,i)=>{
     const card=document.createElement('div');
-    const tc=p.type==='fraes'?'tfr':p.type==='gravur'?'tg':p.type==='rabatt'?'trb':'tf';
+    const tc=p.type==='fraes'?'tfr':p.type==='gravur'?'tg':p.type==='rabatt'?'trb':p.type==='sbb'?'tsb':'tf';
     card.className='pc '+tc;
     card.draggable=true;
     card.dataset.posIdx=i;
@@ -12012,6 +12629,11 @@ function renderPos(){
         .filter(Boolean).join('/');
       const obfl=[p.lackAkt?'Lack':'',p.eloxAkt?'Elox':'',p.bruenAkt?'Brün':'',pfr].filter(Boolean).join('/');
       sub=`${p.text} · VH${p.vh}mm · ${p.matName} · ${(p.anzGes||p.anzahl*p.saetze)}Stk${obfl?' · '+obfl:''}`;
+    }else if(p.type==='sbb'){
+      badge='SBB Prov.';
+      const _v=p.variante==='dibond'?'UV auf Dibond':'Druck auf Folie';
+      const _r=(p.rowsData||[]).map(r=>r.menge+'× '+r.h+'/'+r.l+(r.rand?' R':'')).join(' · ');
+      sub=`${_v} · ${p.stk||0}Stk · ${(p.m2n||0).toFixed(3)}m²${_r?' · '+_r:''}`;
     }else if(p.type==='gravur'){
       badge='Gravur';
       const gfc=(p.gvFarben||[]).filter(f=>f.aktiv&&f.ral).map(f=>f.ral).join('/');
@@ -12056,6 +12678,7 @@ function updateTotals(){
     else if(p.type==='gravur')a.gravur+=p.totalVK;
     else if(p.type==='folientechnik')a.folie=(a.folie||0)+p.totalVK;
     else if(p.type==='rabatt')a.rabatt=(a.rabatt||0)+p.totalVK; // negative
+    else if(p.type==='sbb'){a.schild+=p.totalVK;a.mvk+=p.matVK||0;a.arb+=p.arbVK||0;}
     else if(p.type==='schild'){a.schild+=p.totalVK;a.ek+=p.matEK||0;a.mvk+=p.matVK||0;}
     else if(p.type==='montage'){a.mont+=p.totalVK||0;}
     else{a.ek+=p.matEK||0;a.mvk+=p.matVK||0;a.vered+=p.veredVK||0;a.arb+=p.arbVK||0;}
@@ -12076,7 +12699,7 @@ function updateTotals(){
 
 function editPos(i){
   const p=positions[i];editIdx=i;
-  ['typeDialog','folieForm','fraesForm','gravurForm','schildForm'].forEach(id=>$(id).style.display='none');
+  ['typeDialog','folieForm','fraesForm','gravurForm','schildForm','sbbForm'].forEach(id=>$(id).style.display='none');
   if(p.type==='schild'){
     $('schildTitle').textContent=`Position ${i+1} bearbeiten – Schild`;
     $('schildForm').style.display='block';
@@ -12611,6 +13234,35 @@ function editPos(i){
     if($('txtLabel'))$('txtLabel').value=p.label||'';
     if($('txtInhalt'))$('txtInhalt').value=p.text||'';
     if($('txtStyle'))$('txtStyle').value=p.txtStyle||'normal';
+  }else if(p.type==='sbb'){
+    document.getElementById('sbbTitle').textContent='Position '+(i+1)+' bearbeiten – SBB Provisorien';
+    document.getElementById('sbbForm').style.display='block';
+    _sbbRowSeq=0;
+    const _lb=document.getElementById('sbbLabel'); if(_lb) _lb.value=p.label||'';
+    const _nz=document.getElementById('sbbNotiz'); if(_nz) _nz.value=p.notiz||'';
+    const _mg=document.getElementById('sbbMarge'); if(_mg) _mg.value=(p.marge!=null)?p.marge:0.5;
+    const _z=document.getElementById('sbbZuschlaege'); if(_z) _z.dataset.built='';
+    sbbBuildZuschlaege();
+    _sbbVariante = p.variante||'dibond';
+    document.querySelectorAll('#sbbVariante .zopt').forEach(o=>o.classList.toggle('sel', o.dataset.val===_sbbVariante));
+    sbbBuildMatSel();
+    setTimeout(()=>{
+      const fs=document.getElementById('sbbFolie');     if(fs&&p.folieIdx!=null)   fs.value=p.folieIdx;
+      const ls=document.getElementById('sbbLaminat');   if(ls&&p.laminatIdx!=null) ls.value=p.laminatIdx;
+      const ds=document.getElementById('sbbDruck');     if(ds&&p.druckIdx!=null)   ds.value=p.druckIdx;
+      const bs=document.getElementById('sbbDibondMat'); if(bs&&p.dibondIdx!=null)  bs.value=p.dibondIdx;
+      const su=document.getElementById('sbbSetup');     if(su) su.checked=(p.setupAkt!=null)?!!p.setupAkt:true;
+      const pa=document.getElementById('sbbPauschale'); if(pa) pa.checked=(p.pauschaleAkt!=null)?!!p.pauschaleAkt:true;
+      const ga=document.getElementById('sbbGrafikAkt'); if(ga) ga.checked=!!p.grafikAkt;
+      const gm=document.getElementById('sbbGrafikMin'); if(gm) gm.value=p.grafikMin||0;
+      const tb=document.getElementById('sbbRows'); if(tb) tb.innerHTML='';
+      (p.rowsData||[]).forEach(r=>sbbAddRow(r));
+      if(!(p.rowsData||[]).length) sbbAddRow();
+      const _show=(_sbbVariante==='folie');
+      document.querySelectorAll('.sbbColDib, .sbbCellDib').forEach(e=>e.style.display=_show?'':'none');
+      cSb();
+    },40);
+    document.getElementById('sbbForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='gravur'){
     $('gravurTitle').textContent=`Position ${i+1} bearbeiten – Gravur`;
     $('gravurForm').style.display='block';
@@ -12704,6 +13356,10 @@ function saveAuftrag(){
     kundenname:$('kundenname')?.value||'–',
     kontaktperson:$('kontaktperson')?.value||'',
     auftragsnr:anr,
+    projektPfad:_projektPfad||'',
+    projektMeta:window._projektMeta||{},
+    slExportiert:!!window._slExportiert,
+    slExportiertAm:window._slExportiertAm||null,
     datum:$('datum')?.value||new Date().toISOString().split('T')[0],
     telefon:$('telefon')?.value||'',
     email:$('email')?.value||'',
@@ -12944,9 +13600,19 @@ function printOfferte(id){
   if(!a)return;
 
   function posRow(p,i){
-    const typ=p.type==='schild'?'Schild':p.type==='folientechnik'?'Folientechnik':p.type==='fraes'?'Reliefschriften':p.type==='gravur'?'Gravur':'Position';
+    const typ=p.type==='schild'?'Schild':p.type==='sbb'?'SBB Provisorien':p.type==='folientechnik'?'Folientechnik':p.type==='fraes'?'Reliefschriften':p.type==='gravur'?'Gravur':'Position';
     let detail='';
-    if(p.type==='fraes'){
+    if(p.type==='sbb'){
+      const _v = p.variante==='dibond' ? 'UV-Druck auf Dibond' : 'Druck auf Folie';
+      const _z = (p.rowsData||[]).map(r=>
+        r.menge+' × FIS '+r.h+'×'+r.l+'mm'+(r.rand?' mit Rand':' ohne Rand')+
+        ' · '+(r.seiten===2?'2-seitig':'1-seitig')+
+        ' → Produktion '+Math.round(r.Hp)+'×'+Math.round(r.Lp)+'mm').join('<br>');
+      detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
+        ${_v} · ${p.stk||0} Stk · ${(p.m2n||0).toFixed(3)} m²
+        ${_z?'<br>'+_z:''}
+      </div>`;
+    } else if(p.type==='fraes'){
       const obfl=[p.lackAkt?'Nasslack'+(p.lackFarbe?' '+p.lackFarbe:''):'',
         p.pulverRAL?'RAL '+p.pulverRAL.farbe:'',p.pulverNCS?'NCS '+p.pulverNCS.farbe:'',
         p.eloxAkt?'Eloxiert':'',p.bruenAkt?'Brüniert':''].filter(Boolean).join(', ');
@@ -13092,6 +13758,24 @@ function loadAuftrag(id){
   document.querySelectorAll('.nav-pill')[0].classList.add('active');
 
   // Projektordner-Verlinkung wiederherstellen
+  _projektPfad = a.projektPfad || '';
+  // Fallback für alte Aufträge: Pfad vom Server nachladen
+  if(!_projektPfad && serverVerfuegbar && a.auftragsnr){
+    fetch(KALLE_SERVER+'/offerten/'+encodeURIComponent(a.auftragsnr))
+      .then(r=>r.ok?r.json():null)
+      .then(d=>{
+        const p = d?.projekt_pfad || d?.payload?.projektPfad;
+        if(p){
+          _projektPfad = p;
+          window._projektMeta = d?.payload?.projektMeta || {};
+          restoreProjektMeta({projektPfad:p, projektMeta:window._projektMeta});
+          showToast('✓ Projektordner-Verlinkung wiederhergestellt');
+        }
+      }).catch(()=>{});
+  }
+  window._projektMeta = a.projektMeta || {};
+  window._slExportiert = !!a.slExportiert;
+  window._slExportiertAm = a.slExportiertAm || null;
   if(typeof restoreProjektMeta==='function') restoreProjektMeta(a);
 
   // SL Export Status anzeigen
@@ -13560,6 +14244,22 @@ function printDoc(mode){
         <td class="c-ep" style="color:#cc0000;font-weight:700;">– CHF ${p.abzug.toFixed(2)}</td>
         <td class="c-gp" style="color:#cc0000;font-weight:800;font-size:12px;">– CHF ${p.abzug.toFixed(2)}</td>
       </tr>`;
+    }
+    if(p.type==='sbb'){
+      const mods=[];
+      mods.push(p.variante==='dibond' ? 'UV-Druck direkt auf Dibond' : 'Druck auf Folie');
+      (p.rowsData||[]).forEach(r=>{
+        mods.push('· '+r.menge+' × FIS '+r.h+'×'+r.l+'mm'+(r.rand?' mit orangem Rand':'')+
+                  ' · '+(r.seiten===2?'2-seitig':'1-seitig')+
+                  ' → '+Math.round(r.Hp)+'×'+Math.round(r.Lp)+'mm');
+      });
+      if(p.druckName) mods.push('Druckart: '+sp(p.druckName));
+      if(p.variante==='folie'){
+        if(p.folieName)   mods.push('Folie: '+sp(p.folieName));
+        if(p.laminatName) mods.push('Laminat: '+sp(p.laminatName));
+      }
+      if((p.dibondM2||0)>0) mods.push('Träger: '+sp(p.dibondName||'Dibond')+' '+(p.dibondDicke||'')+'mm');
+      detail=`<strong>SBB Provisorien</strong> · ${p.stk||0} Stk · ${(p.m2n||0).toFixed(3)} m²<br>${mods.join('<br>')}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
     }
     if(p.type==='schild'){
       const mods=[];
@@ -14350,7 +15050,7 @@ function renderNasslackBackend(){
 
 
 function showBeTab(tab){
-  ['preise','produktion','kosten','margen','team','system'].forEach(t=>{
+  ['preise','produktion','kosten','margen','team','system','sbb'].forEach(t=>{
     const content=document.getElementById('be-content-'+t);
     const btn=document.getElementById('be-tab-'+t);
     if(content)content.style.display=t===tab?'block':'none';
