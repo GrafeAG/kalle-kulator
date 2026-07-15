@@ -877,6 +877,185 @@ a, button, input, select, textarea, label,
 </div>
 
 
+<div id="sbbForm" style="display:none;" class="pos-form">
+  <div class="st y" id="sbbTitle">Neue Position – SBB Provisorien</div>
+
+  <div class="g2" style="margin-bottom:10px;">
+    <div class="field"><label>Positionsbezeichnung</label>
+      <input id="sbbLabel" type="text" placeholder="SBB Provisorien Bahnhof Basel..." oninput="cSb()">
+    </div>
+    <div class="field" style="grid-column:1/-1;">
+      <label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);font-weight:400;">(erscheint in Offerte)</span></label>
+      <input id="sbbNotiz" type="text" placeholder="z.B. Baustellenkommunikation Etappe 2..." oninput="cSb()">
+    </div>
+  </div>
+
+  <!-- Live strip -->
+  <div style="display:flex;align-items:center;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:5px;padding:6px 10px;margin-bottom:10px;font-size:11px;flex-wrap:wrap;">
+    <span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">Live:</span>
+    <span id="sbbstrip-fmt" style="color:var(--muted);">– Stk</span>
+    <span style="color:var(--border-light);">·</span>
+    <span id="sbbstrip-mat" style="color:var(--muted);">Material –</span>
+    <span style="color:var(--border-light);">·</span>
+    <span id="sbbstrip-arb" style="color:var(--muted);">Arbeit –</span>
+    <span style="color:var(--border-light);">·</span>
+    <span id="sbbstrip-ref" style="color:var(--muted);">Liste 2026 –</span>
+    <span style="margin-left:auto;font-weight:700;color:var(--accent);font-size:13px;" id="sbbstrip-total">CHF –</span>
+  </div>
+
+  <div class="sl-wrap">
+    <!-- LEFT NAV -->
+    <div class="sl-nav">
+      <div class="sl-s act" id="sbbstep-nav-1" onclick="swSbbStep(1)">
+        <div class="sl-sn">1</div>
+        <div>
+          <div class="sl-sl">Schilder</div>
+          <div class="sl-sc" id="sbbchf-1"></div>
+        </div>
+      </div>
+      <div class="sl-s" id="sbbstep-nav-2" onclick="swSbbStep(2)">
+        <div class="sl-sn">2</div>
+        <div>
+          <div class="sl-sl">Material &amp;<br>Druck</div>
+          <div class="sl-sc" id="sbbchf-2"></div>
+        </div>
+      </div>
+      <div class="sl-s" id="sbbstep-nav-3" onclick="swSbbStep(3)">
+        <div class="sl-sn">3</div>
+        <div>
+          <div class="sl-sl">Zuschläge</div>
+          <div class="sl-sc" id="sbbchf-3"></div>
+        </div>
+      </div>
+      <div class="sl-s" id="sbbstep-nav-4" onclick="swSbbStep(4)">
+        <div class="sl-sn">4</div>
+        <div>
+          <div class="sl-sl">Kalkulation</div>
+          <div class="sl-sc" id="sbbchf-4"></div>
+        </div>
+      </div>
+      <div class="sl-tot">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:2px;">Position Total</div>
+        <div id="sbbstep-total" style="font-size:15px;font-weight:700;color:var(--accent);">CHF –</div>
+      </div>
+    </div>
+
+    <!-- RIGHT BODY -->
+    <div class="sl-body">
+
+      <!-- STEP 1: Schilder -->
+      <div class="sl-pane act" id="sbbstep-1">
+        <div class="sl-ph">
+          <div><span class="sl-pn">1</span><span class="sl-pt">Schilder</span></div>
+          <div class="sl-pd">FIS-Schild eingeben wie M&amp;M bestellt — Produktionsgrösse inkl. orangem Rand wird automatisch berechnet.</div>
+        </div>
+
+        <div class="hint ht" style="margin-bottom:10px;">
+          Rand = 1/5 der Schildhöhe, aussen angesetzt · Längenraster = halbe Schildhöhe · Metroschilder ohne Rand.
+        </div>
+
+        <div class="field" style="margin-bottom:10px;">
+          <label>Variante</label>
+          <div id="sbbVariante" style="display:flex;gap:6px;">
+            <div class="zopt sel" data-val="dibond" onclick="sbbSetVariante('dibond')" style="flex:1;cursor:pointer;">
+              <div style="font-weight:700;font-size:12px;">UV-Druck auf Dibond</div>
+              <div style="font-size:10px;color:var(--muted);">direkt bedruckt</div>
+            </div>
+            <div class="zopt" data-val="folie" onclick="sbbSetVariante('folie')" style="flex:1;cursor:pointer;">
+              <div style="font-weight:700;font-size:12px;">Druck auf Folie</div>
+              <div style="font-size:10px;color:var(--muted);">Folie pur oder auf Dibond geklebt</div>
+            </div>
+          </div>
+        </div>
+
+        <datalist id="dlSbbH"><option value="200"><option value="250"><option value="300"><option value="400"><option value="500"></datalist>
+        <div style="overflow-x:auto;margin-bottom:8px;">
+          <table style="width:100%;border-collapse:collapse;font-size:12px;" id="sbbMatrix">
+            <thead>
+              <tr style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">
+                <th style="text-align:left;padding:4px 5px;">Höhe mm</th>
+                <th style="text-align:left;padding:4px 5px;">Länge mm</th>
+                <th style="text-align:center;padding:4px 5px;">Rand</th>
+                <th style="text-align:left;padding:4px 5px;">Seiten</th>
+                <th style="text-align:left;padding:4px 5px;">Menge</th>
+                <th style="text-align:center;padding:4px 5px;" class="sbbColDib">auf Dibond</th>
+                <th style="text-align:left;padding:4px 5px;">Produktion</th>
+                <th style="text-align:right;padding:4px 5px;">VK/Stk</th>
+                <th style="text-align:center;padding:4px 5px;">Ref.</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sbbRows"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-gh" onclick="sbbAddRow()" style="font-size:11px;">+ Zeile</button>
+
+        <div class="sl-nr">
+          <span></span>
+          <button class="sl-nb next" onclick="swSbbStep(2)">Weiter: Material &amp; Druck →</button>
+        </div>
+      </div>
+
+      <!-- STEP 2: Material & Druck -->
+      <div class="sl-pane" id="sbbstep-2">
+        <div class="sl-ph">
+          <div><span class="sl-pn">2</span><span class="sl-pt">Material &amp; Druck</span></div>
+          <div class="sl-pd">Folie, Laminat, Druckart und Trägermaterial. Mindestverbräuche werden automatisch berücksichtigt.</div>
+        </div>
+        <div id="sbbMatSel"></div>
+        <div id="sbbNesting" style="font-size:10px;color:var(--muted);margin-top:8px;background:var(--surface3);border-radius:4px;padding:5px 8px;"></div>
+        <div class="sl-nr">
+          <button class="sl-nb" onclick="swSbbStep(1)">← Schilder</button>
+          <button class="sl-nb next" onclick="swSbbStep(3)">Weiter: Zuschläge →</button>
+        </div>
+      </div>
+
+      <!-- STEP 3: Zuschläge -->
+      <div class="sl-pane" id="sbbstep-3">
+        <div class="sl-ph">
+          <div><span class="sl-pn">3</span><span class="sl-pt">Zuschläge</span></div>
+          <div class="sl-pd">Setup, Auftragspauschale, Grafik &amp; Layout sowie Materialmarge.</div>
+        </div>
+        <div id="sbbZuschlaege"></div>
+        <div class="g2" style="margin-top:10px;">
+          <div class="field"><label>Materialmarge</label>
+            <select id="sbbMarge" onchange="cSb()">
+              <option value="0.3">30%</option>
+              <option value="0.4">40%</option>
+              <option value="0.5" selected>50% (Standard)</option>
+              <option value="0.6">60%</option>
+              <option value="0.7">70%</option>
+            </select>
+          </div>
+        </div>
+        <div class="sl-nr">
+          <button class="sl-nb" onclick="swSbbStep(2)">← Material</button>
+          <button class="sl-nb next" onclick="swSbbStep(4)">Weiter: Kalkulation →</button>
+        </div>
+      </div>
+
+      <!-- STEP 4: Kalkulation -->
+      <div class="sl-pane" id="sbbstep-4">
+        <div class="sl-ph">
+          <div><span class="sl-pn">4</span><span class="sl-pt">Kalkulation</span></div>
+          <div class="sl-pd">Bottom-up gerechnet. Anbruch und Mindestverbräuche sind einzeln ausgewiesen.</div>
+        </div>
+        <div id="sbbBreakdown" style="font-size:11px;"></div>
+        <div class="sl-nr">
+          <button class="sl-nb" onclick="swSbbStep(3)">← Zuschläge</button>
+        </div>
+      </div>
+
+    </div><!-- /sl-body -->
+  </div><!-- /sl-wrap -->
+
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
+    <button class="btn btn-gh" onclick="cancelPos()">Abbrechen</button>
+    <button class="btn btn-a" onclick="saveSbb()">✓ Position speichern</button>
+  </div>
+</div>
+
+
 <div id="rabattForm" style="display:none;" class="pos-form">
   <div class="st y" id="rabattTitle" style="color:var(--danger);">Neue Position – Rabatt</div>
 
@@ -2020,80 +2199,7 @@ a, button, input, select, textarea, label,
 </div>
 
 
-<!-- ═══ SBB PROVISORIEN ═══ -->
-<div id="sbbForm" style="display:none;">
-  <div class="sec">
-    <div class="st y" id="sbbTitle">Neue Position – SBB Provisorien</div>
 
-    <div class="hint ht" style="margin-bottom:10px;">
-      FIS-Schild eingeben (wie M&amp;M bestellt) — Produktionsgrösse inkl. orangem Rand wird automatisch berechnet.
-      Rand = 1/5 der Schildhöhe, aussen angesetzt.
-    </div>
-
-    <div class="fg" style="margin-bottom:10px;">
-      <label>Variante</label>
-      <div id="sbbVariante" class="zsel" style="display:flex;gap:6px;">
-        <div class="zopt sel" data-val="dibond" onclick="sbbSetVariante('dibond')" style="flex:1;">
-          <div style="font-weight:700;font-size:12px;">UV-Druck auf Dibond</div>
-          <div style="font-size:10px;color:var(--muted);">direkt bedruckt</div>
-        </div>
-        <div class="zopt" data-val="folie" onclick="sbbSetVariante('folie')" style="flex:1;">
-          <div style="font-weight:700;font-size:12px;">Druck auf Folie</div>
-          <div style="font-size:10px;color:var(--muted);">Folie pur oder auf Dibond geklebt</div>
-        </div>
-      </div>
-    </div>
-
-    <div class="fr">
-      <div class="fg"><label>Bezeichnung</label><input id="sbbLabel" type="text" placeholder="SBB Provisorien Bahnhof..." oninput="cSb()"></div>
-      <div class="fg"><label>Notiz / Zusatzinfo</label><input id="sbbNotiz" type="text" placeholder="Erscheint in Offerte" oninput="cSb()"></div>
-    </div>
-
-    <div class="st y" style="margin-top:14px;">Schilder</div>
-    <datalist id="dlSbbH"><option value="200"><option value="250"><option value="300"><option value="400"><option value="500"></datalist>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:12px;" id="sbbMatrix">
-        <thead>
-          <tr style="color:var(--muted);font-size:10px;text-transform:uppercase;letter-spacing:.5px;">
-            <th style="text-align:left;padding:4px 6px;">Höhe mm</th>
-            <th style="text-align:left;padding:4px 6px;">Länge mm</th>
-            <th style="text-align:center;padding:4px 6px;">Rand</th>
-            <th style="text-align:left;padding:4px 6px;">Seiten</th>
-            <th style="text-align:left;padding:4px 6px;">Menge</th>
-            <th style="text-align:center;padding:4px 6px;" class="sbbColDib">auf Dibond</th>
-            <th style="text-align:left;padding:4px 6px;">Produktion</th>
-            <th style="text-align:right;padding:4px 6px;">VK/Stk</th>
-            <th style="text-align:center;padding:4px 6px;">Ref.</th>
-            <th></th>
-          </tr>
-        </thead>
-        <tbody id="sbbRows"></tbody>
-      </table>
-    </div>
-    <button class="btn btn-gh" onclick="sbbAddRow()" style="font-size:11px;margin-top:8px;">+ Zeile</button>
-
-    <div class="st y" style="margin-top:16px;">Material &amp; Druck</div>
-    <div id="sbbMatSel"></div>
-
-    <div class="st y" style="margin-top:16px;">Zuschläge</div>
-    <div id="sbbZuschlaege"></div>
-
-    <div class="fr" style="margin-top:10px;">
-      <div class="fg" style="max-width:180px;">
-        <label>Marge Material</label>
-        <input id="sbbMarge" type="number" step="0.05" value="0.5" oninput="cSb()">
-      </div>
-    </div>
-
-    <div class="st y" style="margin-top:16px;">Kalkulation</div>
-    <div id="sbbBreakdown" style="font-size:11px;"></div>
-
-    <div style="display:flex;gap:8px;margin-top:16px;">
-      <button class="btn btn-y" onclick="saveSbb()" style="flex:1;">Position speichern</button>
-      <button class="btn btn-gh" onclick="cancelEdit()">Abbrechen</button>
-    </div>
-  </div>
-</div>
 </div>
 
 <div class="page" id="page-auftraege">
@@ -8170,6 +8276,18 @@ let _sbbRowSeq   = 0;
 
 function sbbCfg(){ return P.sbb || {}; }
 
+function swSbbStep(n){
+  for(let i=1;i<=4;i++){
+    const nav=document.getElementById('sbbstep-nav-'+i);
+    const pane=document.getElementById('sbbstep-'+i);
+    if(nav){ nav.classList.remove('act','done'); if(i<n) nav.classList.add('done'); else if(i===n) nav.classList.add('act'); }
+    if(pane) pane.classList.toggle('act', i===n);
+  }
+  if(n===2) setTimeout(()=>{ const m=document.getElementById('sbbMatSel'); if(m&&!m.children.length) sbbBuildMatSel(); cSb(); },10);
+  if(n===3) setTimeout(()=>{ sbbBuildZuschlaege(); cSb(); },10);
+  if(n===4) setTimeout(()=>cSb(),10);
+}
+
 function sbbSetVariante(v){
   _sbbVariante = v;
   document.querySelectorAll('#sbbVariante .zopt').forEach(o=>o.classList.toggle('sel', o.dataset.val===v));
@@ -8246,19 +8364,19 @@ function sbbBuildMatSel(){
   };
   const opt = (arr,sel,fmt) => (arr||[]).map((x,i)=>'<option value="'+i+'"'+(i===sel?' selected':'')+'>'+(fmt?fmt(x):x.name)+'</option>').join('');
   const dibIdx = prev.dibond ?? sbbDefaultDibondIdx();
-  let html = '<div class="fr">';
+  let html = '<div class="g2">';
   if(_sbbVariante==='folie'){
     html +=
-      '<div class="fg"><label>Digitaldruckfolie</label><select id="sbbFolie" onchange="cSb()">'+
-        opt(P.digitaldruckfolien, isNaN(prev.folie)?0:prev.folie, x=>x.name+' ('+x.preis.toFixed(2)+')')+'</select></div>'+
-      '<div class="fg"><label>Laminat</label><select id="sbbLaminat" onchange="cSb()">'+
-        opt(P.laminate, isNaN(prev.laminat)?0:prev.laminat, x=>x.name+' ('+x.preis.toFixed(2)+')')+'</select></div>';
+      '<div class="field" style="grid-column:1/-1;"><label>Digitaldruckfolie</label><select id="sbbFolie" onchange="cSb()">'+
+        opt(P.digitaldruckfolien, isNaN(prev.folie)?0:prev.folie, x=>x.name+' — EK '+x.preis.toFixed(2)+'/m²')+'</select></div>'+
+      '<div class="field" style="grid-column:1/-1;"><label>Laminat</label><select id="sbbLaminat" onchange="cSb()">'+
+        opt(P.laminate, isNaN(prev.laminat)?0:prev.laminat, x=>x.name+' — EK '+x.preis.toFixed(2)+'/m²')+'</select></div>';
   }
   html +=
-    '<div class="fg"><label>Druckart</label><select id="sbbDruck" onchange="cSb()">'+
-      opt(P.druckarten, isNaN(prev.druck)?sbbDefaultDruckIdx():prev.druck, x=>x.name+' ('+x.preis.toFixed(2)+')')+'</select></div>'+
-    '<div class="fg"><label>Dibond / Trägermaterial</label><select id="sbbDibondMat" onchange="cSb()">'+
-      opt(P.schildmaterial, isNaN(dibIdx)?0:dibIdx, x=>x.name+' '+x.dicke+'mm')+'</select></div>'+
+    '<div class="field" style="grid-column:1/-1;"><label>Druckart</label><select id="sbbDruck" onchange="cSb()">'+
+      opt(P.druckarten, isNaN(prev.druck)?sbbDefaultDruckIdx():prev.druck, x=>x.name+' — '+x.preis.toFixed(2)+'/m²')+'</select></div>'+
+    '<div class="field" style="grid-column:1/-1;"><label>Dibond / Trägermaterial</label><select id="sbbDibondMat" onchange="cSb()">'+
+      opt(P.schildmaterial, isNaN(dibIdx)?0:dibIdx, x=>x.name+' '+x.dicke+'mm — '+(x.preis?x.preis.toFixed(2)+'/m²':''))+'</select></div>'+
   '</div>';
   w.innerHTML = html;
 }
@@ -8500,6 +8618,33 @@ function cSb(){
     bd.innerHTML = h;
   }
 
+  // Live-Strip
+  const setTxt=(id,t,col)=>{const e=document.getElementById(id); if(e){e.textContent=t; if(col)e.style.color=col;}};
+  setTxt('sbbstrip-fmt', stkTotal+' Stk · '+m2Total.toFixed(3)+' m²', stkTotal?'var(--text)':'var(--muted)');
+  setTxt('sbbstrip-mat', 'Material CHF '+matVK.toFixed(2), matVK>0?'var(--text)':'var(--muted)');
+  setTxt('sbbstrip-arb', 'Arbeit CHF '+arbVK.toFixed(2), arbVK>0?'var(--text)':'var(--muted)');
+  const _q = refTotal>0 ? totalVK/refTotal : 0;
+  const _qc = _q<=0.95?'var(--ok)':_q<=1.05?'var(--accent)':'var(--danger)';
+  setTxt('sbbstrip-ref', 'Liste 2026 CHF '+refTotal.toFixed(2)+(refTotal>0?' · '+(_q*100).toFixed(0)+'%':''), refTotal>0?_qc:'var(--muted)');
+  setTxt('sbbstrip-total', 'CHF '+totalVK.toFixed(2));
+  setTxt('sbbstep-total', 'CHF '+totalVK.toFixed(2));
+
+  // Step-Beträge in der Navigation
+  const chf=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent = v>0 ? 'CHF '+v.toFixed(2) : '';};
+  chf('sbbchf-1', matVK + druckVK);
+  chf('sbbchf-2', matVK + druckVK);
+  chf('sbbchf-3', setupVK + pauschaleVK + grafikVK);
+  chf('sbbchf-4', totalVK);
+
+  // Nesting-Info in Step 2
+  const nst = document.getElementById('sbbNesting');
+  if(nst){
+    nst.innerHTML = gList.length
+      ? 'Rollenbreite '+breite+' mm · '+gList.map(g=>Math.round(g.Hp)+' mm Produktionshöhe → '+g.bahnen+' Bahnen à '+(g.len/g.bahnen/1000).toFixed(2)+' lfm').join(' &nbsp;·&nbsp; ')+
+        ' &nbsp;→&nbsp; total '+lfmRoh.toFixed(2)+' lfm'
+      : 'Noch keine Schilder erfasst.';
+  }
+
   const lh = document.getElementById('liveHint');
   if(lh) lh.textContent = 'SBB Provisorien · '+stkTotal+' Stk · '+m2Total.toFixed(3)+' m² · CHF '+totalVK.toFixed(2);
 
@@ -8575,7 +8720,7 @@ function buildBeSbb(){
   const w = document.getElementById('beSbb'); if(!w) return;
   const S = P.sbb || {};
   const num = (label, key, val, step, sub, isInt) =>
-    '<div class="fg" style="min-width:150px;"><label>'+label+'</label>'+
+    '<div class="field"><label>'+label+'</label>'+
     '<input type="number" step="'+(step||'0.05')+'" value="'+val+'" '+
     'onchange="sbbSetCfg(&quot;'+key+'&quot;,this.value'+(isInt?',true':'')+')">'+
     (sub?'<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+sub+'</div>':'')+'</div>';
@@ -8590,7 +8735,7 @@ function buildBeSbb(){
     '</div>'+
 
     '<div class="st y" style="margin-top:8px;">Sätze &amp; Pauschalen</div>'+
-    '<div class="fr">'+
+    '<div class="g2">'+
       num('Stundensatz Werbetechniker','stundensatz',(S.stundensatz??70),'1','CHF/h — M&amp;M-Sondersatz (Standard KALLE: 129.60)')+
       num('Stundensatz Grafik / Layout','grafikSatz',(S.grafikSatz??120),'1','CHF/h')+
       num('Auftragspauschale','auftragspauschale',(S.auftragspauschale??30),'1','CHF, 1x pro Auftrag')+
@@ -8598,7 +8743,7 @@ function buildBeSbb(){
     '</div>'+
 
     '<div class="st y" style="margin-top:16px;">Mindestverbräuche</div>'+
-    '<div class="fr">'+
+    '<div class="g2">'+
       num('Folie','minFolieLfm',(S.minFolieLfm??0.5),'0.05','lfm über volle Rollenbreite')+
       num('Laminat','minLaminatLfm',(S.minLaminatLfm??0.75),'0.05','lfm — unabhängige Untergrenze')+
       num('Konturschnitt-Zeit','minSchnittLfm',(S.minSchnittLfm??1),'0.05','lfm — entspricht Anbruch')+
@@ -8606,8 +8751,8 @@ function buildBeSbb(){
 
     '<div class="st y" style="margin-top:16px;">Konturschnitt — Zeit je Rollen-lfm</div>'+
     '<div class="hint ht" style="margin-bottom:8px;">Laminieren + Plotten + Entgittern. Angefangene lfm werden aufgerundet.</div>'+
-    '<div class="fr">'+
-      tab.map((v,i)=>'<div class="fg" style="min-width:88px;"><label>'+(i+1)+' lfm</label>'+
+    '<div class="g2">'+
+      tab.map((v,i)=>'<div class="field"><label>'+(i+1)+' lfm</label>'+
         '<input type="number" step="1" value="'+v+'" onchange="sbbSetSchnitt('+i+',this.value)">'+
         '<div style="font-size:10px;color:var(--muted);margin-top:2px;">min</div></div>').join('')+
       num('&gt; 5 lfm','konturschnittPlus',(S.konturschnittPlus??5),'1','min je weiterem lfm')+
@@ -8617,7 +8762,7 @@ function buildBeSbb(){
     '<div class="hint ht" style="margin-bottom:8px;">'+
       't = Fix1 + Anrakeln × ⌈L/250⌉ × (H/250) + Fix2 — Basiswerte gelten für 250 mm Höhe.'+
     '</div>'+
-    '<div class="fr">'+
+    '<div class="g2">'+
       num('Säubern + ansetzen','aufklebenFix1',(S.aufklebenFix1??0.5),'0.05','min, fix')+
       num('Anrakeln je 250×250','aufklebenRakel',(S.aufklebenRakel??1),'0.05','min, skaliert')+
       num('Endkontrolle / Kantenschnitt','aufklebenFix2',(S.aufklebenFix2??1.25),'0.05','min, fix')+
@@ -8632,7 +8777,7 @@ function buildBeSbb(){
     '<div class="hint ht" style="margin-bottom:8px;">'+
       'VK = MROUND( Sockel + m²(Produktion) × Faktor ; 0.05 ) — nur für die DB-Ampel, nicht kalkulationsrelevant.'+
     '</div>'+
-    '<div class="fr">'+
+    '<div class="g2">'+
       num('Sockel','refSockel',(S.refSockel??56),'0.05','CHF pro Stück')+
       num('Faktor einseitig','refF1',(S.refF1??125.6),'0.1','CHF/m²')+
       num('Faktor zweiseitig','refF2',(S.refF2??216.6),'0.1','CHF/m²')+
@@ -9168,6 +9313,7 @@ function startPos(type){
     sbbBuildZuschlaege();
     sbbSetVariante('dibond');
     sbbAddRow({h:250,l:1125,rand:true,seiten:1,menge:1});
+    swSbbStep(1);
     document.getElementById('sbbForm').scrollIntoView({behavior:'smooth'});
   }else if(type==='rabatt'){
     $('rabattTitle').textContent='Neue Position – Rabatt';
@@ -13260,6 +13406,7 @@ function editPos(i){
       if(!(p.rowsData||[]).length) sbbAddRow();
       const _show=(_sbbVariante==='folie');
       document.querySelectorAll('.sbbColDib, .sbbCellDib').forEach(e=>e.style.display=_show?'':'none');
+      swSbbStep(1);
       cSb();
     },40);
     document.getElementById('sbbForm').scrollIntoView({behavior:'smooth'});
