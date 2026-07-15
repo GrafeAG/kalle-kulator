@@ -8764,23 +8764,43 @@ function getBearbeiter(){
   return null;
 }
 
-function genAuftragsnr(){
+function _genAuftragsnrLokal(prefix){
+  // Fallback: lokal aus localStorage + gespeicherten Aufträgen
+  const auftraege=loadAuftraege();
+  const serverAuftraege=window._serverAuftraege||[];
+  const alle=[...auftraege,...serverAuftraege];
+  const todayNrs=alle
+    .map(a=>a.auftragsnr||'')
+    .filter(nr=>nr.startsWith(prefix))
+    .map(nr=>{const m=nr.match(/(\d+)$/);return m?parseInt(m[1]):0;});
+  return (todayNrs.length?Math.max(...todayNrs):0)+1;
+}
+
+async function genAuftragsnr(){
   const b=getBearbeiter();
   const kuerzel=b?b.kuerzel:'GRA';
   const d=new Date();
   const day=String(d.getDate()).padStart(2,'0');
   const mon=String(d.getMonth()+1).padStart(2,'0');
   const yr=String(d.getFullYear()).slice(-2);
-  const dateStr=day+mon+yr; // DDMMYY
-  const prefix='KA'+dateStr+kuerzel;
-  const auftraege=loadAuftraege();
-  const todayNrs=auftraege
-    .map(a=>a.auftragsnr||'')
-    .filter(nr=>nr.startsWith(prefix))
-    .map(nr=>{const m=nr.match(/(\d+)$/);return m?parseInt(m[1]):0;});
-  const next=(todayNrs.length?Math.max(...todayNrs):0)+1;
-  const nr=prefix+String(next).padStart(2,'0');
+  const prefix='KA'+day+mon+yr+kuerzel;
   const inp=$('auftragsnr');
+
+  if(serverVerfuegbar){
+    try{
+      // Server vergibt Nummer zentral → kein Konflikt zwischen Instanzen
+      const r=await fetch(KALLE_SERVER+'/offerten/nextnr?prefix='+encodeURIComponent(prefix),{signal:AbortSignal.timeout?AbortSignal.timeout(2000):undefined});
+      if(r.ok){
+        const d=await r.json();
+        const nr=d.nr||prefix+String(d.next||1).padStart(2,'0');
+        if(inp){inp.value=nr;inp.dataset.autoGen='1';}
+        return;
+      }
+    }catch(e){ console.warn('[KALLE] nextnr Server Fehler, Fallback lokal:',e.message); }
+  }
+  // Fallback: lokal
+  const next=_genAuftragsnrLokal(prefix);
+  const nr=prefix+String(next).padStart(2,'0');
   if(inp){inp.value=nr;inp.dataset.autoGen='1';}
 }
 
