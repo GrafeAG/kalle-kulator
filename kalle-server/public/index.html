@@ -391,7 +391,7 @@ a, button, input, select, textarea, label,
     <button class="btn btn-t" onclick="printDoc('internal')">⬡ Intern</button>
     <button class="btn btn-y" onclick="printDocOffer()">↓ Offerte PDF</button>
     <button class="btn" onclick="prepareEmail()" style="background:var(--teal);color:#111;border-color:var(--teal);" title="Outlook E-Mail vorbereiten">✉ E-Mail</button>
-    <button class="btn" onclick="exportSelectLineCSV()" style="background:#0055AA;color:#fff;border-color:#0055AA;" title="Als SelectLine CSV exportieren">SL Export</button>
+    <button class="btn" onclick="exportSelectLineCSV()" style="background:#0055AA;color:#fff;border-color:#0055AA;" title="Als SelectLine CSV exportieren">SL Export</button><span id="slExportBadge" style="display:none;"></span>
 
   </div>
 </header>
@@ -10198,7 +10198,10 @@ const SL_MWST_PCT  = 8.1;
 function exportSelectLineCSV(){
   if(!positions.length){ showToast('Keine Positionen vorhanden','error'); return; }
 
-  const anr   = $('auftragsnr')?.value || 'KA' + Date.now();
+  const _anrRaw = $('auftragsnr')?.value || '';
+  // Belegnummer leer lassen — SelectLine vergibt sie selbst
+  // KALLE Auftragsnummer wird in FreieZahl1 übergeben
+  const anr = '';  // SelectLine auto-numeriert
   const datum = $('datum')?.value || new Date().toISOString().split('T')[0];
   const datumSL = datum.split('-').reverse().join('.'); // tt.mm.jjjj
 
@@ -10219,7 +10222,7 @@ function exportSelectLineCSV(){
   // ── BELEG.CSV ──────────────────────────────────────────────────────────
   // Felder exakt nach Schnittstellenbeschreibung, Semikolon-getrennt
   const belegFelder = [
-    'AN',           // Belegtyp (AN = Angebot)
+    '2',            // Belegtyp (2 = Offerte in SelectLine)
     anr,            // Belegnummer
     document.getElementById('slKundennummer')?.value||'',  // Adressnummer (SL Kundennummer)
     datumSL,        // Datum tt.mm.jjjj
@@ -10251,6 +10254,27 @@ function exportSelectLineCSV(){
     '',             // 30 ValutaDatum
     '',             // 31 VerbandsKLNr
     '',             // 32 DelkredereProzent
+    '',             // 33 LieferadresseName
+    '',             // 34 LieferadresseAnrede
+    '',             // 35 LieferadresseVorname
+    '',             // 36 LieferadresseZusatz
+    '',             // 37 LieferadresseStrasse
+    '',             // 38 LieferadresseLand
+    '',             // 39 LieferadressePLZ
+    '',             // 40 LieferadresseOrt
+    '',             // 41 Abw.Rechnungsadresse
+    _anrRaw,        // 42 FreierText1 = KALLE Auftragsnummer
+    '',             // 43 FreierText2
+    '',             // 44 FreieZahl1  (KALLE Nr. → in FreierText1 übergeben)
+    '',             // 45 FreieZahl2
+    '',             // 46 FreieZahl3
+    '',             // 47 FreieZahl4
+    '',             // 48 FreiesDatum1
+    '',             // 49 FreiesDatum2
+    '',             // 50 FreiesKennzeichen1
+    '',             // 51 FreiesKennzeichen2
+    '',             // 52 FreiesKennzeichen3
+    '',             // 53 FreiesKennzeichen4
   ];
 
   const csvBeleg = belegFelder.map(f=>
@@ -10267,11 +10291,38 @@ function exportSelectLineCSV(){
     const menge   = pos.stk || 1;
     const totalVK = pos.totalVK || 0;
     const ep      = menge > 0 ? totalVK / menge : totalVK;
-    const bez     = (pos.label||'').replace(/;/g, ',').substring(0, 80);
-    const zusatz  = (pos.notiz||'').replace(/;/g, ',').substring(0, 80);
+    // Bezeichnung = Positionsname, Zusatz = Notiz/Zusatzinfo, FreierText1 = techn. Beschrieb
+    const _s = v => (v||'').toString().replace(/;/g,',');
+    const bez    = _s(pos.label).substring(0,80);
+    const zusatz = _s(pos.notiz).substring(0,80);
+    // Technischer Beschrieb je Positionstyp → FreierText1 in BELEGP
+    let _freiText1 = '';
+    if(pos.type==='schild'){
+      const _obfl = [
+        pos.lack||pos.lackAkt ? 'Lack'+(pos.lackFarbe?' '+pos.lackFarbe:'') : '',
+        pos.pulverRAL ? 'RAL '+pos.pulverRAL.farbe : '',
+        pos.eloxAkt ? 'Elox' : '',
+        pos.outdoor2k ? '2K-Outdoor' : '',
+      ].filter(Boolean).join(', ');
+      const _bef = [
+        pos.bolzenAkt ? (pos.bolzenAnz||'')+'Stk Bolzen' : '',
+        pos.vhbAkt ? 'VHB' : '',
+      ].filter(Boolean).join(', ');
+      _freiText1 = [`${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`, pos.matName, _obfl, _bef].filter(Boolean).join(' · ').substring(0,80);
+    } else if(pos.type==='fraes'){
+      const _obfl = [pos.lackAkt?'Lack':'', pos.pulverRAL?'RAL '+pos.pulverRAL.farbe:'', pos.vhbAkt?'VHB':''].filter(Boolean).join(', ');
+      _freiText1 = [`"${_s(pos.text||'').substring(0,25)}" VH ${pos.vh||'?'}mm`, pos.matName, _obfl].filter(Boolean).join(' · ').substring(0,80);
+    } else if(pos.type==='folientechnik'){
+      _freiText1 = [`${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`, pos.folie, pos.laminat?'laminiert':''].filter(Boolean).join(' · ').substring(0,80);
+    } else if(pos.type==='gravur'){
+      _freiText1 = (pos.slGvModus==='logo'
+        ? `Logo ${pos.slGvLogoBreite||'?'}×${pos.slGvLogoHoehe||'?'}mm`
+        : `"${_s(pos.gvText||pos.text||'').substring(0,30)}" VH ${pos.gvVH||pos.vh||'?'}mm`
+      ) + ` · ${pos.stk||1}Stk`;
+    }
 
     belegpRows.push([
-      'AN',           // 1  Belegtyp
+      '2',            // 1  Belegtyp (2=Offerte)
       anr,            // 2  Belegnummer
       menge,          // 3  Menge
       artNr,          // 4  Artikelnummer
@@ -10294,7 +10345,7 @@ function exportSelectLineCSV(){
       '',             // 21 Ziellager
       '',             // 22 Kostentraeger
       '',             // 23 Liefertermin
-      '',             // 24 FreierText1
+      _freiText1,     // 24 FreierText1 = technischer Beschrieb
       '',             // 25 FreierText2
       '',             // 26 FreiesDatum
       '',             // 27 FreieZahl
@@ -10305,7 +10356,7 @@ function exportSelectLineCSV(){
   // Rabatt-Positionen ans Ende
   positions.filter(p=>p.type==='rabatt').forEach(pos=>{
     belegpRows.push([
-      'AN', anr,           // 1-2 Belegtyp, Belegnummer
+      '2',  anr,           // 1-2 Belegtyp, Belegnummer
       '1',               // 3   Menge
       SL_ARTIKEL.rabatt, // 4   Artikelnummer
       'Stk','1','',      // 5-7 ME, Lager, Bestellnr
@@ -10338,6 +10389,15 @@ function exportSelectLineCSV(){
         ⓘ Beide Dateien im SelectLine Importverzeichnis ablegen.<br>
         Dann SelectLine: <strong>Schnittstellen → Belege importieren</strong>
       </div>
+      <details style="margin-bottom:10px;font-size:11px;">
+        <summary style="cursor:pointer;color:var(--muted);margin-bottom:6px;">🔍 CSV Vorschau (Diagnose)</summary>
+        <div style="margin-top:6px;">
+          <div style="font-size:10px;color:var(--muted);margin-bottom:2px;">BELEG.CSV</div>
+          <textarea readonly style="width:100%;height:60px;font-size:9px;font-family:monospace;background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:4px;resize:none;">${csvBeleg}</textarea>
+          <div style="font-size:10px;color:var(--muted);margin:4px 0 2px;">BELEGP.CSV</div>
+          <textarea readonly style="width:100%;height:80px;font-size:9px;font-family:monospace;background:var(--surface3);border:1px solid var(--border);border-radius:4px;padding:4px;resize:none;">${csvBelegP}</textarea>
+        </div>
+      </details>
 
       <div style="display:flex;flex-direction:column;gap:8px;margin-bottom:14px;">
         <button class="btn btn-y" onclick="slDownload('BELEG.CSV','${encodeURIComponent(csvBeleg)}')" style="width:100%;">
@@ -10395,6 +10455,21 @@ function exportSelectLineCSV(){
           const slPfad = _projektPfad.replace(/[\\/]+$/,'') + '\\Offerte\\Selectline_Export';
           await navigator.clipboard.writeText(slPfad).catch(()=>{});
           showToast('✓ BELEG.CSV + BELEGP.CSV gespeichert in Offerte\\Selectline_Export → Pfad in Zwischenablage');
+          // SL Export Status in gespeicherter Offerte vermerken
+          const _slAnr = $('auftragsnr')?.value;
+          if(_slAnr && serverVerfuegbar){
+            fetch(KALLE_SERVER+'/offerten', {
+              method:'PATCH',
+              headers:{'Content-Type':'application/json'},
+              body:JSON.stringify({auftragsnr:_slAnr, slExportiert:true, slExportiertAm:new Date().toISOString(), slPfad:slPfad})
+            }).catch(()=>{});
+          }
+          // Badge aktualisieren
+          const _badge=document.getElementById('slExportBadge');
+          if(_badge){
+            _badge.textContent='✓ SL Export abgelegt ('+new Date().toLocaleDateString('de-CH')+')';
+            _badge.style.cssText='display:inline-block;background:#1a3a1a;color:#00c853;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;';
+          }
         }
       }catch(e){
         console.warn('[SL Export] Projektordner-Upload Fehler:',e.message);
@@ -12995,6 +13070,26 @@ function loadAuftrag(id){
   renderPos();updateTotals();
   showPage('kalk',document.querySelectorAll('.nav-pill')[0]);
   document.querySelectorAll('.nav-pill')[0].classList.add('active');
+
+  // Projektordner-Verlinkung wiederherstellen
+  if(typeof restoreProjektMeta==='function') restoreProjektMeta(a);
+
+  // SL Export Status anzeigen
+  setTimeout(()=>{
+    const slBadge = document.getElementById('slExportBadge');
+    if(slBadge){
+      if(a.slExportiert){
+        const d = a.slExportiertAm ? ' ('+new Date(a.slExportiertAm).toLocaleDateString('de-CH')+')' : '';
+        slBadge.textContent = '✓ SL Export abgelegt'+d;
+        slBadge.style.cssText='display:inline-block;background:#1a3a1a;color:#00c853;font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;';
+      } else {
+        slBadge.textContent = '○ Noch kein SL Export';
+        slBadge.style.cssText='display:inline-block;background:var(--surface3);color:var(--muted);font-size:10px;padding:2px 8px;border-radius:4px;margin-left:8px;';
+      }
+    }
+    // Projektordner Badge aktualisieren
+    if(_projektPfad && typeof updateProjektordnerUI==='function') updateProjektordnerUI();
+  },100);
 }
 function prepareEmail(){
   if(!positions.length){showToast('Keine Positionen vorhanden','error');return;}
