@@ -10603,7 +10603,9 @@ async function ladeKundenstamm(){
       xhr.onload = function(){
         if(xhr.status === 200 || xhr.status === 0){
           try{
-            const data = JSON.parse(xhr.responseText);
+            const txt=xhr.responseText.trim();
+            if(!txt.startsWith('[')&&!txt.startsWith('{')) throw new Error('Kein JSON');
+            const data = JSON.parse(txt);
             KUNDEN = Array.isArray(data) ? data : (data.kunden || []);
             kundenLoaded = true;
             const sl=$('kundenLadeStatus'); if(sl) sl.textContent='('+KUNDEN.length+' Kunden)';
