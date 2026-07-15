@@ -10245,7 +10245,12 @@ function exportSelectLineCSV(){
     anr,            // LieferBelegNr (Referenz KALLE-Nummer)
     '',             // Kostenstelle
     '',             // Lieferbedingung
-    bearKuerz,      // Mitarbeiter
+    bearKuerz,      // 27 Mitarbeiter
+    '',             // 28 Standort
+    '',             // 29 Lager
+    '',             // 30 ValutaDatum
+    '',             // 31 VerbandsKLNr
+    '',             // 32 DelkredereProzent
   ];
 
   const csvBeleg = belegFelder.map(f=>
@@ -10266,37 +10271,51 @@ function exportSelectLineCSV(){
     const zusatz  = (pos.notiz||'').replace(/;/g, ',').substring(0, 80);
 
     belegpRows.push([
-      'AN',           // Belegtyp
-      anr,            // Belegnummer
-      menge,          // Menge
-      artNr,          // Artikelnummer
-      'Stk',          // Mengeneinheit
-      '1',            // Lagerkennzeichen (1=Nein)
-      '',             // Bestellnummer
-      bez,            // Bezeichnung
-      zusatz,         // Zusatz (Notiz)
-      '',             // Gewicht
-      '1',            // Preiseinheit
-      ep.toFixed(2),  // Einzelpreis
-      ep.toFixed(2),  // Kalkulationspreis
-      '0',            // Rabatt
-      SL_MWST_CODE,   // SteuerCode
-      SL_MWST_PCT,    // Steuerprozent
+      'AN',           // 1  Belegtyp
+      anr,            // 2  Belegnummer
+      menge,          // 3  Menge
+      artNr,          // 4  Artikelnummer
+      'Stk',          // 5  Mengeneinheit
+      '1',            // 6  Lagerkennzeichen (1=Nein)
+      '',             // 7  Bestellnummer
+      bez,            // 8  Bezeichnung
+      zusatz,         // 9  Zusatz
+      '',             // 10 Gewicht
+      '1',            // 11 Preiseinheit
+      ep.toFixed(2),  // 12 Einzelpreis
+      ep.toFixed(2),  // 13 Kalkulationspreis
+      '0',            // 14 Rabatt
+      SL_MWST_CODE,   // 15 SteuerCode
+      SL_MWST_PCT,    // 16 Steuerprozent
+      '',             // 17 Konto
+      '',             // 18 Lager
+      bearKuerz,      // 19 Vertreter (Mitarbeiter)
+      '',             // 20 Kostenstelle
+      '',             // 21 Ziellager
+      '',             // 22 Kostentraeger
+      '',             // 23 Liefertermin
+      '',             // 24 FreierText1
+      '',             // 25 FreierText2
+      '',             // 26 FreiesDatum
+      '',             // 27 FreieZahl
+      '',             // 28 UStIDPflicht
     ].map(f=>typeof f==='string'&&f.includes(';')?`"${f}"`:f).join(';'));
   });
 
   // Rabatt-Positionen ans Ende
   positions.filter(p=>p.type==='rabatt').forEach(pos=>{
     belegpRows.push([
-      'AN', anr,
-      '1',
-      SL_ARTIKEL.rabatt,
-      'Stk','1','',
-      (pos.label||'Rabatt').substring(0,80),'',
-      '','1',
-      (-(pos.abzug||0)).toFixed(2),
-      (-(pos.abzug||0)).toFixed(2),
-      '0', SL_MWST_CODE, SL_MWST_PCT,
+      'AN', anr,           // 1-2 Belegtyp, Belegnummer
+      '1',               // 3   Menge
+      SL_ARTIKEL.rabatt, // 4   Artikelnummer
+      'Stk','1','',      // 5-7 ME, Lager, Bestellnr
+      (pos.label||'Rabatt').substring(0,80),'', // 8-9 Bezeichnung, Zusatz
+      '','1',            // 10-11 Gewicht, Preiseinheit
+      (-(pos.abzug||0)).toFixed(2), // 12 Einzelpreis
+      (-(pos.abzug||0)).toFixed(2), // 13 Kalkpreis
+      '0', SL_MWST_CODE, SL_MWST_PCT, // 14-16 Rabatt, Steuer
+      '','',bearKuerz,'','','','',     // 17-23 Konto..Liefertermin
+      '','','','','',                  // 24-28 FreiFelder
     ].map(f=>typeof f==='string'&&f.includes(';')?`"${f}"`:f).join(';'));
   });
 
@@ -10349,6 +10368,43 @@ function exportSelectLineCSV(){
       _sl_belegp_csv: csvBelegP,
       auftragsnr: anr,
     });
+  }
+
+  // Direkt in Projektordner speichern falls vorhanden
+  if(serverVerfuegbar && _projektPfad){
+    (async()=>{
+      try{
+        // BELEG.CSV hochladen
+        const fb = new FormData();
+        fb.append('file', new Blob([csvBeleg],{type:'text/csv'}), 'BELEG.CSV');
+        const zielOrdner = 'Offerte\\Selectline_Export';
+        const rb = await fetch(KALLE_SERVER+'/projekte/upload'
+          +'?projektPfad='+encodeURIComponent(_projektPfad)
+          +'&zielOrdner='+encodeURIComponent(zielOrdner)
+          +'&mkdirP=1',{method:'POST',body:fb});
+
+        // BELEGP.CSV hochladen
+        const fp = new FormData();
+        fp.append('file', new Blob([csvBelegP],{type:'text/csv'}), 'BELEGP.CSV');
+        const rp = await fetch(KALLE_SERVER+'/projekte/upload'
+          +'?projektPfad='+encodeURIComponent(_projektPfad)
+          +'&zielOrdner='+encodeURIComponent(zielOrdner)
+          +'&mkdirP=1',{method:'POST',body:fp});
+
+        if(rb.ok && rp.ok){
+          const slPfad = _projektPfad.replace(/[\\/]+$/,'') + '\\Offerte\\Selectline_Export';
+          await navigator.clipboard.writeText(slPfad).catch(()=>{});
+          showToast('✓ BELEG.CSV + BELEGP.CSV gespeichert in Offerte\\Selectline_Export → Pfad in Zwischenablage');
+        }
+      }catch(e){
+        console.warn('[SL Export] Projektordner-Upload Fehler:',e.message);
+      }
+    })();
+  } else if(_projektPfad){
+    // Kein Server — trotzdem Pfad kopieren
+    const slPfad = _projektPfad.replace(/[\\/]+$/,'') + '\\Offerte\\Selectline_Export';
+    navigator.clipboard.writeText(slPfad).catch(()=>{});
+    showToast('📋 Pfad kopiert: Offerte\\Selectline_Export — Dateien manuell ablegen');
   }
 }
 
