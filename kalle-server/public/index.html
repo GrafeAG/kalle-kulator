@@ -4028,8 +4028,8 @@ function frAnfahrtUpdate(){
   const activeRow=document.getElementById('frafrow-'+row.bisKm);
   if(activeRow)activeRow.style.background='var(--accent-dim)';
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
-  if(!window.__cGvUpdating){ window.__cGvUpdating=true; setTimeout(()=>{ cGv&&cGv(); window.__cGvUpdating=false; },0); }
-  if(!window.__cFrUpdating){ window.__cFrUpdating=true; setTimeout(()=>{ cFr&&cFr(); window.__cFrUpdating=false; },0); }
+  setTimeout(()=>{ cGv&&cGv(); },0);
+  setTimeout(()=>{ cFr&&cFr(); },0);
 }
 
 function frInitPulver(){
@@ -4884,7 +4884,7 @@ function gvAnfahrtUpdate(){
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
-  if(!window.__cFtUpdating){ window.__cFtUpdating=true; setTimeout(()=>{ cFt&&cFt(); window.__cFtUpdating=false; },0); }
+  setTimeout(()=>{ cFt&&cFt(); },0);
 }
 
 
@@ -7534,7 +7534,7 @@ function slAnfahrtUpdate(){
   if(activeRow)activeRow.style.background='var(--accent-dim)';
 
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → Staffel bis ${row.bisKm} km · CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
-  if(!window.__cSlUpdating){ window.__cSlUpdating=true; setTimeout(()=>{ cSl&&cSl(); window.__cSlUpdating=false; },0); }
+  setTimeout(()=>{ cSl&&cSl(); },0);
 }
 
 
@@ -7913,7 +7913,6 @@ function cSl(){
       const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
       if(row) anfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
     }
-    slAnfahrtUpdate();
     const pb=$('pb-slAnfahrt');if(pb)pb.textContent=anfahrtVK>0?'CHF '+anfahrtVK:(km<=0?'– km eingeben':'– über 105 km');
     $('slAnfahrtAkt')?.closest('.tr')?.classList.toggle('on',anfahrtVK>0);
   } else {
