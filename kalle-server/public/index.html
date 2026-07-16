@@ -55,7 +55,7 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .hdr-act{display:flex;gap:6px;align-items:center;}
 
 /* LAYOUT */
-.app{display:grid;grid-template-columns:1fr 340px;min-height:calc(100vh - 52px);}
+.app{display:grid;grid-template-columns:minmax(0,1fr) 340px;min-height:calc(100vh - 52px);}
 .main{padding:20px 24px;border-right:1px solid var(--border);overflow-y:auto;height:calc(100vh - 52px);}
 .aside{padding:16px;background:var(--surface);overflow-y:auto;position:sticky;top:0;height:calc(100vh - 52px);}
 .page{display:none;}
@@ -910,23 +910,21 @@ a, button, input, select, textarea, label,
     Aufbau, Druckart, Folie und Laminat sind <strong>je Zeile</strong> frei kombinierbar. Höhen und Längen sind vorgeschlagen, aber frei eingebbar.<br>
     <strong>Mindestverbräuche greifen pro Materialtyp</strong> — zwei verschiedene Folien = zwei Anbrüche.
   </div>
-
-  <datalist id="dlSbbH"><option value="200"><option value="250"><option value="300"><option value="400"><option value="500"></datalist>
-  <div style="overflow-x:auto;margin-bottom:8px;">
-    <table style="width:100%;border-collapse:collapse;font-size:12px;" id="sbbMatrix">
+  <div style="overflow-x:auto;max-width:100%;margin-bottom:8px;border:1px solid var(--border);border-radius:5px;">
+    <table style="border-collapse:collapse;font-size:12px;min-width:100%;" id="sbbMatrix">
       <thead>
         <tr style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">
-          <th style="text-align:left;padding:4px 4px;">Länge mm</th>
-          <th style="text-align:left;padding:4px 4px;">Höhe mm</th>
-          <th style="text-align:left;padding:4px 4px;">Menge</th>
-          <th style="text-align:left;padding:4px 4px;">Seiten</th>
-          <th style="text-align:left;padding:4px 4px;">Aufbau</th>
-          <th style="text-align:left;padding:4px 4px;">Druckart</th>
-          <th style="text-align:left;padding:4px 4px;">Folie</th>
-          <th style="text-align:left;padding:4px 4px;">Laminat</th>
-          <th style="text-align:left;padding:4px 4px;">m²/Stk</th>
-          <th style="text-align:right;padding:4px 4px;">VK/Stk</th>
-          <th style="text-align:center;padding:4px 4px;" title="Vergleich mit Preisliste 2026">Ref.</th>
+          <th style="text-align:left;padding:4px 3px;">Länge</th>
+          <th style="text-align:left;padding:4px 3px;">Höhe</th>
+          <th style="text-align:left;padding:4px 3px;">Stk</th>
+          <th style="text-align:left;padding:4px 3px;">Seiten</th>
+          <th style="text-align:left;padding:4px 3px;">Aufbau</th>
+          <th style="text-align:left;padding:4px 3px;">Druckart</th>
+          <th style="text-align:left;padding:4px 3px;">Folie</th>
+          <th style="text-align:left;padding:4px 3px;">Laminat</th>
+          <th style="text-align:left;padding:4px 3px;">m²/Stk</th>
+          <th style="text-align:right;padding:4px 3px;">VK/Stk</th>
+          <th style="text-align:center;padding:4px 2px;" title="Vergleich mit Preisliste 2026">Ref</th>
           <th></th>
         </tr>
       </thead>
@@ -8208,50 +8206,79 @@ function sbbDefaultDruckIdx(){
   return i<0 ? 0 : i;
 }
 
-// Höhen-Vorschläge (Backend-konfigurierbar)
-function sbbHoehenDatalist(){
-  const dl = document.getElementById('dlSbbH'); if(!dl) return;
-  const hs = (P.sbb && P.sbb.hoehen) || [200,250,280,300,350,400,420,500,560,700];
-  dl.innerHTML = hs.map(h=>'<option value="'+h+'">').join('');
+// Kürzt lange Materialnamen fürs Dropdown (voller Name im title)
+function sbbShort(s, n){
+  s = String(s||'');
+  return s.length>n ? s.slice(0,n-1)+'…' : s;
 }
-// Längen-Vorschläge: Raster = halbe Höhe, ab Länge >= Höhe
-function sbbLaengenDatalist(dlId, h){
-  const dl = document.getElementById(dlId);
-  if(!dl || !h) return;
-  const raster = h/2;
-  let out = '';
-  for(let l=h; l<=h*14 && l<=6000; l+=raster) out += '<option value="'+Math.round(l)+'">';
-  dl.innerHTML = out;
+// Höhen-Liste (Backend-konfigurierbar)
+function sbbHoehen(){
+  return (P.sbb && P.sbb.hoehen && P.sbb.hoehen.length)
+    ? P.sbb.hoehen.slice() : [200,250,280,300,350,400,420,500,560,700];
 }
+// Längen-Raster = halbe Höhe, ab Länge >= Höhe
+function sbbLaengen(h){
+  const out=[]; if(!h) return out;
+  const r=h/2;
+  for(let l=h; l<=h*14 && l<=6000; l+=r) out.push(Math.round(l));
+  return out;
+}
+function sbbHoehenDatalist(){ /* ersetzt durch echte Dropdowns */ }
 
+// Grössen-Dropdown: Liste + "frei…" schaltet auf manuelle Eingabe
+function sbbSizeCell(kind, val, opts, w){
+  const inList = opts.includes(val);
+  return '<select class="sbb'+kind+'Sel" onchange="sbbSizeSel(this)" style="width:'+w+'px;font-size:11px;">'+
+      opts.map(o=>'<option value="'+o+'"'+(o===val&&inList?' selected':'')+'>'+o+'</option>').join('')+
+      '<option value="_c"'+(!inList?' selected':'')+'>frei…</option>'+
+    '</select>'+
+    '<input class="sbb'+kind+'" type="number" step="5" min="1" value="'+val+'" '+
+      'oninput="'+(kind==='H'?'sbbRowChanged(this)':'cSb()')+'" '+
+      'style="width:'+w+'px;font-size:11px;margin-top:2px;'+(inList?'display:none;':'')+'">';
+}
+function sbbSizeSel(el){
+  const tr  = el.closest('tr');
+  const isH = el.classList.contains('sbbHSel');
+  const inp = tr.querySelector(isH ? '.sbbH' : '.sbbL');
+  if(!inp) return;
+  if(el.value === '_c'){ inp.style.display=''; inp.focus(); inp.select(); }
+  else { inp.value = el.value; inp.style.display='none'; }
+  if(isH) sbbRowChanged(inp); else cSb();
+}
+function sbbRebuildLSel(tr){
+  const sel = tr.querySelector('.sbbLSel'); if(!sel) return;
+  const h   = parseFloat(tr.querySelector('.sbbH')?.value)||0;
+  const cur = parseFloat(tr.querySelector('.sbbL')?.value)||h;
+  const opts = sbbLaengen(h);
+  const inList = opts.includes(cur);
+  sel.innerHTML = opts.map(o=>'<option value="'+o+'"'+(o===cur&&inList?' selected':'')+'>'+o+'</option>').join('')+
+                  '<option value="_c"'+(!inList?' selected':'')+'>frei…</option>';
+  const inp = tr.querySelector('.sbbL');
+  if(inp) inp.style.display = inList ? 'none' : '';
+}
 function sbbRowChanged(el){
   const tr = el.closest('tr');
-  const h  = parseFloat(tr.querySelector('.sbbH')?.value)||0;
-  const dl = tr.querySelector('datalist');
-  if(dl && h) sbbLaengenDatalist(dl.id, h);
+  sbbRebuildLSel(tr);
   cSb();
 }
 
-// Aufbau der Zeile steuert, welche Dropdowns aktiv sind
-function sbbAufbauChanged(el){
-  sbbSyncRow(el.closest('tr'));
-  cSb();
-}
+// Aufbau steuert, ob Folie/Laminat aktiv sind — Spalten bleiben sichtbar
+function sbbAufbauChanged(el){ sbbSyncRow(el.closest('tr')); cSb(); }
 function sbbSyncRow(tr){
   if(!tr) return;
   const auf = tr.querySelector('.sbbAufbau')?.value || 'uv_dibond';
   const mitFolie = (auf==='folie_dibond' || auf==='folie_pur');
-  const fs = tr.querySelector('.sbbFolieSel');
-  const ls = tr.querySelector('.sbbLamSel');
-  if(fs){ fs.disabled = !mitFolie; fs.style.opacity = mitFolie?'1':'.35'; }
-  if(ls){ ls.disabled = !mitFolie; ls.style.opacity = mitFolie?'1':'.35'; }
+  ['.sbbFolieSel','.sbbLamSel'].forEach(sel=>{
+    const e = tr.querySelector(sel);
+    if(e){ e.disabled = !mitFolie; e.style.opacity = mitFolie?'1':'.3'; }
+  });
 }
 
 function sbbOptions(kat, arr, sel, fmt){
   const opts = sbbErlaubt(kat, arr);
   const ids  = opts.map(o=>o.i);
   const use  = ids.includes(sel) ? sel : (ids.length?ids[0]:0);
-  return opts.map(o=>'<option value="'+o.i+'"'+(o.i===use?' selected':'')+'>'+fmt(o.x)+'</option>').join('');
+  return opts.map(o=>'<option value="'+o.i+'"'+(o.i===use?' selected':'')+' title="'+String(o.x.name||'').replace(/"/g,'')+'">'+fmt(o.x)+'</option>').join('');
 }
 
 function sbbAddRow(d){
@@ -8273,35 +8300,35 @@ function sbbAddRow(d){
   const menge   = d.menge ?? 1;
   const aufbau  = d.aufbau ?? inh.aufbau ?? 'uv_dibond';
   const dIdx    = d.druckIdx   ?? (isNaN(inh.druck)?sbbDefaultDruckIdx():inh.druck);
-  const fIdx    = d.folieIdx   ?? (isNaN(inh.folie)?0:inh.folie);
-  const lIdx    = d.laminatIdx ?? (inh.laminat===undefined||isNaN(inh.laminat)?-1:inh.laminat);
+  const fIdx    = d.folieIdx>=0 ? d.folieIdx : (isNaN(inh.folie)?0:inh.folie);
+  const lIdx    = d.laminatIdx!==undefined ? d.laminatIdx
+                  : (inh.laminat===undefined||isNaN(inh.laminat)?-1:inh.laminat);
 
   const lamOpts = '<option value="-1"'+(lIdx===-1?' selected':'')+'>– kein –</option>'+
-                  sbbOptions('laminate', P.laminate, lIdx, x=>x.name);
+                  sbbOptions('laminate', P.laminate, lIdx, x=>sbbShort(x.name,16));
 
   const tr = document.createElement('tr');
   tr.style.borderTop = '1px solid var(--border)';
   tr.innerHTML =
-    '<td style="padding:3px 4px;"><input class="sbbL" list="dlSbbL'+i+'" type="number" step="5" value="'+l+'" oninput="cSb()" style="width:78px;"><datalist id="dlSbbL'+i+'"></datalist></td>'+
-    '<td style="padding:3px 4px;"><input class="sbbH" list="dlSbbH" type="number" step="5" value="'+h+'" oninput="sbbRowChanged(this)" style="width:70px;"></td>'+
-    '<td style="padding:3px 4px;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:56px;"></td>'+
-    '<td style="padding:3px 4px;"><select class="sbbSeiten" onchange="cSb()" style="width:64px;font-size:11px;"><option value="1"'+(seiten==1?' selected':'')+'>1-seitig</option><option value="2"'+(seiten==2?' selected':'')+'>2-seitig</option></select></td>'+
-    '<td style="padding:3px 4px;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:132px;font-size:11px;">'+
-      '<option value="uv_dibond"'+(aufbau==='uv_dibond'?' selected':'')+'>Druck auf Dibond</option>'+
-      '<option value="folie_dibond"'+(aufbau==='folie_dibond'?' selected':'')+'>Folie auf Dibond</option>'+
+    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('L', l, sbbLaengen(h), 72)+'</td>'+
+    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen(),  66)+'</td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:48px;font-size:11px;"></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbSeiten" onchange="cSb()" style="width:52px;font-size:11px;"><option value="1"'+(seiten==1?' selected':'')+'>1-s</option><option value="2"'+(seiten==2?' selected':'')+'>2-s</option></select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:104px;font-size:11px;">'+
+      '<option value="uv_dibond"'+(aufbau==='uv_dibond'?' selected':'')+'>Dibond</option>'+
+      '<option value="folie_dibond"'+(aufbau==='folie_dibond'?' selected':'')+'>Folie+Dibond</option>'+
       '<option value="folie_pur"'+(aufbau==='folie_pur'?' selected':'')+'>Folie pur</option>'+
     '</select></td>'+
-    '<td style="padding:3px 4px;"><select class="sbbDruckSel" onchange="cSb()" style="width:112px;font-size:11px;">'+
-      sbbOptions('druck', P.druckarten, dIdx, x=>x.name)+'</select></td>'+
-    '<td style="padding:3px 4px;"><select class="sbbFolieSel" onchange="cSb()" style="width:150px;font-size:11px;">'+
-      sbbOptions('folien', P.digitaldruckfolien, fIdx, x=>x.name)+'</select></td>'+
-    '<td style="padding:3px 4px;"><select class="sbbLamSel" onchange="cSb()" style="width:140px;font-size:11px;">'+lamOpts+'</select></td>'+
-    '<td class="sbbM2" style="padding:3px 4px;color:var(--muted);font-size:11px;white-space:nowrap;">–</td>'+
-    '<td class="sbbVK" style="padding:3px 4px;text-align:right;font-weight:700;white-space:nowrap;">–</td>'+
-    '<td class="sbbAmp" style="padding:3px 4px;text-align:center;" title="Vergleich Preisliste 2026">–</td>'+
-    '<td style="padding:3px 4px;"><button class="btn btn-gh" onclick="sbbDelRow(this)" style="font-size:10px;padding:2px 6px;">✕</button></td>';
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbDruckSel" onchange="cSb()" style="width:96px;font-size:11px;">'+
+      sbbOptions('druck', P.druckarten, dIdx, x=>sbbShort(x.name,14))+'</select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" style="width:112px;font-size:11px;">'+
+      sbbOptions('folien', P.digitaldruckfolien, fIdx, x=>sbbShort(x.name,16))+'</select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" style="width:104px;font-size:11px;">'+lamOpts+'</select></td>'+
+    '<td class="sbbM2" style="padding:3px 3px;color:var(--muted);font-size:10px;white-space:nowrap;vertical-align:top;">–</td>'+
+    '<td class="sbbVK" style="padding:3px 3px;text-align:right;font-weight:700;white-space:nowrap;font-size:11px;vertical-align:top;">–</td>'+
+    '<td class="sbbAmp" style="padding:3px 2px;text-align:center;vertical-align:top;" title="Vergleich Preisliste 2026">–</td>'+
+    '<td style="padding:3px 2px;vertical-align:top;"><button class="btn btn-gh" onclick="sbbDelRow(this)" style="font-size:10px;padding:2px 5px;">✕</button></td>';
   tb.appendChild(tr);
-  sbbLaengenDatalist('dlSbbL'+i, h);
   sbbSyncRow(tr);
   cSb();
 }
