@@ -943,7 +943,12 @@ a, button, input, select, textarea, label,
         </div>
 
         <div style="overflow-x:auto;max-width:100%;margin-bottom:8px;border:1px solid var(--border);border-radius:5px;">
-          <table style="border-collapse:collapse;font-size:12px;min-width:100%;" id="sbbMatrix">
+          <table style="border-collapse:collapse;font-size:12px;width:100%;min-width:900px;table-layout:fixed;" id="sbbMatrix">
+            <colgroup>
+              <col style="width:80px"><col style="width:126px"><col style="width:46px"><col style="width:56px">
+              <col style="width:100px"><col style="width:96px"><col style="width:104px"><col style="width:96px">
+              <col style="width:58px"><col style="width:66px"><col style="width:24px"><col style="width:30px">
+            </colgroup>
             <thead>
               <tr style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">
                 <th style="text-align:left;padding:4px 3px;">Länge</th>
@@ -8308,13 +8313,13 @@ function sbbHoehenDatalist(){ /* ersetzt durch echte Dropdowns */ }
 function sbbSizeCell(kind, val, opts, w){
   const inList = opts.includes(val);
   const lbl = (kind==='H') ? sbbHLabel : (o=>String(o));
-  return '<select class="sbb'+kind+'Sel" onchange="sbbSizeSel(this)" style="width:'+w+'px;font-size:11px;">'+
+  return '<select class="sbb'+kind+'Sel" onchange="sbbSizeSel(this)" style="width:100%;font-size:11px;box-sizing:border-box;">'+
       opts.map(o=>'<option value="'+o+'"'+(o===val&&inList?' selected':'')+'>'+lbl(o)+'</option>').join('')+
       '<option value="_c"'+(!inList?' selected':'')+'>frei…</option>'+
     '</select>'+
     '<input class="sbb'+kind+'" type="number" step="5" min="1" value="'+val+'" '+
       'oninput="'+(kind==='H'?'sbbRowChanged(this)':'cSb()')+'" '+
-      'style="width:'+w+'px;font-size:11px;margin-top:2px;'+(inList?'display:none;':'')+'">';
+      'style="width:100%;font-size:11px;margin-top:2px;box-sizing:border-box;'+(inList?'display:none;':'')+'">';
 }
 function sbbSizeSel(el){
   const tr  = el.closest('tr');
@@ -8336,8 +8341,26 @@ function sbbRebuildLSel(tr){
   const inp = tr.querySelector('.sbbL');
   if(inp) inp.style.display = inList ? 'none' : '';
 }
+// Nächstgelegenes Rastermass
+function sbbSnap(val, opts){
+  if(!opts.length) return val;
+  if(opts.includes(val)) return val;
+  let best=opts[0], d=Math.abs(val-best);
+  for(const o of opts){ const dd=Math.abs(val-o); if(dd<d){ d=dd; best=o; } }
+  return best;
+}
 function sbbRowChanged(el){
-  const tr = el.closest('tr');
+  const tr  = el.closest('tr');
+  const h   = parseFloat(tr.querySelector('.sbbH')?.value)||0;
+  const inp = tr.querySelector('.sbbL');
+  // War die Länge ein Rastermass? Dann aufs neue Raster ziehen.
+  // Eine bewusst frei eingegebene Länge bleibt unangetastet.
+  const warFrei = inp && inp.style.display !== 'none';
+  if(!warFrei && inp && h && sbbFis(h)){
+    const opts = sbbLaengen(h);
+    const cur  = parseFloat(inp.value)||h;
+    if(opts.length) inp.value = sbbSnap(cur, opts);
+  }
   sbbRebuildLSel(tr);
   cSb();
 }
@@ -8390,20 +8413,20 @@ function sbbAddRow(d){
   const tr = document.createElement('tr');
   tr.style.borderTop = '1px solid var(--border)';
   tr.innerHTML =
-    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('L', l, sbbLaengen(h), 72)+'</td>'+
-    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen(), 122)+'</td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:48px;font-size:11px;"></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbSeiten" onchange="cSb()" style="width:52px;font-size:11px;"><option value="1"'+(seiten==1?' selected':'')+'>1-s</option><option value="2"'+(seiten==2?' selected':'')+'>2-s</option></select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:98px;font-size:11px;">'+
+    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('L', l, sbbLaengen(h))+'</td>'+
+    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen())+'</td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;"></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbSeiten" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;"><option value="1"'+(seiten==1?' selected':'')+'>1-s</option><option value="2"'+(seiten==2?' selected':'')+'>2-s</option></select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:100%;font-size:11px;box-sizing:border-box;">'+
       '<option value="uv_dibond"'+(aufbau==='uv_dibond'?' selected':'')+'>Dibond</option>'+
       '<option value="folie_dibond"'+(aufbau==='folie_dibond'?' selected':'')+'>Folie+Dibond</option>'+
       '<option value="folie_pur"'+(aufbau==='folie_pur'?' selected':'')+'>Folie pur</option>'+
     '</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbDruckSel" onchange="cSb()" style="width:96px;font-size:11px;">'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbDruckSel" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;">'+
       sbbOptions('druck', P.druckarten, dIdx, x=>sbbShort(x.name,14))+'</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" style="width:100px;font-size:11px;">'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;">'+
       sbbOptions('folien', P.digitaldruckfolien, fIdx, x=>sbbShort(x.name,14))+'</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" style="width:94px;font-size:11px;">'+lamOpts+'</select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;">'+lamOpts+'</select></td>'+
     '<td class="sbbM2" style="padding:3px 3px;color:var(--muted);font-size:10px;white-space:nowrap;vertical-align:top;">–</td>'+
     '<td class="sbbVK" style="padding:3px 3px;text-align:right;font-weight:700;white-space:nowrap;font-size:11px;vertical-align:top;">–</td>'+
     '<td class="sbbAmp" style="padding:3px 2px;text-align:center;vertical-align:top;" title="Vergleich Preisliste 2026">–</td>'+
