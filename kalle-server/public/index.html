@@ -891,7 +891,7 @@ a, button, input, select, textarea, label,
   </div>
 
   <!-- Live strip -->
-  <div style="display:flex;align-items:center;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:5px;padding:6px 10px;margin-bottom:12px;font-size:11px;flex-wrap:wrap;">
+  <div style="display:flex;align-items:center;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:5px;padding:6px 10px;font-size:11px;flex-wrap:wrap;">
     <span style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">Live:</span>
     <span id="sbbstrip-fmt" style="color:var(--muted);">– Stk</span>
     <span style="color:var(--border-light);">·</span>
@@ -903,63 +903,110 @@ a, button, input, select, textarea, label,
     <span style="margin-left:auto;font-weight:700;color:var(--accent);font-size:13px;" id="sbbstrip-total">CHF –</span>
   </div>
 
-  <!-- ① SCHILDER -->
-  <div class="st t" style="margin-bottom:6px;">① Schilder</div>
-  <div class="hint ht" style="margin-bottom:10px;">
-    <strong>Eingabe = Produktionsgrösse</strong> — die Masse, die tatsächlich geschnitten werden (oranger Rand also bereits eingerechnet).<br>
-    Aufbau, Druckart, Folie und Laminat sind <strong>je Zeile</strong> frei kombinierbar. Höhen und Längen sind vorgeschlagen, aber frei eingebbar.<br>
-    <strong>Mindestverbräuche greifen pro Materialtyp</strong> — zwei verschiedene Folien = zwei Anbrüche.
-  </div>
-  <div style="overflow-x:auto;max-width:100%;margin-bottom:8px;border:1px solid var(--border);border-radius:5px;">
-    <table style="border-collapse:collapse;font-size:12px;min-width:100%;" id="sbbMatrix">
-      <thead>
-        <tr style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">
-          <th style="text-align:left;padding:4px 3px;">Länge</th>
-          <th style="text-align:left;padding:4px 3px;">Höhe</th>
-          <th style="text-align:left;padding:4px 3px;">Stk</th>
-          <th style="text-align:left;padding:4px 3px;">Seiten</th>
-          <th style="text-align:left;padding:4px 3px;">Aufbau</th>
-          <th style="text-align:left;padding:4px 3px;">Druckart</th>
-          <th style="text-align:left;padding:4px 3px;">Folie</th>
-          <th style="text-align:left;padding:4px 3px;">Laminat</th>
-          <th style="text-align:left;padding:4px 3px;">m²/Stk</th>
-          <th style="text-align:right;padding:4px 3px;">VK/Stk</th>
-          <th style="text-align:center;padding:4px 2px;" title="Vergleich mit Preisliste 2026">Ref</th>
-          <th></th>
-        </tr>
-      </thead>
-      <tbody id="sbbRows"></tbody>
-    </table>
-  </div>
-  <button class="btn btn-gh" onclick="sbbAddRow()" style="font-size:11px;">+ Zeile</button>
-
-  <!-- ② MATERIAL · ③ ZUSCHLÄGE nebeneinander -->
-  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:16px;align-items:start;">
-    <div>
-      <div class="st t" style="margin-bottom:6px;">② Material &amp; Druck</div>
-      <div id="sbbMatSel"></div>
-      <div id="sbbNesting" style="font-size:10px;color:var(--muted);margin-top:8px;background:var(--surface3);border-radius:4px;padding:5px 8px;line-height:1.5;"></div>
-    </div>
-    <div>
-      <div class="st t" style="margin-bottom:6px;">③ Zuschläge</div>
-      <div id="sbbZuschlaege"></div>
-      <div class="field" style="margin-top:10px;"><label>Materialmarge</label>
-        <select id="sbbMarge" onchange="cSb()">
-          <option value="0.3">30%</option>
-          <option value="0.4">40%</option>
-          <option value="0.5" selected>50% (Standard)</option>
-          <option value="0.6">60%</option>
-          <option value="0.7">70%</option>
-        </select>
+  <div class="sl-wrap">
+    <!-- LINKE SPALTE — Übersicht, alle Bereiche gleichzeitig sichtbar -->
+    <div class="sl-nav">
+      <div class="sl-s act" id="sbbnav-1" onclick="sbbGoto(1)">
+        <div class="sl-sn">1</div>
+        <div><div class="sl-sl">Schilder</div><div class="sl-sc" id="sbbchf-1"></div></div>
+      </div>
+      <div class="sl-s act" id="sbbnav-2" onclick="sbbGoto(2)">
+        <div class="sl-sn">2</div>
+        <div><div class="sl-sl">Material &amp;<br>Druck</div><div class="sl-sc" id="sbbchf-2"></div></div>
+      </div>
+      <div class="sl-s act" id="sbbnav-3" onclick="sbbGoto(3)">
+        <div class="sl-sn">3</div>
+        <div><div class="sl-sl">Zuschläge</div><div class="sl-sc" id="sbbchf-3"></div></div>
+      </div>
+      <div class="sl-s act" id="sbbnav-4" onclick="sbbGoto(4)">
+        <div class="sl-sn">4</div>
+        <div><div class="sl-sl">Kalkulation</div><div class="sl-sc" id="sbbchf-4"></div></div>
+      </div>
+      <div class="sl-tot">
+        <div style="font-size:9px;color:var(--muted);margin-bottom:2px;">Position Total</div>
+        <div id="sbbstep-total" style="font-size:15px;font-weight:700;color:var(--accent);">CHF –</div>
       </div>
     </div>
-  </div>
 
-  <!-- ④ KALKULATION -->
-  <div class="st t" style="margin-top:16px;margin-bottom:6px;">④ Kalkulation</div>
-  <div id="sbbBreakdown" style="font-size:11px;"></div>
+    <!-- RECHTE SPALTE — Inhalt -->
+    <div class="sl-body">
 
-  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:14px;">
+      <!-- ① Schilder -->
+      <div id="sbbsec-1">
+        <div class="sl-ph">
+          <div><span class="sl-pn">1</span><span class="sl-pt">Schilder</span></div>
+          <div class="sl-pd">
+            <strong>Eingabe = Produktionsgrösse</strong> — die Masse, die tatsächlich geschnitten werden (oranger Rand also bereits eingerechnet).
+            Aufbau, Druckart, Folie und Laminat sind <strong>je Zeile</strong> frei kombinierbar.
+            <strong>Mindestverbräuche greifen pro Materialtyp</strong> — zwei verschiedene Folien = zwei Anbrüche.
+          </div>
+        </div>
+
+        <div style="overflow-x:auto;max-width:100%;margin-bottom:8px;border:1px solid var(--border);border-radius:5px;">
+          <table style="border-collapse:collapse;font-size:12px;min-width:100%;" id="sbbMatrix">
+            <thead>
+              <tr style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">
+                <th style="text-align:left;padding:4px 3px;">Länge</th>
+                <th style="text-align:left;padding:4px 3px;">Höhe</th>
+                <th style="text-align:left;padding:4px 3px;">Stk</th>
+                <th style="text-align:left;padding:4px 3px;">Seiten</th>
+                <th style="text-align:left;padding:4px 3px;">Aufbau</th>
+                <th style="text-align:left;padding:4px 3px;">Druckart</th>
+                <th style="text-align:left;padding:4px 3px;">Folie</th>
+                <th style="text-align:left;padding:4px 3px;">Laminat</th>
+                <th style="text-align:left;padding:4px 3px;">m²/Stk</th>
+                <th style="text-align:right;padding:4px 3px;">VK/Stk</th>
+                <th style="text-align:center;padding:4px 2px;" title="Vergleich mit Preisliste 2026">Ref</th>
+                <th></th>
+              </tr>
+            </thead>
+            <tbody id="sbbRows"></tbody>
+          </table>
+        </div>
+        <button class="btn btn-gh" onclick="sbbAddRow()" style="font-size:11px;">+ Zeile</button>
+      </div>
+
+      <!-- ② Material · ③ Zuschläge -->
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-top:18px;align-items:start;">
+        <div id="sbbsec-2">
+          <div class="sl-ph">
+            <div><span class="sl-pn">2</span><span class="sl-pt">Material &amp; Druck</span></div>
+            <div class="sl-pd">Trägermaterial für alle Dibond-Zeilen. Folie, Laminat und Druckart je Zeile in der Matrix.</div>
+          </div>
+          <div id="sbbMatSel"></div>
+          <div id="sbbNesting" style="font-size:10px;color:var(--muted);margin-top:8px;background:var(--surface3);border-radius:4px;padding:5px 8px;line-height:1.5;"></div>
+        </div>
+        <div id="sbbsec-3">
+          <div class="sl-ph">
+            <div><span class="sl-pn">3</span><span class="sl-pt">Zuschläge</span></div>
+            <div class="sl-pd">Setup, Auftragspauschale, Grafik &amp; Layout sowie Materialmarge.</div>
+          </div>
+          <div id="sbbZuschlaege"></div>
+          <div class="field" style="margin-top:10px;"><label>Materialmarge</label>
+            <select id="sbbMarge" onchange="cSb()">
+              <option value="0.3">30%</option>
+              <option value="0.4">40%</option>
+              <option value="0.5" selected>50% (Standard)</option>
+              <option value="0.6">60%</option>
+              <option value="0.7">70%</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- ④ Kalkulation -->
+      <div id="sbbsec-4" style="margin-top:18px;">
+        <div class="sl-ph">
+          <div><span class="sl-pn">4</span><span class="sl-pt">Kalkulation</span></div>
+          <div class="sl-pd">Bottom-up gerechnet. Anbruch und Mindestverbräuche sind einzeln ausgewiesen.</div>
+        </div>
+        <div id="sbbBreakdown" style="font-size:11px;"></div>
+      </div>
+
+    </div><!-- /sl-body -->
+  </div><!-- /sl-wrap -->
+
+  <div style="display:flex;gap:8px;justify-content:flex-end;margin-top:12px;">
     <button class="btn btn-gh" onclick="cancelPos()">Abbrechen</button>
     <button class="btn btn-a" onclick="saveSbb()">✓ Position speichern</button>
   </div>
@@ -2604,7 +2651,8 @@ const DEF={
     refF1:           125.60,   // einseitig
     refF2:           216.60,   // zweiseitig
     marge:             0.50,
-    hoehen:[200,250,280,300,350,400,420,500,560,700],
+    fisHoehen:[200,250,300,400,500],   // SBB-Norm (FIS-Schild)
+    hoehen:[200,250,280,300,350,400,420,500,560,700],  // Produktionshöhen (mit/ohne Rand)
     // Freigegebene Materialien (nach Name). Leere Liste = alle erlaubt.
     erlaubt:{ dibond:['Dibond'], folien:[], laminate:[], druck:[] },
   },
@@ -8188,6 +8236,11 @@ let _sbbRowSeq = 0;
 
 function sbbCfg(){ return P.sbb || {}; }
 function swSbbStep(n){ sbbBuildTraeger(); sbbBuildZuschlaege(); cSb(); }
+// Alle Bereiche sind sichtbar — Navigation scrollt nur hin
+function sbbGoto(n){
+  const el = document.getElementById('sbbsec-'+n);
+  if(el) el.scrollIntoView({behavior:'smooth', block:'nearest'});
+}
 
 // Nur freigegebene Einträge — globaler Index bleibt erhalten
 function sbbErlaubt(kat, arr){
@@ -8216,20 +8269,47 @@ function sbbHoehen(){
   return (P.sbb && P.sbb.hoehen && P.sbb.hoehen.length)
     ? P.sbb.hoehen.slice() : [200,250,280,300,350,400,420,500,560,700];
 }
-// Längen-Raster = halbe Höhe, ab Länge >= Höhe
-function sbbLaengen(h){
-  const out=[]; if(!h) return out;
-  const r=h/2;
-  for(let l=h; l<=h*14 && l<=6000; l+=r) out.push(Math.round(l));
+// Rückrechnung Produktionshöhe → FIS-Schild
+// Ohne Rand: Hp = FIS · Mit Rand: Hp = FIS + 2×(FIS/5) = FIS × 1.4
+function sbbFis(hp){
+  const norm = (P.sbb && P.sbb.fisHoehen && P.sbb.fisHoehen.length) ? P.sbb.fisHoehen : [200,250,300,400,500];
+  if(norm.includes(hp)) return {fis:hp, e:0, rand:false};
+  const f = hp/1.4;
+  const fr = Math.round(f);
+  if(Math.abs(f-fr)<0.01 && norm.includes(fr)) return {fis:fr, e:fr/5, rand:true};
+  return null;   // freie Höhe ausserhalb der Norm
+}
+// Längen: Raster = halbe FIS-Höhe, Minimallänge = FIS-Höhe, danach Rand aufaddiert
+function sbbLaengen(hp){
+  const out=[]; if(!hp) return out;
+  const g = sbbFis(hp);
+  if(!g){                       // Altlast / freie Höhe: Raster = halbe Höhe
+    const r=hp/2;
+    for(let l=hp; l<=hp*14 && l<=6000; l+=r) out.push(Math.round(l));
+    return out;
+  }
+  const r = g.fis/2;
+  for(let fl=g.fis; fl<=g.fis*14; fl+=r){
+    const lp = fl + 2*g.e;
+    if(lp>6000) break;
+    out.push(Math.round(lp));
+  }
   return out;
+}
+// Beschriftung der Höhen-Option: 350 → "350 · FIS 250+R"
+function sbbHLabel(hp){
+  const g = sbbFis(hp);
+  if(!g) return String(hp);
+  return g.rand ? hp+' · FIS '+g.fis+'+R' : hp+' · ohne Rand';
 }
 function sbbHoehenDatalist(){ /* ersetzt durch echte Dropdowns */ }
 
 // Grössen-Dropdown: Liste + "frei…" schaltet auf manuelle Eingabe
 function sbbSizeCell(kind, val, opts, w){
   const inList = opts.includes(val);
+  const lbl = (kind==='H') ? sbbHLabel : (o=>String(o));
   return '<select class="sbb'+kind+'Sel" onchange="sbbSizeSel(this)" style="width:'+w+'px;font-size:11px;">'+
-      opts.map(o=>'<option value="'+o+'"'+(o===val&&inList?' selected':'')+'>'+o+'</option>').join('')+
+      opts.map(o=>'<option value="'+o+'"'+(o===val&&inList?' selected':'')+'>'+lbl(o)+'</option>').join('')+
       '<option value="_c"'+(!inList?' selected':'')+'>frei…</option>'+
     '</select>'+
     '<input class="sbb'+kind+'" type="number" step="5" min="1" value="'+val+'" '+
@@ -8311,19 +8391,19 @@ function sbbAddRow(d){
   tr.style.borderTop = '1px solid var(--border)';
   tr.innerHTML =
     '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('L', l, sbbLaengen(h), 72)+'</td>'+
-    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen(),  66)+'</td>'+
+    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen(), 122)+'</td>'+
     '<td style="padding:3px 3px;vertical-align:top;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:48px;font-size:11px;"></td>'+
     '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbSeiten" onchange="cSb()" style="width:52px;font-size:11px;"><option value="1"'+(seiten==1?' selected':'')+'>1-s</option><option value="2"'+(seiten==2?' selected':'')+'>2-s</option></select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:104px;font-size:11px;">'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:98px;font-size:11px;">'+
       '<option value="uv_dibond"'+(aufbau==='uv_dibond'?' selected':'')+'>Dibond</option>'+
       '<option value="folie_dibond"'+(aufbau==='folie_dibond'?' selected':'')+'>Folie+Dibond</option>'+
       '<option value="folie_pur"'+(aufbau==='folie_pur'?' selected':'')+'>Folie pur</option>'+
     '</select></td>'+
     '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbDruckSel" onchange="cSb()" style="width:96px;font-size:11px;">'+
       sbbOptions('druck', P.druckarten, dIdx, x=>sbbShort(x.name,14))+'</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" style="width:112px;font-size:11px;">'+
-      sbbOptions('folien', P.digitaldruckfolien, fIdx, x=>sbbShort(x.name,16))+'</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" style="width:104px;font-size:11px;">'+lamOpts+'</select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" style="width:100px;font-size:11px;">'+
+      sbbOptions('folien', P.digitaldruckfolien, fIdx, x=>sbbShort(x.name,14))+'</select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" style="width:94px;font-size:11px;">'+lamOpts+'</select></td>'+
     '<td class="sbbM2" style="padding:3px 3px;color:var(--muted);font-size:10px;white-space:nowrap;vertical-align:top;">–</td>'+
     '<td class="sbbVK" style="padding:3px 3px;text-align:right;font-weight:700;white-space:nowrap;font-size:11px;vertical-align:top;">–</td>'+
     '<td class="sbbAmp" style="padding:3px 2px;text-align:center;vertical-align:top;" title="Vergleich Preisliste 2026">–</td>'+
@@ -8620,6 +8700,12 @@ function cSb(){
   const _qc = _q<=0.95?'var(--ok)':_q<=1.05?'var(--accent)':'var(--danger)';
   setTxt('sbbstrip-ref', 'Liste 2026 CHF '+refTotal.toFixed(2)+(refTotal>0?' · '+(_q*100).toFixed(0)+'%':''), refTotal>0?_qc:'var(--muted)');
   setTxt('sbbstrip-total', 'CHF '+totalVK.toFixed(2));
+  setTxt('sbbstep-total', 'CHF '+totalVK.toFixed(2));
+  const chf=(id,v)=>{const e=document.getElementById(id); if(e) e.textContent = v>0 ? 'CHF '+v.toFixed(2) : '';};
+  chf('sbbchf-1', totalVK);
+  chf('sbbchf-2', matVK + druckVK);
+  chf('sbbchf-3', setupVK + pauschaleVK + grafikVK);
+  chf('sbbchf-4', totalVK);
 
   // Nesting-Info
   const nst = document.getElementById('sbbNesting');
@@ -8706,6 +8792,11 @@ function sbbSetSchnitt(i, val){
   if(typeof cSb==='function') cSb();
 }
 
+function sbbSetFisHoehen(val){
+  if(!P.sbb) P.sbb={};
+  P.sbb.fisHoehen = String(val||'').split(/[,;\s]+/).map(x=>parseFloat(x)).filter(x=>x>0).sort((a,b)=>a-b);
+  saveP(); buildBeSbb();
+}
 function sbbSetHoehen(val){
   if(!P.sbb) P.sbb={};
   P.sbb.hoehen = String(val||'').split(/[,;\s]+/).map(x=>parseFloat(x)).filter(x=>x>0).sort((a,b)=>a-b);
@@ -8770,7 +8861,10 @@ function buildBeSbb(){
     '<div class="hint ht" style="margin-bottom:8px;">Erscheinen im Dropdown der Höhe. Freie Eingabe bleibt immer möglich.</div>'+
     '<div class="field"><label>Produktionshöhen (mm, kommagetrennt)</label>'+
       '<input type="text" value="'+((S.hoehen||[]).join(', '))+'" onchange="sbbSetHoehen(this.value)">'+
-      '<div style="font-size:10px;color:var(--muted);margin-top:2px;">FIS 250 + oranger Rand = 350 · FIS 500 + Rand = 700</div></div>'+
+      '<div style="font-size:10px;color:var(--muted);margin-top:2px;">FIS 250 + Rand = 350 (häufigste Provisorien-Höhe) · FIS 500 + Rand = 700 · Metro = 250 ohne Rand</div></div>'+
+    '<div class="field" style="margin-top:8px;"><label>FIS-Normhöhen (SBB-Norm, steuert das Längenraster)</label>'+
+      '<input type="text" value="'+((S.fisHoehen||[200,250,300,400,500]).join(', '))+'" onchange="sbbSetFisHoehen(this.value)">'+
+      '<div style="font-size:10px;color:var(--muted);margin-top:2px;">Längenraster = halbe FIS-Höhe · Rand = 1/5 der FIS-Höhe, beidseitig</div></div>'+
 
     '<div class="st y" style="margin-top:16px;">Mindestverbräuche</div>'+
     '<div class="hint ht" style="margin-bottom:8px;">Greifen <strong>pro Materialtyp</strong> — zwei verschiedene Folien in einem Auftrag = zwei Anbrüche.</div>'+
