@@ -119,6 +119,18 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 /* POSITION CARDS */
 .pos-list{display:flex;flex-direction:column;gap:5px;margin-bottom:10px;max-height:420px;overflow-y:auto;}
 .pc.tsb{border-left:3px solid #ff9900;}
+/* SBB-Matrix: Eingabefelder 150% Höhe, grössere Schrift */
+#sbbMatrix input, #sbbMatrix select{
+  background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:var(--rsm);font-family:'Inter',sans-serif;
+  font-size:14px;height:38px;padding:4px 7px;width:100%;box-sizing:border-box;max-width:none;
+}
+#sbbMatrix select{cursor:pointer;}
+#sbbMatrix input:focus, #sbbMatrix select:focus{border-color:var(--accent);outline:none;}
+#sbbMatrix thead th{font-size:10px !important;padding-bottom:6px !important;}
+#sbbMatrix td{padding:5px 3px !important;}
+#sbbMatrix .sbbM2{font-size:12px !important;}
+#sbbMatrix .sbbVK{font-size:13px !important;}
 .drag-handle{cursor:grab;color:var(--muted);padding:0 6px 0 2px;font-size:16px;line-height:1;flex-shrink:0;user-select:none;opacity:.5;transition:opacity .15s;}
 .pc:hover .drag-handle{opacity:1;}
 .pc.drag-over{border:2px dashed var(--accent)!important;opacity:.7;}
@@ -945,14 +957,14 @@ a, button, input, select, textarea, label,
         <div style="overflow-x:auto;max-width:100%;margin-bottom:8px;border:1px solid var(--border);border-radius:5px;">
           <table style="border-collapse:collapse;font-size:12px;width:100%;min-width:900px;table-layout:fixed;" id="sbbMatrix">
             <colgroup>
-              <col style="width:80px"><col style="width:126px"><col style="width:46px"><col style="width:56px">
-              <col style="width:100px"><col style="width:96px"><col style="width:104px"><col style="width:96px">
-              <col style="width:58px"><col style="width:66px"><col style="width:24px"><col style="width:30px">
+              <col style="width:128px"><col style="width:82px"><col style="width:44px"><col style="width:54px">
+              <col style="width:96px"><col style="width:90px"><col style="width:98px"><col style="width:90px">
+              <col style="width:54px"><col style="width:62px"><col style="width:22px"><col style="width:28px">
             </colgroup>
             <thead>
               <tr style="color:var(--muted);font-size:9px;text-transform:uppercase;letter-spacing:.4px;">
-                <th style="text-align:left;padding:4px 3px;">Länge</th>
                 <th style="text-align:left;padding:4px 3px;">Höhe</th>
+                <th style="text-align:left;padding:4px 3px;">Länge</th>
                 <th style="text-align:left;padding:4px 3px;">Stk</th>
                 <th style="text-align:left;padding:4px 3px;">Seiten</th>
                 <th style="text-align:left;padding:4px 3px;">Aufbau</th>
@@ -3479,7 +3491,7 @@ function reBuild(){
 
 
   cF();
-  if(typeof buildBeSbb==='function') buildBeSbb();
+  try{ if(typeof buildBeSbb==='function') buildBeSbb(); }catch(e){ console.error('[SBB] Backend-Render:', e.message); }
 }
 
 
@@ -8313,13 +8325,13 @@ function sbbHoehenDatalist(){ /* ersetzt durch echte Dropdowns */ }
 function sbbSizeCell(kind, val, opts, w){
   const inList = opts.includes(val);
   const lbl = (kind==='H') ? sbbHLabel : (o=>String(o));
-  return '<select class="sbb'+kind+'Sel" onchange="sbbSizeSel(this)" style="width:100%;font-size:11px;box-sizing:border-box;">'+
+  return '<select class="sbb'+kind+'Sel" onchange="sbbSizeSel(this)" >'+
       opts.map(o=>'<option value="'+o+'"'+(o===val&&inList?' selected':'')+'>'+lbl(o)+'</option>').join('')+
       '<option value="_c"'+(!inList?' selected':'')+'>frei…</option>'+
     '</select>'+
     '<input class="sbb'+kind+'" type="number" step="5" min="1" value="'+val+'" '+
       'oninput="'+(kind==='H'?'sbbRowChanged(this)':'cSb()')+'" '+
-      'style="width:100%;font-size:11px;margin-top:2px;box-sizing:border-box;'+(inList?'display:none;':'')+'">';
+      'style="margin-top:3px;'+(inList?'display:none;':'')+'">';
 }
 function sbbSizeSel(el){
   const tr  = el.closest('tr');
@@ -8413,20 +8425,20 @@ function sbbAddRow(d){
   const tr = document.createElement('tr');
   tr.style.borderTop = '1px solid var(--border)';
   tr.innerHTML =
-    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('L', l, sbbLaengen(h))+'</td>'+
-    '<td style="padding:3px 3px;vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen())+'</td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;"></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbSeiten" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;"><option value="1"'+(seiten==1?' selected':'')+'>1-s</option><option value="2"'+(seiten==2?' selected':'')+'>2-s</option></select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" style="width:100%;font-size:11px;box-sizing:border-box;">'+
+    '<td style="vertical-align:top;">'+sbbSizeCell('H', h, sbbHoehen())+'</td>'+
+    '<td style="vertical-align:top;">'+sbbSizeCell('L', l, sbbLaengen(h))+'</td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><input class="sbbMenge" type="number" min="1" value="'+menge+'" oninput="cSb()" ></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbSeiten" onchange="cSb()" ><option value="1"'+(seiten==1?' selected':'')+'>1-s</option><option value="2"'+(seiten==2?' selected':'')+'>2-s</option></select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbAufbau" onchange="sbbAufbauChanged(this)" >'+
       '<option value="uv_dibond"'+(aufbau==='uv_dibond'?' selected':'')+'>Dibond</option>'+
       '<option value="folie_dibond"'+(aufbau==='folie_dibond'?' selected':'')+'>Folie+Dibond</option>'+
       '<option value="folie_pur"'+(aufbau==='folie_pur'?' selected':'')+'>Folie pur</option>'+
     '</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbDruckSel" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;">'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbDruckSel" onchange="cSb()" >'+
       sbbOptions('druck', P.druckarten, dIdx, x=>sbbShort(x.name,14))+'</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;">'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbFolieSel" onchange="cSb()" >'+
       sbbOptions('folien', P.digitaldruckfolien, fIdx, x=>sbbShort(x.name,14))+'</select></td>'+
-    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" style="width:100%;font-size:11px;box-sizing:border-box;">'+lamOpts+'</select></td>'+
+    '<td style="padding:3px 3px;vertical-align:top;"><select class="sbbLamSel" onchange="cSb()" >'+lamOpts+'</select></td>'+
     '<td class="sbbM2" style="padding:3px 3px;color:var(--muted);font-size:10px;white-space:nowrap;vertical-align:top;">–</td>'+
     '<td class="sbbVK" style="padding:3px 3px;text-align:right;font-weight:700;white-space:nowrap;font-size:11px;vertical-align:top;">–</td>'+
     '<td class="sbbAmp" style="padding:3px 2px;text-align:center;vertical-align:top;" title="Vergleich Preisliste 2026">–</td>'+
@@ -8863,6 +8875,26 @@ function buildBeSbb(){
     'onchange="sbbSetCfg(&quot;'+key+'&quot;,this.value'+(isInt?',true':'')+')">'+
     (sub?'<div style="font-size:10px;color:var(--muted);margin-top:2px;">'+sub+'</div>':'')+'</div>';
   const tab = S.konturschnitt || [12,18,25,30,35];
+  const erl = S.erlaubt || {};
+  const chkList = (label, kat, arr, fmt) => {
+    const list = erl[kat] || [];
+    const alle = !list.length;
+    return '<div style="margin-bottom:12px;">'+
+      '<div style="display:flex;align-items:center;gap:8px;margin-bottom:4px;">'+
+        '<label style="font-size:11px;font-weight:600;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">'+label+'</label>'+
+        '<span style="font-size:10px;color:'+(alle?'var(--muted)':'var(--accent)')+';">'+(alle?'alle erlaubt':list.length+' freigegeben')+'</span>'+
+        (alle?'':'<button class="btn btn-gh" onclick="sbbAlleErlaubt(&quot;'+kat+'&quot;)" style="font-size:9px;padding:1px 6px;">alle freigeben</button>')+
+      '</div>'+
+      '<div style="display:flex;flex-wrap:wrap;gap:5px;">'+
+        (arr||[]).map((x,i)=>{
+          const on = list.includes(x.name);
+          return '<label style="display:inline-flex;align-items:center;gap:4px;font-size:10px;background:'+(on?'rgba(250,224,23,.1)':'var(--surface3)')+
+                 ';border:1px solid '+(on?'var(--accent)':'var(--border)')+';border-radius:4px;padding:3px 7px;cursor:pointer;">'+
+                 '<input type="checkbox" '+(on?'checked':'')+' onchange="sbbToggleErlaubt(&quot;'+kat+'&quot;,'+i+',this.checked)" style="margin:0;">'+
+                 fmt(x)+'</label>';
+        }).join('')+
+      '</div></div>';
+  };
 
   w.innerHTML =
     '<div class="st y">SBB Provisorien — M&amp;M Publicdesign</div>'+
@@ -14542,18 +14574,54 @@ function printDoc(mode){
       </tr>`;
     }
     if(p.type==='sbb'){
-      const mods=[];
       const _AUF={uv_dibond:'Druck direkt auf Dibond',folie_dibond:'Folie auf Dibond geklebt',folie_pur:'Folie pur'};
-      (p.rowsData||[]).forEach(r=>{
+      const _rd = p.rowsData||[];
+      const _konfig = _rd.map(r=>{
         const _dn = (P.druckarten||[])[r.druckIdx]?.name || '';
         const _fn = r.folieIdx>=0 ? ((P.digitaldruckfolien||[])[r.folieIdx]?.name || '') : '';
         const _ln = r.laminatIdx>=0 ? ((P.laminate||[])[r.laminatIdx]?.name || '') : '';
-        mods.push('· '+r.menge+' × '+r.l+'×'+r.h+' mm · '+(r.seiten===2?'2-seitig':'1-seitig')+
-                  ' · '+(_AUF[r.aufbau]||'')+
-                  (_dn?' · '+sp(_dn):'')+(_fn?' · '+sp(_fn):'')+(_ln?' · Laminat '+sp(_ln):''));
-      });
-      if((p.dibondM2||0)>0) mods.push('Träger: '+sp(p.dibondName||'Dibond')+' '+(p.dibondDicke||'')+'mm');
-      detail=`<strong>SBB Provisorien</strong> · ${p.stk||0} Stk · ${(p.m2n||0).toFixed(3)} m²<br>${mods.join('<br>')}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
+        const _komp = [_AUF[r.aufbau]||'', _dn?sp(_dn):'', _fn?'Folie: '+sp(_fn):'', _ln?'Laminat: '+sp(_ln):'']
+                      .filter(Boolean).join(' · ');
+        return `<tr>
+          <td style="padding:2px 6px 2px 0;white-space:nowrap;">${r.menge} Stk.</td>
+          <td style="padding:2px 6px;white-space:nowrap;font-weight:600;">${r.h} × ${r.l} mm</td>
+          <td style="padding:2px 6px;white-space:nowrap;">${r.seiten===2?'2-seitig':'1-seitig'}</td>
+          <td style="padding:2px 6px;">${_komp}</td>
+          <td style="padding:2px 0 2px 6px;text-align:right;white-space:nowrap;">${(r.vkStk||0).toFixed(2)}</td>
+          <td style="padding:2px 0 2px 8px;text-align:right;white-space:nowrap;font-weight:600;">${((r.vkStk||0)*r.menge).toFixed(2)}</td>
+        </tr>`;
+      }).join('');
+      const _traeger = (p.dibondM2||0)>0 ? sp(p.dibondName||'Dibond')+' '+(p.dibondDicke||'')+'mm' : '';
+      const _zus = [];
+      if((p.setupVK||0)>0)     _zus.push('Setup Druck'+(p.setupAnz>1?' ('+p.setupAnz+'×)':''));
+      if((p.grafikVK||0)>0)    _zus.push('Grafik / Layout '+p.grafikMin+' Min.');
+      if((p.pauschaleVK||0)>0) _zus.push('Auftragspauschale');
+      return `<tr style="${variantStyle}">
+        <td class="c-pos">${i+1}</td>
+        <td class="c-menge">${p.stk||0}</td>
+        <td class="c-me">Stk.</td>
+        <td class="c-bez">
+          <strong>${p.label}</strong>${variantBadge}
+          ${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}
+          <table style="width:100%;border-collapse:collapse;font-size:9.5px;margin-top:4px;color:#333;">
+            <thead><tr style="color:#777;border-bottom:1px solid #ddd;">
+              <th style="text-align:left;padding:1px 6px 1px 0;font-weight:600;">Menge</th>
+              <th style="text-align:left;padding:1px 6px;font-weight:600;">Höhe × Länge</th>
+              <th style="text-align:left;padding:1px 6px;font-weight:600;">Ausführung</th>
+              <th style="text-align:left;padding:1px 6px;font-weight:600;">Aufbau &amp; Material</th>
+              <th style="text-align:right;padding:1px 0 1px 6px;font-weight:600;">EP</th>
+              <th style="text-align:right;padding:1px 0 1px 8px;font-weight:600;">GP</th>
+            </tr></thead>
+            <tbody>${_konfig}</tbody>
+          </table>
+          <span class="sub" style="display:block;margin-top:3px;">
+            Total ${p.stk||0} Stk. · ${(p.m2n||0).toFixed(3)} m²${_traeger?' · Träger: '+_traeger:''}${_zus.length?'<br>Zuschläge: '+_zus.join(' · '):''}
+          </span>
+          ${rabattInline}
+        </td>
+        <td class="c-ep">${(p.stkVK||0).toFixed(2)}</td>
+        <td class="c-gp">${(p.totalVK||0).toFixed(2)}</td>
+      </tr>`;
     }
     if(p.type==='schild'){
       const mods=[];
