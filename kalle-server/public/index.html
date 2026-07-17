@@ -6237,6 +6237,20 @@ function slReBuild(){
   restoreState();
 }
 
+// Lesbare Liste der tatsächlich verwendeten Plottfolien.
+// plottFarben ist ein Array aus {farbe, aktiv, folieIdx} — NICHT aus Strings.
+function slPlottListe(p){
+  return (p?.plottFarben||[])
+    .filter(f=>f && typeof f==='object' && f.folieIdx>=0)
+    .map(f=>{
+      const fol=(P.plottfolien||[])[f.folieIdx];
+      const nm=fol?fol.name:'';
+      const fb=(f.farbe||'').toString().trim();
+      return [nm,fb].filter(Boolean).join(' · ');
+    })
+    .filter(Boolean);
+}
+
 function slGetPlottFarben(){try{return JSON.parse(sessionStorage.getItem('sl_pf_farben')||'[""]');}catch(e){return[''];}}
 function slSetPlottFarben(a){sessionStorage.setItem('sl_pf_farben',JSON.stringify(a));}
 
@@ -9007,8 +9021,12 @@ function saveSchild(){
       const fa=slGetPlottFarben();
       return fa.map((f,fi)=>{
         const sfx=fi===0?'':'_f'+fi;
-        const selEl=$('slAktPlott'+sfx)?.closest('.tr')?.querySelector('select');
-        return {farbe:f, folieIdx:selEl?selEl.selectedIndex-1:-1};
+        const chk=$('slAktPlott'+sfx);
+        const aktiv=!!chk?.checked;
+        const selEl=chk?.closest('.tr')?.querySelector('select');
+        // Nur bei aktivem Toggle einen Folienindex speichern —
+        // sonst taucht die Folie in PDF/Karte auf, obwohl sie nicht verrechnet wird
+        return {farbe:f, aktiv, folieIdx:(aktiv&&selEl)?selEl.selectedIndex-1:-1};
       });
     })(),
     tape:gC('slAktTape')?gSelTxtInRow('slAktTape'):null,
@@ -12986,7 +13004,7 @@ function renderPos(){
     }else if(p.type==='schild'){
       badge='Schild';
       const mods=[];
-      if(p.folie||p.plottFarben?.some(f=>f))mods.push('Folie');
+      if(p.folie||slPlottListe(p).length)mods.push('Folie');
       if(p.gravurAkt)mods.push('Gravur');
       if(p.pulverRAL||p.pulverNCS||p.pulverIGP)mods.push('Pulver');
       sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²·${p.matName}${mods.length?' | '+mods.join('+'):''}`;
@@ -14556,8 +14574,10 @@ function printDoc(mode){
 
   const rows=positions.map((p,i)=>{
     const posRabatte=rabattMap[i]||[];
+    // Varianten-Beträge in Klammern — signalisiert "nicht in der Summe"
+    const fmtVar=(pp,v)=>pp.isVariante?'('+(v||0).toFixed(2)+')':(v||0).toFixed(2);
     // Varianten: grau und markiert, aber in PDF aufgeführt
-    const variantStyle=p.isVariante?'opacity:.55;':'' ;
+    const variantStyle='';   // Varianten normal darstellen — der Badge genügt
     const variantBadge=p.isVariante?'<span style="display:inline-block;margin-left:6px;font-size:8px;padding:1px 5px;background:#e8f4f4;color:#1A8A8A;border:1px solid #1A8A8A;border-radius:3px;font-weight:700;">VARIANTE</span>':'';
     const rabattInline=posRabatte.length>0?posRabatte.map(rb=>
       `<div style="margin-top:3px;padding:2px 6px;background:#fff5f5;border-left:2px solid #cc0000;font-size:9px;color:#cc0000;">
@@ -14628,8 +14648,8 @@ function printDoc(mode){
           </span>
           ${rabattInline}
         </td>
-        <td class="c-ep">${(p.stkVK||0).toFixed(2)}</td>
-        <td class="c-gp">${(p.totalVK||0).toFixed(2)}</td>
+        <td class="c-ep">${fmtVar(p,p.stkVK)}</td>
+        <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
     }
     if(p.type==='schild'){
@@ -14637,7 +14657,7 @@ function printDoc(mode){
       if(p.druck) mods.push('Druckart: '+sp(p.druck));
       if(p.folie) mods.push('Digitaldruckfolie: '+sp(p.folie));
       if(p.laminat) mods.push('Laminat: '+sp(p.laminat));
-      if(p.plottFarben?.some(f=>f))mods.push('Plottfolie '+p.plottFarben.filter(f=>f).join('/'));
+      const _plott=slPlottListe(p); if(_plott.length)mods.push('Plottfolie: '+_plott.map(sp).join(' / '));
       if(p.gravurAkt){
         const _isLogo=(p.slGvModus==='logo');
         const _gravDesc=_isLogo
@@ -14705,16 +14725,18 @@ function printDoc(mode){
     if(p.montPersAkt&&p.montStd>0)mods.push(`Montagepersonal: ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd} h`);
     return `<tr style="${variantStyle}">
         <td class="c-pos">${i+1}</td><td class="c-menge">${p.stk}</td><td class="c-me">Stk.</td>
-        <td class="c-bez"><strong>${p.label}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br>
-          <span class="sub">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m²${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+p.matName}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}<br>
-          ${mods.filter(Boolean).map(m=>'<span style="display:block;margin-top:1px;">'+m+'</span>').join('')}
-
-          ${isInt?`<br><span style="color:#999;">Mat.EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Folie EK CHF ${p.folieMatEK?.toFixed(2)}</span>`:''}
+        <td class="c-bez">
+          <strong>${p.label}</strong>${variantBadge}
+          ${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}
+          <span class="sub">
+            <span style="display:block;">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m²${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+sp(p.matName||'')}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}</span>
+            ${mods.filter(Boolean).map(m=>'<span style="display:block;">'+m+'</span>').join('')}
+            ${isInt?`<span style="display:block;margin-top:1mm;color:#999;">Mat.EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Folie EK CHF ${p.folieMatEK?.toFixed(2)}</span>`:''}
           </span>
           ${rabattInline}
         </td>
-        <td class="c-ep">${p.stk>1?(p.totalVK/p.stk).toFixed(2):'–'}</td>
-        <td class="c-gp">${p.totalVK.toFixed(2)}</td>
+        <td class="c-ep">${p.stk>1?fmtVar(p,p.totalVK/p.stk):'–'}</td>
+        <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
     }
     let desc=`<strong>${p.label}</strong>`;
@@ -14919,7 +14941,7 @@ function printDoc(mode){
   .c-bez{width:auto;}
   .c-ep{width:22mm;text-align:right;}
   .c-gp{width:22mm;text-align:right;font-weight:600;}
-  .sub{color:#555;font-size:9px;line-height:1.6;margin-top:1mm;display:block;}
+  .sub{color:#555;font-size:9px;line-height:1.5;margin-top:0.8mm;display:block;}
   sup{font-size:7px;vertical-align:super;}
 
   /* ── ÜBERTRAG ── */
