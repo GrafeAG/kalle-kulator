@@ -250,6 +250,8 @@ hr{border:none;border-top:1px solid var(--border);margin:12px 0;}
 
 /* BACKEND TABLE */
 .be-table{width:100%;border-collapse:collapse;margin-bottom:10px;}
+.be-sec-body{overflow-x:auto;}
+#betb-schildmaterial{white-space:nowrap;}
 .be-table th{font-size:10px;text-transform:uppercase;letter-spacing:.8px;color:var(--muted);padding:5px 7px;text-align:left;border-bottom:1px solid var(--border);}
 .be-table td{padding:4px 7px;border-bottom:1px solid rgba(51,51,56,.5);vertical-align:middle;}
 .be-table tr:hover td{background:rgba(255,255,255,.015);}
@@ -336,7 +338,7 @@ a, button, input, select, textarea, label,
 
 /* Desktop layout */
 @media (min-width: 900px) {
-  .app { display: grid; grid-template-columns: 1fr 340px; }
+  .app { display: grid; grid-template-columns: minmax(0,1fr) 340px; }
   .main { overflow-y: auto; height: calc(var(--app-height) - 52px); }
   .aside { position: sticky; top: 52px; height: calc(var(--app-height) - 52px); overflow-y: auto; }
   #page-kalk { height: calc(var(--app-height) - 52px); overflow: hidden; }
@@ -9316,7 +9318,7 @@ function getLastSchildFormat(){
 
 function openTypeDialog(){
   editIdx=-1;
-  ['folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm','sbbForm'].forEach(id=>$(id).style.display='none');
+  hidePosForms(false);
   const last=getLastSchildFormat();
   const banner=$('copyBanner');const info=$('copyBannerInfo');
   if(last&&last.l&&last.b&&banner&&info){
@@ -9362,10 +9364,19 @@ function startPosWithCopy(type){
   },50);
 }
 
+// ── Positions-Formulare: EINE Quelle der Wahrheit ────────────────────
+// Unvollständige Listen führten dazu, dass zwei Formulare gleichzeitig offen
+// waren — Eingabe im einen, Validierung im anderen (leeren).
+const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm'];
+function hidePosForms(inklDialog){
+  POS_FORMS.forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
+  if(inklDialog){ const t=document.getElementById('typeDialog'); if(t) t.style.display='none'; }
+}
+
 function startPos(type){
   if(type==='text'){openTextForm();return;}
   $('typeDialog').style.display='none';
-  ['folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm','sbbForm'].forEach(id=>$(id).style.display='none');
+  hidePosForms(false);
   if(type==='schild'){
     $('schildTitle').textContent='Neue Position – Schild';
     $('schildForm').style.display='block';
@@ -9535,7 +9546,7 @@ function startPos(type){
 }
 
 function cancelEdit(){
-  ['typeDialog','folieForm','fraesForm','gravurForm','schildForm','folientechnikForm','rabattForm','sbbForm'].forEach(id=>{const e=$(id);if(e)e.style.display='none';});
+  hidePosForms(true);
   editIdx=-1;
   $('livePanel').innerHTML='<div class="sum-row"><span class="sl">–</span><span class="sv">Keine aktive Eingabe</span></div>';
 }
@@ -10969,8 +10980,7 @@ function getUebergabeData(pfx){
 
 function openTextForm(){
   // Hide all other forms
-  ['folientechnikForm','schildForm','fraesForm','gravurForm','montageForm','rabattForm']
-    .forEach(id=>{const e=$(id);if(e)e.style.display='none';});
+  hidePosForms(false);
   $('typeDialog').style.display='none';
   $('textForm').style.display='block';
   $('txtLabel').focus();
@@ -13034,7 +13044,7 @@ function updateTotals(){
 
 function editPos(i){
   const p=positions[i];editIdx=i;
-  ['typeDialog','folieForm','fraesForm','gravurForm','schildForm','sbbForm'].forEach(id=>$(id).style.display='none');
+  hidePosForms(true);
   if(p.type==='schild'){
     $('schildTitle').textContent=`Position ${i+1} bearbeiten – Schild`;
     $('schildForm').style.display='block';
@@ -13562,8 +13572,7 @@ function editPos(i){
     cRb();
     $('rabattForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='text'){
-    ['folientechnikForm','schildForm','fraesForm','gravurForm','montageForm','rabattForm']
-      .forEach(id=>{const e=$(id);if(e)e.style.display='none';});
+    hidePosForms(false);
     $('typeDialog').style.display='none';
     $('textForm').style.display='block';
     if($('txtLabel'))$('txtLabel').value=p.label||'';
@@ -15477,7 +15486,8 @@ function beSection(sec){
     <span class="be-caret" style="font-size:10px;color:var(--muted);transition:transform .15s;">▼</span>`;
 
   const body=document.createElement('div');
-  body.style.cssText='padding:12px 14px;';
+  // overflow-x:auto — sonst kappt das overflow:hidden des Rahmens breite Tabellen
+  body.style.cssText='padding:12px 14px;overflow-x:auto;';
 
   header.onclick=()=>{
     const open=body.style.display!=='none';
@@ -15558,7 +15568,7 @@ function beRowSchildmat(i){
     P.schildmaterial[i].dicke=parseFloat(inDi.value)||0;
     syncSchildMatPreise();saveP();
     const preisCell=tr.querySelector('.sl-auto-preis');
-    if(preisCell)preisCell.textContent='CHF '+calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);
+    if(preisCell)preisCell.textContent=calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);
     fillSchildMatSelect($('slMat'),parseInt($('slMat')?.value)||0);
     fillSchildMatSelect($('gvSchildSel'),parseInt($('gvSchildSel')?.value)||0);
   };
@@ -15604,7 +15614,7 @@ function beRowSchildmat(i){
     const inEK=document.createElement('input');inEK.type='number';inEK.step='0.01';inEK.value=item.ekKg||0;
     inEK.style=iSt+'width:58px;text-align:right;';
     inEK.onchange=()=>{P.schildmaterial[i].ekKg=parseFloat(inEK.value)||0;syncSchildMatPreise();saveP();
-      const pc=tr.querySelector('.sl-auto-preis');if(pc)pc.textContent='CHF '+calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);reBuild();};
+      const pc=tr.querySelector('.sl-auto-preis');if(pc)pc.textContent=calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);reBuild();};
     tdEK.appendChild(inEK);
   } else { tdEK.innerHTML='<span style="color:var(--muted);font-size:10px;">–</span>'; }
   tr.appendChild(tdEK);
@@ -15616,7 +15626,7 @@ function beRowSchildmat(i){
     inD.style=iSt+'width:52px;text-align:right;';
     inD.title='Dichte g/cm³ (Alu=2.70, Messing=8.50, Stahl=7.85)';
     inD.onchange=()=>{P.schildmaterial[i].dichte=parseFloat(inD.value)*1000||2700;syncSchildMatPreise();saveP();
-      const pc=tr.querySelector('.sl-auto-preis');if(pc)pc.textContent='CHF '+calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);reBuild();};
+      const pc=tr.querySelector('.sl-auto-preis');if(pc)pc.textContent=calcSchildMatPreis(P.schildmaterial[i]).toFixed(2);reBuild();};
     tdD.appendChild(inD);
   } else { tdD.innerHTML='<span style="color:var(--muted);font-size:10px;">–</span>'; }
   tr.appendChild(tdD);
@@ -15624,14 +15634,21 @@ function beRowSchildmat(i){
   // ── CHF/m² (auto bei Metall, editierbar bei m2) ───────────────────────
   const tdP=document.createElement('td');tdP.style.textAlign='right';
   if(isMetall){
+    // Automatisch gerechnet → nicht editierbar, mit Kennzeichnung
     const span=document.createElement('span');span.className='sl-auto-preis';
-    span.style='color:var(--accent);font-weight:600;font-size:12px;cursor:default;';
-    span.textContent='CHF '+calcSchildMatPreis(item).toFixed(2);
-    span.title='Auto: '+item.ekKg+' CHF/kg × '+(item.dichte/1000).toFixed(2)+' g/cm³ × '+item.dicke+'mm';
-    tdP.appendChild(span);
+    span.style='color:var(--accent);font-weight:700;font-size:12px;cursor:help;';
+    span.textContent=calcSchildMatPreis(item).toFixed(2);
+    span.title='Automatisch: '+item.ekKg+' CHF/kg × '+(item.dichte/1000).toFixed(2)+' g/cm³ × '+item.dicke+' mm';
+    const lock=document.createElement('span');
+    lock.style='font-size:8px;color:var(--muted);margin-left:4px;text-transform:uppercase;letter-spacing:.3px;';
+    lock.textContent='auto';
+    lock.title='Wird aus EK/kg, Dichte und Dicke berechnet';
+    tdP.appendChild(span);tdP.appendChild(lock);
   } else {
+    // Direkt eingebbar — gleiche optische Wertigkeit wie der Auto-Preis
     const inP=document.createElement('input');inP.type='number';inP.step='0.01';inP.value=item.preis||0;
-    inP.style=iSt+'width:65px;text-align:right;';
+    inP.style=iSt+'width:68px;text-align:right;color:var(--accent);font-weight:700;font-size:12px;border-color:rgba(250,224,23,.4);';
+    inP.title='Direktpreis pro m²';
     inP.onchange=()=>{P.schildmaterial[i].preis=parseFloat(inP.value)||0;saveP();reBuild();};
     tdP.appendChild(inP);
   }
