@@ -15,6 +15,7 @@ const fs       = require('fs');
 const path     = require('path');
 const { exec } = require('child_process');
 const { query }= require('../db');
+const { htmlToPdf } = require('../pdf');
 
 // ── Basispfad aus .env ────────────────────────────────────────────────────
 // Normalisiert UNC-Pfade: \\Server\Share oder \\\\Server\\Share → beides OK
@@ -235,7 +236,8 @@ router.get('/open', (req, res) => {
 
 // ── POST /projekte/ablegen — fertige Offerte in 02 Offertphase speichern ──
 // Body: { projektPfad, auftragsnr, html }
-// Legt Offerte_KAxxxxxx.html in 02 Offertphase ab.
+// Rendert die (druckfertige) Offerten-HTML serverseitig zu PDF und legt
+// Offerte_KAxxxxxx.pdf in 02 Offertphase ab (keine HTML mehr).
 // Kann mehrfach aufgerufen werden — überschreibt bestehende Datei.
 router.post('/ablegen', express.json({ limit: '10mb' }), async (req, res) => {
   const { projektPfad, auftragsnr, html } = req.body;
@@ -250,13 +252,27 @@ router.post('/ablegen', express.json({ limit: '10mb' }), async (req, res) => {
 
   const ordner = path.join(projektPfad, '02 Offertphase');
   const anrClean = sane(auftragsnr || 'Offerte', 60);
-  const dateiname = `Offerte_${anrClean}.html`;
+  const dateiname = `Offerte_${anrClean}.pdf`;
   const zielDatei = path.join(ordner, dateiname);
 
   try {
+    // HTML → PDF rendern (A4, Print-CSS der Offerte wird respektiert)
+    let pdfBuffer;
+    try {
+      pdfBuffer = await htmlToPdf(html);
+    } catch (e) {
+      if (/Cannot find module 'puppeteer'/.test(e.message)) {
+        console.error('[Ablegen] Puppeteer fehlt:', e.message);
+        return res.status(503).json({ ok: false,
+          error: 'PDF-Engine nicht installiert',
+          hinweis: 'Im Ordner kalle-server ausführen: npm install puppeteer' });
+      }
+      throw e; // anderer Renderfehler → unten behandelt
+    }
+
     fs.mkdirSync(ordner, { recursive: true });
-    fs.writeFileSync(zielDatei, html, 'utf-8');
-    console.log(`[Ablegen] ✓ ${dateiname} → ${ordner}`);
+    fs.writeFileSync(zielDatei, pdfBuffer);
+    console.log(`[Ablegen] ✓ ${dateiname} (${(pdfBuffer.length/1024).toFixed(0)} KB) → ${ordner}`);
 
     // Offerte in DB verknüpfen
     if (auftragsnr) {
