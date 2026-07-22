@@ -2410,9 +2410,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V3.5';
+const UI_VERSION='V3.6';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V3.6','Monday: Elementname = Projektbezeichnung, Spalte „Projektnummer", Leistungsart übertragen, E-Mail-Kurzbeschrieb als Kommentar, Subitem „Offerte erstellen" (fällig +3 Werktage) + Bearbeiter; beim Speichern der Offerte wird dasselbe Item aktualisiert (Summe + Phase „Offerte raus") statt neu angelegt.'],
   ['V3.5','Anfrage-Erfassung komplett: E-Mail gleicht Bestandskunden ab (Vorauswahl/Adressvorschlag); Objektadresse separat (Ort/Strasse) → richtiger Ablageordner; Step 2 mit E-Mail/Anhang-Drop und Zielordner je Datei; „Anfrage erfassen" legt Ordner+Dateien an, erstellt Monday-Item (Phase Anfrage) und speichert unter Aufträge als unbearbeitet.'],
   ['V3.4','Live-Vorschau „Aktuelle Position" wieder sichtbar — laufende Kalkulation beim Ausfüllen. Rechte Summe zählt gespeicherte Positionen (Berechnung geprüft, korrekt).'],
   ['V3.3','E-Mail-/Datei-Drop im Einstieg zurück: .msg/.eml werden ausgelesen (Absender, Kontakt, Adresse, Betreff), Anhänge landen im Projektordner. Auch „E-Mail-Text einfügen".'],
@@ -10772,6 +10773,8 @@ function loadAuftragData(a){
   if(a.globalMontage)loadGlobalMontageData(a.globalMontage);
   renderPos();updateTotals();
   restoreProjektMeta(a);
+  // Verknüpftes Monday-Item merken (für Summen-Update beim Speichern)
+  window._currentMondayItem = a.mondayItemId || a.monday_item_id || '';
 }
 
 async function ladeAuftragVomServer(auftragsnr){
@@ -13826,6 +13829,7 @@ function saveAuftrag(){
     bearbeiter:bearbeiter?.name||'',
     bearbeiterKuerzel:bearbeiter?.kuerzel||'',
     slKundennummer:document.getElementById('slKundennummer')?.value||'',
+    mondayItemId:window._currentMondayItem||'',
     globalMontage:gMont,
     total:positions.reduce((a,p)=>a+p.totalVK,0)+gMont.total,
     positions:JSON.parse(JSON.stringify(positions)),
@@ -13837,6 +13841,8 @@ function saveAuftrag(){
       try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){}
       showToast('✓ '+anr+' in Datenbank gespeichert');
       renderAuftragListe&&renderAuftragListe();
+      // Monday: verknüpftes Item mit Offertsumme + Phase „Offerte raus" aktualisieren
+      try{ mondayAutoUpdate&&mondayAutoUpdate(); }catch(e){}
       // Offerte automatisch im Projektordner ablegen (falls gesetzt)
       if(_projektPfad && typeof ablegenOfferte === 'function'){
         const html = typeof buildOfferteHtml==='function' ? await buildOfferteHtml() : null;
@@ -14355,9 +14361,10 @@ async function ablegenOfferte(htmlContent, auftragsnr){
       method:'POST',
       headers:{'Content-Type':'application/json'},
       body: JSON.stringify({
-        projektPfad: _projektPfad,
-        auftragsnr:  auftragsnr || $('auftragsnr')?.value || '',
-        html:        htmlContent,
+        projektPfad:  _projektPfad,
+        auftragsnr:   auftragsnr || $('auftragsnr')?.value || '',
+        html:         htmlContent,
+        mondayItemId: window._currentMondayItem || '',   // für optionalen PDF-Anhang ans Monday-Item
       }),
     });
     const data = await resp.json();
@@ -16167,60 +16174,89 @@ const MONDAY_CFG = {
   api:'https://api.monday.com/v2', ver:'2024-01',
   board:'18423106800', group:'group_mm5f3714',
   col:{ vorgang:'text_mm5fq49c', kunde:'text_mm5f47ba', phase:'color_mm5f5t2b',
-        summe:'numeric_mm5fpge2', datum:'date_mm5fkwf9', pfad:'text_mm5fj5hk' }
+        summe:'numeric_mm5fpge2', datum:'date_mm5fkwf9', pfad:'text_mm5fj5hk',
+        leistung:'dropdown_mm5f4gd9', verkaeufer:'multiple_person_mm5fmajv', pdf:'file_mm5gtbhz' },
+  subBoard:'18423259310',                         // Subitem-Board
+  subCol:{ faellig:'date0', bearbeiter:'person' }  // Subitem-Spalten
 };
+// Aktuell offenes Monday-Item (aus Anfrage-Erfassung / geladener Offerte) — für Update statt Neuanlage
+window._currentMondayItem = window._currentMondayItem || '';
+function _plusWerktage(n){ const d=new Date(); let a=0; while(a<n){ d.setDate(d.getDate()+1); const wd=d.getDay(); if(wd!==0&&wd!==6) a++; } return d.toISOString().slice(0,10); }
 function mondayToken(){
   return (window.P&&P.integrations&&P.integrations.monday&&P.integrations.monday.apiToken)
     || localStorage.getItem('kalle_monday_token') || '';
 }
-async function sendToMonday(){
-  if(!positions.length){ showToast('Keine Positionen — nichts zu senden','error'); return; }
-  let token = mondayToken();
-  if(!token){
-    token = prompt('Monday API-Token einfügen (wird lokal gespeichert):','');
-    if(!token) return;
-    localStorage.setItem('kalle_monday_token', token.trim());
-  }
+function _mondayLeistung(){
+  const map={schild:'Schild',fraes:'Reliefschrift',folientechnik:'Folientechnik',sbb:'SBB',gravur:'Gravur',montage:'Montage',text:'Text',rabatt:'Rabatt',folie:'Folie'};
+  const labels=[...new Set((positions||[]).map(p=>map[p.type]).filter(Boolean))];
+  try{ if(typeof getGlobalMontageTotal==='function'&&getGlobalMontageTotal()>0&&labels.indexOf('Montage')<0) labels.push('Montage'); }catch(e){}
+  return labels;
+}
+async function _mondayFetch(query,token){
+  const r=await fetch(MONDAY_CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':token,'API-Version':MONDAY_CFG.ver},body:JSON.stringify(query)});
+  if(!r.ok) throw new Error('HTTP '+r.status+' (evtl. CORS/Token)');
+  const d=await r.json();
+  if(d.errors) throw new Error(d.errors[0]?.message||'Monday API Fehler');
+  return d.data;
+}
+// Zentrale Monday-Synchronisation: aktualisiert das bestehende Item (aus der Anfrage),
+// sonst legt es (bei create:true) ein neues an. Setzt Phase „Offerte raus" + Summe.
+async function mondaySync(opts){
+  opts=opts||{};
+  let token=mondayToken();
+  if(!token){ if(opts.silent) return {ok:false,msg:'kein Token'}; token=(prompt('Monday API-Token einfügen (wird lokal gespeichert):','')||'').trim(); if(!token) return {ok:false,msg:'abgebrochen'}; localStorage.setItem('kalle_monday_token',token); }
   token=token.trim();
+  const anr=$('auftragsnr')?.value||'';
+  const gMont=(typeof getGlobalMontageData==='function')?getGlobalMontageData():{total:0};
+  const total=(positions||[]).reduce((s,p)=>s+(p.isVariante?0:(p.totalVK||0)),0)+(gMont?.total||0);
+  const kunde=$('kundenname')?.value||'–';
+  const betreff=($('bemerkung')?.value||'').trim();
+  const datum=$('datum')?.value||new Date().toISOString().split('T')[0];
+  const pfad=(window._projektPfad||document.getElementById('projektPfadBadge')?.textContent||'').trim();
+  const name=(anr+(betreff?(' '+betreff):'')).trim()||('Vorgang '+anr);
+  const cv={};
+  cv[MONDAY_CFG.col.vorgang]=anr; cv[MONDAY_CFG.col.kunde]=kunde;
+  cv[MONDAY_CFG.col.phase]={label:'Offerte raus'};
+  cv[MONDAY_CFG.col.summe]=String(Math.round(total*100)/100);
+  cv[MONDAY_CFG.col.datum]={date:datum};
+  if(pfad) cv[MONDAY_CFG.col.pfad]=pfad;
+  const leist=_mondayLeistung(); if(leist.length) cv[MONDAY_CFG.col.leistung]={labels:leist};
+  const itemId=window._currentMondayItem||'';
+  if(itemId){
+    // Bestehendes Item aktualisieren (Summe/Phase/Datum/Leistung)
+    await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_CFG.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify(cv)}}, token);
+    return {ok:true,updated:true,itemId,msg:'aktualisiert'};
+  }
+  if(!opts.create) return {ok:false,msg:'kein Item verknüpft'};
+  // Neues Item anlegen
+  const d=await _mondayFetch({query:`mutation($cv:JSON!){ create_item(board_id:${MONDAY_CFG.board}, group_id:"${MONDAY_CFG.group}", item_name:${JSON.stringify(name)}, column_values:$cv){ id url } }`, variables:{cv:JSON.stringify(cv)}}, token);
+  const id=d?.create_item?.id, url=d?.create_item?.url;
+  if(id){ window._currentMondayItem=id;
+    try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){}
+    const noteLines=(positions||[]).map((p,i)=>`${String(i+1).padStart(2,'0')}. ${(p.label||p.text||p.type)} — CHF ${(p.totalVK||0).toFixed(2)}`).join('\\n');
+    const body=(`Positionen:\\n${noteLines}`).replace(/"/g,"'");
+    try{ await _mondayFetch({query:`mutation{ create_update(item_id:${id}, body:"${body}"){ id } }`,variables:{}}, token); }catch(_){}
+  }
+  return {ok:!!id,created:true,itemId:id,url,msg:'angelegt'};
+}
+async function sendToMonday(){
   const btn=$('btnMonday'); if(btn){btn.textContent='⏳ Sende...';btn.disabled=true;}
   try{
-    const anrInp=$('auftragsnr'); if(anrInp&&!anrInp.value&&typeof genAuftragsnr==='function')genAuftragsnr();
-    const anr=$('auftragsnr')?.value||('KA'+Date.now());
-    const gMont=(typeof getGlobalMontageData==='function')?getGlobalMontageData():{total:0};
-    const total=positions.reduce((s,p)=>s+(p.totalVK||0),0)+(gMont?.total||0);
-    const kunde=$('kundenname')?.value||'–';
-    const betreff=($('bemerkung')?.value||'').trim();
-    const datum=$('datum')?.value||new Date().toISOString().split('T')[0];
-    const pfad=(window._projektPfad||document.getElementById('projektPfadBadge')?.textContent||'').trim();
-    const bearb=(typeof getBearbeiter==='function')?getBearbeiter():null;
-    const name = betreff ? (anr+' '+betreff) : (anr+' – '+kunde);
-    const cv={};
-    cv[MONDAY_CFG.col.vorgang]=anr;
-    cv[MONDAY_CFG.col.kunde]=kunde;
-    cv[MONDAY_CFG.col.phase]={label:'Offerte raus'};
-    cv[MONDAY_CFG.col.summe]=String(Math.round(total*100)/100);
-    cv[MONDAY_CFG.col.datum]={date:datum};
-    if(pfad) cv[MONDAY_CFG.col.pfad]=pfad;
-    const mutation=`mutation ($cv: JSON!){ create_item(board_id: ${MONDAY_CFG.board}, group_id: "${MONDAY_CFG.group}", item_name: ${JSON.stringify(name)}, column_values: $cv){ id url } }`;
-    const resp=await fetch(MONDAY_CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':token,'API-Version':MONDAY_CFG.ver},body:JSON.stringify({query:mutation,variables:{cv:JSON.stringify(cv)}})});
-    if(!resp.ok) throw new Error('HTTP '+resp.status+' (evtl. CORS/Token) ');
-    const data=await resp.json();
-    if(data.errors) throw new Error(data.errors[0]?.message||'Monday API Fehler');
-    const itemId=data.data?.create_item?.id, itemUrl=data.data?.create_item?.url;
-    if(itemId){
-      try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){}
-      const noteLines=positions.map((p,i)=>`${String(i+1).padStart(2,'0')}. ${(p.label||p.text||p.type)} — CHF ${(p.totalVK||0).toFixed(2)}`).join('\\n');
-      const body=(`Positionen:\\n${noteLines}\\n\\nBearbeiter: ${bearb?.name||'–'} · Kontakt: ${$('kontaktperson')?.value||'–'}`).replace(/"/g,"'");
-      const uq=`mutation { create_update(item_id: ${itemId}, body: "${body}"){ id } }`;
-      try{ await fetch(MONDAY_CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':token,'API-Version':MONDAY_CFG.ver},body:JSON.stringify({query:uq})}); }catch(_){}
-    }
-    showToast('✓ '+anr+' an Monday gesendet','');
-    if(btn){ btn.textContent='✓ Monday'; if(itemUrl)btn.title=itemUrl; setTimeout(()=>{btn.textContent='◉ Monday';btn.disabled=false;},3000); }
+    const anrInp=$('auftragsnr'); if(anrInp&&!anrInp.value&&typeof genAuftragsnr==='function') await genAuftragsnr();
+    const r=await mondaySync({create:true});
+    if(!r.ok) throw new Error(r.msg||'Fehler');
+    showToast('✓ Monday '+(r.updated?'aktualisiert':'angelegt'),'');
+    if(btn){ btn.textContent='✓ Monday'; if(r.url)btn.title=r.url; setTimeout(()=>{btn.textContent='◉ Monday';btn.disabled=false;},3000); }
   }catch(err){
     console.error('Monday send error:',err);
     showToast('Monday Fehler: '+err.message,'error');
     if(btn){btn.textContent='◉ Monday';btn.disabled=false;}
   }
+}
+// Beim Speichern der Offerte automatisch das verknüpfte Item aktualisieren (still)
+async function mondayAutoUpdate(){
+  if(!window._currentMondayItem) return;
+  try{ await mondaySync({silent:true}); }catch(e){ console.warn('[Monday] Auto-Update:',e.message); }
 }
 function toggleEmailAnalyse(){
   const body=$('emailBody');
@@ -16619,6 +16655,7 @@ function toggleEmailAnalyse(){
       email:(g('email')&&g('email').value)||'', nr:'' };
     const bem=(g('bemerkung')&&g('bemerkung').value)||'';
     if(bem){ CUR.betreff=bem; G('kegBetreff').value=bem; }
+    CUR.emailText=text; // für Monday-Kurzbeschrieb
     // DB-Abgleich: passenden Bestandskunden vorauswählen
     let existing=false; const m=matchKunde(CUR.kunde);
     if(m){ CUR.kunde={ name:m.name||CUR.kunde.name, kontakt:m.kontakt||CUR.kunde.kontakt, strasse:m.strasse||CUR.kunde.strasse,
@@ -16775,6 +16812,16 @@ function toggleEmailAnalyse(){
       objektOrt:CUR.obOrt||'', objektStrasse:CUR.obStr||'',
       mondayItemId:CUR.mondayItem||'', positions:[], total:0, _version:2 };
   }
+  function kegKurzbeschrieb(){
+    var t=CUR.emailText||''; if(!t) return '';
+    var clean=t.replace(/\r/g,'').split('\n').filter(function(l){return !/^(von|an|to|from|gesendet|sent|cc|bcc|betreff|subject)\s*:/i.test(l.trim());}).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+    if(clean.length>700) clean=clean.slice(0,700)+' …';
+    return clean;
+  }
+  async function _mFetch(CFG,tok,query,variables){
+    const r=await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':tok,'API-Version':CFG.ver},body:JSON.stringify({query:query,variables:variables||{}})});
+    const d=await r.json(); if(d.errors) throw new Error(d.errors[0]&&d.errors[0].message||'Monday API'); return d.data;
+  }
   async function mondayAnfrage(pfad){
     let tok=''; try{ if(typeof window.mondayToken==='function') tok=window.mondayToken(); }catch(e){}
     if(!tok){ try{ tok=localStorage.getItem('kalle_monday_token')||''; }catch(e){} }
@@ -16783,16 +16830,25 @@ function toggleEmailAnalyse(){
     let CFG=null; try{ CFG=(typeof MONDAY_CFG!=='undefined')?MONDAY_CFG:null; }catch(e){}
     if(!CFG) return {ok:false,msg:'Monday-Konfiguration fehlt'};
     const k=CUR.kunde||{};
+    const name=((CUR.nr||'')+' '+(CUR.betreff||'')).trim();  // Elementname = Projektbezeichnung
     const cv={}; cv[CFG.col.vorgang]=CUR.nr; cv[CFG.col.kunde]=k.name||'';
     cv[CFG.col.phase]={label:'Anfrage'}; cv[CFG.col.datum]={date:new Date().toISOString().slice(0,10)};
     if(pfad) cv[CFG.col.pfad]=pfad;
-    const name=(CUR.nr+' – '+(k.name||'')).replace(/"/g,'');
-    const q='mutation($cv:JSON!){create_item(board_id:'+CFG.board+',group_id:"'+CFG.group+'",item_name:"'+name+'",column_values:$cv){id}}';
+    if(CUR.leistung&&CUR.leistung.length) cv[CFG.col.leistung]={labels:CUR.leistung};
     try{
-      const r=await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':tok,'API-Version':CFG.ver},body:JSON.stringify({query:q,variables:{cv:JSON.stringify(cv)}})});
-      const d=await r.json();
-      if(d.data&&d.data.create_item){ CUR.mondayItem=d.data.create_item.id; return {ok:true,msg:'Item „'+name+'" · Phase Anfrage'}; }
-      return {ok:false,msg:'Fehler: '+((d.errors&&d.errors[0]&&d.errors[0].message)||'unbekannt')+' (evtl. CORS/Token)'};
+      const d=await _mFetch(CFG,tok,'mutation($cv:JSON!){create_item(board_id:'+CFG.board+',group_id:"'+CFG.group+'",item_name:$nm,column_values:$cv){id}}'.replace('$nm',JSON.stringify(name)),{cv:JSON.stringify(cv)});
+      const id=d&&d.create_item&&d.create_item.id;
+      if(!id) return {ok:false,msg:'Item nicht angelegt'};
+      CUR.mondayItem=id; try{ window._currentMondayItem=id; }catch(e){}
+      // Kurzbeschrieb aus E-Mail als Kommentar
+      const kb=kegKurzbeschrieb();
+      if(kb){ try{ await _mFetch(CFG,tok,'mutation($b:String!){create_update(item_id:'+id+',body:$b){id}}',{b:'📧 Kurzbeschrieb aus Anfrage-E-Mail:\n\n'+kb}); }catch(e){} }
+      // Subitem „Offerte erstellen" mit Fällig +3 Werktage
+      try{
+        const scv={}; scv[CFG.subCol.faellig]={date:_plusWerktage(3)};
+        await _mFetch(CFG,tok,'mutation($cv:JSON!){create_subitem(parent_item_id:'+id+',item_name:"Offerte erstellen",column_values:$cv){id}}',{cv:JSON.stringify(scv)});
+      }catch(e){ console.warn('[Monday] Subitem:',e.message); }
+      return {ok:true,msg:'Item „'+name+'" · Phase Anfrage · Subitem „Offerte erstellen" (fällig '+_plusWerktage(3)+')'};
     }catch(e){ return {ok:false,msg:'nicht gesendet: '+e.message+' (evtl. CORS — über Server leiten)'}; }
   }
   async function kegErfassen(){
