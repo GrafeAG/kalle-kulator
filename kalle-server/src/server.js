@@ -25,6 +25,7 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/status',       require('./routes/status'));
 app.use('/preise',       require('./routes/preise'));
 app.use('/offerten',     require('./routes/offerten'));
+app.use('/nummern',      require('./routes/nummern'));     // Vorgangsnummern 26xxxx (reservieren/commit/freigeben)
 app.use('/projekte',     require('./routes/projekte'));
 app.use('/bearbeiter',   require('./routes/bearbeiter'));
 app.use('/kunden',       require('./routes/kunden'));
