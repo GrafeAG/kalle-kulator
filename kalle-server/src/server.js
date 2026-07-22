@@ -25,7 +25,15 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/status',       require('./routes/status'));
 app.use('/preise',       require('./routes/preise'));
 app.use('/offerten',     require('./routes/offerten'));
-app.use('/nummern',      require('./routes/nummern'));     // Vorgangsnummern 26xxxx (reservieren/commit/freigeben)
+// Vorgangsnummern 26xxxx (reservieren/commit/freigeben) — abgesichert geladen:
+// Falls src/routes/nummern.js fehlt oder einen Fehler hat, startet der Server
+// trotzdem (KALLE nutzt dann die Fallback-Nummernvergabe).
+try {
+  app.use('/nummern', require('./routes/nummern'));
+  console.log('✓ Route /nummern geladen');
+} catch (e) {
+  console.error('⚠ Route /nummern NICHT geladen:', e.message, '(Server läuft trotzdem weiter)');
+}
 app.use('/projekte',     require('./routes/projekte'));
 app.use('/bearbeiter',   require('./routes/bearbeiter'));
 app.use('/kunden',       require('./routes/kunden'));
