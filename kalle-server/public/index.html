@@ -2410,9 +2410,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V3.3';
+const UI_VERSION='V3.5';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V3.5','Anfrage-Erfassung komplett: E-Mail gleicht Bestandskunden ab (Vorauswahl/Adressvorschlag); Objektadresse separat (Ort/Strasse) → richtiger Ablageordner; Step 2 mit E-Mail/Anhang-Drop und Zielordner je Datei; „Anfrage erfassen" legt Ordner+Dateien an, erstellt Monday-Item (Phase Anfrage) und speichert unter Aufträge als unbearbeitet.'],
+  ['V3.4','Live-Vorschau „Aktuelle Position" wieder sichtbar — laufende Kalkulation beim Ausfüllen. Rechte Summe zählt gespeicherte Positionen (Berechnung geprüft, korrekt).'],
   ['V3.3','E-Mail-/Datei-Drop im Einstieg zurück: .msg/.eml werden ausgelesen (Absender, Kontakt, Adresse, Betreff), Anhänge landen im Projektordner. Auch „E-Mail-Text einfügen".'],
   ['V3.2','Serverstatus & Kundenstamm im Einstieg korrekt erkannt (kein falsches „offline" mehr); Dunkelmodus entfernt — immer Hell-Look.'],
   ['V3.1','Geführter Einstieg (Anfrage/Nur-kalkulieren) in echten Rechner integriert; Nummernlogik 26xxxx (reservieren/festschreiben/freigeben); Auftragsverwaltung nach Status; Monday-Anbindung.']
@@ -16040,17 +16042,8 @@ function redesignV3(){
       const ic=b.querySelector('.type-btn-icon');
       if(ic){ ic.style.color=''; ic.innerHTML='<svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">'+path+'</svg>'; }
     });
-    // "Aktuelle Position (live)" entfernen — Preise stehen in den Positionen
-    const lp=document.getElementById('livePanel');
-    if(lp){
-      const t=lp.previousElementSibling;
-      if(t && /Aktuelle Position/i.test(t.textContent)){
-        const hr=t.previousElementSibling; if(hr && hr.tagName==='HR') hr.style.display='none';
-        t.style.display='none';
-      }
-      lp.style.display='none';
-    }
-    const lh=document.getElementById('liveHint'); if(lh) lh.style.display='none';
+    // Live-Vorschau „Aktuelle Position (live)" bleibt sichtbar — zeigt die
+    // laufende Kalkulation beim Ausfüllen (rechte Summe zählt gespeicherte Positionen).
     // Positionstypen gruppieren: Produkte / Zusätze (4 pro Zeile)
     const sel=document.querySelector('.type-sel');
     if(sel){
@@ -16245,7 +16238,7 @@ function toggleEmailAnalyse(){
 (function(){
   const G=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage' };
+  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', existing:false, mondayItem:'' };
 
   // ---- Kunden aus dem echten Stamm normalisieren ----
   function kx(k){
@@ -16472,20 +16465,44 @@ function toggleEmailAnalyse(){
                   <button class="on" id="kegSgF">${svg('<rect x="4" y="3" width="12" height="18" rx="1"/><path d="M16 8h4v13H4"/>',20)}<span class="tt">Firmenkunde</span><span class="tg">Lieferauftrag</span></button>
                   <button id="kegSgO">${svg('<path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.5"/>',20)}<span class="tt">Objekt</span><span class="tg">Montage vor Ort</span></button>
                 </div>
+                <div id="kegObAddr" class="keg-hide" style="margin-bottom:11px;">
+                  <div class="keg-note" style="margin-bottom:9px;background:#fdfbf3;border-color:#e6d9a6;"><span>ℹ</span><div>Die <b>Objektadresse</b> (Montageort) kann von der Kundenadresse abweichen — bitte prüfen bzw. eintragen. Danach wird der Ablageordner unter Ort / Strasse angelegt.</div></div>
+                  <div class="keg-g2">
+                    <div class="keg-f"><label>Ort (Objekt)</label><input id="kegObOrt" placeholder="z. B. Birsfelden"></div>
+                    <div class="keg-f"><label>Strasse / Nr. (Objekt)</label><input id="kegObStr" placeholder="z. B. Musterstrasse 1"></div>
+                  </div>
+                </div>
                 <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl">Ablageort (automatisch)</div><div class="val" id="kegPath">—</div></div></div>
-                <div class="keg-note"><span>ℹ</span><div>Die Offerte-PDF wird beim Speichern der Kalkulation automatisch als <b id="kegPdf">Offerte_….pdf</b> hier ergänzt.</div></div>
+                <div style="margin-top:13px;">
+                  <div style="font-size:10.5px;font-weight:700;color:#9aa1ad;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Unterlagen &amp; Anhänge</div>
+                  <div class="keg-drop" id="kegDrop2" style="padding:12px;"><div class="t1">Weitere E-Mails &amp; Dateien hierher ziehen</div><div class="t2">jede Datei bekommt unten einen Zielordner (z. B. 02 Offertphase)</div></div>
+                  <div id="kegFiles2" style="margin-top:9px;font-size:11.5px;color:#9aa1ad;">Noch keine Dateien</div>
+                </div>
               </div>
               <div class="keg-pane">
                 <div class="keg-pl"><span class="num">4</span> Übersicht — wird so erfasst</div>
                 <div class="keg-sum">
                   <div class="keg-sr"><span class="k">Kunde</span><span class="v" id="kegSumK">—</span></div>
                   <div class="keg-sr"><span class="k">Projekt</span><span class="v" id="kegSumP">—</span></div>
+                  <div class="keg-sr keg-hide" id="kegSumObRow"><span class="k">Objekt</span><span class="v" id="kegSumOb">—</span></div>
                   <div class="keg-sr"><span class="k">Leistung</span><span class="v" id="kegSumL">—</span></div>
+                  <div class="keg-sr"><span class="k">Unterlagen</span><span class="v" id="kegSumU">0 Dateien</span></div>
                   <div class="keg-sr"><span class="k">Ablage</span><span class="v" id="kegSumA">Firmenkunde</span></div>
                   <div class="keg-sr"><span class="k">monday</span><span class="v">Board „Offerten &amp; Anfragen" · Phase Anfrage</span></div>
                 </div>
-                <div class="keg-note" style="margin-top:12px;"><span>✓</span><div>Mit <b>Anfrage erfassen &amp; weiter</b> werden die Kundendaten in die Kalkulation übernommen und die Nummer <b id="kegSumNr">—</b> gesetzt. Ablage &amp; monday erfolgen beim Speichern.</div></div>
+                <div class="keg-note" style="margin-top:12px;"><span>✓</span><div>Mit <b>Anfrage erfassen</b> werden Projektordner angelegt, alle Unterlagen abgelegt, das <b>Monday-Item (Phase Anfrage)</b> erstellt und die Anfrage unter <b>Aufträge</b> als <b>unbearbeitet</b> gespeichert (Nummer <b id="kegSumNr">—</b>). Die Kalkulation/Offerte folgt später.</div></div>
               </div>
+            </div>
+          </div>
+
+          <div class="keg-screen keg-hide" id="kegDone" style="padding:28px 24px;text-align:center;">
+            <div style="width:52px;height:52px;border-radius:50%;background:#c8a000;color:#fff;display:grid;place-items:center;margin:0 auto 12px;box-shadow:0 6px 16px rgba(200,160,0,.35);">${svg('<path d="M5 12l5 5L20 7"/>',26)}</div>
+            <div style="font-family:'Syne',sans-serif;font-weight:800;font-size:19px;" id="kegDoneTitle">Anfrage erfasst</div>
+            <div style="color:#565d6a;font-size:12.5px;margin:4px 0 16px;" id="kegDoneSub">Abgelegt und an Monday übergeben — die Anfrage liegt unter Aufträge als „unbearbeitet".</div>
+            <div id="kegDoneRows" style="max-width:580px;margin:0 auto;text-align:left;"></div>
+            <div style="display:flex;gap:9px;justify-content:center;margin-top:20px;">
+              <button class="keg-btn gh" id="kegDoneNew">＋ Neue Anfrage</button>
+              <button class="keg-btn pri" id="kegDoneCalc">Jetzt kalkulieren →</button>
             </div>
           </div>
 
@@ -16495,7 +16512,7 @@ function toggleEmailAnalyse(){
               <button class="keg-btn gh" id="kegBack" disabled>← Zurück</button>
               <button class="keg-btn gh" id="kegAbbruch">Abbrechen</button>
               <button class="keg-btn pri" id="kegNext">Weiter →</button>
-              <button class="keg-btn pri keg-hide" id="kegFinish">Anfrage erfassen &amp; weiter →</button>
+              <button class="keg-btn pri keg-hide" id="kegFinish">✓ Anfrage erfassen</button>
             </div>
           </div>
         </div>
@@ -16514,7 +16531,18 @@ function toggleEmailAnalyse(){
     // Events
     G('kegGoA').onclick=startAnfrage; G('kegGoK').onclick=startKalk;
     G('kegBack').onclick=()=>go(s-1); G('kegNext').onclick=()=>go(s+1);
-    G('kegFinish').onclick=finish; G('kegAbbruch').onclick=()=>{ if(confirm('Erfassung abbrechen und nur kalkulieren?')) startKalk(); };
+    G('kegFinish').onclick=kegErfassen; G('kegAbbruch').onclick=()=>{ if(confirm('Erfassung abbrechen und nur kalkulieren?')) startKalk(); };
+    G('kegDoneNew').onclick=()=>location.reload(); G('kegDoneCalc').onclick=()=>close();
+    // Objektadresse-Felder
+    G('kegObOrt').addEventListener('input',()=>{ CUR.obOrt=G('kegObOrt').value; refresh(); });
+    G('kegObStr').addEventListener('input',()=>{ CUR.obStr=G('kegObStr').value; refresh(); });
+    // Zweites Drop-Feld (Step 2): weitere E-Mails/Dateien + Ordnerzuordnung
+    const md2=G('kegDrop2');
+    if(md2){ md2.onclick=()=>pickMailFiles();
+      ['dragenter','dragover'].forEach(ev=>md2.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();md2.style.borderColor='#c8a000';md2.style.background='#f5eed7';}));
+      ['dragleave','dragend'].forEach(ev=>md2.addEventListener(ev,e=>{e.preventDefault();md2.style.borderColor='';md2.style.background='';}));
+      md2.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();md2.style.borderColor='';md2.style.background='';const f=e.dataTransfer&&e.dataTransfer.files;if(f&&f.length)kegDropFiles(f);});
+    }
     G('kegManual').onclick=manual; G('kegEdit').onclick=()=>G('kegDet').classList.toggle('open');
     G('kegLoad').onclick=ladeDialog;
     G('kegSgF').onclick=()=>seg('f'); G('kegSgO').onclick=()=>seg('o');
@@ -16563,7 +16591,7 @@ function toggleEmailAnalyse(){
     try{ if(typeof window.projFilesAdded==='function') window.projFilesAdded(fileList); }catch(e){}
     // Wenn noch keine Kundenauswahl sichtbar, Erfassung öffnen, damit Unterlagen sichtbar sind
     if(G('kegPicked').classList.contains('keg-hide')){ if(!CUR.kunde) manual(); else showPickedFromCUR(false); }
-    kegRenderFiles();
+    kegRenderFiles(); kegRenderFiles2(); refresh();
   }
   function kegRenderFiles(){
     const box=G('kegFiles'); if(!box) return;
@@ -16591,6 +16619,14 @@ function toggleEmailAnalyse(){
       email:(g('email')&&g('email').value)||'', nr:'' };
     const bem=(g('bemerkung')&&g('bemerkung').value)||'';
     if(bem){ CUR.betreff=bem; G('kegBetreff').value=bem; }
+    // DB-Abgleich: passenden Bestandskunden vorauswählen
+    let existing=false; const m=matchKunde(CUR.kunde);
+    if(m){ CUR.kunde={ name:m.name||CUR.kunde.name, kontakt:m.kontakt||CUR.kunde.kontakt, strasse:m.strasse||CUR.kunde.strasse,
+        plz:m.plz||CUR.kunde.plz, ort:m.ort||CUR.kunde.ort, tel:m.tel||CUR.kunde.tel, email:m.email||CUR.kunde.email, nr:m.nr||'' }; existing=true; }
+    CUR.existing=existing;
+    const bd=G('kegDetected');
+    if(bd){ bd.textContent=existing?'Bestandskunde aus Datenbank — vorausgewählt':'Aus E-Mail erkannt — bitte kurz prüfen';
+      bd.style.background=existing?'#e6efe8':'#f5eed7'; bd.style.color=existing?'#2f7d54':'#6f5a00'; bd.style.borderColor=existing?'#bfe0c8':'#e6d9a6'; }
     showPickedFromCUR(true);
     refresh();
   }
@@ -16675,8 +16711,15 @@ function toggleEmailAnalyse(){
     }catch(e){ alert('Import-Fehler: '+e.message); }
   }
 
-  function seg(t){ CUR.ablage=t; G('kegSgF').classList.toggle('on',t==='f'); G('kegSgO').classList.toggle('on',t==='o'); refresh(); }
+  function seg(t){ CUR.ablage=t; G('kegSgF').classList.toggle('on',t==='f'); G('kegSgO').classList.toggle('on',t==='o');
+    const ob=G('kegObAddr'); if(ob) ob.classList.toggle('keg-hide',t!=='o');
+    if(t==='o'){ const k=CUR.kunde||{};
+      if(!G('kegObOrt').value) G('kegObOrt').value=k.ort||'';
+      if(!G('kegObStr').value) G('kegObStr').value=k.strasse||'';
+      CUR.obOrt=G('kegObOrt').value; CUR.obStr=G('kegObStr').value; }
+    refresh(); }
 
+  function _fileCount(){ try{ return (typeof _projDropFiles!=='undefined'&&_projDropFiles)?_projDropFiles.length:0; }catch(e){ return 0; } }
   function refresh(){
     const k=CUR.kunde||{}; const nr=CUR.nr||'—';
     G('kegVgNr').textContent=nr; G('kegProjNr').textContent=nr; G('kegSumNr').textContent=nr;
@@ -16685,9 +16728,12 @@ function toggleEmailAnalyse(){
     G('kegSumP').textContent=((CUR.nr?CUR.nr+' ':'')+(CUR.betreff||''))||'—';
     G('kegSumL').textContent=(CUR.leistung&&CUR.leistung.length)?CUR.leistung.join(', '):'—';
     G('kegSumA').textContent=CUR.ablage==='o'?'Objekt · Montage vor Ort':'Firmenkunde · Lieferauftrag';
-    const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+(k.ort||'…')+'\\'+(k.strasse||'…')+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
-    G('kegPath').innerHTML=esc(pfad)+'<b>'+esc((CUR.nr||'')+' '+(CUR.betreff||''))+'</b>\\';
-    G('kegPdf').textContent='Offerte_'+(CUR.nr||'…')+'.pdf';
+    const cnt=_fileCount(); const su=G('kegSumU'); if(su) su.textContent=cnt+(cnt===1?' Datei':' Dateien');
+    const ort=CUR.obOrt||k.ort||'…', str=CUR.obStr||k.strasse||'…';
+    const obRow=G('kegSumObRow'); if(obRow){ obRow.classList.toggle('keg-hide',CUR.ablage!=='o'); const ob=G('kegSumOb'); if(ob) ob.textContent=[str,ort].filter(x=>x&&x!=='…').join(', ')||'—'; }
+    const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+ort+'\\'+str+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
+    const pv=G('kegPath'); if(pv) pv.innerHTML=esc(pfad)+'<b>'+esc((CUR.nr||'')+' '+(CUR.betreff||''))+'</b>\\';
+    const pdf=G('kegPdf'); if(pdf) pdf.textContent='Offerte_'+(CUR.nr||'…')+'.pdf';
   }
 
   function go(n){ s=Math.max(0,Math.min(1,n));
@@ -16696,6 +16742,7 @@ function toggleEmailAnalyse(){
     G('kegLn').classList.toggle('done',s>0);
     G('kegBack').disabled=s===0; G('kegNh').textContent='Schritt '+(s+1)+' von 2';
     G('kegNext').classList.toggle('keg-hide',s===1); G('kegFinish').classList.toggle('keg-hide',s!==1);
+    if(s===1){ kegRenderFiles2(); }
     G('kegOverlay').scrollTop=0; refresh();
   }
 
@@ -16715,19 +16762,109 @@ function toggleEmailAnalyse(){
     const anr=document.getElementById('auftragsnr'); if(anr) anr.value='';
     close();
   }
-  function finish(){
+  function setF(id,val){ const e=G(id); if(e){ e.value=val==null?'':val; e.dispatchEvent(new Event('input',{bubbles:true})); } }
+  function _srv(){ return (typeof KALLE_SERVER!=='undefined'?KALLE_SERVER:''); }
+
+  function anfragePayload(pfad){
+    const k=CUR.kunde||{};
+    return { auftragsnr:CUR.nr, kundenname:k.name||'', kontaktperson:k.kontakt||'', email:k.email||'', telefon:k.tel||'',
+      adresse:[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', '),
+      adresseStrasse:k.strasse||'', adressePLZ:k.plz||'', adresseOrt:k.ort||'',
+      datum:new Date().toISOString().slice(0,10), bemerkung:CUR.betreff||'', status:'entwurf',
+      projektPfad:pfad||'', leistungsart:(CUR.leistung||[]), ablageart:CUR.ablage==='o'?'Objekt':'Firmenkunde',
+      objektOrt:CUR.obOrt||'', objektStrasse:CUR.obStr||'',
+      mondayItemId:CUR.mondayItem||'', positions:[], total:0, _version:2 };
+  }
+  async function mondayAnfrage(pfad){
+    let tok=''; try{ if(typeof window.mondayToken==='function') tok=window.mondayToken(); }catch(e){}
+    if(!tok){ try{ tok=localStorage.getItem('kalle_monday_token')||''; }catch(e){} }
+    if(!tok){ tok=(prompt('Monday API-Token (einmalig, wird lokal gespeichert):')||'').trim(); if(tok){ try{localStorage.setItem('kalle_monday_token',tok);}catch(e){} } }
+    if(!tok) return {ok:false,msg:'übersprungen — kein Token hinterlegt'};
+    let CFG=null; try{ CFG=(typeof MONDAY_CFG!=='undefined')?MONDAY_CFG:null; }catch(e){}
+    if(!CFG) return {ok:false,msg:'Monday-Konfiguration fehlt'};
+    const k=CUR.kunde||{};
+    const cv={}; cv[CFG.col.vorgang]=CUR.nr; cv[CFG.col.kunde]=k.name||'';
+    cv[CFG.col.phase]={label:'Anfrage'}; cv[CFG.col.datum]={date:new Date().toISOString().slice(0,10)};
+    if(pfad) cv[CFG.col.pfad]=pfad;
+    const name=(CUR.nr+' – '+(k.name||'')).replace(/"/g,'');
+    const q='mutation($cv:JSON!){create_item(board_id:'+CFG.board+',group_id:"'+CFG.group+'",item_name:"'+name+'",column_values:$cv){id}}';
+    try{
+      const r=await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':tok,'API-Version':CFG.ver},body:JSON.stringify({query:q,variables:{cv:JSON.stringify(cv)}})});
+      const d=await r.json();
+      if(d.data&&d.data.create_item){ CUR.mondayItem=d.data.create_item.id; return {ok:true,msg:'Item „'+name+'" · Phase Anfrage'}; }
+      return {ok:false,msg:'Fehler: '+((d.errors&&d.errors[0]&&d.errors[0].message)||'unbekannt')+' (evtl. CORS/Token)'};
+    }catch(e){ return {ok:false,msg:'nicht gesendet: '+e.message+' (evtl. CORS — über Server leiten)'}; }
+  }
+  async function kegErfassen(){
     const k=CUR.kunde||{};
     if(!k.name){ alert('Bitte zuerst einen Kunden wählen oder erfassen.'); go(0); return; }
-    // In die ECHTEN Felder übernehmen
+    if(!(CUR.betreff||'').trim()){ alert('Bitte einen Betreff eingeben (wird zur Projektbezeichnung).'); go(0); setTimeout(()=>G('kegBetreff').focus(),50); return; }
+    if(CUR.ablage==='o'){ CUR.obOrt=(G('kegObOrt').value||'').trim(); CUR.obStr=(G('kegObStr').value||'').trim();
+      if(!CUR.obOrt||!CUR.obStr){ alert('Bitte Objekt-Ort und -Strasse eingeben (Ablageort).'); return; } }
+    const btn=G('kegFinish'); btn.disabled=true; btn.textContent='Erfasse …';
+    // reale Felder füllen (für DB & spätere Kalkulation)
     setF('kundenname',k.name); setF('kontaktperson',k.kontakt); setF('email',k.email); setF('telefon',k.tel);
-    setF('adresseStrasse',k.strasse); setF('adressePLZ',k.plz); setF('adresseOrt',k.ort);
-    setF('bemerkung',CUR.betreff); if(G('auftragsnr')&&CUR.nr){ G('auftragsnr').value=CUR.nr; G('auftragsnr').dispatchEvent(new Event('input',{bubbles:true})); }
-    const sl=G('slKundennummer'); if(sl&&k.nr) sl.value=k.nr;
-    try{ if(typeof window.showKundenBadge==='function'&&k.nr) window.showKundenBadge({nr:k.nr,name:k.name,ort:k.ort||''}); }catch(e){}
-    close();
-    try{ if(typeof window.showToast==='function') window.showToast('✓ Vorgang '+(CUR.nr||'')+' übernommen — weiter in der Kalkulation'); }catch(e){}
+    setF('adresseStrasse',k.strasse); setF('adressePLZ',k.plz); setF('adresseOrt',k.ort); setF('bemerkung',CUR.betreff);
+    if(G('auftragsnr')&&CUR.nr){ G('auftragsnr').value=CUR.nr; G('auftragsnr').dispatchEvent(new Event('input',{bubbles:true})); }
+    const slk=G('slKundennummer'); if(slk&&k.nr) slk.value=k.nr;
+    try{ if(typeof window.commitVorgangsnummer==='function') await window.commitVorgangsnummer(CUR.nr); }catch(e){}
+    const rows=[]; const srvOn=SRV(); let pfad='';
+    // Projektordner + Upload
+    if(srvOn){
+      try{
+        const body={ typ:CUR.ablage==='o'?'objekt':'firma', projektnr:CUR.nr, bezeichnung:CUR.betreff, auftragsnr:CUR.nr };
+        if(CUR.ablage==='o'){ body.ort=CUR.obOrt||k.ort||''; body.strasse=CUR.obStr||k.strasse||''; } else { body.firmaName=k.name; }
+        const r=await fetch(_srv()+'/projekte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const d=await r.json();
+        if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
+          rows.push(['ok','Projektordner angelegt',pfad]);
+          if(_fileCount()>0 && typeof window.projUploadFiles==='function'){ try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
+        } else { rows.push(['warn','Projektordner',(d&&d.error)||'nicht angelegt']); }
+      }catch(e){ rows.push(['warn','Projektordner','Server nicht erreichbar: '+e.message]); }
+    } else { rows.push(['warn','Projektordner','Server offline — folgt beim Speichern']); }
+    // Monday (Phase Anfrage)
+    const md=await mondayAnfrage(pfad); rows.push([md.ok?'ok':'warn','Monday-Tracking',md.msg]);
+    // DB (Aufträge, unbearbeitet)
+    let dbmsg='Server offline — folgt beim Speichern', dbok=false;
+    if(srvOn){ try{ const r=await fetch(_srv()+'/offerten',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(anfragePayload(pfad))}); dbok=r.ok; dbmsg=r.ok?('Vorgang '+CUR.nr+' unter Aufträge — Status „unbearbeitet"'):('Server-Fehler '+r.status); }catch(e){ dbmsg='Server nicht erreichbar: '+e.message; } }
+    rows.push([dbok?'ok':'warn','In Aufträgen gespeichert',dbmsg]);
+    rows.push(['ok','Nummer fest vergeben',CUR.nr+' — eindeutig']);
+    try{ if(typeof window.renderAuftragListe==='function') window.renderAuftragListe(); }catch(e){}
+    btn.disabled=false; btn.textContent='✓ Anfrage erfassen';
+    showKegDone(rows);
   }
-  function setF(id,val){ const e=G(id); if(e){ e.value=val==null?'':val; e.dispatchEvent(new Event('input',{bubbles:true})); } }
+  function showKegDone(rows){
+    G('kegScr0').classList.add('keg-hide'); G('kegScr1').classList.add('keg-hide');
+    const nav=document.querySelector('#kegOverlay .keg-nav'); if(nav) nav.style.display='none';
+    G('kegS0').className='keg-stp done'; G('kegS1').className='keg-stp done'; G('kegLn').classList.add('done');
+    G('kegVgTag').textContent='vergeben';
+    G('kegDoneTitle').textContent='Anfrage '+(CUR.nr||'')+' erfasst';
+    const col={ok:'#2f7d54',warn:'#b8860b'};
+    G('kegDoneRows').innerHTML=(rows||[]).map(function(rw){var st=rw[0],t=rw[1],d=rw[2];return '<div style="display:flex;gap:10px;padding:9px 0;border-bottom:1px solid #e6e8ec;"><span style="color:'+(col[st]||'#565d6a')+';font-weight:800;flex-shrink:0;">'+(st==='ok'?'✓':'!')+'</span><div style="min-width:0;"><div style="font-weight:600;font-size:12.5px;">'+esc(t)+'</div><div style="font-size:10.5px;color:#9aa1ad;word-break:break-all;">'+esc(d)+'</div></div></div>';}).join('');
+    G('kegDone').classList.remove('keg-hide');
+    G('kegOverlay').scrollTop=0;
+  }
+  var KEG_FOLDERS=['01 Korrespondenz','02 Offertphase','03 Ausführung','04 Werkstattdaten','05 Nachträge','06 Fotos','07 Projektabschluss'];
+  function kegRenderFiles2(){
+    const box=G('kegFiles2'); if(!box) return;
+    let list=[]; try{ list=(typeof _projDropFiles!=='undefined'&&_projDropFiles)?_projDropFiles:[]; }catch(e){}
+    if(!list.length){ box.innerHTML='Noch keine Dateien'; box.style.color='#9aa1ad'; return; }
+    box.style.color='#565d6a';
+    box.innerHTML=list.map(function(f,i){ var ziel=f._zielOrdner||((typeof window.projGetZielordner==='function')?window.projGetZielordner(f.name):'02 Offertphase');
+      var opts=KEG_FOLDERS.map(function(d){return '<option value="'+d+'" '+(d===ziel?'selected':'')+'>'+d+'</option>';}).join('');
+      return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e6e8ec;border-radius:7px;padding:6px 9px;margin-bottom:5px;"><span style="font-size:8.5px;font-weight:700;color:#565d6a;background:#f7f8fa;border:1px solid #e6e8ec;border-radius:4px;padding:2px 5px;flex-shrink:0;">'+esc((f.name.split(".").pop()||"DAT").toUpperCase().slice(0,4))+'</span><span style="flex:1;min-width:0;font-size:11.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(f.name)+'</span><select data-i="'+i+'" class="kegZiel" style="font-size:10.5px;padding:3px 5px;border:1px solid #d6dade;border-radius:5px;background:#fff;">'+opts+'</select><span class="keg-link" data-rm="'+i+'" style="flex-shrink:0;">✕</span></div>';
+    }).join('');
+    box.querySelectorAll('.kegZiel').forEach(function(sel){ sel.onchange=function(){ var i=parseInt(sel.getAttribute('data-i'),10); try{ if(_projDropFiles[i]) _projDropFiles[i]._zielOrdner=sel.value; }catch(e){} }; });
+    box.querySelectorAll('.keg-link[data-rm]').forEach(function(el){ el.onclick=function(){ var i=parseInt(el.getAttribute('data-rm'),10); try{ if(typeof window.projRemoveFile==='function') window.projRemoveFile(i); }catch(e){} kegRenderFiles2(); kegRenderFiles(); refresh(); }; });
+  }
+  function matchKunde(kd){
+    if(!kd) return null; var list=KUN(); if(!list||!list.length) return null;
+    var em=(kd.email||'').toLowerCase(), nm=(kd.name||'').toLowerCase(); var m=null;
+    if(em) m=list.find(function(x){return (x.email||'').toLowerCase()===em;});
+    if(!m&&nm) m=list.find(function(x){return (x.name||x.Firma||x.kundenname||'').toLowerCase()===nm;});
+    if(!m&&nm&&nm.length>4) m=list.find(function(x){var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); return xn&&(xn.indexOf(nm)>=0||nm.indexOf(xn)>=0);});
+    return m?kx(m):null;
+  }
 
   function close(){
     const ov=G('kegOverlay'); if(ov) ov.classList.add('keg-hide');
