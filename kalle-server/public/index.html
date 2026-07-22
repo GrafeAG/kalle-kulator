@@ -2410,9 +2410,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V3.6';
+const UI_VERSION='V3.7';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V3.7','Startseite: erfasste Aufträge direkt öffnen (unbearbeitete zuerst) → Klick lädt den Auftrag in den Rechner; plus Button „Alle Aufträge".'],
   ['V3.6','Monday: Elementname = Projektbezeichnung, Spalte „Projektnummer", Leistungsart übertragen, E-Mail-Kurzbeschrieb als Kommentar, Subitem „Offerte erstellen" (fällig +3 Werktage) + Bearbeiter; beim Speichern der Offerte wird dasselbe Item aktualisiert (Summe + Phase „Offerte raus") statt neu angelegt.'],
   ['V3.5','Anfrage-Erfassung komplett: E-Mail gleicht Bestandskunden ab (Vorauswahl/Adressvorschlag); Objektadresse separat (Ort/Strasse) → richtiger Ablageordner; Step 2 mit E-Mail/Anhang-Drop und Zielordner je Datei; „Anfrage erfassen" legt Ordner+Dateien an, erstellt Monday-Item (Phase Anfrage) und speichert unter Aufträge als unbearbeitet.'],
   ['V3.4','Live-Vorschau „Aktuelle Position" wieder sichtbar — laufende Kalkulation beim Ausfüllen. Rechte Summe zählt gespeicherte Positionen (Berechnung geprüft, korrekt).'],
@@ -16422,6 +16423,14 @@ function toggleEmailAnalyse(){
           </div>
         </div>
         <div class="keg-foot">Es wird keine Nummer verbraucht und nichts abgelegt, solange du nur kalkulierst. Eine Nummer wird erst fest, wenn eine Anfrage erfasst wird.</div>
+
+        <div id="kegRecent" style="max-width:780px;margin:20px auto 0;">
+          <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:9px;">
+            <div style="font-size:10.5px;font-weight:700;color:#9aa1ad;text-transform:uppercase;letter-spacing:.5px;">Erfasste Aufträge — zum Bearbeiten öffnen</div>
+            <button class="keg-btn gh" id="kegRecentAll" style="padding:6px 12px;font-size:11.5px;">Alle Aufträge →</button>
+          </div>
+          <div id="kegRecentList" style="font-size:12px;color:#9aa1ad;">lädt …</div>
+        </div>
       </div>
 
       <div id="kegFlow" class="keg-hide">
@@ -16569,6 +16578,8 @@ function toggleEmailAnalyse(){
     G('kegBack').onclick=()=>go(s-1); G('kegNext').onclick=()=>go(s+1);
     G('kegFinish').onclick=kegErfassen; G('kegAbbruch').onclick=()=>{ if(confirm('Erfassung abbrechen und nur kalkulieren?')) startKalk(); };
     G('kegDoneNew').onclick=()=>location.reload(); G('kegDoneCalc').onclick=()=>close();
+    // Startseite: erfasste Aufträge
+    G('kegRecentAll').onclick=()=>{ const ov=G('kegOverlay'); if(ov) ov.classList.add('keg-hide'); try{ if(typeof window.showPage==='function'){ const pills=document.querySelectorAll('.nav-pill'); window.showPage('auftraege',pills[1]||pills[0]); } }catch(e){} window.scrollTo({top:0}); };
     // Objektadresse-Felder
     G('kegObOrt').addEventListener('input',()=>{ CUR.obOrt=G('kegObOrt').value; refresh(); });
     G('kegObStr').addEventListener('input',()=>{ CUR.obStr=G('kegObStr').value; refresh(); });
@@ -16922,13 +16933,47 @@ function toggleEmailAnalyse(){
     return m?kx(m):null;
   }
 
+  // ── Startseite: erfasste Aufträge laden & öffnen ──
+  const OV_MET={entwurf:['Unbearbeitet','#6f5a00','#f5eed7'],gesendet:['Offerte raus','#3a4660','#e6e8ee'],bestellt:['Bestellt / Gewonnen','#2f7d54','#e6efe8'],abgelehnt:['Abgelehnt','#8c877c','#eef0f3']};
+  async function openAuftrag(anr){
+    if(!anr) return;
+    try{ if(typeof window.ladeAuftragVomServer==='function'){ await window.ladeAuftragVomServer(anr); } }catch(e){}
+    close();
+  }
+  window.__kegOpenAuftrag=openAuftrag;
+  let _recentBusy=false;
+  async function loadGateAuftraege(force){
+    const box=G('kegRecentList'); if(!box) return;
+    if(!SRV()){ box.innerHTML='<span style="color:#9aa1ad">Server offline — melde dich im Firmennetz an, dann erscheinen die Aufträge hier.</span>'; return; }
+    if(_recentBusy&&!force) return; _recentBusy=true;
+    try{
+      const r=await fetch(_srv()+'/offerten?limit=100');
+      const d=await r.json(); let list=(d.offerten||d||[]);
+      const rank=s=>({entwurf:0,gesendet:1,bestellt:2,abgelehnt:3}[s]!=null?({entwurf:0,gesendet:1,bestellt:2,abgelehnt:3}[s]):1);
+      list.sort((a,b)=>rank(a.status)-rank(b.status)||String(b.datum||'').localeCompare(String(a.datum||'')));
+      list=list.slice(0,8);
+      if(!list.length){ box.innerHTML='<span style="color:#9aa1ad">Noch keine Aufträge erfasst.</span>'; return; }
+      box.innerHTML=list.map(function(o){ var st=OV_MET[o.status]||OV_MET.entwurf; var anr=o.auftragsnr||'';
+        return '<div class="kegRecentRow" data-anr="'+esc(anr)+'" style="display:flex;align-items:center;gap:11px;background:#fff;border:1px solid #e6e8ec;border-radius:8px;padding:9px 12px;margin-bottom:6px;cursor:pointer;transition:.12s;" onmouseover="this.style.borderColor=\'#c8a000\'" onmouseout="this.style.borderColor=\'#e6e8ec\'">'
+          +'<span style="font-family:Syne,sans-serif;font-weight:800;font-size:12.5px;min-width:54px;">'+esc(anr)+'</span>'
+          +'<div style="flex:1;min-width:0;"><div style="font-weight:600;font-size:12.5px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(o.kundenname||'–')+'</div><div style="font-size:10.5px;color:#9aa1ad;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(o.bemerkung||'')+'</div></div>'
+          +'<span style="font-size:9.5px;font-weight:700;color:'+st[1]+';background:'+st[2]+';padding:2px 9px;border-radius:100px;white-space:nowrap;">'+st[0]+'</span>'
+          +'<span class="keg-link" style="white-space:nowrap;">Öffnen →</span></div>';
+      }).join('');
+      box.querySelectorAll('.kegRecentRow').forEach(function(row){ row.onclick=function(){ openAuftrag(row.getAttribute('data-anr')); }; });
+    }catch(e){ box.innerHTML='<span style="color:#9aa1ad">Aufträge nicht geladen: '+esc(e.message)+'</span>'; }
+    finally{ _recentBusy=false; }
+  }
+
   function close(){
     const ov=G('kegOverlay'); if(ov) ov.classList.add('keg-hide');
     try{ if(typeof window.showPage==='function'){ const pill=document.querySelector('.nav-pill'); window.showPage('kalk',pill); } }catch(e){}
     window.scrollTo({top:0});
   }
   function open(){ const ov=G('kegOverlay'); if(!ov) return; ov.classList.remove('keg-hide');
-    G('kegGate').classList.remove('keg-hide'); G('kegFlow').classList.add('keg-hide'); G('kegVg').classList.add('keg-hide'); updateSrv(); window.scrollTo({top:0}); }
+    G('kegGate').classList.remove('keg-hide'); G('kegFlow').classList.add('keg-hide'); G('kegDone').classList.add('keg-hide');
+    const nav=document.querySelector('#kegOverlay .keg-nav'); if(nav) nav.style.display='';
+    G('kegVg').classList.add('keg-hide'); updateSrv(); loadGateAuftraege(true); window.scrollTo({top:0}); }
   window.KEG={open,close};
 
   // Reopen-Button in die Nav einhängen
@@ -16939,8 +16984,9 @@ function toggleEmailAnalyse(){
 
   function init(){
     build(); addReopen();
-    // Serverstatus/Stamm nachziehen (App lädt asynchron)
-    let n=0; const iv=setInterval(()=>{ updateSrv(); if(++n>20||stammGeladen()) clearInterval(iv); },700);
+    loadGateAuftraege();
+    // Serverstatus/Stamm/Aufträge nachziehen (App lädt asynchron)
+    let n=0, loaded=false; const iv=setInterval(()=>{ updateSrv(); if(SRV()&&!loaded){ loaded=true; loadGateAuftraege(true); } if(++n>20||(stammGeladen()&&loaded)) clearInterval(iv); },700);
   }
   if(document.readyState==='loading') window.addEventListener('DOMContentLoaded',()=>setTimeout(init,60)); else setTimeout(init,60);
 })();
