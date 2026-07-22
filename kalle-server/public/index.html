@@ -460,7 +460,7 @@ a, button, input, select, textarea, label,
     </nav>
   </div>
   <div class="hdr-act">
-    <button id="themeToggleBtn" class="btn btn-gh" onclick="toggleTheme()" title="Hell/Dunkel Modus" style="font-size:13px;padding:5px 10px;">🌙</button>
+    <button id="themeToggleBtn" class="btn btn-gh" onclick="toggleTheme()" title="Hell/Dunkel Modus" style="font-size:13px;padding:5px 10px;display:none;">🌙</button>
     <button class="btn btn-gh" onclick="saveAuftrag()">💾 Sichern</button>
     <button class="btn btn-gh" onclick="resetAll()">↺ Reset</button>
     <button class="btn btn-t" onclick="printDoc('internal')">⬡ Intern</button>
@@ -2410,9 +2410,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V3.1';
+const UI_VERSION='V3.3';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V3.3','E-Mail-/Datei-Drop im Einstieg zurück: .msg/.eml werden ausgelesen (Absender, Kontakt, Adresse, Betreff), Anhänge landen im Projektordner. Auch „E-Mail-Text einfügen".'],
+  ['V3.2','Serverstatus & Kundenstamm im Einstieg korrekt erkannt (kein falsches „offline" mehr); Dunkelmodus entfernt — immer Hell-Look.'],
   ['V3.1','Geführter Einstieg (Anfrage/Nur-kalkulieren) in echten Rechner integriert; Nummernlogik 26xxxx (reservieren/festschreiben/freigeben); Auftragsverwaltung nach Status; Monday-Anbindung.']
 ];
 const APP_VERSION_KEY='grafe_kalle_version';
@@ -12276,14 +12278,11 @@ function toggleTheme(){
 }
 
 function initTheme(){
-  const saved = localStorage.getItem('kalle_theme');
-  // v3: Hell ist Standard — nur explizit gewähltes Dunkel bleibt dunkel
-  const useDark = saved === 'dark';
-  if(!useDark){
-    document.body.classList.add('light-mode');
-    const btn = document.getElementById('themeToggleBtn');
-    if(btn) btn.textContent = '🌕';
-  }
+  // Dunkelmodus entfernt — KALLE läuft immer im Hell-Look (V3).
+  document.body.classList.add('light-mode');
+  try{ localStorage.setItem('kalle_theme','light'); }catch(e){}
+  const btn = document.getElementById('themeToggleBtn');
+  if(btn) btn.style.display='none';
 }
 
 function slSetFormfaktor(ff, btn){
@@ -16264,10 +16263,15 @@ function toggleEmailAnalyse(){
     if(!q||q.length<2) return [];
     let res=[];
     try{ if(typeof window.sucheKunden==='function') res=window.sucheKunden(q)||[]; }catch(e){}
-    if(!res.length){ const s=q.toLowerCase(); res=(window.KUNDEN||[]).filter(k=>{const n=(k.name||k.Firma||k.kundenname||'').toLowerCase();return n.includes(s)||String(k.nr||k.Nummer||'').startsWith(q);}).slice(0,8); }
+    if(!res.length){ const s=q.toLowerCase(); res=KUN().filter(k=>{const n=(k.name||k.Firma||k.kundenname||'').toLowerCase();return n.includes(s)||String(k.nr||k.Nummer||'').startsWith(q);}).slice(0,8); }
     return res.map(kx).filter(Boolean).slice(0,8);
   }
-  const stammGeladen=()=> (window.kundenLoaded===true) || ((window.KUNDEN||[]).length>0);
+  // Zugriff auf die echten Top-Level-Variablen der App (sind NICHT auf window,
+  // sondern globale let-Bindungen — daher direkt referenzieren, mit Schutz).
+  const SRV=()=>{ try{ return (typeof serverVerfuegbar!=='undefined') && serverVerfuegbar===true; }catch(e){ return false; } };
+  const KUN=()=>{ try{ return (typeof KUNDEN!=='undefined' && KUNDEN) ? KUNDEN : []; }catch(e){ return []; } };
+  const KLD=()=>{ try{ return (typeof kundenLoaded!=='undefined') && kundenLoaded===true; }catch(e){ return false; } };
+  const stammGeladen=()=> KLD() || (KUN().length>0);
 
   // ---- Styles (eigenes Scope, Mockup-Look) ----
   const css=`
@@ -16409,16 +16413,34 @@ function toggleEmailAnalyse(){
                     <div class="keg-dd keg-hide" id="kegDD"></div>
                   </div>
                   <div class="keg-stammline"><span id="kegStamm" style="color:#9aa1ad;">Kundenstamm …</span><span class="keg-link" id="kegLoad">laden</span></div>
-                  <div class="keg-or">oder</div>
-                  <div class="keg-drop" id="kegManual"><div class="t1">Neukunde manuell erfassen</div><div class="t2">Angaben unten eintragen</div></div>
+                  <div class="keg-or">oder Anfrage aus E-Mail</div>
+                  <div class="keg-drop" id="kegMailDrop">
+                    <div style="color:#565d6a;margin-bottom:5px;display:flex;justify-content:center;">${svg('<rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/>',22)}</div>
+                    <div class="t1">E-Mail &amp; Anhänge hierher ziehen</div>
+                    <div class="t2">.msg / .eml — Absender &amp; Kontakt werden automatisch erkannt · Anhänge kommen in den Projektordner</div>
+                  </div>
+                  <div style="text-align:center;margin-top:9px;font-size:11px;">
+                    <span class="keg-link" id="kegPasteToggle">E-Mail-Text einfügen</span>
+                    <span style="color:#c3c8cf;"> · </span>
+                    <span class="keg-link" id="kegManual">manuell erfassen</span>
+                  </div>
+                  <div id="kegPasteBox" class="keg-hide" style="margin-top:9px;">
+                    <textarea id="kegPasteText" placeholder="Gesamte E-Mail hier einfügen (Ctrl+V) — Firma, Kontakt, Telefon, Adresse und Betreff werden erkannt." style="width:100%;min-height:92px;padding:9px 11px;border:1.5px solid #d6dade;border-radius:8px;font-family:inherit;font-size:12.5px;background:#f7f8fa;color:#20242c;resize:vertical;box-sizing:border-box;"></textarea>
+                    <button class="keg-btn pri" id="kegPasteRun" style="margin-top:8px;width:100%;justify-content:center;">${svg('<circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/>',15)} Analysieren</button>
+                  </div>
                 </div>
                 <div id="kegPicked" class="keg-hide">
+                  <div id="kegDetected" class="keg-hide" style="display:none;align-items:center;gap:5px;font-size:9.5px;font-weight:700;color:#6f5a00;background:#f5eed7;border:1px solid #e6d9a6;padding:3px 9px;border-radius:100px;margin-bottom:9px;">Aus E-Mail erkannt — bitte kurz prüfen</div>
                   <div class="keg-picked">
                     <div class="av">${svg('<rect x="4" y="3" width="12" height="18" rx="1"/><path d="M16 8h4v13H4"/>',17)}</div>
                     <div><div class="nm" id="kegPkName">—</div><div class="dt" id="kegPkDt">—</div></div>
                     <div class="chk">${svg('<path d="M5 12l5 5L20 7"/>',17)}</div>
                   </div>
                   <div class="keg-editlink" id="kegEdit">Angaben prüfen / bearbeiten</div>
+                  <div style="margin-top:11px;">
+                    <div style="font-size:10.5px;font-weight:700;color:#9aa1ad;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;"><span>Unterlagen</span><span class="keg-link" id="kegAddFile">+ Datei</span></div>
+                    <div id="kegFiles" style="font-size:11.5px;color:#9aa1ad;">Noch keine Dateien</div>
+                  </div>
                   <div class="keg-details" id="kegDet">
                     <div class="keg-g2" style="margin-top:4px;">
                       <div class="keg-f lit"><label>Firma</label><input id="kegFirma"></div>
@@ -16503,15 +16525,94 @@ function toggleEmailAnalyse(){
     const bt=G('kegBetreff');
     bt.addEventListener('input',()=>{ CUR.betreff=bt.value; refresh(); });
     ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail'].forEach(id=>{ G(id).addEventListener('input',syncManual); });
+    // E-Mail-/Datei-Drop + Analyse
+    const md=G('kegMailDrop');
+    md.onclick=()=>pickMailFiles();
+    ['dragenter','dragover'].forEach(ev=>md.addEventListener(ev,e=>{e.preventDefault();e.stopPropagation();md.style.borderColor='#c8a000';md.style.background='#f5eed7';}));
+    ['dragleave','dragend'].forEach(ev=>md.addEventListener(ev,e=>{e.preventDefault();md.style.borderColor='';md.style.background='';}));
+    md.addEventListener('drop',e=>{e.preventDefault();e.stopPropagation();md.style.borderColor='';md.style.background='';const f=e.dataTransfer&&e.dataTransfer.files;if(f&&f.length)kegDropFiles(f);});
+    G('kegPasteToggle').onclick=()=>{ const b=G('kegPasteBox'); b.classList.toggle('keg-hide'); if(!b.classList.contains('keg-hide')) G('kegPasteText').focus(); };
+    G('kegPasteRun').onclick=async()=>{ const t=G('kegPasteText').value.trim(); if(t.length<5){alert('Bitte E-Mail-Text einfügen.');return;} const b=G('kegPasteRun'); b.disabled=true; b.textContent='Analysiere …'; await kegAnalyse(t); b.disabled=false; b.textContent='Analysieren'; };
+    G('kegAddFile').onclick=()=>pickMailFiles();
     updateSrv();
+  }
+
+  // ── E-Mail-Analyse (nutzt den echten KALLE-Parser) + Datei-Drop ──
+  function pickMailFiles(){
+    const inp=document.createElement('input'); inp.type='file'; inp.multiple=true;
+    inp.onchange=function(){ if(this.files&&this.files.length) kegDropFiles(this.files); }; inp.click();
+  }
+  async function extractEmailText(file){
+    const nm=(file.name||'').toLowerCase();
+    if(nm.endsWith('.eml')||nm.endsWith('.txt')){ try{ return await file.text(); }catch(e){ return ''; } }
+    if(nm.endsWith('.msg')){
+      try{ const buf=await file.arrayBuffer();
+        let t16=''; try{ t16=new TextDecoder('utf-16le').decode(buf); }catch(e){}
+        let t8=''; try{ t8=new TextDecoder('latin1').decode(buf); }catch(e){}
+        return ((t16||'')+'\n'+(t8||'')).replace(/[\x00-\x08\x0e-\x1f]+/g,' ');
+      }catch(e){ return ''; }
+    }
+    return '';
+  }
+  async function kegDropFiles(fileList){
+    const files=Array.from(fileList);
+    // E-Mail-Datei suchen und auslesen
+    const mail=files.find(f=>/\.(eml|msg|txt)$/i.test(f.name||''));
+    if(mail){ const txt=await extractEmailText(mail); if(txt&&txt.trim().length>5){ await kegAnalyse(txt); } }
+    // ALLE Dateien in die bestehende Projekt-Warteschlange (werden beim Speichern in den Ordner geladen)
+    try{ if(typeof window.projFilesAdded==='function') window.projFilesAdded(fileList); }catch(e){}
+    // Wenn noch keine Kundenauswahl sichtbar, Erfassung öffnen, damit Unterlagen sichtbar sind
+    if(G('kegPicked').classList.contains('keg-hide')){ if(!CUR.kunde) manual(); else showPickedFromCUR(false); }
+    kegRenderFiles();
+  }
+  function kegRenderFiles(){
+    const box=G('kegFiles'); if(!box) return;
+    let list=[]; try{ list=(typeof _projDropFiles!=='undefined'&&_projDropFiles)?_projDropFiles:[]; }catch(e){ list=[]; }
+    if(!list.length){ box.innerHTML='Noch keine Dateien'; box.style.color='#9aa1ad'; return; }
+    box.style.color='#565d6a';
+    box.innerHTML=list.map((f,i)=>{ const kb=f.size>1048576?((f.size/1048576).toFixed(1)+' MB'):(Math.max(1,Math.round((f.size||0)/1024))+' KB');
+      return '<div style="display:flex;align-items:center;gap:8px;background:#fff;border:1px solid #e6e8ec;border-radius:7px;padding:6px 9px;margin-bottom:5px;"><span style="font-size:8.5px;font-weight:700;color:#565d6a;background:#f7f8fa;border:1px solid #e6e8ec;border-radius:4px;padding:2px 5px;">'+esc((f.name.split('.').pop()||'DAT').toUpperCase().slice(0,4))+'</span><span style="flex:1;min-width:0;font-size:12px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">'+esc(f.name)+'</span><span style="font-size:10px;color:#9aa1ad;">'+kb+'</span><span class="keg-link" data-i="'+i+'" style="margin-left:4px;">✕</span></div>';
+    }).join('');
+    box.querySelectorAll('.keg-link[data-i]').forEach(el=>{ el.onclick=()=>{ const i=parseInt(el.getAttribute('data-i'),10); try{ if(typeof window.projRemoveFile==='function') window.projRemoveFile(i); }catch(e){} kegRenderFiles(); }; });
+  }
+  async function kegAnalyse(text){
+    if(!text||text.trim().length<5) return;
+    const apiKey=(document.getElementById('apiKey')&&document.getElementById('apiKey').value||localStorage.getItem('grafe_apikey')||'').trim();
+    try{
+      if(apiKey&&typeof window.analyseWithClaude==='function'){ await window.analyseWithClaude(text,apiKey); }
+      else if(typeof window.analyseWithRegex==='function'){ window.analyseWithRegex(text); }
+      else { return; }
+    }catch(e){ try{ if(typeof window.analyseWithRegex==='function') window.analyseWithRegex(text); }catch(_){} }
+    // reale Felder → Overlay übernehmen
+    const g=id=>document.getElementById(id);
+    CUR.kunde={ name:(g('kundenname')&&g('kundenname').value)||'', kontakt:(g('kontaktperson')&&g('kontaktperson').value)||'',
+      strasse:(g('adresseStrasse')&&g('adresseStrasse').value)||'', plz:(g('adressePLZ')&&g('adressePLZ').value)||'',
+      ort:(g('adresseOrt')&&g('adresseOrt').value)||'', tel:(g('telefon')&&g('telefon').value)||'',
+      email:(g('email')&&g('email').value)||'', nr:'' };
+    const bem=(g('bemerkung')&&g('bemerkung').value)||'';
+    if(bem){ CUR.betreff=bem; G('kegBetreff').value=bem; }
+    showPickedFromCUR(true);
+    refresh();
+  }
+  function showPickedFromCUR(detected){
+    const k=CUR.kunde||{};
+    G('kegPkName').textContent=k.name||'Neuer Kunde';
+    G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'Angaben unten prüfen';
+    G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
+    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.toggle('lit',!!detected));
+    const bd=G('kegDetected'); if(bd) bd.style.display=detected?'inline-flex':'none';
+    G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide');
+    if(detected) G('kegDet').classList.add('open');
+    kegRenderFiles();
   }
 
   function updateSrv(){
     const el=G('kegSrv'); if(!el) return;
-    const on=window.serverVerfuegbar===true;
-    el.textContent=on?('● Server aktiv'+(stammGeladen()?' · '+(window.KUNDEN||[]).length+' Kunden':'')):'○ Server offline';
+    const on=SRV();
+    el.textContent=on?('● Server aktiv'+(stammGeladen()?' · '+KUN().length+' Kunden':'')):'○ Server offline';
     el.style.color=on?'#2f7d54':'#9aa1ad';
-    const sl=G('kegStamm'); if(sl){ sl.textContent=stammGeladen()?((window.KUNDEN||[]).length+' Kunden aktiv'):(on?'Server aktiv – Stamm nicht geladen':'Server offline'); sl.style.color=stammGeladen()?'#2f7d54':'#9aa1ad'; }
+    const sl=G('kegStamm'); if(sl){ sl.textContent=stammGeladen()?(KUN().length+' Kunden aktiv'):(on?'Server aktiv – Stamm lädt …':'Server offline'); sl.style.color=stammGeladen()?'#2f7d54':'#9aa1ad'; }
   }
 
   // ---- Kundensuche ----
@@ -16520,11 +16621,11 @@ function toggleEmailAnalyse(){
     const su=G('kegSuche'), dd=G('kegDD'); const q=su.value.trim();
     if(q.length<2){ dd.classList.add('keg-hide'); return; }
     if(!stammGeladen()){
-      dd.innerHTML='<div class="keg-di" style="cursor:default;"><div><div class="nm" style="color:#9aa1ad">Kundenstamm nicht geladen</div><div class="meta">'+(window.serverVerfuegbar?'Server ohne /kunden — Datei laden':'Server offline — Datei laden')+'</div></div><div class="nr keg-link" onclick="__kegLoad()">laden</div></div>';
+      dd.innerHTML='<div class="keg-di" style="cursor:default;"><div><div class="nm" style="color:#9aa1ad">Kundenstamm nicht geladen</div><div class="meta">'+(SRV()?'Server ohne /kunden — Datei laden':'Server offline — Datei laden')+'</div></div><div class="nr keg-link" onclick="__kegLoad()">laden</div></div>';
       dd.classList.remove('keg-hide'); return;
     }
     _res=suche(q);
-    if(!_res.length){ dd.innerHTML='<div class="keg-di" style="cursor:default;"><div><div class="nm" style="color:#9aa1ad">Kein Treffer</div><div class="meta">'+((window.KUNDEN||[]).length)+' Kunden im Stamm</div></div></div>'; dd.classList.remove('keg-hide'); return; }
+    if(!_res.length){ dd.innerHTML='<div class="keg-di" style="cursor:default;"><div><div class="nm" style="color:#9aa1ad">Kein Treffer</div><div class="meta">'+(KUN().length)+' Kunden im Stamm</div></div></div>'; dd.classList.remove('keg-hide'); return; }
     dd.innerHTML=_res.map((k,i)=>'<div class="keg-di" onclick="__kegPick('+i+')"><div><div class="nm">'+esc(k.name)+'</div><div class="meta">'+esc([k.kontakt,k.ort].filter(Boolean).join(' · ')||'—')+'</div></div><div class="nr">'+(k.nr?('SL '+esc(k.nr)):'')+'</div></div>').join('');
     dd.classList.remove('keg-hide');
   }
@@ -16569,7 +16670,7 @@ function toggleEmailAnalyse(){
         const hdr=lines[0].split(sep).map(h=>h.replace(/^"|"$/g,'').trim());
         liste=lines.slice(1).map(l=>{const v=l.split(sep).map(x=>x.replace(/^"|"$/g,'').trim());const o={};hdr.forEach((h,i)=>o[h]=v[i]||'');return o;}); }
       const arr=liste.map(kx).filter(k=>k&&k.name);
-      if(arr.length){ window.KUNDEN=arr; window.kundenLoaded=true; updateSrv(); renderDD(); alert('✓ '+arr.length+' Kunden geladen'); }
+      if(arr.length){ try{ KUNDEN=arr; kundenLoaded=true; }catch(e){ window.KUNDEN=arr; window.kundenLoaded=true; } updateSrv(); renderDD(); alert('✓ '+arr.length+' Kunden geladen'); }
       else alert('Keine verwertbaren Kunden gefunden (erwartet Spalten wie Nummer/Firma/Name).');
     }catch(e){ alert('Import-Fehler: '+e.message); }
   }
