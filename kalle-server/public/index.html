@@ -2525,9 +2525,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V4.2';
+const UI_VERSION='V4.3';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V4.3','Anfrage-Erfassung: Container 50% breiter (nichts wird mehr abgeschnitten, kein horizontales Scrollen); langer Datenpfad/Projektbezeichnung bricht sauber um. Kunde jetzt voll bearbeitbar inkl. Feld „Kundennummer (SelectLine)" — auch wenn die E-Mail-Erkennung fehlschlägt. Bestandskunden-Abgleich beim Eintippen von Firma/E-Mail (übernimmt Treffer inkl. Kundennummer). Neue Kategorien „Leuchtwerbung" und „Fahrzeugbeschriftung".'],
   ['V4.2','Monday-Ablauf neu: Erfasste Anfragen gehen direkt ins Produktionsboard (Gruppe „Projekt und Offertanfragen", Status „Anfragen unbearbeitet") mit Subelement „Anfrage eingegangen" (Datum + E-Mail/Anhänge). Beim Speichern der Offerte: Subelement „Offerte verschickt" (Offertsumme + Offerte-HTML). Datei-Anhänge laufen serverseitig (neues Server-Modul). Bearbeiter wird in Monday gesetzt, nicht von KALLE.'],
   ['V4.1','Monday: Bei Status „Bestellt / Gewonnen" wird der Vorgang automatisch als Element in die GRAFE Produktionsübersicht (Gruppe Vorbereitung) übergeben — die Board-Automatik legt dort die Subitems an. Das Anfrage-Element wird auf „Gewonnen" gesetzt und archiviert. Doppel-Übergaben werden verhindert.'],
   ['V4.0','Texterkennung repariert: E-Mails werden jetzt korrekt dekodiert (MIME-Betreff =?UTF-8?…?=, Quoted-Printable =C3=A4, Base64-Text, .msg-Dateien, Mojibake). Projektbezeichnung und Monday-Kurzbeschrieb sind damit lesbar statt kryptisch.'],
@@ -16842,7 +16843,7 @@ function toggleEmailAnalyse(){
   #kegOverlay{position:fixed;inset:0;z-index:9000;overflow:auto;background:#f2f3f5;color:#20242c;
     font-family:'Inter',system-ui,sans-serif;font-size:13px;line-height:1.5;padding:22px 16px 60px;-webkit-font-smoothing:antialiased;}
   #kegOverlay *{box-sizing:border-box;}
-  #kegOverlay .kwrap{max-width:900px;margin:0 auto;}
+  #kegOverlay .kwrap{max-width:1350px;margin:0 auto;}
   #kegOverlay svg{display:block;}
   .keg-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:5px;}
   .keg-logo{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;} .keg-logo .k{color:#c8a000;}
@@ -16903,7 +16904,7 @@ function toggleEmailAnalyse(){
   .keg-seg button.on{background:#fff;color:#20242c;box-shadow:0 1px 2px rgba(20,30,50,.05);} .keg-seg button.on svg{color:#6f5a00;}
   .keg-path{display:flex;align-items:center;gap:10px;background:#f7f8fa;border:1px dashed #d6dade;border-radius:8px;padding:11px 13px;margin-bottom:11px;}
   .keg-path .lbl{font-size:9.5px;color:#9aa1ad;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
-  .keg-path .val{font-family:ui-monospace,monospace;font-size:11.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;} .keg-path .val b{color:#6f5a00;}
+  .keg-path{align-items:flex-start;} .keg-path .val{font-family:ui-monospace,monospace;font-size:11.5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.5;} .keg-path .val b{color:#6f5a00;}
   .keg-note{font-size:11px;color:#565d6a;background:#f7f8fa;border:1px solid #e6e8ec;border-radius:7px;padding:8px 11px;display:flex;gap:8px;align-items:flex-start;line-height:1.45;} .keg-note b{color:#20242c;}
   .keg-sum{border:1px solid #e6e8ec;border-radius:8px;overflow:hidden;}
   .keg-sr{display:flex;gap:12px;padding:9px 12px;border-bottom:1px solid #e6e8ec;font-size:12px;} .keg-sr:last-child{border-bottom:none;}
@@ -16917,9 +16918,11 @@ function toggleEmailAnalyse(){
   @media(max-width:720px){ .keg-gate{grid-template-columns:1fr;} .keg-cols{grid-template-columns:1fr;} .keg-pane.l{border-right:none;border-bottom:1px solid #e6e8ec;} }
   `;
 
-  const LEIST=[['tb-schild','Schild'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-text','Text'],['tb-rabatt','Rabatt']];
+  const LEIST=[['tb-schild','Schild'],['tb-leucht','Leuchtwerbung'],['tb-fahrzeug','Fahrzeugbeschriftung'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-text','Text'],['tb-rabatt','Rabatt']];
   const LICON={
     'tb-schild':'<rect x="4" y="4" width="16" height="9" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/>',
+    'tb-leucht':'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/>',
+    'tb-fahrzeug':'<path d="M3 13l1.5-5A2 2 0 0 1 6.4 6.5h11.2A2 2 0 0 1 19.5 8L21 13v5h-3v-2H6v2H3z"/><circle cx="7.5" cy="16" r="1.4"/><circle cx="16.5" cy="16" r="1.4"/>',
     'tb-folientechnik':'<rect x="4" y="7" width="12" height="11" rx="1"/><path d="M8 7V4h12v11h-4"/>',
     'tb-fraes':'<path d="M6 20L12 5l6 15"/><line x1="8.5" y1="14" x2="15.5" y2="14"/>',
     'tb-sbb':'<rect x="6" y="4" width="12" height="11" rx="2"/><line x1="6" y1="10" x2="18" y2="10"/><line x1="8" y1="15" x2="6" y2="20"/><line x1="16" y1="15" x2="18" y2="20"/>',
@@ -17022,6 +17025,7 @@ function toggleEmailAnalyse(){
                       <div class="keg-f lit"><label>Ort</label><input id="kegOrt"></div>
                       <div class="keg-f lit"><label>Telefon</label><input id="kegTel"></div>
                       <div class="keg-f lit"><label>E-Mail</label><input id="kegMail"></div>
+                      <div class="keg-f lit"><label>Kundennummer (SelectLine)</label><input id="kegNr" placeholder="z. B. 10234"></div>
                     </div>
                   </div>
                 </div>
@@ -17133,7 +17137,8 @@ function toggleEmailAnalyse(){
     document.addEventListener('click',e=>{ if(ov.contains(e.target)&&!e.target.closest('.keg-search')) G('kegDD').classList.add('keg-hide'); });
     const bt=G('kegBetreff');
     bt.addEventListener('input',()=>{ CUR.betreff=bt.value; refresh(); });
-    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail'].forEach(id=>{ G(id).addEventListener('input',syncManual); });
+    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('input',syncManual); });
+    ['kegFirma','kegMail'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('blur',kegRematch); });
     // E-Mail-/Datei-Drop + Analyse
     const md=G('kegMailDrop');
     md.onclick=()=>pickMailFiles();
@@ -17218,6 +17223,7 @@ function toggleEmailAnalyse(){
     G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'Angaben unten prüfen';
     G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
     G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    if(G('kegNr')) G('kegNr').value=k.nr||'';
     document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.toggle('lit',!!detected));
     const bd=G('kegDetected'); if(bd) bd.style.display=detected?'inline-flex':'none';
     G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide');
@@ -17255,6 +17261,7 @@ function toggleEmailAnalyse(){
     G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'—';
     G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
     G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    if(G('kegNr')) G('kegNr').value=k.nr||'';
     document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.add('lit'));
     G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide'); refresh();
   };
@@ -17262,7 +17269,7 @@ function toggleEmailAnalyse(){
   function manual(){
     CUR.kunde={name:'',kontakt:'',strasse:'',plz:'',ort:'',tel:'',email:'',nr:''};
     G('kegPkName').textContent='Neuer Kunde'; G('kegPkDt').textContent='Angaben unten erfassen';
-    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail'].forEach(id=>G(id).value='');
+    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.value=''; });
     document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.remove('lit'));
     G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide'); G('kegDet').classList.add('open'); refresh();
   }
@@ -17270,7 +17277,26 @@ function toggleEmailAnalyse(){
     CUR.kunde=CUR.kunde||{};
     CUR.kunde.name=G('kegFirma').value; CUR.kunde.kontakt=G('kegPerson').value; CUR.kunde.strasse=G('kegStr').value;
     CUR.kunde.plz=G('kegPlz').value; CUR.kunde.ort=G('kegOrt').value; CUR.kunde.tel=G('kegTel').value; CUR.kunde.email=G('kegMail').value;
+    if(G('kegNr')) CUR.kunde.nr=G('kegNr').value;
     G('kegPkName').textContent=CUR.kunde.name||'Neuer Kunde'; refresh();
+  }
+  // Bestandskunden-Abgleich nach manueller Eingabe / fehlgeschlagener E-Mail-Erkennung:
+  // sobald Firma oder E-Mail steht und noch keine Kundennummer gesetzt ist, im Stamm suchen
+  // und den Treffer übernehmen (inkl. Kundennummer). Überschreibt manuell gesetzte Nr NICHT.
+  function kegRematch(){
+    if(!CUR.kunde) return;
+    if((CUR.kunde.nr||'').toString().trim()) return;      // schon zugeordnet
+    if(!stammGeladen()) return;
+    const m=matchKunde({ name:G('kegFirma').value, email:G('kegMail').value });
+    if(!m||!m.name) return;
+    CUR.kunde=Object.assign({}, m); CUR.existing=true;
+    G('kegFirma').value=m.name||''; G('kegPerson').value=m.kontakt||''; G('kegStr').value=m.strasse||'';
+    G('kegPlz').value=m.plz||''; G('kegOrt').value=m.ort||''; G('kegTel').value=m.tel||''; G('kegMail').value=m.email||'';
+    if(G('kegNr')) G('kegNr').value=m.nr||'';
+    G('kegPkName').textContent=m.name;
+    const bd=G('kegDetected'); if(bd){ bd.textContent='Bestandskunde erkannt'+(m.nr?(' — SL-Nr '+m.nr):'')+' · übernommen'; bd.style.display='inline-flex';
+      bd.style.background='#e6efe8'; bd.style.color='#2f7d54'; bd.style.borderColor='#bfe0c8'; }
+    refresh();
   }
   function ladeDialog(){
     const inp=document.createElement('input'); inp.type='file'; inp.accept='.json,.csv,.xlsx,.xls';
