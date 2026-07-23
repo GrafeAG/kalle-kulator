@@ -262,4 +262,53 @@ router.get('/:id/payload', async (req, res) => {
   }
 });
 
+// DELETE /offerten/:id — Offerte/Auftrag löschen (per Auftragsnummer ODER DB-ID)
+// Positionen werden über ON DELETE CASCADE mitgelöscht.
+router.delete('/:id', async (req, res) => {
+  try {
+    const { id } = req.params;
+    const isNum = /^\d+$/.test(id);
+
+    // Zuerst Datensatz holen (für Netzlaufwerk-Aufräumen + Audit)
+    const vorher = await query(
+      `SELECT id, auftragsnr FROM offerten WHERE ${isNum ? 'id::text' : 'auftragsnr'} = $1`,
+      [id]
+    );
+    if (!vorher.rows.length) {
+      return res.status(404).json({ error: 'Offerte nicht gefunden' });
+    }
+    const off = vorher.rows[0];
+
+    // Löschen — positionen (ON DELETE CASCADE) gehen automatisch mit,
+    // projekt_dateien werden auf NULL gesetzt (siehe Schema).
+    await query('DELETE FROM offerten WHERE id = $1', [off.id]);
+
+    // Optional: JSON-Ablage auf Netzlaufwerk entfernen (best effort, blockiert nie)
+    const offertPfad = process.env.OFFERTEN_PFAD;
+    if (offertPfad && off.auftragsnr) {
+      try {
+        const safe = off.auftragsnr.replace(/[^a-zA-Z0-9_-]/g, '');
+        const f = path.join(offertPfad, safe + '.json');
+        if (fs.existsSync(f)) fs.unlinkSync(f);
+      } catch (e) {
+        console.warn('[Offerten] Netzlaufwerk-Datei nicht entfernt:', e.message);
+      }
+    }
+
+    // Audit
+    try {
+      await query(
+        "INSERT INTO audit_log (tabelle, datensatz_id, aktion, bearbeiter, vorher) VALUES ('offerten',$1,'geloescht',$2,$3)",
+        [off.id, req.headers['x-bearbeiter'] || 'System', JSON.stringify({ auftragsnr: off.auftragsnr })]
+      );
+    } catch (e) { /* Audit optional */ }
+
+    console.log(`[Offerten] ${off.auftragsnr} gelöscht (ID ${off.id})`);
+    res.json({ ok: true, deleted: true, auftragsnr: off.auftragsnr });
+  } catch (err) {
+    console.error('[Offerten] Löschen fehlgeschlagen:', err.message);
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;
