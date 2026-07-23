@@ -2525,9 +2525,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V3.8';
+const UI_VERSION='V3.9';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V3.9','Aufträge-Status korrigiert: Statuswechsel im Dropdown zieht Pille und Gruppierung sofort nach (Anzeige = Dropdown). Beim Speichern einer Offerte wird der Vorgang automatisch aus „Unbearbeitet" auf „Offerte raus" gehoben (bereits „Bestellt"/„Abgelehnt" bleibt unverändert). Löschen-Route im Server ergänzt.'],
   ['V3.8','Neuer Positionstyp „Fahrzeugbeschriftung": Marke→Modell wählt den Fahrzeugtyp, echte Fahrzeug-Konturen mit roter Andeutung der Beschriftungsflächen (Motorhaube/Türe/Heck, grossflächiges Seitenlogo bei Kastenwagen, Window Graphic optional). Ausführung 2-farbig/Digitaldruck, Zusätze, Gestaltungsstunden. Richtpreis frei überschreibbar, Montage-Betrag editierbar. Preise zentral im Admin unter „Fahrzeug" einstellbar.'],
   ['V3.7','Startseite: erfasste Aufträge direkt öffnen (unbearbeitete zuerst) → Klick lädt den Auftrag in den Rechner; plus Button „Alle Aufträge".'],
   ['V3.6','Monday: Elementname = Projektbezeichnung, Spalte „Projektnummer", Leistungsart übertragen, E-Mail-Kurzbeschrieb als Kommentar, Subitem „Offerte erstellen" (fällig +3 Werktage) + Bearbeiter; beim Speichern der Offerte wird dasselbe Item aktualisiert (Summe + Phase „Offerte raus") statt neu angelegt.'],
@@ -14107,7 +14108,6 @@ function saveAuftrag(){
     if(ok){
       try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){}
       showToast('✓ '+anr+' in Datenbank gespeichert');
-      renderAuftragListe&&renderAuftragListe();
       // Monday: verknüpftes Item mit Offertsumme + Phase „Offerte raus" aktualisieren
       try{ mondayAutoUpdate&&mondayAutoUpdate(); }catch(e){}
       // Offerte automatisch im Projektordner ablegen (falls gesetzt)
@@ -14118,6 +14118,20 @@ function saveAuftrag(){
           if(ok2) showToast('✓ Offerte in 02 Offertphase abgelegt','',3000);
         }
       }
+      // Liste neu laden (frischer Status), dann: erstellte Offerte ist nicht mehr
+      // „unbearbeitet" → aus dem Entwurf-Status auf „Offerte raus" heben.
+      // Bereits „bestellt"/„abgelehnt"/„Offerte raus" bleibt unverändert (kein Downgrade).
+      try{
+        if(typeof renderAuftragListe==='function') await renderAuftragListe();
+        const row=(alleOfferten||[]).find(x=>x.auftragsnr===anr);
+        if(row && (row.status||'entwurf')==='entwurf'){
+          const rs=await fetch(KALLE_SERVER+'/offerten/'+encodeURIComponent(anr)+'/status',{
+            method:'PATCH', headers:{'Content-Type':'application/json'},
+            body:JSON.stringify({status:'gesendet', bearbeiter:bearbeiter?.kuerzel||''})
+          });
+          if(rs.ok){ row.status='gesendet'; if(typeof filterOfferten==='function') filterOfferten(); }
+        }
+      }catch(e){}
     } else {
       showToast('⚠ Fehler beim Speichern — Server prüfen','error');
     }
@@ -14294,18 +14308,20 @@ function setStatusFilter(status){
 }
 
 async function setOfferteStatus(auftragsnr, status){
-  if(!serverVerfuegbar) return;
+  if(!serverVerfuegbar){ showToast('Server nicht erreichbar','error'); return; }
   try{
-    const r = await fetch(KALLE_SERVER+'/offerten/'+auftragsnr+'/status',{
+    const r = await fetch(KALLE_SERVER+'/offerten/'+encodeURIComponent(auftragsnr)+'/status',{
       method:'PATCH',
       headers:{'Content-Type':'application/json'},
       body:JSON.stringify({status, bearbeiter: getBearbeiter()?.kuerzel||''})
     });
-    if(r.ok){
-      const o = alleOfferten.find(x=>x.auftragsnr===auftragsnr);
-      if(o) o.status = status;
-      showToast(`✓ Status auf «${status}» gesetzt`);
-    }
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const o = alleOfferten.find(x=>x.auftragsnr===auftragsnr);
+    if(o) o.status = status;
+    const lbl = (typeof OV_META!=='undefined' && OV_META[status]) ? OV_META[status].label : status;
+    showToast('✓ Status: '+lbl);
+    // Pille + Gruppierung sofort nachziehen, damit Button = Dropdown ist
+    if(typeof filterOfferten==='function') filterOfferten();
   } catch(e){ showToast('Fehler: '+e.message,'error'); }
 }
 
