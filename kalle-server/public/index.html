@@ -2525,9 +2525,12 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V3.9';
+const UI_VERSION='V4.2';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V4.2','Monday-Ablauf neu: Erfasste Anfragen gehen direkt ins Produktionsboard (Gruppe „Projekt und Offertanfragen", Status „Anfragen unbearbeitet") mit Subelement „Anfrage eingegangen" (Datum + E-Mail/Anhänge). Beim Speichern der Offerte: Subelement „Offerte verschickt" (Offertsumme + Offerte-HTML). Datei-Anhänge laufen serverseitig (neues Server-Modul). Bearbeiter wird in Monday gesetzt, nicht von KALLE.'],
+  ['V4.1','Monday: Bei Status „Bestellt / Gewonnen" wird der Vorgang automatisch als Element in die GRAFE Produktionsübersicht (Gruppe Vorbereitung) übergeben — die Board-Automatik legt dort die Subitems an. Das Anfrage-Element wird auf „Gewonnen" gesetzt und archiviert. Doppel-Übergaben werden verhindert.'],
+  ['V4.0','Texterkennung repariert: E-Mails werden jetzt korrekt dekodiert (MIME-Betreff =?UTF-8?…?=, Quoted-Printable =C3=A4, Base64-Text, .msg-Dateien, Mojibake). Projektbezeichnung und Monday-Kurzbeschrieb sind damit lesbar statt kryptisch.'],
   ['V3.9','Aufträge-Status korrigiert: Statuswechsel im Dropdown zieht Pille und Gruppierung sofort nach (Anzeige = Dropdown). Beim Speichern einer Offerte wird der Vorgang automatisch aus „Unbearbeitet" auf „Offerte raus" gehoben (bereits „Bestellt"/„Abgelehnt" bleibt unverändert). Löschen-Route im Server ergänzt.'],
   ['V3.8','Neuer Positionstyp „Fahrzeugbeschriftung": Marke→Modell wählt den Fahrzeugtyp, echte Fahrzeug-Konturen mit roter Andeutung der Beschriftungsflächen (Motorhaube/Türe/Heck, grossflächiges Seitenlogo bei Kastenwagen, Window Graphic optional). Ausführung 2-farbig/Digitaldruck, Zusätze, Gestaltungsstunden. Richtpreis frei überschreibbar, Montage-Betrag editierbar. Preise zentral im Admin unter „Fahrzeug" einstellbar.'],
   ['V3.7','Startseite: erfasste Aufträge direkt öffnen (unbearbeitete zuerst) → Klick lädt den Auftrag in den Rechner; plus Button „Alle Aufträge".'],
@@ -3009,8 +3012,97 @@ async function analyseEmail(){
   }
 }
 
+/* ═══════════ E-Mail-Text robust dekodieren ═══════════
+   Behebt „kryptische Zeichen": MIME encoded-words (=?UTF-8?B?…?=),
+   Quoted-Printable (=C3=A4), Base64-Bodies, .msg-Binär, Mojibake (Ã¤). */
+function _u8FromBinary(bin){ try{ return decodeURIComponent(escape(bin)); }catch(e){ return bin; } }
+function _decodeEncodedWords(s){
+  return String(s).replace(/=\?([^?]+)\?([BbQq])\?([^?]*)\?=/g,function(m,cs,enc,data){
+    try{
+      if(enc.toUpperCase()==='B'){ return _u8FromBinary(atob(data.replace(/\s+/g,''))); }
+      var q=data.replace(/_/g,' ').replace(/=([0-9A-Fa-f]{2})/g,function(mm,h){return String.fromCharCode(parseInt(h,16));});
+      return /utf-?8/i.test(cs)?_u8FromBinary(q):q;
+    }catch(e){ return m; }
+  }).replace(/\?=\s+=\?/g,'');
+}
+function _decodeQuotedPrintable(s){
+  return String(s).replace(/=\r?\n/g,'').replace(/=([0-9A-Fa-f]{2})/g,function(m,h){return String.fromCharCode(parseInt(h,16));});
+}
+function _fixMojibake(s){
+  if(!/[ÃÂ][\x80-\xBF]|â€|Ã¤|Ã¶|Ã¼|Ã„|Ã–|Ãœ|ÃŸ/.test(s)) return s;
+  try{ return decodeURIComponent(escape(s)); }catch(e){ return s; }
+}
+function sanitizeMailText(raw){
+  if(!raw) return '';
+  var t=String(raw);
+  if(/=\?[^?]+\?[BQbq]\?/.test(t)) t=_decodeEncodedWords(t);
+  // Quoted-Printable nur bei klaren Signalen (Soft-Breaks oder QP-Header)
+  if(/=\r?\n/.test(t) || /content-transfer-encoding:\s*quoted-printable/i.test(t)){
+    t=_u8FromBinary(_decodeQuotedPrintable(t));
+  }
+  t=_fixMojibake(t);
+  t=t.replace(/\r\n?/g,'\n').replace(/[\x00-\x08\x0b\x0c\x0e-\x1f]/g,' ').replace(/[ \t]+\n/g,'\n').replace(/\n{3,}/g,'\n\n');
+  return t.trim();
+}
+function _smartDecode(buf){
+  try{ return new TextDecoder('utf-8',{fatal:true}).decode(buf); }
+  catch(e){ try{ return new TextDecoder('windows-1252').decode(buf); }catch(_){ try{ return new TextDecoder('latin1').decode(buf); }catch(__){ return ''; } } }
+}
+function _stripHtml(h){
+  return String(h).replace(/<style[\s\S]*?<\/style>/gi,' ').replace(/<script[\s\S]*?<\/script>/gi,' ')
+    .replace(/<\/(p|div|br|tr|li|h[1-6])>/gi,'\n').replace(/<[^>]+>/g,' ')
+    .replace(/&nbsp;/gi,' ').replace(/&amp;/gi,'&').replace(/&lt;/gi,'<').replace(/&gt;/gi,'>')
+    .replace(/&#(\d+);/g,function(m,d){return String.fromCharCode(+d);}).replace(/[ \t]+/g,' ');
+}
+function _decodeMailBody(s,cte,charset){
+  cte=(cte||'').toLowerCase().trim();
+  if(cte==='base64'){ try{ return _u8FromBinary(atob(String(s).replace(/\s+/g,''))); }catch(e){ return s; } }
+  if(cte==='quoted-printable'){ var q=_decodeQuotedPrintable(s); return /utf-?8/i.test(charset||'')?_u8FromBinary(q):q; }
+  return s;
+}
+function parseEml(raw){
+  raw=String(raw).replace(/\r\n/g,'\n');
+  var sep=raw.indexOf('\n\n'); var head=sep>=0?raw.slice(0,sep):raw; var body=sep>=0?raw.slice(sep+2):'';
+  head=head.replace(/\n[ \t]+/g,' ');
+  function hv(n){ var m=head.match(new RegExp('^'+n+':\\s*(.*)$','im')); return m?m[1].trim():''; }
+  var subject=_decodeEncodedWords(hv('Subject'));
+  var ctype=hv('Content-Type'), cte=hv('Content-Transfer-Encoding');
+  var text='';
+  var bm=ctype.match(/boundary="?([^";]+)"?/i);
+  if(/multipart/i.test(ctype)&&bm){
+    var parts=body.split('--'+bm[1]); var plain=null, html=null;
+    for(var i=0;i<parts.length;i++){
+      var pr=parts[i]; var ps=pr.indexOf('\n\n'); if(ps<0) continue;
+      var ph=pr.slice(0,ps).replace(/\n[ \t]+/g,' '); var pb=pr.slice(ps+2);
+      var pt=((ph.match(/content-type:\s*([^;\n]+)/i)||[])[1]||'').toLowerCase();
+      var pc=((ph.match(/content-transfer-encoding:\s*([^\n;]+)/i)||[])[1]||'');
+      var pcs=(ph.match(/charset="?([^";\n]+)"?/i)||[])[1]||'';
+      if(/text\/plain/.test(pt)&&plain===null) plain=_decodeMailBody(pb,pc,pcs);
+      else if(/text\/html/.test(pt)&&html===null) html=_decodeMailBody(pb,pc,pcs);
+    }
+    text=plain || (html?_stripHtml(html):'') || '';
+  } else {
+    var cs=(ctype.match(/charset="?([^";\n]+)"?/i)||[])[1]||'';
+    text=_decodeMailBody(body,cte,cs);
+    if(/text\/html/i.test(ctype)) text=_stripHtml(text);
+  }
+  return (subject?('Betreff: '+subject+'\n\n'):'')+text;
+}
+function msgToText(buf){
+  var u=''; try{ u=new TextDecoder('utf-16le').decode(buf); }catch(e){ u=''; }
+  var runs=(u.match(/[\x20-\x7E -ɏ€]{3,}/g)||[]).filter(function(r){
+    if(/__substg|__properties|__nameid|__recip|__attach|IPM\.|Root Entry|MSGID|application\/|charset=|text\/|Content-|boundary/i.test(r)) return false;
+    var letters=(r.match(/[A-Za-zÀ-ÿ]/g)||[]).length; return letters>=3 && letters/r.length>0.35;
+  });
+  var seen={}, keep=[]; runs.forEach(function(r){ var k=r.trim(); if(k&&!seen[k]){ seen[k]=1; keep.push(k); } });
+  return keep.join('\n');
+}
+// für den Zugriff aus dem Erfassungs-Overlay (eigener Scope)
+window.sanitizeMailText=sanitizeMailText; window.parseEml=parseEml; window.msgToText=msgToText; window.smartDecode=_smartDecode;
+
 async function analyseWithClaude(text,apiKey){
   try{
+    text = (typeof sanitizeMailText==='function') ? sanitizeMailText(text) : text;
     const prompt=`Du analysierst einen E-Mail-Text und extrahierst Kundendaten für ein Schweizer Werbetechnik-Unternehmen.
 
 Extrahiere folgende Felder (wenn vorhanden):
@@ -3062,6 +3154,7 @@ ${text}`;
 }
 
 function analyseWithRegex(text){
+  text = (typeof sanitizeMailText==='function') ? sanitizeMailText(text) : text;
   const result={kundenname:'',kontaktperson:'',telefon:'',email:'',adresseStrasse:'',adressePLZ:'',adresseOrt:'',betreff:''};
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
 
@@ -16534,6 +16627,94 @@ async function _mondayFetch(query,token){
   if(d.errors) throw new Error(d.errors[0]?.message||'Monday API Fehler');
   return d.data;
 }
+
+/* ═══ GRAFE Produktionsübersicht — Intake aus KALLE ═══
+   KALLE legt jede erfasste Anfrage direkt hier an: Gruppe „Projekt und
+   Offertanfragen", Status „Anfragen unbearbeitet". Subelement „Anfrage
+   eingegangen" (Datum + E-Mail/Anhänge als Dateien). Beim Speichern der
+   Offerte: Subelement „Offerte verschickt" (Offertsumme + Offerte-PDF).
+   Bearbeiter wird bewusst NICHT gesetzt — der Bearbeiter markiert sich in Monday. */
+const MONDAY_PROD = {
+  board:'1012481465',
+  group:'group_mm5hq91f',            // Gruppe „Projekt und Offertanfragen"
+  statusCol:'status', statusAnfrage:'Anfragen unbearbeitet',
+  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f' },
+  subBoard:'1012481470',
+  subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e' }
+};
+window.MONDAY_PROD = MONDAY_PROD;
+
+// Dateien an ein (Sub-)Element hängen — serverseitig (Browser→Monday-Upload scheitert an CORS)
+async function mondayAttachFiles(subitemId, files, token){
+  if(!subitemId || !files || !files.length) return {ok:false, msg:'keine Dateien'};
+  if(!(typeof serverVerfuegbar!=='undefined' && serverVerfuegbar)) return {ok:false, msg:'Server offline'};
+  try{
+    const fd=new FormData();
+    fd.append('itemId', String(subitemId));
+    fd.append('columnId', MONDAY_PROD.subCol.datei);
+    fd.append('token', token||'');
+    files.forEach(f=>{ if(f && f.name!=null) fd.append('files', f, f.name); });
+    const r=await fetch(KALLE_SERVER+'/monday/attach', {method:'POST', body:fd});
+    if(!r.ok) return {ok:false, msg:'HTTP '+r.status};
+    const d=await r.json(); return {ok:!!d.ok, msg:d.msg||('' + (d.count||0) + ' Datei(en)')};
+  }catch(e){ return {ok:false, msg:e.message}; }
+}
+window.mondayAttachFiles = mondayAttachFiles;
+
+// Intake: Item + Subelement „Anfrage eingegangen" im Produktionsboard anlegen
+async function mondayProdAnfrage(data, token){
+  const nr=String(data.nr||''), kunde=data.kunde||'', betreff=(data.betreff||'').toString().trim();
+  // Doppel-Anlage verhindern (gleiche Projektnummer schon vorhanden?)
+  try{
+    const ex=await _mondayFetch({query:`query($v:[String!]){ items_page_by_column_values(board_id:${MONDAY_PROD.board}, columns:[{column_id:"${MONDAY_PROD.col.projektnr}", column_values:$v}], limit:1){ items{ id } } }`, variables:{v:[nr]}}, token);
+    const found=ex&&ex.items_page_by_column_values&&ex.items_page_by_column_values.items[0];
+    if(found){ return {itemId:found.id, subId:'', existing:true}; }
+  }catch(e){}
+  const name=(nr+(kunde?(' · '+kunde):'')+(betreff?(' — '+betreff):'')).slice(0,255) || ('Anfrage '+nr);
+  const cv={}; cv[MONDAY_PROD.col.projektnr]=nr;
+  if(kunde) cv[MONDAY_PROD.col.kunde]=kunde;
+  if(data.datenpfad) cv[MONDAY_PROD.col.datenpfad]=String(data.datenpfad);
+  if(data.email) cv[MONDAY_PROD.col.email]={email:String(data.email), text:String(data.email)};
+  const cr=await _mondayFetch({query:`mutation($nm:String!,$cv:JSON!){ create_item(board_id:${MONDAY_PROD.board}, group_id:"${MONDAY_PROD.group}", item_name:$nm, column_values:$cv){ id } }`, variables:{nm:name, cv:JSON.stringify(cv)}}, token);
+  const itemId=cr&&cr.create_item&&cr.create_item.id;
+  if(!itemId) throw new Error('Item nicht angelegt');
+  // Status „Anfragen unbearbeitet" separat (fehlendes Label bricht die Anlage nicht ab)
+  try{ await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify({[MONDAY_PROD.statusCol]:{label:MONDAY_PROD.statusAnfrage}})}}, token); }
+  catch(e){ console.warn('[Monday] Status „'+MONDAY_PROD.statusAnfrage+'" evtl. nicht angelegt:', e.message); }
+  // Subelement „Anfrage eingegangen" (Datum heute + evtl. Offertsumme)
+  let subId='';
+  try{
+    const scv={}; scv[MONDAY_PROD.subCol.datum]={date:new Date().toISOString().slice(0,10)};
+    if(data.offertsumme) scv[MONDAY_PROD.subCol.offertsumme]=String(data.offertsumme);
+    const sr=await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Anfrage eingegangen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
+    subId=sr&&sr.create_subitem&&sr.create_subitem.id;
+  }catch(e){ console.warn('[Monday] Subelement „Anfrage eingegangen":', e.message); }
+  // Kurzbeschrieb als Kommentar am Item
+  if(data.kurzbeschrieb){ try{ await _mondayFetch({query:`mutation($b:String!){ create_update(item_id:${itemId}, body:$b){ id } }`, variables:{b:'📧 Kurzbeschrieb aus Anfrage-E-Mail:\n\n'+data.kurzbeschrieb}}, token); }catch(e){} }
+  return {itemId, subId, existing:false};
+}
+window.mondayProdAnfrage = mondayProdAnfrage;
+
+// Offerte gespeichert: Subelement „Offerte verschickt" (Offertsumme) am bestehenden Item
+// (dedupliziert: aktualisiert ein bestehendes Subelement statt Doppel anzulegen)
+async function mondayProdOfferteVerschickt(itemId, offertsumme, token){
+  if(!itemId) return {ok:false};
+  let existing='';
+  try{
+    const q=await _mondayFetch({query:`query{ items(ids:[${itemId}]){ subitems{ id name } } }`}, token);
+    const subs=(q&&q.items&&q.items[0]&&q.items[0].subitems)||[];
+    const f=subs.find(s=>s.name==='Offerte verschickt'); if(f) existing=f.id;
+  }catch(e){}
+  const scv={}; scv[MONDAY_PROD.subCol.datum]={date:new Date().toISOString().slice(0,10)};
+  if(offertsumme!=null) scv[MONDAY_PROD.subCol.offertsumme]=String(Math.round((offertsumme||0)*100)/100);
+  if(existing){
+    await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.subBoard}, item_id:${existing}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
+    return {ok:true, subId:existing, updated:true};
+  }
+  const sr=await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Offerte verschickt", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
+  return {ok:true, subId:sr&&sr.create_subitem&&sr.create_subitem.id};
+}
+window.mondayProdOfferteVerschickt = mondayProdOfferteVerschickt;
 // Zentrale Monday-Synchronisation: aktualisiert das bestehende Item (aus der Anfrage),
 // sonst legt es (bei create:true) ein neues an. Setzt Phase „Offerte raus" + Summe.
 async function mondaySync(opts){
@@ -16591,7 +16772,26 @@ async function sendToMonday(){
 // Beim Speichern der Offerte automatisch das verknüpfte Item aktualisieren (still)
 async function mondayAutoUpdate(){
   if(!window._currentMondayItem) return;
-  try{ await mondaySync({silent:true}); }catch(e){ console.warn('[Monday] Auto-Update:',e.message); }
+  const token=(typeof mondayToken==='function'?mondayToken():'').trim();
+  if(!token) return;
+  try{
+    const gMont=(typeof getGlobalMontageData==='function')?getGlobalMontageData():{total:0};
+    const total=(positions||[]).reduce((s,p)=>s+(p.isVariante?0:(p.totalVK||0)),0)+((gMont&&gMont.total)||0);
+    if(typeof window.mondayProdOfferteVerschickt==='function'){
+      const r=await window.mondayProdOfferteVerschickt(window._currentMondayItem, total, token);
+      // Offerte-PDF an das Subelement „Offerte verschickt" hängen (serverseitig, falls verfügbar)
+      try{
+        if(r&&r.subId && typeof buildOfferteHtml==='function' && typeof window.mondayAttachFiles==='function'){
+          const html=await buildOfferteHtml();
+          if(html){
+            const anr=$('auftragsnr')?.value||'Offerte';
+            const f=new File([html], 'Offerte_'+anr+'.html', {type:'text/html'});
+            await window.mondayAttachFiles(r.subId, [f], token);
+          }
+        }
+      }catch(e){}
+    }
+  }catch(e){ console.warn('[Monday] „Offerte verschickt":', e.message); }
 }
 function toggleEmailAnalyse(){
   const body=$('emailBody');
@@ -16953,14 +17153,14 @@ function toggleEmailAnalyse(){
   }
   async function extractEmailText(file){
     const nm=(file.name||'').toLowerCase();
-    if(nm.endsWith('.eml')||nm.endsWith('.txt')){ try{ return await file.text(); }catch(e){ return ''; } }
-    if(nm.endsWith('.msg')){
-      try{ const buf=await file.arrayBuffer();
-        let t16=''; try{ t16=new TextDecoder('utf-16le').decode(buf); }catch(e){}
-        let t8=''; try{ t8=new TextDecoder('latin1').decode(buf); }catch(e){}
-        return ((t16||'')+'\n'+(t8||'')).replace(/[\x00-\x08\x0e-\x1f]+/g,' ');
-      }catch(e){ return ''; }
-    }
+    const san=(t)=> (typeof window.sanitizeMailText==='function') ? window.sanitizeMailText(t) : t;
+    try{
+      const buf=await file.arrayBuffer();
+      const dec=(typeof window.smartDecode==='function') ? window.smartDecode(buf) : new TextDecoder('utf-8').decode(buf);
+      if(nm.endsWith('.txt')){ return san(dec); }
+      if(nm.endsWith('.eml')){ return san((typeof window.parseEml==='function') ? window.parseEml(dec) : dec); }
+      if(nm.endsWith('.msg')){ return san((typeof window.msgToText==='function') ? window.msgToText(buf) : dec); }
+    }catch(e){ return ''; }
     return '';
   }
   async function kegDropFiles(fileList){
@@ -17159,6 +17359,7 @@ function toggleEmailAnalyse(){
   }
   function kegKurzbeschrieb(){
     var t=CUR.emailText||''; if(!t) return '';
+    try{ if(typeof window.sanitizeMailText==='function') t=window.sanitizeMailText(t); }catch(e){}
     var clean=t.replace(/\r/g,'').split('\n').filter(function(l){return !/^(von|an|to|from|gesendet|sent|cc|bcc|betreff|subject)\s*:/i.test(l.trim());}).join('\n').replace(/\n{3,}/g,'\n\n').trim();
     if(clean.length>700) clean=clean.slice(0,700)+' …';
     return clean;
@@ -17175,25 +17376,24 @@ function toggleEmailAnalyse(){
     let CFG=null; try{ CFG=(typeof MONDAY_CFG!=='undefined')?MONDAY_CFG:null; }catch(e){}
     if(!CFG) return {ok:false,msg:'Monday-Konfiguration fehlt'};
     const k=CUR.kunde||{};
-    const name=((CUR.nr||'')+' '+(CUR.betreff||'')).trim();  // Elementname = Projektbezeichnung
-    const cv={}; cv[CFG.col.vorgang]=CUR.nr; cv[CFG.col.kunde]=k.name||'';
-    cv[CFG.col.phase]={label:'Anfrage'}; cv[CFG.col.datum]={date:new Date().toISOString().slice(0,10)};
-    if(pfad) cv[CFG.col.pfad]=pfad;
-    if(CUR.leistung&&CUR.leistung.length) cv[CFG.col.leistung]={labels:CUR.leistung};
+    if(typeof window.mondayProdAnfrage!=='function') return {ok:false,msg:'Monday-Prod-Funktion fehlt (Datei neu laden)'};
     try{
-      const d=await _mFetch(CFG,tok,'mutation($cv:JSON!){create_item(board_id:'+CFG.board+',group_id:"'+CFG.group+'",item_name:$nm,column_values:$cv){id}}'.replace('$nm',JSON.stringify(name)),{cv:JSON.stringify(cv)});
-      const id=d&&d.create_item&&d.create_item.id;
-      if(!id) return {ok:false,msg:'Item nicht angelegt'};
-      CUR.mondayItem=id; try{ window._currentMondayItem=id; }catch(e){}
-      // Kurzbeschrieb aus E-Mail als Kommentar
-      const kb=kegKurzbeschrieb();
-      if(kb){ try{ await _mFetch(CFG,tok,'mutation($b:String!){create_update(item_id:'+id+',body:$b){id}}',{b:'📧 Kurzbeschrieb aus Anfrage-E-Mail:\n\n'+kb}); }catch(e){} }
-      // Subitem „Offerte erstellen" mit Fällig +3 Werktage
+      const res=await window.mondayProdAnfrage({ nr:CUR.nr, kunde:k.name||'', betreff:CUR.betreff||'', datenpfad:pfad||'', email:k.email||'', kurzbeschrieb:kegKurzbeschrieb() }, tok);
+      CUR.mondayItem=res.itemId; try{ window._currentMondayItem=res.itemId; }catch(e){}
+      if(res.existing) return {ok:true,msg:'Bereits im Produktionsboard vorhanden (Projektnummer '+CUR.nr+') — kein Doppel'};
+      // E-Mail + Ablage-Dateien an Subelement „Anfrage eingegangen" hängen (serverseitig)
+      let fileMsg='';
       try{
-        const scv={}; scv[CFG.subCol.faellig]={date:_plusWerktage(3)};
-        await _mFetch(CFG,tok,'mutation($cv:JSON!){create_subitem(parent_item_id:'+id+',item_name:"Offerte erstellen",column_values:$cv){id}}',{cv:JSON.stringify(scv)});
-      }catch(e){ console.warn('[Monday] Subitem:',e.message); }
-      return {ok:true,msg:'Item „'+name+'" · Phase Anfrage · Subitem „Offerte erstellen" (fällig '+_plusWerktage(3)+')'};
+        const files=[]; const et=(CUR.emailText||'').trim();
+        if(et) files.push(new File([et],'Anfrage_'+(CUR.nr||'')+'.txt',{type:'text/plain'}));
+        let drop=[]; try{ drop=(typeof _projDropFiles!=='undefined'&&_projDropFiles)?_projDropFiles:[]; }catch(e){}
+        drop.forEach(function(f){ if(f&&f.name) files.push(f); });
+        if(res.subId && files.length && typeof window.mondayAttachFiles==='function'){
+          const at=await window.mondayAttachFiles(res.subId, files, tok);
+          fileMsg = at.ok ? (' · '+files.length+' Datei(en) angehängt') : (' · Dateien: '+(at.msg||'übersprungen'));
+        }
+      }catch(e){}
+      return {ok:true,msg:'Produktionsboard: „Anfrage eingegangen" angelegt (Status „Anfragen unbearbeitet")'+fileMsg};
     }catch(e){ return {ok:false,msg:'nicht gesendet: '+e.message+' (evtl. CORS — über Server leiten)'}; }
   }
   async function kegErfassen(){
