@@ -455,7 +455,7 @@ a, button, input, select, textarea, label,
     <span class="logo-tool">KALLE-KULATOR</span><span id="appVersionBadge" style="font-size:9px;color:var(--muted);margin-left:8px;padding:2px 6px;background:var(--surface3);border-radius:3px;letter-spacing:.3px;"></span><span id="serverStatus" title="KALLE-Server Status" style="font-size:9px;margin-left:6px;padding:2px 7px;background:var(--surface3);border-radius:3px;color:var(--muted);cursor:help;">○ Server</span>
     <nav class="nav-pills" style="margin-left:16px;">
       <div class="nav-pill active" onclick="showPage('kalk',this)">Kalkulation</div>
-      <div class="nav-pill" onclick="showPage('auftraege',this)">Aufträge</div>
+      <div class="nav-pill" onclick="showPage('cockpit',this)">Aufträge</div>
       <div class="nav-pill" onclick="showPage('backend',this)">⚙ Administration</div>
     </nav>
   </div>
@@ -2348,6 +2348,10 @@ a, button, input, select, textarea, label,
 
 </div>
 
+<div class="page" id="page-cockpit">
+  <iframe id="ckFrame" title="KALLE Anfragen-Cockpit" style="display:block;width:100%;height:calc(100vh - 100px);border:0;background:#eceef2;"></iframe>
+</div>
+
 <div class="page" id="page-auftraege">
   <div style="padding:24px 28px;">
 
@@ -2357,7 +2361,10 @@ a, button, input, select, textarea, label,
         <div style="font-family:'Syne',sans-serif;font-size:20px;font-weight:800;">Offerten-Übersicht</div>
         <div style="color:var(--muted);font-size:12px;margin-top:2px;" id="offertenSubtitle">Wird geladen...</div>
       </div>
-      <button class="btn btn-gh" onclick="renderAuftragListe()" style="font-size:11px;">↻ Aktualisieren</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-gh" onclick="showPage('cockpit',document.querySelectorAll('.nav-pill')[1])" style="font-size:11px;">← Cockpit</button>
+        <button class="btn btn-gh" onclick="renderAuftragListe()" style="font-size:11px;">↻ Aktualisieren</button>
+      </div>
     </div>
 
     <!-- Filter-Leiste -->
@@ -2525,9 +2532,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V5.1';
+const UI_VERSION='V5.2';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V5.2','Anfragen-Cockpit in KALLE integriert: Der Tab „Aufträge" öffnet jetzt das Cockpit (Leads/Anfragen aus Monday, klickbare Element-Detailseite, Bearbeiter/Termine/Kommentare → schreiben direkt nach Monday). Die klassische Auftragsverwaltung erreichst du über den Button „Auftragsverwaltung" im Cockpit bzw. „← Cockpit" zurück. Einbettung teilt Token & Server mit KALLE — kein zweiter Login. Voraussetzung: KALLE_Cockpit.html liegt neben KALLE im public-Ordner.'],
   ['V5.1','Anfrage erfassen: Beim Speichern & Ablegen erscheint jetzt ein animierter Fortschrittsbalken („Reaktor") mit augenzwinkernden Sprüchen (Nuklear-Engine, Kernschmelze, Fallout …). Der Balken folgt den echten Schritten — Projektnummer, Ordner, Upload, Monday, Datenbank — und schliesst mit „Fertig". Kein Eindruck mehr, dass nichts passiert.'],
   ['V5.0','Anfrage-Erfassung: (1) Neues Notiz-/Kurzbeschrieb-Feld — bei telefonischen Anfragen kurz festhalten, worum es geht; wird als Monday-Kommentar übernommen (auch ohne E-Mail). (2) Übersicht zeigt jetzt korrekt „GRAFE Produktionsübersicht · Status Anfragen unbearbeitet" statt des alten Boards. (3) Zurück-Navigation zu Schritt 1 hält alle Eingaben (Kunde, Betreff, Leistung, Notiz, Dateien).'],
   ['V4.9','Löschen: Offerten ohne Auftragsnummer („Leichen") lassen sich jetzt löschen — sie werden über die Datenbank-ID entfernt statt über die leere Nummer. Voraussetzung: DELETE-Route im Server trifft auftragsnr ODER id.'],
@@ -2997,7 +3005,10 @@ function $(id){return document.getElementById(id);}
 function gN(id){const e=$(id);return e?parseFloat(e.value)||0:0;}
 function sv(id,val){const e=$(id);if(e)e.textContent=val;}
 function gC(id){const e=$(id);return e?e.checked:false;}
-function showPage(name,el){document.querySelectorAll('.page').forEach(p=>p.style.display='none');$('page-'+name).style.display='block';document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');if(name==='backend')renderBackend();if(name==='auftraege')renderAuftragListe();}
+function showPage(name,el){document.querySelectorAll('.page').forEach(p=>p.style.display='none');$('page-'+name).style.display='block';document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');if(name==='backend')renderBackend();if(name==='auftraege')renderAuftragListe();if(name==='cockpit')renderCockpit();}
+function renderCockpit(){ var f=document.getElementById('ckFrame'); if(!f) return; if(!f.getAttribute('src')){ f.setAttribute('src','KALLE_Cockpit.html'); } sizeCockpit(); }
+function sizeCockpit(){ var f=document.getElementById('ckFrame'); if(!f) return; var top=f.getBoundingClientRect().top; f.style.height=Math.max(420,(window.innerHeight-top-2))+'px'; }
+window.addEventListener('resize',function(){ var p=document.getElementById('page-cockpit'); if(p&&p.style.display!=='none') sizeCockpit(); });
 
 
 function emailChanged(){
