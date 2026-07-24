@@ -2525,9 +2525,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V4.9';
+const UI_VERSION='V5.0';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V5.0','Anfrage-Erfassung: (1) Neues Notiz-/Kurzbeschrieb-Feld — bei telefonischen Anfragen kurz festhalten, worum es geht; wird als Monday-Kommentar übernommen (auch ohne E-Mail). (2) Übersicht zeigt jetzt korrekt „GRAFE Produktionsübersicht · Status Anfragen unbearbeitet" statt des alten Boards. (3) Zurück-Navigation zu Schritt 1 hält alle Eingaben (Kunde, Betreff, Leistung, Notiz, Dateien).'],
   ['V4.9','Löschen: Offerten ohne Auftragsnummer („Leichen") lassen sich jetzt löschen — sie werden über die Datenbank-ID entfernt statt über die leere Nummer. Voraussetzung: DELETE-Route im Server trifft auftragsnr ODER id.'],
   ['V4.8','„◉ Monday"-Button jetzt zuverlässig aufs Produktionsboard: er löst das Element IMMER über die Projektnummer im Produktionsboard auf (dedupliziert) und ignoriert einen evtl. alten Anfragen-Board-Link aus früher geladenen Offerten. Das Anfragen-Board wird nicht mehr angesprochen.'],
   ['V4.7','Löschen: klare Fehlermeldung, wenn dem Server die DELETE-Route fehlt (statt kryptischem JSON-Fehler). Server-Fix offerten.js korrigiert — trifft jetzt die Auftragsnummer 26xxxx korrekt (nicht als DB-ID).'],
@@ -16707,7 +16708,7 @@ async function mondayProdAnfrage(data, token){
     subId=sr&&sr.create_subitem&&sr.create_subitem.id;
   }catch(e){ console.warn('[Monday] Subelement „Anfrage eingegangen":', e.message); }
   // Kurzbeschrieb als Kommentar am Item
-  if(data.kurzbeschrieb){ try{ await _mondayFetch({query:`mutation($b:String!){ create_update(item_id:${itemId}, body:$b){ id } }`, variables:{b:'📧 Kurzbeschrieb aus Anfrage-E-Mail:\n\n'+data.kurzbeschrieb}}, token); }catch(e){} }
+  if(data.kurzbeschrieb){ try{ await _mondayFetch({query:`mutation($b:String!){ create_update(item_id:${itemId}, body:$b){ id } }`, variables:{b:'Kurzbeschrieb zur Anfrage '+nr+':\n\n'+data.kurzbeschrieb}}, token); }catch(e){} }
   return {itemId, subId, existing:false};
 }
 window.mondayProdAnfrage = mondayProdAnfrage;
@@ -16839,7 +16840,7 @@ function toggleEmailAnalyse(){
 (function(){
   const G=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', existing:false, mondayItem:'' };
+  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', existing:false, mondayItem:'', notiz:'' };
 
   // ---- Kunden aus dem echten Stamm normalisieren ----
   function kx(k){
@@ -17065,6 +17066,8 @@ function toggleEmailAnalyse(){
                 <div class="keg-projname"><div class="lbl">Projektbezeichnung</div><div class="val"><span class="n" id="kegProjNr">—</span> <span id="kegProjTxt">…</span></div></div>
                 <div class="keg-hint">was soll kalkuliert werden? (Mehrfachauswahl)</div>
                 <div class="keg-chips" id="kegLeist"></div>
+                <div class="keg-hint" style="margin-top:13px;">Notiz / Kurzbeschrieb — bei <b>telefonischer Anfrage</b> hier kurz festhalten, worum es geht. Wird als Monday-Kommentar übernommen.</div>
+                <textarea id="kegNotiz" placeholder="z. B. Kunde hat telefonisch angefragt: Beschriftung von 3 Firmenfahrzeugen, Termin Ende August, Wunschtermin Vor-Ort-Aufnahme …" style="width:100%;min-height:82px;margin-top:6px;padding:9px 11px;border:1.5px solid #d6dade;border-radius:8px;font-family:inherit;font-size:12.5px;line-height:1.5;background:#f7f8fa;color:#20242c;resize:vertical;box-sizing:border-box;"></textarea>
               </div>
             </div>
           </div>
@@ -17100,9 +17103,10 @@ function toggleEmailAnalyse(){
                   <div class="keg-sr"><span class="k">Leistung</span><span class="v" id="kegSumL">—</span></div>
                   <div class="keg-sr"><span class="k">Unterlagen</span><span class="v" id="kegSumU">0 Dateien</span></div>
                   <div class="keg-sr"><span class="k">Ablage</span><span class="v" id="kegSumA">Firmenkunde</span></div>
-                  <div class="keg-sr"><span class="k">monday</span><span class="v">Board „Offerten &amp; Anfragen" · Phase Anfrage</span></div>
+                  <div class="keg-sr"><span class="k">monday</span><span class="v">GRAFE Produktionsübersicht · Status „Anfragen unbearbeitet"</span></div>
+                  <div class="keg-sr keg-hide" id="kegSumNotizRow"><span class="k">Notiz</span><span class="v" id="kegSumNotiz">—</span></div>
                 </div>
-                <div class="keg-note" style="margin-top:12px;"><span>✓</span><div>Mit <b>Anfrage erfassen</b> werden Projektordner angelegt, alle Unterlagen abgelegt, das <b>Monday-Item (Phase Anfrage)</b> erstellt und die Anfrage unter <b>Aufträge</b> als <b>unbearbeitet</b> gespeichert (Nummer <b id="kegSumNr">—</b>). Die Kalkulation/Offerte folgt später.</div></div>
+                <div class="keg-note" style="margin-top:12px;"><span>✓</span><div>Mit <b>Anfrage erfassen</b> werden Projektordner angelegt, alle Unterlagen abgelegt, das <b>Monday-Item in der GRAFE Produktionsübersicht</b> (Status „Anfragen unbearbeitet") erstellt und die Anfrage unter <b>Aufträge</b> als <b>unbearbeitet</b> gespeichert (Nummer <b id="kegSumNr">—</b>). Die Kalkulation/Offerte folgt später.</div></div>
               </div>
             </div>
           </div>
@@ -17166,6 +17170,8 @@ function toggleEmailAnalyse(){
     document.addEventListener('click',e=>{ if(ov.contains(e.target)&&!e.target.closest('.keg-search')) G('kegDD').classList.add('keg-hide'); });
     const bt=G('kegBetreff');
     bt.addEventListener('input',()=>{ CUR.betreff=bt.value; refresh(); });
+    const nt=G('kegNotiz');
+    if(nt) nt.addEventListener('input',()=>{ CUR.notiz=nt.value; refresh(); });
     ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('input',syncManual); });
     ['kegFirma','kegMail'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('blur',kegRematch); });
     // E-Mail-/Datei-Drop + Analyse
@@ -17366,6 +17372,7 @@ function toggleEmailAnalyse(){
     G('kegSumL').textContent=(CUR.leistung&&CUR.leistung.length)?CUR.leistung.join(', '):'—';
     G('kegSumA').textContent=CUR.ablage==='o'?'Objekt · Montage vor Ort':'Firmenkunde · Lieferauftrag';
     const cnt=_fileCount(); const su=G('kegSumU'); if(su) su.textContent=cnt+(cnt===1?' Datei':' Dateien');
+    const nz=(CUR.notiz||'').trim(); const nzRow=G('kegSumNotizRow'); if(nzRow){ nzRow.classList.toggle('keg-hide',!nz); const nzv=G('kegSumNotiz'); if(nzv) nzv.textContent=nz?(nz.length>120?nz.slice(0,120)+' …':nz):'—'; }
     const ort=CUR.obOrt||k.ort||'…', str=CUR.obStr||k.strasse||'…';
     const obRow=G('kegSumObRow'); if(obRow){ obRow.classList.toggle('keg-hide',CUR.ablage!=='o'); const ob=G('kegSumOb'); if(ob) ob.textContent=[str,ort].filter(x=>x&&x!=='…').join(', ')||'—'; }
     const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+ort+'\\'+str+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
@@ -17413,11 +17420,16 @@ function toggleEmailAnalyse(){
       mondayItemId:CUR.mondayItem||'', positions:[], total:0, _version:2 };
   }
   function kegKurzbeschrieb(){
-    var t=CUR.emailText||''; if(!t) return '';
-    try{ if(typeof window.sanitizeMailText==='function') t=window.sanitizeMailText(t); }catch(e){}
-    var clean=t.replace(/\r/g,'').split('\n').filter(function(l){return !/^(von|an|to|from|gesendet|sent|cc|bcc|betreff|subject)\s*:/i.test(l.trim());}).join('\n').replace(/\n{3,}/g,'\n\n').trim();
-    if(clean.length>700) clean=clean.slice(0,700)+' …';
-    return clean;
+    var manual=(CUR.notiz||'').trim();
+    var t=CUR.emailText||'', mail='';
+    if(t){
+      try{ if(typeof window.sanitizeMailText==='function') t=window.sanitizeMailText(t); }catch(e){}
+      mail=t.replace(/\r/g,'').split('\n').filter(function(l){return !/^(von|an|to|from|gesendet|sent|cc|bcc|betreff|subject)\s*:/i.test(l.trim());}).join('\n').replace(/\n{3,}/g,'\n\n').trim();
+      if(mail.length>700) mail=mail.slice(0,700)+' …';
+    }
+    if(manual && mail) return '📝 Notiz (manuell erfasst):\n'+manual+'\n\n📧 Auszug aus der Anfrage-E-Mail:\n'+mail;
+    if(manual) return '📝 Notiz (manuell / telefonisch erfasst):\n'+manual;
+    return mail;
   }
   async function _mFetch(CFG,tok,query,variables){
     const r=await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':tok,'API-Version':CFG.ver},body:JSON.stringify({query:query,variables:variables||{}})});
