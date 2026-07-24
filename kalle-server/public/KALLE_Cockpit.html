@@ -161,7 +161,8 @@
       <button class="on" id="vGrid" onclick="setView('grid')">▦ Karten</button>
       <button id="vKan" onclick="setView('kanban')">▤ Kanban</button>
     </div>
-    <button class="iconbtn" onclick="reload()" title="Neu laden">↻ Aktualisieren</button>
+    <button class="iconbtn" id="btnAV" style="display:none" onclick="toAuftragsverwaltung()" title="Zur klassischen Auftragsverwaltung">📋 Auftragsverwaltung</button>
+    <button class="iconbtn" onclick="reload()" title="Alle Anfragen frisch aus Monday laden">↻ Monday aktualisieren</button>
   </div>
 
   <div class="filters" id="filters" style="display:none">
@@ -200,7 +201,15 @@ function serverUrl(){
   if(location.protocol==='http:'||location.protocol==='https:') return location.origin;
   return localStorage.getItem('kalle_server_url')||'http://localhost:8765';
 }
-function getToken(){ return localStorage.getItem('kalle_monday_token')||''; }
+function embedded(){ try{ return window.parent && window.parent!==window; }catch(e){ return false; } }
+function getToken(){
+  try{ if(embedded() && typeof window.parent.mondayToken==='function'){ const t=window.parent.mondayToken(); if(t) return t; } }catch(e){}
+  return localStorage.getItem('kalle_monday_token')||'';
+}
+function toAuftragsverwaltung(){
+  try{ if(embedded() && typeof window.parent.showPage==='function'){ const pills=window.parent.document.querySelectorAll('.nav-pill'); window.parent.showPage('auftraege', pills[1]||pills[0]); return; } }catch(e){}
+  toast('Hinweis','Auftragsverwaltung ist in KALLE verfügbar.');
+}
 
 let LEADS=[], USERS=[], DBMAP={}, view='grid', filter='alle', search='', serverOk=false;
 
@@ -370,6 +379,7 @@ function openDrawer(id){
         <div class="selctl"><select onchange="wtBearbeiter('${l.id}',this.value,this.options[this.selectedIndex].text)" title="Bearbeiter → Monday">${userOpts}</select></div>
         <a class="lnk" href="${esc(l.url)}" target="_blank" rel="noopener">◉ in Monday</a>
         <span class="lnk ghost" onclick="openFolder('${l.id}')">📁 Ordner</span>
+        <span class="lnk ghost" id="dRefresh" onclick="refreshItem('${l.id}')" title="Kommentare, Verlauf & Status frisch aus Monday laden">↻ Aktualisieren</span>
       </div>
     </div>
     <div class="d-body">
@@ -407,6 +417,26 @@ function openDrawer(id){
 }
 function closeDrawer(){ document.getElementById('scrim').classList.remove('on'); document.getElementById('drawer').classList.remove('on'); }
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return iso; return d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+
+// ═══ Einzel-Item frisch aus Monday laden (Monday → Cockpit) ═══
+async function refreshItem(id){
+  const btn=document.getElementById('dRefresh'); if(btn){ btn.textContent='↻ lädt …'; btn.style.pointerEvents='none'; }
+  try{
+    const q=`query{ items(ids:[${id}]){ id name url created_at
+        column_values{ id text value column{ title } }
+        assets{ id name public_url file_extension }
+        updates(limit:25){ id text_body created_at creator{ name } }
+        subitems{ id name column_values{ id text value column{ title } } assets{ id name public_url file_extension } } } }`;
+    const d=await mFetch(q);
+    const it=(d.items||[])[0]; if(!it){ toast('Monday','Item nicht gefunden.',true); return; }
+    const mapped=mapItem(it);
+    const ix=LEADS.findIndex(l=>l.id===id); if(ix>=0) LEADS[ix]=mapped;
+    openDrawer(id); render();
+    toast('Monday','Aktualisiert — '+mapped.updates.length+' Kommentar(e), '+mapped.subitems.length+' Schritt(e).');
+  }catch(e){ toast('Fehler',e.message,true);
+    const b=document.getElementById('dRefresh'); if(b){ b.textContent='↻ Aktualisieren'; b.style.pointerEvents=''; }
+  }
+}
 
 // ═══ Write-Through ═══
 async function wtStatus(id,val){ const l=findLead(id); if(!val) return; try{
@@ -489,6 +519,7 @@ let tt=null;
 function toast(tag,msg,err){ const el=document.getElementById('toast'); el.className=err?'err':''; el.innerHTML=`<span class="tag">${esc(tag)}</span>${esc(msg)}`; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),err?5000:3200); }
 document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.getElementById('mscrim').classList.contains('on'))closeMsg(); else closeDrawer(); }});
 
+if(embedded()){ const bA=document.getElementById('btnAV'); if(bA) bA.style.display=''; document.querySelector('.crumb').textContent='in KALLE · Projekt und Offertanfragen'; }
 boot();
 </script>
 </body>
