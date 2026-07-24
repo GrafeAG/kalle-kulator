@@ -267,11 +267,12 @@ router.get('/:id/payload', async (req, res) => {
 router.delete('/:id', async (req, res) => {
   try {
     const { id } = req.params;
-    const isNum = /^\d+$/.test(id);
 
-    // Zuerst Datensatz holen (für Netzlaufwerk-Aufräumen + Audit)
+    // Zuerst Datensatz holen (für Netzlaufwerk-Aufräumen + Audit).
+    // WICHTIG: Auftragsnummer ODER DB-ID matchen — die neue Nummer 26xxxx ist rein
+    // numerisch und darf NICHT als DB-ID missverstanden werden.
     const vorher = await query(
-      `SELECT id, auftragsnr FROM offerten WHERE ${isNum ? 'id::text' : 'auftragsnr'} = $1`,
+      'SELECT id, auftragsnr FROM offerten WHERE auftragsnr = $1 OR id::text = $1',
       [id]
     );
     if (!vorher.rows.length) {
