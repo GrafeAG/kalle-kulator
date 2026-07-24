@@ -2533,9 +2533,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V5.3';
+const UI_VERSION='V5.4';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V5.4','Fix: Das Cockpit wurde von der Start-Erfassungsseite verdeckt. Jetzt blendet jede Navigation die Startseite aus, und „Alle Aufträge →" auf der Startseite führt direkt ins Cockpit (statt in die alte Liste). Cockpit braucht einen Monday-Token im Browser — ist er in KALLE hinterlegt, lädt es sofort.'],
   ['V5.3','Cockpit fest in KALLE eingebaut — jetzt EINE Datei, keine zweite HTML nötig. Der Tab „Aufträge" öffnet das Cockpit direkt (eingebettet & CSS-isoliert, kein Nachladen). Token und Server werden von KALLE übernommen. Button „Auftragsverwaltung" ↔ „← Cockpit" wechselt sauber. Damit entfällt die separate KALLE_Cockpit.html im public-Ordner.'],
   ['V5.2','Anfragen-Cockpit in KALLE integriert: Der Tab „Aufträge" öffnet jetzt das Cockpit (Leads/Anfragen aus Monday, klickbare Element-Detailseite, Bearbeiter/Termine/Kommentare → schreiben direkt nach Monday). Die klassische Auftragsverwaltung erreichst du über den Button „Auftragsverwaltung" im Cockpit bzw. „← Cockpit" zurück. Einbettung teilt Token & Server mit KALLE — kein zweiter Login. Voraussetzung: KALLE_Cockpit.html liegt neben KALLE im public-Ordner.'],
   ['V5.1','Anfrage erfassen: Beim Speichern & Ablegen erscheint jetzt ein animierter Fortschrittsbalken („Reaktor") mit augenzwinkernden Sprüchen (Nuklear-Engine, Kernschmelze, Fallout …). Der Balken folgt den echten Schritten — Projektnummer, Ordner, Upload, Monday, Datenbank — und schliesst mit „Fertig". Kein Eindruck mehr, dass nichts passiert.'],
@@ -3007,7 +3008,7 @@ function $(id){return document.getElementById(id);}
 function gN(id){const e=$(id);return e?parseFloat(e.value)||0:0;}
 function sv(id,val){const e=$(id);if(e)e.textContent=val;}
 function gC(id){const e=$(id);return e?e.checked:false;}
-function showPage(name,el){document.querySelectorAll('.page').forEach(p=>p.style.display='none');$('page-'+name).style.display='block';document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');if(name==='backend')renderBackend();if(name==='auftraege')renderAuftragListe();if(name==='cockpit')renderCockpit();}
+function showPage(name,el){var _kov=document.getElementById('kegOverlay');if(_kov)_kov.classList.add('keg-hide');document.querySelectorAll('.page').forEach(p=>p.style.display='none');$('page-'+name).style.display='block';document.querySelectorAll('.nav-pill').forEach(p=>p.classList.remove('active'));if(el)el.classList.add('active');if(name==='backend')renderBackend();if(name==='auftraege')renderAuftragListe();if(name==='cockpit')renderCockpit();}
 function renderCockpit(){ var f=document.getElementById('ckFrame'); if(!f) return; sizeCockpit();
   if(f.getAttribute('data-loaded')) return; f.setAttribute('data-loaded','1');
   try{
@@ -17191,7 +17192,7 @@ function toggleEmailAnalyse(){
     G('kegFinish').onclick=kegErfassen; G('kegAbbruch').onclick=()=>{ if(confirm('Erfassung abbrechen und nur kalkulieren?')) startKalk(); };
     G('kegDoneNew').onclick=()=>location.reload(); G('kegDoneCalc').onclick=()=>close();
     // Startseite: erfasste Aufträge
-    G('kegRecentAll').onclick=()=>{ const ov=G('kegOverlay'); if(ov) ov.classList.add('keg-hide'); try{ if(typeof window.showPage==='function'){ const pills=document.querySelectorAll('.nav-pill'); window.showPage('auftraege',pills[1]||pills[0]); } }catch(e){} window.scrollTo({top:0}); };
+    G('kegRecentAll').onclick=()=>{ const ov=G('kegOverlay'); if(ov) ov.classList.add('keg-hide'); try{ if(typeof window.showPage==='function'){ const pills=document.querySelectorAll('.nav-pill'); window.showPage('cockpit',pills[1]||pills[0]); } }catch(e){} window.scrollTo({top:0}); };
     // Objektadresse-Felder
     G('kegObOrt').addEventListener('input',()=>{ CUR.obOrt=G('kegObOrt').value; refresh(); });
     G('kegObStr').addEventListener('input',()=>{ CUR.obStr=G('kegObStr').value; refresh(); });
