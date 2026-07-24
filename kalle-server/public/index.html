@@ -2525,9 +2525,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V4.5';
+const UI_VERSION='V4.6';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V4.6','Fix: Der manuelle „◉ Monday"-Export überträgt jetzt in die GRAFE Produktionsübersicht (Gruppe „Projekt und Offertanfragen" + Subelement „Offerte verschickt") statt ins alte „Anfragen und Offerten"-Board. Alle Monday-Pfade zeigen nun aufs Produktionsboard.'],
   ['V4.5','Fahrzeugbeschriftung-Karte im Positionsmenü optisch angeglichen: SVG-Icon im gleichen Stil wie die anderen (kein Emoji), neutrale Farbe statt Rot.'],
   ['V4.4','Fix: Positionstyp „Fahrzeugbeschriftung" erscheint jetzt im Positions-Auswahlmenü (Gruppe Produkte). Die Menü-Neugruppierung beim Start hatte die Karte bisher verworfen — der Typ selbst war schon funktionsfähig, nur nicht auswählbar.'],
   ['V4.3','Anfrage-Erfassung: Container 50% breiter (nichts wird mehr abgeschnitten, kein horizontales Scrollen); langer Datenpfad/Projektbezeichnung bricht sauber um. Kunde jetzt voll bearbeitbar inkl. Feld „Kundennummer (SelectLine)" — auch wenn die E-Mail-Erkennung fehlschlägt. Bestandskunden-Abgleich beim Eintippen von Firma/E-Mail (übernimmt Treffer inkl. Kundennummer). Neue Kategorien „Leuchtwerbung" und „Fahrzeugbeschriftung".'],
@@ -16763,10 +16764,23 @@ async function sendToMonday(){
   const btn=$('btnMonday'); if(btn){btn.textContent='⏳ Sende...';btn.disabled=true;}
   try{
     const anrInp=$('auftragsnr'); if(anrInp&&!anrInp.value&&typeof genAuftragsnr==='function') await genAuftragsnr();
-    const r=await mondaySync({create:true});
-    if(!r.ok) throw new Error(r.msg||'Fehler');
-    showToast('✓ Monday '+(r.updated?'aktualisiert':'angelegt'),'');
-    if(btn){ btn.textContent='✓ Monday'; if(r.url)btn.title=r.url; setTimeout(()=>{btn.textContent='◉ Monday';btn.disabled=false;},3000); }
+    let token=(typeof mondayToken==='function'?mondayToken():'').trim();
+    if(!token){ token=(prompt('Monday API-Token einfügen (wird lokal gespeichert):','')||'').trim(); if(!token) throw new Error('kein Token hinterlegt'); try{localStorage.setItem('kalle_monday_token',token);}catch(e){} }
+    // Ziel: GRAFE Produktionsübersicht (Gruppe „Projekt und Offertanfragen") — NICHT das Anfragen-Board.
+    // Prod-Item sicherstellen (falls noch nicht über die Anfrage-Erfassung angelegt).
+    if(!window._currentMondayItem && typeof window.mondayProdAnfrage==='function'){
+      const anr=$('auftragsnr')?.value||'';
+      const res=await window.mondayProdAnfrage({
+        nr:anr, kunde:$('kundenname')?.value||'', betreff:($('bemerkung')?.value||'').trim(),
+        datenpfad:(window._projektPfad||'').trim(), email:$('email')?.value||''
+      }, token);
+      if(res&&res.itemId){ window._currentMondayItem=res.itemId; try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){} }
+    }
+    if(!window._currentMondayItem) throw new Error('Produktions-Element konnte nicht angelegt werden');
+    // Subelement „Offerte verschickt" + Offertsumme + PDF (gleiche Logik wie beim Speichern)
+    await mondayAutoUpdate();
+    showToast('✓ In GRAFE Produktionsübersicht übertragen','');
+    if(btn){ btn.textContent='✓ Monday'; setTimeout(()=>{btn.textContent='◉ Monday';btn.disabled=false;},3000); }
   }catch(err){
     console.error('Monday send error:',err);
     showToast('Monday Fehler: '+err.message,'error');
