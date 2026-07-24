@@ -2525,9 +2525,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V4.7';
+const UI_VERSION='V4.9';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V4.9','Löschen: Offerten ohne Auftragsnummer („Leichen") lassen sich jetzt löschen — sie werden über die Datenbank-ID entfernt statt über die leere Nummer. Voraussetzung: DELETE-Route im Server trifft auftragsnr ODER id.'],
+  ['V4.8','„◉ Monday"-Button jetzt zuverlässig aufs Produktionsboard: er löst das Element IMMER über die Projektnummer im Produktionsboard auf (dedupliziert) und ignoriert einen evtl. alten Anfragen-Board-Link aus früher geladenen Offerten. Das Anfragen-Board wird nicht mehr angesprochen.'],
   ['V4.7','Löschen: klare Fehlermeldung, wenn dem Server die DELETE-Route fehlt (statt kryptischem JSON-Fehler). Server-Fix offerten.js korrigiert — trifft jetzt die Auftragsnummer 26xxxx korrekt (nicht als DB-ID).'],
   ['V4.6','Fix: Der manuelle „◉ Monday"-Export überträgt jetzt in die GRAFE Produktionsübersicht (Gruppe „Projekt und Offertanfragen" + Subelement „Offerte verschickt") statt ins alte „Anfragen und Offerten"-Board. Alle Monday-Pfade zeigen nun aufs Produktionsboard.'],
   ['V4.5','Fahrzeugbeschriftung-Karte im Positionsmenü optisch angeglichen: SVG-Icon im gleichen Stil wie die anderen (kein Emoji), neutrale Farbe statt Rot.'],
@@ -14378,8 +14380,9 @@ async function loescheOfferte(auftragsnr, kundenname){
     const data = await r.json().catch(()=>({}));
     if(!r.ok){ showToast('Fehler beim Löschen: '+(data.error||('HTTP '+r.status)),'error'); return; }
     if(data.ok||data.deleted){
-      showToast('✓ Offerte '+auftragsnr+' gelöscht');
-      alleOfferten = alleOfferten.filter(o=>o.auftragsnr!==auftragsnr);
+      showToast('✓ Offerte '+(data.auftragsnr||auftragsnr)+' gelöscht');
+      // Aus der Liste entfernen — per Auftragsnummer ODER DB-ID (bei „Leichen" ohne Nummer)
+      alleOfferten = alleOfferten.filter(o=> o.auftragsnr!==auftragsnr && String(o.id)!==String(auftragsnr));
       filterOfferten();
       // Subtitle aktualisieren
       const sub=$('offertenSubtitle');
@@ -16554,6 +16557,8 @@ function filterOfferten(){
     html += `<div class="ov-gh"><div class="t"><span class="d" style="background:${m.dot}"></span>${m.label}${st==='entwurf'?' — zuerst ansehen':''}</div><span class="c">${items.length}</span><span class="ln"></span></div>`;
     items.forEach(o=>{
       const anr=o.auftragsnr||'–';
+      // Lösch-Kennung: Auftragsnummer, sonst DB-ID (für „Offert-Leichen" ohne Nummer)
+      const delId=(o.auftragsnr||'').toString().trim() || (o.id!=null?String(o.id):'');
       const kunde=(o.kundenname||'–');
       const betreff=(o.bemerkung||'').toString().trim();
       const bearb=o.bearbeiter_kuerzel||o.bearbeiter||'';
@@ -16571,7 +16576,7 @@ function filterOfferten(){
           <select class="ov-sel" onchange="setOfferteStatus('${anr}',this.value)">${OV_ORDER.map(s=>`<option value="${s}" ${ovStatus(o)===s?'selected':''}>${OV_META[s].label}</option>`).join('')}</select>
           <button class="ov-btn primary" onclick="ladeAuftragVomServer('${anr}')" title="Laden &amp; bearbeiten">↑ Öffnen</button>
           <button class="ov-btn" onclick="printOfferteFromServer('${anr}')" title="PDF">⎙ PDF</button>
-          <button class="ov-btn del" onclick="loescheOfferte('${anr}','${kEsc}')" title="Löschen">🗑</button>
+          <button class="ov-btn del" onclick="loescheOfferte('${delId}','${kEsc}')" title="Löschen">🗑</button>
         </div></div>`;
     });
   });
@@ -16773,17 +16778,17 @@ async function sendToMonday(){
     const anrInp=$('auftragsnr'); if(anrInp&&!anrInp.value&&typeof genAuftragsnr==='function') await genAuftragsnr();
     let token=(typeof mondayToken==='function'?mondayToken():'').trim();
     if(!token){ token=(prompt('Monday API-Token einfügen (wird lokal gespeichert):','')||'').trim(); if(!token) throw new Error('kein Token hinterlegt'); try{localStorage.setItem('kalle_monday_token',token);}catch(e){} }
-    // Ziel: GRAFE Produktionsübersicht (Gruppe „Projekt und Offertanfragen") — NICHT das Anfragen-Board.
-    // Prod-Item sicherstellen (falls noch nicht über die Anfrage-Erfassung angelegt).
-    if(!window._currentMondayItem && typeof window.mondayProdAnfrage==='function'){
-      const anr=$('auftragsnr')?.value||'';
-      const res=await window.mondayProdAnfrage({
-        nr:anr, kunde:$('kundenname')?.value||'', betreff:($('bemerkung')?.value||'').trim(),
-        datenpfad:(window._projektPfad||'').trim(), email:$('email')?.value||''
-      }, token);
-      if(res&&res.itemId){ window._currentMondayItem=res.itemId; try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){} }
-    }
-    if(!window._currentMondayItem) throw new Error('Produktions-Element konnte nicht angelegt werden');
+    // Ziel IMMER: GRAFE Produktionsübersicht. Über die Projektnummer das Prod-Element
+    // finden/anlegen (dedupliziert) — NIE ein evtl. veraltetes Anfragen-Board-Item verwenden.
+    if(typeof window.mondayProdAnfrage!=='function') throw new Error('Produktions-Funktion fehlt (Datei neu laden)');
+    const anr=$('auftragsnr')?.value||'';
+    const res=await window.mondayProdAnfrage({
+      nr:anr, kunde:$('kundenname')?.value||'', betreff:($('bemerkung')?.value||'').trim(),
+      datenpfad:(window._projektPfad||'').trim(), email:$('email')?.value||''
+    }, token);
+    if(!res||!res.itemId) throw new Error('Produktions-Element konnte nicht angelegt werden');
+    window._currentMondayItem=res.itemId;   // immer die Prod-Item-ID (kein Anfragen-Board)
+    try{ commitVorgangsnummer&&commitVorgangsnummer(anr); }catch(e){}
     // Subelement „Offerte verschickt" + Offertsumme + PDF (gleiche Logik wie beim Speichern)
     await mondayAutoUpdate();
     showToast('✓ In GRAFE Produktionsübersicht übertragen','');
