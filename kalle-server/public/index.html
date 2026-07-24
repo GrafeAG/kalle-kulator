@@ -54,6 +54,20 @@ header{background:var(--surface);border-bottom:1px solid var(--border);padding:0
 .nav-pill:hover{color:var(--text);background:var(--surface2);}
 .nav-pill.active{color:var(--accent);background:var(--accent-dim);}
 .hdr-act{display:flex;gap:6px;align-items:center;}
+.hdr-menu{position:relative;display:inline-block;}
+.hdr-dd{position:absolute;top:calc(100% + 6px);right:0;min-width:236px;background:var(--surface);border:1px solid var(--border);border-radius:11px;box-shadow:0 14px 34px rgba(0,0,0,.20);padding:6px;display:none;z-index:2000;}
+.hdr-dd.open{display:block;animation:hdrDdIn .12s ease;}
+@keyframes hdrDdIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+.hdr-dd button{display:flex;flex-direction:row;align-items:center;width:100%;gap:10px;background:none;border:none;text-align:left;padding:9px 11px;border-radius:8px;font:inherit;font-size:13px;color:var(--text);cursor:pointer;line-height:1.35;}
+.hdr-dd .hdr-ic{flex-shrink:0;color:var(--accent);display:inline-grid;place-items:center;}
+.hdr-dd .hdr-tx{display:flex;flex-direction:column;gap:1px;}
+.hdr-dd button b{font-weight:700;}
+.hdr-dd button .hdr-sub{font-size:10.5px;color:var(--muted);font-weight:400;}
+.hdr-dd button:hover{background:var(--surface2);}
+.hdr-dd button.hdr-danger .hdr-ic,.hdr-dd button.hdr-danger b{color:var(--danger);}
+/* Weiße Schrift auf Ocker-Buttons im hellen Modus (bessere Lesbarkeit) */
+body.light-mode .btn-y{color:#fff;}
+body.light-mode .btn-y svg{stroke:#fff;}
 
 /* LAYOUT */
 .app{display:grid;grid-template-columns:minmax(0,1fr) 400px;min-height:calc(100vh - 52px);}
@@ -460,15 +474,25 @@ a, button, input, select, textarea, label,
     </nav>
   </div>
   <div class="hdr-act">
-    <button id="themeToggleBtn" class="btn btn-gh" onclick="toggleTheme()" title="Hell/Dunkel Modus" style="font-size:13px;padding:5px 10px;display:none;">🌙</button>
-    <button class="btn btn-gh" onclick="saveAuftrag()">💾 Sichern</button>
-    <button class="btn btn-gh" onclick="resetAll()">↺ Reset</button>
-    <button class="btn btn-t" onclick="printDoc('internal')">⬡ Intern</button>
-    <button class="btn btn-y" onclick="printDocOffer()">↓ Offerte PDF</button>
-    <button class="btn btn-gh" onclick="prepareEmail()" title="Outlook E-Mail vorbereiten">✉ E-Mail</button>
-    <button class="btn btn-gh" onclick="exportSelectLineCSV()" title="Als SelectLine CSV exportieren">SL Export</button><span id="slExportBadge" style="display:none;"></span>
-    <button id="btnMonday" class="btn btn-gh" onclick="sendToMonday()" title="An Monday senden">◉ Monday</button>
-
+    <button id="themeToggleBtn" class="btn btn-gh" onclick="toggleTheme()" title="Hell/Dunkel Modus" style="font-size:13px;padding:5px 10px;display:none;">Modus</button>
+    <button class="btn btn-gh" onclick="saveAuftrag()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 4v5h7"/><rect x="8" y="14" width="8" height="6"/></svg> Sichern</button>
+    <button class="btn btn-y" onclick="printDocOffer()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9.5 14.5 12 17l2.5-2.5"/></svg> Offerte PDF</button>
+    <div class="hdr-menu">
+      <button class="btn btn-gh" onclick="toggleHdrMenu('mSend',event)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg> Senden &amp; Export <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><path d="m6 9 6 6 6-6"/></svg></button>
+      <div class="hdr-dd" id="mSend">
+        <button onclick="hdrDo(prepareEmail)"><span class="hdr-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="m3 7 9 6 9-6"/></svg></span><span class="hdr-tx"><b>E-Mail</b><span class="hdr-sub">Offerte per Outlook versenden</span></span></button>
+        <button id="btnMonday" onclick="hdrDo(sendToMonday)"><span class="hdr-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="16" rx="2"/><line x1="9" y1="4" x2="9" y2="20"/><line x1="15" y1="4" x2="15" y2="20"/></svg></span><span class="hdr-tx"><b>Monday</b><span class="hdr-sub">ins Produktionsboard</span></span></button>
+        <button onclick="hdrDo(exportSelectLineCSV)"><span class="hdr-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M4 13v6a1 1 0 0 0 1 1h14a1 1 0 0 0 1-1v-6"/><path d="M12 16V3"/><path d="m7 8 5-5 5 5"/></svg></span><span class="hdr-tx"><b>SelectLine</b><span class="hdr-sub">als CSV exportieren</span></span></button>
+      </div>
+    </div>
+    <div class="hdr-menu">
+      <button class="btn btn-gh" onclick="toggleHdrMenu('mMore',event)"><svg width="15" height="15" viewBox="0 0 24 24" fill="currentColor"><circle cx="5" cy="12" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="19" cy="12" r="1.6"/></svg> Mehr <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><path d="m6 9 6 6 6-6"/></svg></button>
+      <div class="hdr-dd" id="mMore">
+        <button onclick="hdrDo(function(){printDoc('internal')})"><span class="hdr-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="11" width="14" height="9" rx="2"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg></span><span class="hdr-tx"><b>Interne PDF</b><span class="hdr-sub">Kalkulation intern drucken</span></span></button>
+        <button class="hdr-danger" onclick="hdrDo(function(){ if(confirm('Wirklich alles zurücksetzen? Nicht gespeicherte Eingaben gehen verloren.')) resetAll(); })"><span class="hdr-ic"><svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.64-6.36"/><path d="M21 3v6h-6"/></svg></span><span class="hdr-tx"><b>Zurücksetzen</b><span class="hdr-sub">Eingaben leeren</span></span></button>
+      </div>
+    </div>
+    <span id="slExportBadge" style="display:none;"></span>
   </div>
 </header>
 
@@ -2533,9 +2557,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V5.4';
+const UI_VERSION='V5.6';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V5.6','Feinschliff: Emoji-Icons in der Button-Leiste durch SVG-Linien-Icons im gleichen Stil ersetzt. Schrift auf den Ocker-Flächen (Offerte PDF, Neue Position, Cockpit-Balken) jetzt weiß — deutlich besser lesbar.'],
+  ['V5.5','UX aufgeräumt: (1) Button-Leiste — nur noch „Sichern" und „Offerte PDF" sichtbar; E-Mail/Monday/SelectLine unter „📤 Senden & Export", Interne PDF/Zurücksetzen unter „⋯ Mehr". (2) Startseite — das Cockpit hat jetzt einen hervorgehobenen Einstieg ganz oben („Cockpit öffnen →"); darunter „Neue Anfrage erfassen" und „Nur kalkulieren".'],
   ['V5.4','Fix: Das Cockpit wurde von der Start-Erfassungsseite verdeckt. Jetzt blendet jede Navigation die Startseite aus, und „Alle Aufträge →" auf der Startseite führt direkt ins Cockpit (statt in die alte Liste). Cockpit braucht einen Monday-Token im Browser — ist er in KALLE hinterlegt, lädt es sofort.'],
   ['V5.3','Cockpit fest in KALLE eingebaut — jetzt EINE Datei, keine zweite HTML nötig. Der Tab „Aufträge" öffnet das Cockpit direkt (eingebettet & CSS-isoliert, kein Nachladen). Token und Server werden von KALLE übernommen. Button „Auftragsverwaltung" ↔ „← Cockpit" wechselt sauber. Damit entfällt die separate KALLE_Cockpit.html im public-Ordner.'],
   ['V5.2','Anfragen-Cockpit in KALLE integriert: Der Tab „Aufträge" öffnet jetzt das Cockpit (Leads/Anfragen aus Monday, klickbare Element-Detailseite, Bearbeiter/Termine/Kommentare → schreiben direkt nach Monday). Die klassische Auftragsverwaltung erreichst du über den Button „Auftragsverwaltung" im Cockpit bzw. „← Cockpit" zurück. Einbettung teilt Token & Server mit KALLE — kein zweiter Login. Voraussetzung: KALLE_Cockpit.html liegt neben KALLE im public-Ordner.'],
@@ -3019,6 +3045,11 @@ function renderCockpit(){ var f=document.getElementById('ckFrame'); if(!f) retur
 }
 function sizeCockpit(){ var f=document.getElementById('ckFrame'); if(!f) return; var top=f.getBoundingClientRect().top; f.style.height=Math.max(420,(window.innerHeight-top-2))+'px'; }
 window.addEventListener('resize',function(){ var p=document.getElementById('page-cockpit'); if(p&&p.style.display!=='none') sizeCockpit(); });
+// Header-Dropdown-Menüs (Senden & Export / Mehr)
+function closeHdrMenus(except){ document.querySelectorAll('.hdr-dd').forEach(function(d){ if(d.id!==except) d.classList.remove('open'); }); }
+function toggleHdrMenu(id,ev){ if(ev){ ev.stopPropagation(); } var d=document.getElementById(id); if(!d) return; var open=d.classList.contains('open'); closeHdrMenus(); if(!open) d.classList.add('open'); }
+function hdrDo(fn){ closeHdrMenus(); try{ (typeof fn==='function'?fn:window[fn])(); }catch(e){ console.error('hdrDo:',e); } }
+document.addEventListener('click',function(e){ if(!e.target.closest('.hdr-menu')) closeHdrMenus(); });
 
 
 function emailChanged(){
@@ -16904,7 +16935,14 @@ function toggleEmailAnalyse(){
   .keg-vg .n{font-family:'Syne',sans-serif;font-weight:800;font-size:12.5px;} .keg-vg .tag{font-size:8.5px;font-weight:700;color:#6f5a00;background:#f5eed7;padding:2px 8px;border-radius:100px;text-transform:uppercase;letter-spacing:.4px;}
   .keg-mock{font-size:10.5px;color:#9aa1ad;text-align:center;margin:1px 0 14px;}
   .keg-card{background:#fff;border:1px solid #e6e8ec;border-radius:12px;box-shadow:0 1px 2px rgba(20,30,50,.04),0 8px 24px rgba(20,30,50,.055);overflow:hidden;}
-  .keg-gate{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:780px;margin:8px auto 0;}
+  .keg-hero{max-width:780px;margin:8px auto 0;display:flex;align-items:center;gap:18px;padding:18px 22px;border:2px solid #c8a000;border-radius:15px;background:linear-gradient(180deg,#fffdf5,#fbf3d9);box-shadow:0 10px 30px rgba(200,160,0,.18);cursor:pointer;transition:.15s;}
+  .keg-hero:hover{transform:translateY(-2px);box-shadow:0 14px 38px rgba(200,160,0,.26);}
+  .keg-hero-ic{width:54px;height:54px;border-radius:13px;background:#a8790a;color:#fff;display:grid;place-items:center;flex-shrink:0;}
+  .keg-hero-t{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#20242c;margin-bottom:2px;}
+  .keg-hero-d{font-size:12.5px;color:#6f5a00;line-height:1.4;}
+  .keg-hero-cta{margin-left:auto;background:#a8790a;color:#fff;font-weight:800;font-size:13.5px;padding:11px 18px;border-radius:10px;white-space:nowrap;flex-shrink:0;}
+  @media(max-width:720px){ .keg-hero{flex-wrap:wrap;} .keg-hero-cta{margin-left:0;width:100%;text-align:center;} }
+  .keg-gate{display:grid;grid-template-columns:1fr 1fr;gap:14px;max-width:780px;margin:12px auto 0;}
   .keg-gc{padding:22px 22px 24px;cursor:pointer;transition:.15s;} .keg-gc:hover{border-color:#c8a000;}
   .keg-gic{width:40px;height:40px;border-radius:11px;display:grid;place-items:center;margin-bottom:13px;}
   .keg-gt{font-family:'Syne',sans-serif;font-weight:800;font-size:16px;} .keg-gd{font-size:12px;color:#565d6a;margin-top:5px;line-height:1.5;}
@@ -17017,10 +17055,18 @@ function toggleEmailAnalyse(){
       <div class="keg-mock">Geführte Erfassung &amp; Ablage · danach direkt in deinen gewohnten Rechner</div>
 
       <div id="kegGate">
+        <div class="keg-hero" id="kegGoCockpit">
+          <div class="keg-hero-ic">${svg('<rect x="3" y="4" width="18" height="16" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="8" y1="13" x2="8" y2="17"/><line x1="12" y1="13" x2="12" y2="17"/><line x1="16" y1="13" x2="16" y2="17"/>',26)}</div>
+          <div class="keg-hero-tx">
+            <div class="keg-hero-t">Cockpit — Anfragen &amp; Aufträge</div>
+            <div class="keg-hero-d">Alle Leads visuell bearbeiten: Status, Bearbeiter, Termine, Kommentare — live mit Monday.</div>
+          </div>
+          <div class="keg-hero-cta">Cockpit öffnen →</div>
+        </div>
         <div class="keg-gate">
           <div class="keg-card keg-gc" id="kegGoA">
             <div class="keg-gic" style="background:#f5eed7;border:1px solid #e6d9a6;color:#6f5a00;">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="9" y1="14" x2="15" y2="14"/>',22)}</div>
-            <div class="keg-gt">Anfrage erfassen &amp; ablegen</div>
+            <div class="keg-gt">Neue Anfrage erfassen</div>
             <div class="keg-gd">Kunde aus dem Stamm, Projektnummer, Ablageort &amp; monday — in zwei Schritten. Für echte Aufträge und Offerten.</div>
             <div class="keg-ga" style="color:#6f5a00;">Los geht's →</div>
           </div>
@@ -17188,6 +17234,7 @@ function toggleEmailAnalyse(){
       d.onclick=()=>{ d.classList.toggle('on'); CUR.leistung=[...lb.querySelectorAll('.keg-pchip.on')].map(c=>c.textContent.trim()); refresh(); }; lb.appendChild(d); });
     // Events
     G('kegGoA').onclick=startAnfrage; G('kegGoK').onclick=startKalk;
+    { const gc=G('kegGoCockpit'); if(gc) gc.onclick=()=>{ const ov=G('kegOverlay'); if(ov) ov.classList.add('keg-hide'); try{ if(typeof window.showPage==='function'){ const pills=document.querySelectorAll('.nav-pill'); window.showPage('cockpit',pills[1]||pills[0]); } }catch(e){} window.scrollTo({top:0}); }; }
     G('kegBack').onclick=()=>go(s-1); G('kegNext').onclick=()=>go(s+1);
     G('kegFinish').onclick=kegErfassen; G('kegAbbruch').onclick=()=>{ if(confirm('Erfassung abbrechen und nur kalkulieren?')) startKalk(); };
     G('kegDoneNew').onclick=()=>location.reload(); G('kegDoneCalc').onclick=()=>close();
