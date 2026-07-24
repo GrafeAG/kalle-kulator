@@ -2525,9 +2525,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V5.0';
+const UI_VERSION='V5.1';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V5.1','Anfrage erfassen: Beim Speichern & Ablegen erscheint jetzt ein animierter Fortschrittsbalken („Reaktor") mit augenzwinkernden Sprüchen (Nuklear-Engine, Kernschmelze, Fallout …). Der Balken folgt den echten Schritten — Projektnummer, Ordner, Upload, Monday, Datenbank — und schliesst mit „Fertig". Kein Eindruck mehr, dass nichts passiert.'],
   ['V5.0','Anfrage-Erfassung: (1) Neues Notiz-/Kurzbeschrieb-Feld — bei telefonischen Anfragen kurz festhalten, worum es geht; wird als Monday-Kommentar übernommen (auch ohne E-Mail). (2) Übersicht zeigt jetzt korrekt „GRAFE Produktionsübersicht · Status Anfragen unbearbeitet" statt des alten Boards. (3) Zurück-Navigation zu Schritt 1 hält alle Eingaben (Kunde, Betreff, Leistung, Notiz, Dateien).'],
   ['V4.9','Löschen: Offerten ohne Auftragsnummer („Leichen") lassen sich jetzt löschen — sie werden über die Datenbank-ID entfernt statt über die leere Nummer. Voraussetzung: DELETE-Route im Server trifft auftragsnr ODER id.'],
   ['V4.8','„◉ Monday"-Button jetzt zuverlässig aufs Produktionsboard: er löst das Element IMMER über die Projektnummer im Produktionsboard auf (dedupliziert) und ignoriert einen evtl. alten Anfragen-Board-Link aus früher geladenen Offerten. Das Anfragen-Board wird nicht mehr angesprochen.'],
@@ -16946,6 +16947,26 @@ function toggleEmailAnalyse(){
   .keg-btn.gh{background:#fff;color:#565d6a;border:1px solid #d6dade;} .keg-btn.gh:hover{background:#eef0f3;} .keg-btn:disabled{opacity:.5;cursor:not-allowed;}
   .keg-hide{display:none!important;}
   @media(max-width:720px){ .keg-gate{grid-template-columns:1fr;} .keg-cols{grid-template-columns:1fr;} .keg-pane.l{border-right:none;border-bottom:1px solid #e6e8ec;} }
+  /* ── Fortschritts-Overlay („Reaktor") ── */
+  #kegProg{position:fixed;inset:0;z-index:2147483000;display:none;align-items:center;justify-content:center;background:rgba(18,20,26,.72);backdrop-filter:blur(3px);}
+  #kegProg.on{display:flex;animation:kpFade .2s ease;}
+  @keyframes kpFade{from{opacity:0}to{opacity:1}}
+  .kp-box{width:min(90vw,480px);background:#fff;border-radius:16px;padding:30px 30px 26px;box-shadow:0 24px 60px rgba(0,0,0,.35);text-align:center;position:relative;overflow:hidden;}
+  .kp-icon{font-size:40px;line-height:1;margin-bottom:10px;animation:kpBob 1.6s ease-in-out infinite;}
+  @keyframes kpBob{0%,100%{transform:translateY(0) rotate(-4deg)}50%{transform:translateY(-6px) rotate(4deg)}}
+  .kp-title{font-family:'Syne',sans-serif;font-weight:800;font-size:18px;color:#20242c;margin-bottom:3px;}
+  .kp-joke{font-size:13px;color:#b8860b;font-weight:600;min-height:19px;margin-bottom:16px;transition:opacity .25s;}
+  .kp-track{height:14px;border-radius:100px;background:#eceef1;overflow:hidden;box-shadow:inset 0 1px 3px rgba(0,0,0,.09);}
+  .kp-fill{height:100%;width:0;border-radius:100px;background:linear-gradient(90deg,#e8c200,#c8a000);background-size:200% 100%;transition:width .5s cubic-bezier(.4,0,.2,1);position:relative;animation:kpFlow 1.4s linear infinite;}
+  @keyframes kpFlow{to{background-position:200% 0}}
+  .kp-fill::after{content:'';position:absolute;inset:0;background:linear-gradient(90deg,transparent,rgba(255,255,255,.55),transparent);transform:translateX(-100%);animation:kpShine 1.3s ease-in-out infinite;}
+  @keyframes kpShine{to{transform:translateX(230%)}}
+  .kp-row{display:flex;justify-content:space-between;align-items:center;margin-top:9px;font-size:11.5px;color:#565d6a;}
+  .kp-pct{font-family:ui-monospace,monospace;font-weight:700;color:#20242c;}
+  .kp-cap{color:#9aa1ad;}
+  .kp-box.done .kp-icon{animation:none;}
+  .kp-box.done .kp-fill{background:linear-gradient(90deg,#3fb765,#2f9d54);animation:none;}
+  .kp-box.done .kp-fill::after{display:none;}
   `;
 
   const LEIST=[['tb-schild','Schild'],['tb-leucht','Leuchtwerbung'],['tb-fahrzeug','Fahrzeugbeschriftung'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-text','Text'],['tb-rabatt','Rabatt']];
@@ -17463,6 +17484,60 @@ function toggleEmailAnalyse(){
       return {ok:true,msg:'Produktionsboard: „Anfrage eingegangen" angelegt (Status „Anfragen unbearbeitet")'+fileMsg};
     }catch(e){ return {ok:false,msg:'nicht gesendet: '+e.message+' (evtl. CORS — über Server leiten)'}; }
   }
+  // ── Fortschritts-Overlay („Reaktor") mit augenzwinkernden Sprüchen ──
+  var KEG_JOKES=[
+    '☢️ Nuklear-Engine wird hochgefahren …',
+    '⚛️ Kettenreaktion eingeleitet …',
+    '🔥 Kernschmelze (kontrolliert!) gestartet …',
+    '☁️ Fallout wird gleichmässig verteilt …',
+    '🧊 Kühlstäbe justiert — alles im grünen Bereich …',
+    '📟 Geigerzähler kalibriert (klick … klick …) …',
+    '🛰️ Bürokratie-Satellit ausgerichtet …',
+    '📎 Büroklammern radioaktiv markiert …',
+    '☕ KALLE tankt Koffein …',
+    '🗂️ Aktenordner falten sich von selbst …',
+    '🚀 Projektnummer in die Umlaufbahn geschossen …',
+    '🧪 Offert-Isotope angereichert …',
+    '🤖 Reaktorkern flüstert „läuft" …'
+  ];
+  var _kegProgEl=null, _kegJokeTimer=null, _kegJokeIx=0, _kegProgPct=0;
+  function _kegProgBuild(){
+    if(_kegProgEl) return _kegProgEl;
+    var d=document.createElement('div'); d.id='kegProg';
+    d.innerHTML='<div class="kp-box"><div class="kp-icon" id="kpIcon">☢️</div>'+
+      '<div class="kp-title">Anfrage wird erfasst & abgelegt</div>'+
+      '<div class="kp-joke" id="kpJoke">…</div>'+
+      '<div class="kp-track"><div class="kp-fill" id="kpFill"></div></div>'+
+      '<div class="kp-row"><span class="kp-cap" id="kpCap">Reaktor startet …</span><span class="kp-pct" id="kpPct">0 %</span></div></div>';
+    document.body.appendChild(d); _kegProgEl=d; return d;
+  }
+  function kegProgStart(){
+    _kegProgBuild(); _kegProgPct=0; _kegJokeIx=0;
+    var box=_kegProgEl.querySelector('.kp-box'); if(box) box.classList.remove('done');
+    var ic=G('kpIcon'); if(ic){ ic.textContent='☢️'; }
+    _kegProgEl.classList.add('on');
+    kegProgSet(6,'Reaktor startet …');
+    var jk=G('kpJoke'); if(jk) jk.textContent=KEG_JOKES[0];
+    if(_kegJokeTimer) clearInterval(_kegJokeTimer);
+    _kegJokeTimer=setInterval(function(){ _kegJokeIx=(_kegJokeIx+1)%KEG_JOKES.length;
+      var e=G('kpJoke'); if(e){ e.style.opacity='0'; setTimeout(function(){ e.textContent=KEG_JOKES[_kegJokeIx]; e.style.opacity='1'; },200); } },1400);
+  }
+  function kegProgSet(pct,cap){
+    _kegProgPct=Math.max(_kegProgPct,Math.min(100,pct));
+    var f=G('kpFill'); if(f) f.style.width=_kegProgPct+'%';
+    var p=G('kpPct'); if(p) p.textContent=Math.round(_kegProgPct)+' %';
+    if(cap){ var c=G('kpCap'); if(c) c.textContent=cap; }
+  }
+  function kegProgDone(cb){
+    kegProgSet(100,'Fertig — sauber abgelegt ✓');
+    if(_kegJokeTimer){ clearInterval(_kegJokeTimer); _kegJokeTimer=null; }
+    var jk=G('kpJoke'); if(jk){ jk.style.opacity='0'; setTimeout(function(){ jk.textContent='🎉 Alles abgelegt — kein Fallout, versprochen.'; jk.style.opacity='1'; },200); }
+    var box=_kegProgEl&&_kegProgEl.querySelector('.kp-box'); if(box) box.classList.add('done');
+    var ic=G('kpIcon'); if(ic) ic.textContent='✅';
+    setTimeout(function(){ if(_kegProgEl) _kegProgEl.classList.remove('on'); if(typeof cb==='function') cb(); },1150);
+  }
+  var _kegWait=function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
+
   async function kegErfassen(){
     const k=CUR.kunde||{};
     if(!k.name){ alert('Bitte zuerst einen Kunden wählen oder erfassen.'); go(0); return; }
@@ -17470,14 +17545,18 @@ function toggleEmailAnalyse(){
     if(CUR.ablage==='o'){ CUR.obOrt=(G('kegObOrt').value||'').trim(); CUR.obStr=(G('kegObStr').value||'').trim();
       if(!CUR.obOrt||!CUR.obStr){ alert('Bitte Objekt-Ort und -Strasse eingeben (Ablageort).'); return; } }
     const btn=G('kegFinish'); btn.disabled=true; btn.textContent='Erfasse …';
+    kegProgStart();
+    await _kegWait(350);
     // reale Felder füllen (für DB & spätere Kalkulation)
     setF('kundenname',k.name); setF('kontaktperson',k.kontakt); setF('email',k.email); setF('telefon',k.tel);
     setF('adresseStrasse',k.strasse); setF('adressePLZ',k.plz); setF('adresseOrt',k.ort); setF('bemerkung',CUR.betreff);
     if(G('auftragsnr')&&CUR.nr){ G('auftragsnr').value=CUR.nr; G('auftragsnr').dispatchEvent(new Event('input',{bubbles:true})); }
     const slk=G('slKundennummer'); if(slk&&k.nr) slk.value=k.nr;
+    kegProgSet(18,'Projektnummer wird fest vergeben …');
     try{ if(typeof window.commitVorgangsnummer==='function') await window.commitVorgangsnummer(CUR.nr); }catch(e){}
     const rows=[]; const srvOn=SRV(); let pfad='';
     // Projektordner + Upload
+    kegProgSet(34,'Projektordner wird angelegt …');
     if(srvOn){
       try{
         const body={ typ:CUR.ablage==='o'?'objekt':'firma', projektnr:CUR.nr, bezeichnung:CUR.betreff, auftragsnr:CUR.nr };
@@ -17486,20 +17565,24 @@ function toggleEmailAnalyse(){
         const d=await r.json();
         if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
           rows.push(['ok','Projektordner angelegt',pfad]);
-          if(_fileCount()>0 && typeof window.projUploadFiles==='function'){ try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
+          if(_fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
         } else { rows.push(['warn','Projektordner',(d&&d.error)||'nicht angelegt']); }
       }catch(e){ rows.push(['warn','Projektordner','Server nicht erreichbar: '+e.message]); }
     } else { rows.push(['warn','Projektordner','Server offline — folgt beim Speichern']); }
     // Monday (Phase Anfrage)
+    kegProgSet(66,'Monday wird benachrichtigt …');
     const md=await mondayAnfrage(pfad); rows.push([md.ok?'ok':'warn','Monday-Tracking',md.msg]);
     // DB (Aufträge, unbearbeitet)
+    kegProgSet(84,'In Aufträgen wird gespeichert …');
     let dbmsg='Server offline — folgt beim Speichern', dbok=false;
     if(srvOn){ try{ const r=await fetch(_srv()+'/offerten',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(anfragePayload(pfad))}); dbok=r.ok; dbmsg=r.ok?('Vorgang '+CUR.nr+' unter Aufträge — Status „unbearbeitet"'):('Server-Fehler '+r.status); }catch(e){ dbmsg='Server nicht erreichbar: '+e.message; } }
     rows.push([dbok?'ok':'warn','In Aufträgen gespeichert',dbmsg]);
     rows.push(['ok','Nummer fest vergeben',CUR.nr+' — eindeutig']);
+    kegProgSet(96,'Letzter Check …');
     try{ if(typeof window.renderAuftragListe==='function') window.renderAuftragListe(); }catch(e){}
+    await _kegWait(300);
     btn.disabled=false; btn.textContent='✓ Anfrage erfassen';
-    showKegDone(rows);
+    kegProgDone(function(){ showKegDone(rows); });
   }
   function showKegDone(rows){
     G('kegScr0').classList.add('keg-hide'); G('kegScr1').classList.add('keg-hide');
