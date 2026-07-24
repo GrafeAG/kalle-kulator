@@ -2525,9 +2525,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V4.6';
+const UI_VERSION='V4.7';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V4.7','Löschen: klare Fehlermeldung, wenn dem Server die DELETE-Route fehlt (statt kryptischem JSON-Fehler). Server-Fix offerten.js korrigiert — trifft jetzt die Auftragsnummer 26xxxx korrekt (nicht als DB-ID).'],
   ['V4.6','Fix: Der manuelle „◉ Monday"-Export überträgt jetzt in die GRAFE Produktionsübersicht (Gruppe „Projekt und Offertanfragen" + Subelement „Offerte verschickt") statt ins alte „Anfragen und Offerten"-Board. Alle Monday-Pfade zeigen nun aufs Produktionsboard.'],
   ['V4.5','Fahrzeugbeschriftung-Karte im Positionsmenü optisch angeglichen: SVG-Icon im gleichen Stil wie die anderen (kein Emoji), neutrale Farbe statt Rot.'],
   ['V4.4','Fix: Positionstyp „Fahrzeugbeschriftung" erscheint jetzt im Positions-Auswahlmenü (Gruppe Produkte). Die Menü-Neugruppierung beim Start hatte die Karte bisher verworfen — der Typ selbst war schon funktionsfähig, nur nicht auswählbar.'],
@@ -14367,9 +14368,15 @@ function filterOfferten(){
 async function loescheOfferte(auftragsnr, kundenname){
   if(!confirm(`Offerte ${auftragsnr} (${kundenname}) wirklich löschen?\nDiese Aktion kann nicht rückgängig gemacht werden.`)) return;
   try{
-    const r = await fetch(KALLE_SERVER+'/offerten/'+encodeURIComponent(auftragsnr), {method:'DELETE'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    const data = await r.json();
+    const r = await fetch(KALLE_SERVER+'/offerten/'+encodeURIComponent(auftragsnr), {method:'DELETE', headers:{'Accept':'application/json'}});
+    const ct = (r.headers.get('content-type')||'');
+    if(!ct.includes('application/json')){
+      // Server liefert HTML (SPA-Fallback) statt JSON → DELETE-Route fehlt serverseitig
+      showToast('Löschen nicht möglich: dem kalle-server fehlt die DELETE-Route. Bitte offerten.js (aus dem Fix-ZIP) einspielen und Dienst neu starten.','error',8000);
+      return;
+    }
+    const data = await r.json().catch(()=>({}));
+    if(!r.ok){ showToast('Fehler beim Löschen: '+(data.error||('HTTP '+r.status)),'error'); return; }
     if(data.ok||data.deleted){
       showToast('✓ Offerte '+auftragsnr+' gelöscht');
       alleOfferten = alleOfferten.filter(o=>o.auftragsnr!==auftragsnr);
