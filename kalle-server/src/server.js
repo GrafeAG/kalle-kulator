@@ -25,19 +25,11 @@ app.use(express.static(path.join(__dirname, '..', 'public')));
 app.use('/status',       require('./routes/status'));
 app.use('/preise',       require('./routes/preise'));
 app.use('/offerten',     require('./routes/offerten'));
-// Vorgangsnummern 26xxxx (reservieren/commit/freigeben) — abgesichert geladen:
-// Falls src/routes/nummern.js fehlt oder einen Fehler hat, startet der Server
-// trotzdem (KALLE nutzt dann die Fallback-Nummernvergabe).
-try {
-  app.use('/nummern', require('./routes/nummern'));
-  console.log('✓ Route /nummern geladen');
-} catch (e) {
-  console.error('⚠ Route /nummern NICHT geladen:', e.message, '(Server läuft trotzdem weiter)');
-}
 app.use('/projekte',     require('./routes/projekte'));
 app.use('/bearbeiter',   require('./routes/bearbeiter'));
 app.use('/kunden',       require('./routes/kunden'));
 app.use('/auswertungen', require('./routes/auswertungen'));
+app.use('/label',        require('./routes/label'));   // ← Kisten-/Montage-Laufzettel Live-Daten
 
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
@@ -68,6 +60,7 @@ async function start() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ KALLE App:   http://localhost:${PORT}/`);
     console.log(`✓ API Status:  http://localhost:${PORT}/status`);
+    console.log(`✓ Label:       http://localhost:${PORT}/label?nr=260215`);
     console.log(`✓ Datenbank:   ${process.env.DB_HOST || 'localhost'}/${process.env.DB_NAME || 'kalle'}`);
     console.log(`✓ Netzlaufwerk: ${process.env.OFFERTEN_PFAD || '(nicht konfiguriert)'}`);
     console.log('═══════════════════════════════════════════════════');
