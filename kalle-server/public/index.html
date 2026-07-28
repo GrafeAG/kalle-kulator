@@ -2557,9 +2557,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V5.6';
+const UI_VERSION='V5.8';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V5.8','E-Mail-Analyse läuft jetzt über den eigenen Server: der Anthropic-Schlüssel liegt zentral in der Server-.env (nichts mehr im Browser), Modell Claude Haiku 4.5. Alle Mitarbeiter profitieren automatisch, ohne Key-Eingabe. Fällt der Server oder Schlüssel aus, greift automatisch die Basis-Erkennung (Regex).'],
+  ['V5.7','Anfrage-Erfassung: Kundenerkennung robuster. Das Firma-Feld hat jetzt eine Live-Autovervollständigung gegen den Kundenstamm — auch nach einer misslungenen E-Mail-Erkennung: einfach Firmenname tippen, Treffer wird inkl. SL-Nummer, Adresse und Kontakt übernommen. Neuer Link „↻ anderer Kunde / neu suchen" verwirft ein falsches Erkennungs-Ergebnis und führt zurück zur Suche.'],
   ['V5.6','Feinschliff: Emoji-Icons in der Button-Leiste durch SVG-Linien-Icons im gleichen Stil ersetzt. Schrift auf den Ocker-Flächen (Offerte PDF, Neue Position, Cockpit-Balken) jetzt weiß — deutlich besser lesbar.'],
   ['V5.5','UX aufgeräumt: (1) Button-Leiste — nur noch „Sichern" und „Offerte PDF" sichtbar; E-Mail/Monday/SelectLine unter „📤 Senden & Export", Interne PDF/Zurücksetzen unter „⋯ Mehr". (2) Startseite — das Cockpit hat jetzt einen hervorgehobenen Einstieg ganz oben („Cockpit öffnen →"); darunter „Neue Anfrage erfassen" und „Nur kalkulieren".'],
   ['V5.4','Fix: Das Cockpit wurde von der Start-Erfassungsseite verdeckt. Jetzt blendet jede Navigation die Startseite aus, und „Alle Aufträge →" auf der Startseite führt direkt ins Cockpit (statt in die alte Liste). Cockpit braucht einen Monday-Token im Browser — ist er in KALLE hinterlegt, lädt es sofort.'],
@@ -3065,11 +3067,19 @@ async function analyseEmail(){
 
   setAiStatus('loading','Analysiere E-Mail...');
 
-  if(apiKey){
-    await analyseWithClaude(text,apiKey);
-  } else {
+  try{
+    if(typeof serverVerfuegbar!=='undefined' && serverVerfuegbar && typeof analyseWithServer==='function'){
+      await analyseWithServer(text);
+    } else if(apiKey){
+      await analyseWithClaude(text,apiKey);
+    } else {
+      analyseWithRegex(text);
+      setAiStatus('done','✓ Kundendaten erkannt und eingefüllt — bitte kurz prüfen.');
+    }
+  }catch(e){
+    if(apiKey){ try{ await analyseWithClaude(text,apiKey); return; }catch(_){} }
     analyseWithRegex(text);
-    setAiStatus('done','✓ Kundendaten erkannt und eingefüllt — bitte kurz prüfen.');
+    setAiStatus('done','✓ Kundendaten erkannt (Basis) — bitte kurz prüfen.');
   }
 }
 
@@ -3190,7 +3200,7 @@ ${text}`;
     const resp=await fetch('https://api.anthropic.com/v1/messages',{
       method:'POST',
       headers:{'Content-Type':'application/json','x-api-key':apiKey,'anthropic-version':'2023-06-01','anthropic-dangerous-direct-browser-access':'true'},
-      body:JSON.stringify({model:'claude-sonnet-4-20250514',max_tokens:400,messages:[{role:'user',content:prompt}]})
+      body:JSON.stringify({model:'claude-haiku-4-5-20251001',max_tokens:400,messages:[{role:'user',content:prompt}]})
     });
     if(!resp.ok){const err=await resp.json();throw new Error(err.error?.message||resp.statusText);}
     const data=await resp.json();
@@ -3212,6 +3222,28 @@ ${text}`;
     setAiStatus('err','⚠ API Fehler: '+err.message+' — Versuche Basis-Erkennung...');
     analyseWithRegex(text);
   }
+}
+
+// E-Mail-Analyse über den EIGENEN Server: der Anthropic-Key liegt serverseitig
+// in der .env — im Browser wird KEIN Schlüssel gebraucht. Modell (Haiku 4.5)
+// wird serverseitig gesetzt. Route: POST {KALLE_SERVER}/analyse  { text }.
+async function analyseWithServer(text){
+  text = (typeof sanitizeMailText==='function') ? sanitizeMailText(text) : text;
+  const base = (typeof KALLE_SERVER!=='undefined' && KALLE_SERVER) ? KALLE_SERVER : '';
+  const resp = await fetch(base + '/analyse', {
+    method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ text })
+  });
+  let data={}; try{ data = await resp.json(); }catch(e){}
+  if(!resp.ok || !data || data.ok!==true){ throw new Error((data&&data.error)||('Server /analyse '+resp.status)); }
+  const json = data.fields || {};
+  if(json.adresse && !json.adresseStrasse){
+    const adrSplit = splitAdresse(json.adresse);
+    json.adresseStrasse = adrSplit.strasse; json.adressePLZ = adrSplit.plz; json.adresseOrt = adrSplit.ort; delete json.adresse;
+  }
+  fillFields(json);
+  setAiStatus('done','✓ Claude hat '+Object.values(json).filter(v=>v).length+' Felder erkannt und ausgefüllt.');
+  showExtracted(json);
+  return json;
 }
 
 function analyseWithRegex(text){
@@ -17133,13 +17165,14 @@ function toggleEmailAnalyse(){
                     <div class="chk">${svg('<path d="M5 12l5 5L20 7"/>',17)}</div>
                   </div>
                   <div class="keg-editlink" id="kegEdit">Angaben prüfen / bearbeiten</div>
+                  <span class="keg-editlink" id="kegReset" style="color:#565d6a;margin-left:14px;">↻ anderer Kunde / neu suchen</span>
                   <div style="margin-top:11px;">
                     <div style="font-size:10.5px;font-weight:700;color:#9aa1ad;text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center;"><span>Unterlagen</span><span class="keg-link" id="kegAddFile">+ Datei</span></div>
                     <div id="kegFiles" style="font-size:11.5px;color:#9aa1ad;">Noch keine Dateien</div>
                   </div>
                   <div class="keg-details" id="kegDet">
                     <div class="keg-g2" style="margin-top:4px;">
-                      <div class="keg-f lit"><label>Firma</label><input id="kegFirma"></div>
+                      <div class="keg-f lit" style="position:relative;"><label>Firma</label><input id="kegFirma" autocomplete="off"><div class="keg-dd keg-hide" id="kegFirmaDD"></div></div>
                       <div class="keg-f lit"><label>Ansprechperson</label><input id="kegPerson"></div>
                       <div class="keg-f lit" style="grid-column:span 2;"><label>Strasse / Nr.</label><input id="kegStr"></div>
                       <div class="keg-f lit"><label>PLZ</label><input id="kegPlz"></div>
@@ -17259,13 +17292,15 @@ function toggleEmailAnalyse(){
     G('kegSrv').onclick=()=>{ if(typeof window.KALLE_SERVER!=='undefined'){ const u=prompt('Server-Adresse:', window.KALLE_SERVER); if(u){ try{localStorage.setItem('kalle_server_url',u.trim());}catch(e){} location.reload(); } } };
     const su=G('kegSuche');
     su.addEventListener('input',renderDD); su.addEventListener('focus',renderDD);
-    document.addEventListener('click',e=>{ if(ov.contains(e.target)&&!e.target.closest('.keg-search')) G('kegDD').classList.add('keg-hide'); });
+    document.addEventListener('click',e=>{ if(ov.contains(e.target)&&!e.target.closest('.keg-search')) G('kegDD').classList.add('keg-hide'); if(ov.contains(e.target)&&!e.target.closest('#kegDet')){ const fd=G('kegFirmaDD'); if(fd) fd.classList.add('keg-hide'); } });
     const bt=G('kegBetreff');
     bt.addEventListener('input',()=>{ CUR.betreff=bt.value; refresh(); });
     const nt=G('kegNotiz');
     if(nt) nt.addEventListener('input',()=>{ CUR.notiz=nt.value; refresh(); });
     ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('input',syncManual); });
     ['kegFirma','kegMail'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('blur',kegRematch); });
+    { const ef=G('kegFirma'); if(ef){ ef.addEventListener('input',kegFirmaAC); ef.addEventListener('focus',kegFirmaAC); } }
+    { const rs=G('kegReset'); if(rs) rs.onclick=kegResetKunde; }
     // E-Mail-/Datei-Drop + Analyse
     const md=G('kegMailDrop');
     md.onclick=()=>pickMailFiles();
@@ -17320,10 +17355,11 @@ function toggleEmailAnalyse(){
     if(!text||text.trim().length<5) return;
     const apiKey=(document.getElementById('apiKey')&&document.getElementById('apiKey').value||localStorage.getItem('grafe_apikey')||'').trim();
     try{
-      if(apiKey&&typeof window.analyseWithClaude==='function'){ await window.analyseWithClaude(text,apiKey); }
+      if(typeof window.analyseWithServer==='function' && (typeof serverVerfuegbar==='undefined' || serverVerfuegbar===true)){ await window.analyseWithServer(text); }
+      else if(apiKey&&typeof window.analyseWithClaude==='function'){ await window.analyseWithClaude(text,apiKey); }
       else if(typeof window.analyseWithRegex==='function'){ window.analyseWithRegex(text); }
       else { return; }
-    }catch(e){ try{ if(typeof window.analyseWithRegex==='function') window.analyseWithRegex(text); }catch(_){} }
+    }catch(e){ try{ if(apiKey&&typeof window.analyseWithClaude==='function'){ await window.analyseWithClaude(text,apiKey); } else if(typeof window.analyseWithRegex==='function'){ window.analyseWithRegex(text); } }catch(_){} }
     // reale Felder → Overlay übernehmen
     const g=id=>document.getElementById(id);
     CUR.kunde={ name:(g('kundenname')&&g('kundenname').value)||'', kontakt:(g('kontaktperson')&&g('kontaktperson').value)||'',
@@ -17393,6 +17429,43 @@ function toggleEmailAnalyse(){
     G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide'); refresh();
   };
   window.__kegLoad=function(){ ladeDialog(); };
+  // ── Live-Autovervollständigung direkt im Firma-Feld (Detailbereich) ──
+  // Sucht beim Tippen im Kundenverzeichnis und schlägt Treffer vor — greift auch,
+  // wenn die E-Mail-Erkennung Schrott geliefert hat oder manuell erfasst wird.
+  let _fres=[];
+  function kegFirmaAC(){
+    const inp=G('kegFirma'), dd=G('kegFirmaDD'); if(!inp||!dd) return;
+    const q=(inp.value||'').trim();
+    if(q.length<2){ dd.classList.add('keg-hide'); dd.innerHTML=''; return; }
+    if(!stammGeladen()){ dd.classList.add('keg-hide'); dd.innerHTML=''; return; }
+    _fres=suche(q);
+    if(!_fres.length){ dd.classList.add('keg-hide'); dd.innerHTML=''; return; }
+    dd.innerHTML=_fres.map((k,i)=>'<div class="keg-di" onmousedown="event.preventDefault()" onclick="__kegFirmaPick('+i+')"><div><div class="nm">'+esc(k.name)+'</div><div class="meta">'+esc([k.kontakt,k.ort].filter(Boolean).join(' · ')||'—')+'</div></div><div class="nr">'+(k.nr?('SL '+esc(k.nr)):'')+'</div></div>').join('');
+    dd.classList.remove('keg-hide');
+  }
+  window.__kegFirmaPick=function(i){
+    const k=_fres[i]; if(!k) return;
+    const dd=G('kegFirmaDD'); if(dd){ dd.classList.add('keg-hide'); dd.innerHTML=''; }
+    CUR.kunde=Object.assign({}, k); CUR.existing=true;
+    G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
+    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    if(G('kegNr')) G('kegNr').value=k.nr||'';
+    G('kegPkName').textContent=k.name||'—';
+    G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'—';
+    document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.add('lit'));
+    const bd=G('kegDetected'); if(bd){ bd.textContent='Bestandskunde übernommen'+(k.nr?(' — SL-Nr '+k.nr):''); bd.style.display='inline-flex';
+      bd.style.background='#e6efe8'; bd.style.color='#2f7d54'; bd.style.borderColor='#bfe0c8'; }
+    refresh();
+  };
+  // ── Zurück zur sauberen Kundensuche (verwirft ein misslungenes Erkennungs-Ergebnis) ──
+  function kegResetKunde(){
+    CUR.kunde=null; CUR.existing=false;
+    const fd=G('kegFirmaDD'); if(fd){ fd.classList.add('keg-hide'); fd.innerHTML=''; }
+    G('kegPicked').classList.add('keg-hide'); G('kegPick').classList.remove('keg-hide');
+    const pb=G('kegPasteBox'); if(pb) pb.classList.add('keg-hide');
+    const su=G('kegSuche'); if(su){ su.value=''; setTimeout(()=>su.focus(),30); }
+    refresh();
+  }
   function manual(){
     CUR.kunde={name:'',kontakt:'',strasse:'',plz:'',ort:'',tel:'',email:'',nr:''};
     G('kegPkName').textContent='Neuer Kunde'; G('kegPkDt').textContent='Angaben unten erfassen';
