@@ -29,7 +29,8 @@ app.use('/projekte',     require('./routes/projekte'));
 app.use('/bearbeiter',   require('./routes/bearbeiter'));
 app.use('/kunden',       require('./routes/kunden'));
 app.use('/auswertungen', require('./routes/auswertungen'));
-app.use('/label',        require('./routes/label'));   // ← Kisten-/Montage-Laufzettel Live-Daten
+app.use('/label',        require('./routes/label'));     // ← Kisten-/Montage-Laufzettel Live-Daten
+app.use('/analyse',      require('./routes/analyse'));   // ← E-Mail-Analyse via Claude (Key in .env)
 
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
@@ -61,8 +62,9 @@ async function start() {
     console.log(`✓ KALLE App:   http://localhost:${PORT}/`);
     console.log(`✓ API Status:  http://localhost:${PORT}/status`);
     console.log(`✓ Label:       http://localhost:${PORT}/label?nr=260215`);
+    console.log(`✓ Analyse:     POST http://localhost:${PORT}/analyse  { text }`);
     console.log(`✓ Datenbank:   ${process.env.DB_HOST || 'localhost'}/${process.env.DB_NAME || 'kalle'}`);
-    console.log(`✓ Netzlaufwerk: ${process.env.OFFERTEN_PFAD || '(nicht konfiguriert)'}`);
+    console.log(`✓ Anthropic:   ${process.env.ANTHROPIC_API_KEY ? 'Key gesetzt ✓' : '✗ ANTHROPIC_API_KEY fehlt in .env'}`);
     console.log('═══════════════════════════════════════════════════');
   });
 }
