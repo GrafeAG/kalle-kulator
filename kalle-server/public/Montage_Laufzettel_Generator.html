@@ -2306,7 +2306,7 @@ var qrcode = function() {
   :root{
     --ink:#1a1a18; --muted:#6b7066; --line:#e5e7e1; --bg:#f4f5f1;
     --sage:#C8D2B6; --yellow:#FFEB26; --sage-deep:#9aa982;
-    --card:#ffffff; --accentText:#1a1a18;
+    --card:#ffffff;
     --font:"Segoe UI",system-ui,-apple-system,BlinkMacSystemFont,Roboto,Helvetica,Arial,sans-serif;
   }
   *{box-sizing:border-box}
@@ -2316,26 +2316,22 @@ var qrcode = function() {
   header.app .lg{width:112px;flex:0 0 auto;}
   header.app .lg svg{width:100%;height:auto;display:block;}
   header.app h1{font-size:21px;margin:0;letter-spacing:-.3px;}
-  header.app p{margin:3px 0 0;color:var(--muted);font-size:13.5px;max-width:640px;}
+  header.app p{margin:3px 0 0;color:var(--muted);font-size:13.5px;max-width:660px;}
   .panel{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:20px;margin-top:20px;box-shadow:0 1px 2px rgba(20,25,15,.04);}
   .panel h2{font-size:13px;text-transform:uppercase;letter-spacing:.6px;color:var(--muted);margin:0 0 14px;font-weight:700;}
-  label{display:block;font-size:13px;font-weight:600;margin:0 0 6px;color:var(--ink);}
+  label{display:block;font-size:13px;font-weight:600;margin:0 0 6px;}
   .hint{font-size:12.5px;color:var(--muted);font-weight:400;margin:0 0 6px;}
   code{background:#eef0ea;padding:1px 5px;border-radius:5px;font-size:12px;}
   textarea,input[type=text]{width:100%;border:1px solid var(--line);border-radius:10px;padding:11px 12px;font-size:14px;font-family:inherit;color:var(--ink);background:#fff;}
-  textarea{min-height:110px;resize:vertical;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;}
+  textarea{min-height:90px;resize:vertical;line-height:1.5;font-family:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;font-size:13px;}
   textarea:focus,input:focus{outline:2px solid #eef3e2;border-color:var(--sage-deep);}
-  .row{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
   .btns{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;}
   button{cursor:pointer;border:none;border-radius:10px;padding:11px 18px;font-size:14px;font-weight:700;font-family:inherit;}
-  .primary{background:var(--ink);color:#fff;}
-  .primary:hover{background:#000;}
-  .ghost{background:#ebeee7;color:var(--ink);}
-  .ghost:hover{background:#e0e4d9;}
+  .primary{background:var(--ink);color:#fff;} .primary:hover{background:#000;}
+  .ghost{background:#ebeee7;color:var(--ink);} .ghost:hover{background:#e0e4d9;}
   details.cfg{margin-top:12px;border:1px dashed var(--line);border-radius:12px;padding:2px 14px;background:#fbfcf9;}
   details.cfg summary{cursor:pointer;font-size:13px;font-weight:600;color:var(--muted);padding:10px 0;}
-  details.cfg .row{grid-template-columns:1fr;margin-top:8px}
-  details.cfg label{font-size:12px}
+  details.cfg .r{margin-top:8px}
   .count{font-size:13px;color:var(--muted);margin-top:10px}
   .toolbar-note{font-size:12.5px;color:var(--muted);margin-top:4px}
 
@@ -2343,51 +2339,58 @@ var qrcode = function() {
   #out{margin-top:24px;display:flex;flex-direction:column;gap:16px;align-items:flex-start;}
   .label{
     width:210mm;height:90mm;background:#fff;position:relative;overflow:hidden;
-    border:1px solid var(--line);border-radius:8px;
-    box-shadow:0 2px 10px rgba(20,25,15,.07);
-    padding:5mm 9mm;display:flex;flex-direction:column;
+    border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 10px rgba(20,25,15,.07);
+    padding:5mm 8mm;display:flex;flex-direction:column;
   }
-  /* CI diamond accent, top-left corner, subtle */
   .label .accent{position:absolute;top:0;left:0;width:34mm;height:34mm;transform:translate(-17mm,-17mm) rotate(45deg);background:var(--yellow);opacity:.18;}
   .label .accent2{position:absolute;top:0;left:0;width:22mm;height:22mm;transform:translate(-11mm,-11mm) rotate(45deg);background:var(--sage);opacity:.5;}
   .lbl-top{display:flex;justify-content:space-between;align-items:flex-start;z-index:2;}
-  .lbl-brand{display:flex;flex-direction:column;gap:1mm;}
-  .lbl-brand .lg{width:27mm}
+  .lbl-brand{display:flex;flex-direction:column;gap:.5mm;}
+  .lbl-brand .lg{width:26mm}
   .lbl-brand .lg svg{width:100%;height:auto;display:block}
-  .lbl-brand .tag{font-size:7.5pt;letter-spacing:.8px;color:var(--muted);text-transform:uppercase;padding-left:.5mm}
-  .lbl-kind{text-align:right;font-size:8.5pt;color:var(--muted);line-height:1.25;display:flex;flex-direction:column;align-items:flex-end}
-  .lbl-kind b{display:block;font-size:12pt;color:var(--ink);letter-spacing:-.2px}
-  .lbl-kind .bar{display:block;margin-top:2mm;height:2.6mm;width:26mm;background:linear-gradient(90deg,var(--yellow) 0 50%,var(--sage) 50% 100%);border-radius:2px}
+  .lbl-brand .tag{font-size:7pt;letter-spacing:.8px;color:var(--muted);text-transform:uppercase}
+  .lbl-kind{text-align:right;font-size:8pt;color:var(--muted);line-height:1.2;display:flex;flex-direction:column;align-items:flex-end}
+  .lbl-kind b{display:block;font-size:11.5pt;color:var(--ink);letter-spacing:-.2px}
+  .lbl-kind .bar{display:block;margin-top:1.5mm;height:2.4mm;width:24mm;background:linear-gradient(90deg,var(--yellow) 0 50%,var(--sage) 50% 100%);border-radius:2px}
 
-  .lbl-body{display:flex;gap:8mm;flex:1;align-items:center;z-index:2;margin-top:1mm}
-  .lbl-facts{flex:1;min-width:0}
-  .lbl-facts .pnrlab{font-size:8.5pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
-  .lbl-facts .pnr{font-size:30pt;font-weight:800;letter-spacing:-.5px;line-height:1;margin:1mm 0 3mm;color:var(--ink);word-break:break-word}
-  .lbl-facts .meta{font-size:11pt;line-height:1.45;margin:0}
-  .lbl-facts .meta span{color:var(--muted);display:inline-block;min-width:20mm}
-  .lbl-qr{flex:0 0 auto;text-align:center}
-  .lbl-qr .qr{width:45mm;height:45mm;padding:1.5mm;border:1px solid var(--line);border-radius:5px;background:#fff}
+  .lbl-body{display:flex;gap:7mm;flex:1;z-index:2;margin-top:8mm}
+  .lbl-main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .pnrrow{display:flex;align-items:flex-start;gap:6mm}
+  .pnrrow .pnrlab{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .pnrrow .pnr{font-size:27pt;font-weight:800;letter-spacing:-.5px;line-height:.95}
+  .fld.mont{border-bottom:2pt solid var(--ink);padding-bottom:1mm;margin-bottom:.6mm}
+  .fld.mont .k{align-self:center}
+  .fld.mont .v{font-size:14pt;font-weight:800;line-height:1.15}
+  .fld.mont.empty{border-bottom-style:dashed;border-color:var(--line)}
+  .fld.mont.empty .v{color:var(--muted);font-size:11pt;font-weight:400}
+
+  .grid{margin-top:5mm;display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;row-gap:1mm}
+  .fld{font-size:10pt;line-height:1.3;display:flex;gap:1.5mm;min-width:0}
+  .fld .k{color:var(--muted);white-space:nowrap}
+  .fld .v{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .fld.wide{grid-column:1 / -1}
+  .fld .v.mut{font-weight:400;color:var(--muted)}
+  .fld.adr .v{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+
+  .lbl-qr{flex:0 0 auto;text-align:center;display:flex;flex-direction:column;align-items:center}
+  .lbl-qr .qr{width:43mm;height:43mm;padding:1.5mm;border:1px solid var(--line);border-radius:5px;background:#fff}
   .lbl-qr .qr svg{width:100%;height:100%;display:block}
-  .lbl-qr .cap{font-size:8.5pt;font-weight:700;margin-top:1.5mm;color:var(--ink)}
-  .lbl-qr .cap small{display:block;font-weight:400;color:var(--muted);font-size:7.5pt;margin-top:.5mm}
+  .lbl-qr .cap{font-size:8pt;font-weight:700;margin-top:1mm}
+  .lbl-qr .cap small{display:block;font-weight:400;color:var(--muted);font-size:7pt}
+  .lbl-qr .erstellt{font-size:7pt;color:var(--muted);margin-top:1mm}
 
-  .lbl-foot{z-index:2;border-top:1px solid var(--line);padding-top:2mm;margin-top:2mm;font-size:8.5pt;color:var(--muted);display:flex;align-items:center;gap:2mm}
-  .lbl-foot b{color:var(--ink)}
-  .lbl-foot .dot{color:var(--sage-deep)}
+  .lbl-foot{z-index:2;border-top:1px solid var(--line);padding-top:1.5mm;margin-top:1.5mm;font-size:8pt;color:var(--muted);display:flex;align-items:center;gap:2mm;white-space:nowrap;overflow:hidden}
+  .lbl-foot b{color:var(--ink)} .lbl-foot .dot{color:var(--sage-deep)}
+  .warn{color:#b6791f;font-weight:600}
 
   .empty{color:var(--muted);text-align:center;padding:36px;border:1px dashed var(--line);border-radius:14px;margin-top:24px;}
-
   @media screen and (max-width:1000px){ .label{transform:scale(.82);transform-origin:top left;margin-bottom:-16mm} }
-
   @media print{
     body{background:#fff}
     .wrap>header.app,.wrap>.panel,.count{display:none !important}
     .wrap{max-width:none;padding:0;margin:0}
     #out{gap:0;margin:0;display:block}
-    .label{
-      transform:none;margin:0 auto;border:1px dashed #bcbcbc;border-radius:0;box-shadow:none;
-      break-inside:avoid;page-break-inside:avoid;
-    }
+    .label{transform:none;margin:0 auto;border:1px dashed #bcbcbc;border-radius:0;box-shadow:none;break-inside:avoid;page-break-inside:avoid;}
     .label:nth-child(3n){page-break-after:always;}
     .label:last-child{page-break-after:auto;}
   }
@@ -2423,38 +2426,28 @@ viewBox="163 118 190 114"
 </svg></div>
     <div>
       <h1>Montage-Laufzettel Generator</h1>
-      <p>Für die Produktionsleitung: Projektnummer(n) aus Monday eingeben → Kisten-Label (210 × 90 mm) im Grafe-CI mit QR-Code. Der Monteur scannt vor Ort und meldet die Montage zurück – landet automatisch in Monday.</p>
+      <p>Für die Produktionsleitung: Projektnummer(n) eingeben → Kisten-Label (210 × 90 mm). Die Angaben (Projektleiter, Monteure, Montage-/Versanddatum) werden <b>live aus Monday</b> geholt; das Erzeugungsdatum wird automatisch gesetzt. Der Monteur scannt den QR und meldet zurück.</p>
     </div>
   </header>
 
   <div class="panel">
     <h2>Projekte</h2>
-    <label>Einzelnes Projekt</label>
-    <div class="row">
-      <input type="text" id="s_pnr" placeholder="Projektnummer, z. B. 2026-0142">
-      <input type="text" id="s_name" placeholder="Projekt / Kunde (optional)">
-    </div>
-    <div class="row" style="margin-top:12px">
-      <input type="text" id="s_ort" placeholder="Ort / Adresse (optional)">
-      <input type="text" id="s_datum" placeholder="Montagedatum (optional)">
-    </div>
-
-    <label style="margin-top:20px">Mehrere Projekte (eine Zeile pro Projekt)</label>
-    <p class="hint">Format: <code>Projektnummer ; Projekt/Kunde ; Ort ; Datum</code> — nur die Projektnummer ist Pflicht. Aus Monday einfach die Spalten kopieren.</p>
-    <textarea id="batch" placeholder="2026-0142 ; Beschriftung Filiale Bern ; Bahnhofstr. 4, Bern ; 05.08.2026
-2026-0143 ; Fahrzeugbeschriftung Müller AG ; Werkhof Thun ; 06.08.2026
-2026-0150"></textarea>
+    <label for="s_pnr">Projektnummer(n) — eine pro Zeile</label>
+    <p class="hint">Nur die Projektnummer eingeben, z. B. <code>260215</code>. Aus Monday einfach die Spalte „Projektnummer" kopieren.</p>
+    <textarea id="s_pnr" placeholder="260215
+265860
+262788"></textarea>
 
     <details class="cfg">
-      <summary>⚙︎ Einstellungen (Formular-Link) – normalerweise nichts ändern</summary>
-      <div class="row">
-        <div><label>Formular-Basis-URL</label>
-          <input type="text" id="cfg_base" value="https://forms.cloud.microsoft/Pages/ResponsePage.aspx"></div>
-        <div><label>Formular-ID</label>
-          <input type="text" id="cfg_id" value="O_5VYmDFBEaxq2LtAYTKlNrzEcL-9RVFqMYmRjYt6b9UNk1LN1pWSUI2T0hUOUpWSUtXVkxUV1NIVy4u"></div>
-        <div><label>Parameter „Projektnummer"</label>
-          <input type="text" id="cfg_param" value="r2e24dd9128974457a618e2d07ff0072b"></div>
-      </div>
+      <summary>⚙︎ Einstellungen – normalerweise nichts ändern</summary>
+      <div class="r"><label>Live-Daten-Endpunkt (kalle-server)</label>
+        <input type="text" id="cfg_endpoint" value="/label"></div>
+      <div class="r"><label>Formular-Basis-URL (QR-Ziel)</label>
+        <input type="text" id="cfg_base" value="https://forms.cloud.microsoft/Pages/ResponsePage.aspx"></div>
+      <div class="r"><label>Formular-ID</label>
+        <input type="text" id="cfg_id" value="O_5VYmDFBEaxq2LtAYTKlNrzEcL-9RVFqMYmRjYt6b9UNk1LN1pWSUI2T0hUOUpWSUtXVkxUV1NIVy4u"></div>
+      <div class="r"><label>Parameter „Projektnummer"</label>
+        <input type="text" id="cfg_param" value="r2e24dd9128974457a618e2d07ff0072b"></div>
     </details>
 
     <div class="btns">
@@ -2470,7 +2463,6 @@ viewBox="163 118 190 114"
   <div class="empty" id="empty">Noch keine Labels – oben Projektnummer(n) eingeben und „Labels erzeugen" klicken.</div>
 </div>
 
-<!-- reusable logo markup for labels -->
 <template id="logoTpl"><svg xmlns="http://www.w3.org/2000/svg" xml:space="preserve" version="1.1" style="shape-rendering:geometricPrecision; text-rendering:geometricPrecision; image-rendering:optimizeQuality; fill-rule:evenodd; clip-rule:evenodd"
 viewBox="163 118 190 114"
  xmlns:xlink="http://www.w3.org/1999/xlink"
@@ -2499,41 +2491,40 @@ viewBox="163 118 190 114"
 <script>
 function cfg(){
   return {
+    endpoint: document.getElementById('cfg_endpoint').value.trim() || '/label',
     base: document.getElementById('cfg_base').value.trim(),
     id:   document.getElementById('cfg_id').value.trim(),
-    param:document.getElementById('cfg_param').value.trim()
+    param:document.getElementById('cfg_param').value.trim(),
   };
 }
-function buildUrl(pnr){
-  const c = cfg();
-  return c.base + '?id=' + c.id + '&' + c.param + '=' + encodeURIComponent(pnr);
-}
-function esc(s){return (s||'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
+function qrUrl(pnr){ const c=cfg(); return c.base+'?id='+c.id+'&'+c.param+'='+encodeURIComponent(pnr); }
+function esc(s){return (s==null?'':String(s)).replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));}
 function logoSVG(){return document.getElementById('logoTpl').innerHTML;}
+function heute(){ try{return new Date().toLocaleDateString('de-CH');}catch(e){return '';} }
 
-function collectProjects(){
-  const list = [];
-  const sp = document.getElementById('s_pnr').value.trim();
-  if(sp){
-    list.push({pnr:sp,
-      name:document.getElementById('s_name').value.trim(),
-      ort:document.getElementById('s_ort').value.trim(),
-      datum:document.getElementById('s_datum').value.trim()});
-  }
-  document.getElementById('batch').value.split('\n').forEach(line=>{
-    const raw=line.trim(); if(!raw) return;
-    const p=raw.split(/[;|\t]/).map(x=>x.trim());
-    if(p[0]) list.push({pnr:p[0],name:p[1]||'',ort:p[2]||'',datum:p[3]||''});
-  });
-  return list;
+function pnrList(){
+  return document.getElementById('s_pnr').value.split('\n').map(x=>x.trim()).filter(Boolean);
 }
 
-function labelHTML(p, idx){
-  const meta=[
-    p.name  ? `<p class="meta"><span>Projekt</span>${esc(p.name)}</p>`  : '',
-    p.ort   ? `<p class="meta"><span>Ort</span>${esc(p.ort)}</p>`       : '',
-    p.datum ? `<p class="meta"><span>Datum</span>${esc(p.datum)}</p>`   : ''
-  ].join('');
+async function fetchLabelData(pnr){
+  try{
+    const r = await fetch(cfg().endpoint + '?nr=' + encodeURIComponent(pnr), {headers:{'Accept':'application/json'}});
+    const j = await r.json();
+    return j && j.ok ? j : {ok:false, projektnr:pnr, error:(j&&j.error)||'nicht gefunden'};
+  }catch(e){
+    return {ok:false, projektnr:pnr, error:'Live-Daten nicht erreichbar'};
+  }
+}
+
+function fld(k,v,opts){
+  opts=opts||{};
+  const cls='fld'+(opts.wide?' wide':'')+(opts.adr?' adr':'');
+  const vcls='v'+(opts.mut?' mut':'');
+  return `<div class="${cls}"><span class="k">${esc(k)}</span><span class="${vcls}">${esc(v||'—')}</span></div>`;
+}
+
+function labelHTML(d, idx){
+  const montage = `<div class="fld mont wide"><span class="k">Montage</span><span class="v">${esc(d.montagedatum||'—')}</span></div>`;
   return `
   <div class="label">
     <div class="accent"></div><div class="accent2"></div>
@@ -2545,61 +2536,64 @@ function labelHTML(p, idx){
       <div class="lbl-kind"><b>Montage-Laufzettel</b>Rückmeldung Montage<span class="bar"></span></div>
     </div>
     <div class="lbl-body">
-      <div class="lbl-facts">
-        <div class="pnrlab">Projektnummer</div>
-        <div class="pnr">${esc(p.pnr)}</div>
-        ${meta}
+      <div class="lbl-main">
+        <div class="pnrrow">
+          <div><div class="pnrlab">Projektnummer</div><div class="pnr">${esc(d.projektnr)}</div></div>
+        </div>
+        <div class="grid">
+          ${montage}
+          ${fld('Adresse', d.montageadresse, {wide:true, adr:true})}
+          ${fld('Projekt', d.name, {wide:true})}
+          ${fld('Kunde', d.kunde, {wide:true})}
+          ${fld('Projektleiter', d.projektleiter)}
+          ${fld('Versand', d.versanddatum, {mut:true})}
+          ${fld('Monteure', d.monteure, {wide:true})}
+        </div>
       </div>
       <div class="lbl-qr">
         <div class="qr" id="qr_${idx}"></div>
         <div class="cap">Scannen zum Melden<small>Projektnr. schon ausgefüllt</small></div>
+        <div class="erstellt">Erstellt: ${esc(heute())}</div>
       </div>
-    </div>
-    <div class="lbl-foot">
-      <b>Monteur:</b> QR scannen <span class="dot">›</span> mit M365 anmelden <span class="dot">›</span> Kategorie &amp; Foto <span class="dot">›</span> Absenden <span class="dot">›</span> automatisch in Monday
     </div>
   </div>`;
 }
 
 function renderQR(el, text){
   el.innerHTML='';
-  try{
-    const qr=qrcode(0,'M'); qr.addData(text); qr.make();
-    el.innerHTML=qr.createSvgTag({cellSize:6,margin:1,scalable:true});
-  }catch(e){
-    el.innerHTML='<div style="display:grid;place-items:center;height:100%;color:#c00;font-size:9pt">QR-Fehler</div>';
-  }
+  try{ const qr=qrcode(0,'M'); qr.addData(text); qr.make(); el.innerHTML=qr.createSvgTag({cellSize:6,margin:1,scalable:true}); }
+  catch(e){ el.innerHTML='<div style="display:grid;place-items:center;height:100%;color:#c00;font-size:9pt">QR-Fehler</div>'; }
 }
 
-function generate(){
-  const projects=collectProjects();
+async function generate(){
+  const list=pnrList();
   const out=document.getElementById('out'), empty=document.getElementById('empty'), count=document.getElementById('count');
   out.innerHTML='';
-  if(!projects.length){empty.style.display='block';count.textContent='';return;}
+  if(!list.length){ empty.style.display='block'; count.textContent=''; return; }
   empty.style.display='none';
-  out.innerHTML=projects.map((p,i)=>labelHTML(p,i)).join('');
-  projects.forEach((p,i)=>renderQR(document.getElementById('qr_'+i), buildUrl(p.pnr)));
-  count.textContent=projects.length+' Label(s) erzeugt · „Drucken / als PDF" ergibt 3 pro A4-Seite (gestrichelte Schnittlinie).';
+  count.textContent='Lade Live-Daten …';
+  const results = await Promise.all(list.map(fetchLabelData));
+  out.innerHTML = results.map((d,i)=>labelHTML(d,i)).join('');
+  results.forEach((d,i)=>renderQR(document.getElementById('qr_'+i), qrUrl(d.projektnr)));
+  const okN = results.filter(r=>r.ok).length;
+  count.textContent = `${results.length} Label(s) erzeugt (${okN} mit Live-Daten) · „Drucken / als PDF" ergibt 3 pro A4-Seite.`;
   out.scrollIntoView({behavior:'smooth',block:'start'});
 }
 
 function clearAll(){
-  ['s_pnr','s_name','s_ort','s_datum','batch'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('s_pnr').value='';
   document.getElementById('out').innerHTML='';
   document.getElementById('empty').style.display='block';
   document.getElementById('count').textContent='';
 }
 
-// ----- Auto-fill via URL parameters (for one-click link from Monday) -----
+// Auto: ?pnr=260215 (Ein-Klick-Link aus Monday)
 (function initFromUrl(){
   const q=new URLSearchParams(location.search);
   const pnr=q.get('pnr')||q.get('projektnummer');
   if(!pnr) return;
   document.getElementById('s_pnr').value=pnr;
-  if(q.get('name')) document.getElementById('s_name').value=q.get('name');
-  if(q.get('ort'))  document.getElementById('s_ort').value=q.get('ort');
-  if(q.get('datum'))document.getElementById('s_datum').value=q.get('datum');
-  setTimeout(generate,60);
+  setTimeout(generate, 50);
 })();
 </script>
 </body>
