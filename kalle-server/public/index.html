@@ -16709,7 +16709,8 @@ const MONDAY_PROD = {
   board:'1012481465',
   group:'group_mm5hq91f',            // Gruppe „Projekt und Offertanfragen"
   statusCol:'status', statusAnfrage:'Anfragen unbearbeitet',
-  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f' },
+  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w' },
+  labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
   subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e' }
 };
@@ -16746,6 +16747,8 @@ async function mondayProdAnfrage(data, token){
   if(kunde) cv[MONDAY_PROD.col.kunde]=kunde;
   if(data.datenpfad) cv[MONDAY_PROD.col.datenpfad]=String(data.datenpfad);
   if(data.email) cv[MONDAY_PROD.col.email]={email:String(data.email), text:String(data.email)};
+  // Kisten-Label-Link (öffnet den Laufzettel-Generator im Kalle-Intranet mit vorausgefüllter Projektnummer)
+  if(nr) cv[MONDAY_PROD.col.label]={ url: MONDAY_PROD.labelBase+'?pnr='+encodeURIComponent(nr), text:'Label drucken' };
   const cr=await _mondayFetch({query:`mutation($nm:String!,$cv:JSON!){ create_item(board_id:${MONDAY_PROD.board}, group_id:"${MONDAY_PROD.group}", item_name:$nm, column_values:$cv){ id } }`, variables:{nm:name, cv:JSON.stringify(cv)}}, token);
   const itemId=cr&&cr.create_item&&cr.create_item.id;
   if(!itemId) throw new Error('Item nicht angelegt');
