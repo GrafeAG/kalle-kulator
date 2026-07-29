@@ -13,13 +13,20 @@ const ANTHROPIC_API = 'https://api.anthropic.com/v1/messages';
 const MODEL = process.env.ANTHROPIC_MODEL || 'claude-haiku-4-5-20251001';
 
 function buildPrompt(text){
-  return `Du analysierst einen E-Mail-Text und extrahierst Kundendaten für ein Schweizer Werbetechnik-Unternehmen.
+  return `Du analysierst eine eingehende Kunden-E-Mail und extrahierst die Daten des ABSENDERS (= Kunde) für unser Schweizer Werbetechnik-Unternehmen „Grafe AG".
 
-Extrahiere folgende Felder (wenn vorhanden):
-- kundenname: Firmenname oder vollständiger Name des Absenders
-- kontaktperson: Vorname + Nachname der Kontaktperson
-- telefon: Telefonnummer (mit Vorwahl, z.B. +41 61 123 45 67)
-- email: E-Mail-Adresse des Absenders
+WICHTIGE REGELN (unbedingt beachten):
+- „Grafe", „Grafe AG", „grafe.ch" sind UNSER EIGENES Unternehmen (der Empfänger) — NIEMALS der Kunde. Kommt „Grafe" im Text vor, ignoriere es als Kundennamen.
+- Der KUNDE ist der ABSENDER (Von/From). Erkenne ihn an der Absender-E-Mail (die Domain, die NICHT grafe.ch ist) und an der Signatur am Ende der Nachricht (Firmenname, Adresse, Telefon).
+- kundenname = Firma/Organisation des Absenders aus Signatur bzw. E-Mail-Domain (z. B. @bhm.ch → „Bernisches Historisches Museum"). Eine im Fliesstext beiläufig genannte Firma ist NICHT der Kunde.
+- kontaktperson = NUR Vor- und Nachname der Absender-Person — niemals ein ganzer Satz.
+- Adresse/Telefon = aus der Absender-Signatur (nicht unsere Adresse).
+
+Extrahiere folgende Felder (leer lassen, wenn nicht vorhanden):
+- kundenname: Firma/Organisation des Absenders (oder vollständiger Name bei Privatperson)
+- kontaktperson: Vorname + Nachname der Absender-Person (nur der Name!)
+- telefon: Telefonnummer des Absenders (mit Vorwahl, z.B. +41 61 123 45 67)
+- email: E-Mail-Adresse des Absenders (die Nicht-grafe.ch-Adresse)
 - adresseStrasse: Strasse + Hausnummer (z.B. "Hauptstrasse 12")
 - adressePLZ: Postleitzahl (4-stellig, z.B. "4127")
 - adresseOrt: Ortsname (z.B. "Birsfelden")
