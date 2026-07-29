@@ -2558,9 +2558,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V6.5';
+const UI_VERSION='V6.6';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V6.6','Kalkulator: Klare Rückmeldung bei der Offerte-Ablage — „✓ Offerte als PDF erstellt und im Projekt abgelegt (02 Offertphase)". Und ehrliche Meldung, wenn NICHT abgelegt werden konnte (kein Projektordner / Server offline / Fehler) statt stiller Ablage.'],
   ['V6.5','Anfrage-Erfassung: Der Datenablage-Pfad ist jetzt manuell überschreibbar (Schritt „Ablageort"). Bei einem bereits bestehenden Ordner oder abweichendem Kundennamen einfach den Pfad anpassen — dann wird genau dieser verwendet (kein neuer Ordner). „↺ Auto" stellt den Vorschlag wieder her.'],
   ['V6.4','Monday-Item-Titel = exakt der Projekttitel aus REACTOR — der Ort/die Adresse kommt NICHT mehr in den Titel. Die E-Mail-Analyse liefert den Betreff jetzt ohne Ort/PLZ/Adresse, und eine erkannte „PLZ Ort"-Angabe wird zusätzlich aus dem Titel entfernt.'],
   ['V6.3','Monday-Anfrage: (1) Item-Name ist jetzt nur „Projektnummer + Beschrieb" — ohne Kunde (steht ja in der Kunde-Spalte) und ohne Trenn-Sonderzeichen (· — :). (2) Am Subelement „Anfrage eingegangen" wird automatisch der Ersteller als Bearbeiter eingetragen (über den persönlichen Monday-Token erkannt).'],
@@ -14344,10 +14345,7 @@ function saveAuftrag(){
       // Offerte automatisch im Projektordner ablegen (falls gesetzt)
       if(_projektPfad && typeof ablegenOfferte === 'function'){
         const html = typeof buildOfferteHtml==='function' ? await buildOfferteHtml() : null;
-        if(html){
-          const ok2 = await ablegenOfferte(html, anr);
-          if(ok2) showToast('✓ Offerte in 02 Offertphase abgelegt','',3000);
-        }
+        if(html){ await ablegenOfferte(html, anr); } // Feedback erfolgt in ablegenOfferte
       }
       // Liste neu laden (frischer Status), dann: erstellte Offerte ist nicht mehr
       // „unbearbeitet" → aus dem Entwurf-Status auf „Offerte raus" heben.
@@ -14883,7 +14881,9 @@ function buildOfferteHtml(){
 
 // Offerte im Projektordner ablegen (HTML → Server → 02 Offertphase)
 async function ablegenOfferte(htmlContent, auftragsnr){
-  if(!serverVerfuegbar || !_projektPfad) return false;
+  // Klares User-Feedback in ALLEN Fällen (auch wenn nicht abgelegt werden kann)
+  if(!serverVerfuegbar){ try{ showToast('Offerte als PDF erstellt · Server offline — nicht im Projekt abgelegt','warn',5000); }catch(e){} return false; }
+  if(!_projektPfad){ try{ showToast('Offerte als PDF erstellt · noch kein Projektordner — nicht abgelegt','warn',5500); }catch(e){} return false; }
   try{
     const resp = await fetch(KALLE_SERVER+'/projekte/ablegen',{
       method:'POST',
@@ -14898,12 +14898,15 @@ async function ablegenOfferte(htmlContent, auftragsnr){
     const data = await resp.json();
     if(data.ok){
       console.log('[KALLE] Offerte abgelegt:', data.datei);
+      try{ showToast('✓ Offerte als PDF erstellt und im Projekt abgelegt (02 Offertphase)','',5000); }catch(e){}
       return true;
     }
     console.warn('[KALLE] Ablegen fehlgeschlagen:', data.error);
+    try{ showToast('⚠ Offerte-Ablage fehlgeschlagen: '+((data&&(data.error||data.hinweis))||'unbekannt'),'error',6000); }catch(e){}
     return false;
   }catch(e){
     console.warn('[KALLE] Ablegen Fehler:', e.message);
+    try{ showToast('⚠ Offerte-Ablage: Server nicht erreichbar','error',5000); }catch(e2){}
     return false;
   }
 }
@@ -15117,13 +15120,8 @@ function printDocOffer(){
       window.open = origOpen;
 
       // HTML beim Server ablegen
-      if(capturedHtml && _projektPfad){
-        const ok = await ablegenOfferte(capturedHtml, $('auftragsnr')?.value);
-        if(ok){
-          showToast('✓ Offerte PDF geöffnet · In 02 Offertphase abgelegt', '', 4000);
-        } else {
-          showToast('PDF geöffnet · Ablegen fehlgeschlagen ⚠', 'error');
-        }
+      if(capturedHtml){
+        await ablegenOfferte(capturedHtml, $('auftragsnr')?.value); // gibt selbst klares Feedback (erstellt & abgelegt / warum nicht)
       }
     },
     // onSkip: Nur PDF
