@@ -2558,9 +2558,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V6.2';
+const UI_VERSION='V6.4';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V6.4','Monday-Item-Titel = exakt der Projekttitel aus REACTOR — der Ort/die Adresse kommt NICHT mehr in den Titel. Die E-Mail-Analyse liefert den Betreff jetzt ohne Ort/PLZ/Adresse, und eine erkannte „PLZ Ort"-Angabe wird zusätzlich aus dem Titel entfernt.'],
+  ['V6.3','Monday-Anfrage: (1) Item-Name ist jetzt nur „Projektnummer + Beschrieb" — ohne Kunde (steht ja in der Kunde-Spalte) und ohne Trenn-Sonderzeichen (· — :). (2) Am Subelement „Anfrage eingegangen" wird automatisch der Ersteller als Bearbeiter eingetragen (über den persönlichen Monday-Token erkannt).'],
   ['V6.2','Cockpit: Jedes Projekt hat jetzt im Detail-Fenster den Button „→ In KALLE kalkulieren" — ein Klick lädt den Auftrag direkt in den Rechner (vorher gab es aus dem Cockpit keinen Weg in die Kalkulation).'],
   ['V6.1','Fixes: (1) Gespeicherte Montage-Position liess sich nicht mehr bearbeiten — behoben (Bearbeiten öffnet jetzt das Montage-Formular mit allen Werten). (2) Montage-Summe wurde beim Bearbeiten in der Live-Ansicht doppelt gezählt — korrigiert. (3) Monday-Kommentar zur Anfrage ist jetzt die KI-Kurzfassung „worum geht’s" statt Roh-E-Mail. (4) Projektbezeichnung/Ordnername ohne „:" und „-" (Windows-tauglich). (5) Montageort-Adresssuche robuster (auch Strassenadressen mit Hausnummer).'],
   ['V6.0','Neuer Look: Landing-Startseite als Marke „REACTOR" (Grafe-Rauten als Icon + Wortmarke). Die Headline-/Bold-Schrift der ganzen App ist neu „Sora" statt „Syne" (eingebettet in 3 Gewichten — lädt immer, auch offline). Der Rechner/Kalkulationsteil bleibt inhaltlich KALLE-KULATOR wie gewohnt.'],
@@ -3199,7 +3201,7 @@ Extrahiere folgende Felder (wenn vorhanden):
 - adresseStrasse: Strasse + Hausnummer (z.B. "Hauptstrasse 12" oder "Rheinfelderstrasse 12")
 - adressePLZ: Postleitzahl (4-stellig, z.B. "4127")
 - adresseOrt: Ortsname (z.B. "Birsfelden")
-- betreff: Kurze Zusammenfassung worum es geht (max 80 Zeichen, KEINE Zeichen : oder -)
+- betreff: Kurzer Projekttitel / Betreff der Anfrage (max 80 Zeichen, KEINE Zeichen : oder -). NUR Thema/Was — OHNE Ort, Adresse, PLZ und OHNE Kundenname (Adresse & Kunde werden separat erfasst).
 - zusammenfassung: 1–2 ganze Sätze, worum es in der Anfrage konkret geht — so dass man die E-Mail NICHT lesen muss (Monday-Kommentar)
 
 Wichtig: Trenne die Adresse immer in Strasse, PLZ und Ort auf — auch wenn sie in einer Zeile steht.
@@ -16786,7 +16788,7 @@ const MONDAY_PROD = {
   col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w' },
   labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
-  subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e' }
+  subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e', bearbeiter:'person' }
 };
 window.MONDAY_PROD = MONDAY_PROD;
 
@@ -16816,7 +16818,8 @@ async function mondayProdAnfrage(data, token){
     const found=ex&&ex.items_page_by_column_values&&ex.items_page_by_column_values.items[0];
     if(found){ return {itemId:found.id, subId:'', existing:true}; }
   }catch(e){}
-  const name=(nr+(kunde?(' · '+kunde):'')+(betreff?(' — '+betreff):'')).slice(0,255) || ('Anfrage '+nr);
+  // Item-Name: nur Projektnummer + Beschrieb — KEIN Kunde (steht in der Kunde-Spalte), keine Trenn-Sonderzeichen (· — :)
+  const name=((nr+' '+betreff).replace(/\s{2,}/g,' ').trim()).slice(0,255) || ('Anfrage '+nr);
   const cv={}; cv[MONDAY_PROD.col.projektnr]=nr;
   if(kunde) cv[MONDAY_PROD.col.kunde]=kunde;
   if(data.datenpfad) cv[MONDAY_PROD.col.datenpfad]=String(data.datenpfad);
@@ -16831,9 +16834,12 @@ async function mondayProdAnfrage(data, token){
   catch(e){ console.warn('[Monday] Status „'+MONDAY_PROD.statusAnfrage+'" evtl. nicht angelegt:', e.message); }
   // Subelement „Anfrage eingegangen" (Datum heute + evtl. Offertsumme)
   let subId='';
+  // Ersteller über den persönlichen Token ermitteln (me.id) und als Bearbeiter am Subelement setzen
+  let meId=''; try{ const meR=await _mondayFetch({query:`query{ me { id } }`}, token); meId=meR&&meR.me&&meR.me.id; }catch(e){}
   try{
     const scv={}; scv[MONDAY_PROD.subCol.datum]={date:new Date().toISOString().slice(0,10)};
     if(data.offertsumme) scv[MONDAY_PROD.subCol.offertsumme]=String(data.offertsumme);
+    if(meId && MONDAY_PROD.subCol.bearbeiter) scv[MONDAY_PROD.subCol.bearbeiter]={ personsAndTeams:[{id:Number(meId), kind:'person'}] };
     const sr=await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Anfrage eingegangen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
     subId=sr&&sr.create_subitem&&sr.create_subitem.id;
   }catch(e){ console.warn('[Monday] Subelement „Anfrage eingegangen":', e.message); }
@@ -17411,7 +17417,7 @@ function toggleEmailAnalyse(){
       ort:(g('adresseOrt')&&g('adresseOrt').value)||'', tel:(g('telefon')&&g('telefon').value)||'',
       email:(g('email')&&g('email').value)||'', nr:'' };
     const bem=(g('bemerkung')&&g('bemerkung').value)||'';
-    if(bem){ const bz=sauberBez(bem); CUR.betreff=bz; G('kegBetreff').value=bz; }
+    if(bem){ const bz=titelClean(bem); CUR.betreff=bz; G('kegBetreff').value=bz; }
     CUR.emailText=text; // für Monday-Kurzbeschrieb
     try{ CUR.summary=(window._kalleSummary||'').trim(); }catch(e){ CUR.summary=''; }
     // DB-Abgleich: passenden Bestandskunden vorauswählen
@@ -17636,6 +17642,10 @@ function toggleEmailAnalyse(){
       .replace(/[\\/:*?"<>|]+/g,' ')      // Windows-verbotene Zeichen
       .replace(/\s*[-–—]+\s*/g,' ')        // Bindestriche/Gedankenstriche → Leerzeichen
       .replace(/\s{2,}/g,' ').trim();
+  }
+  // Projekttitel zusätzlich von einer erkannten „PLZ Ort"-Angabe befreien — die Adresse gehört nicht in den Titel
+  function titelClean(s){
+    return sauberBez(String(s||'').replace(/,\s*\b\d{4}\b\s+[A-ZÄÖÜ][\wäöüÄÖÜß.\-]+(?:\s+[A-ZÄÖÜ][\wäöüÄÖÜß.\-]+)?/g,' '));
   }
   function kegKurzbeschrieb(){
     var manual=(CUR.notiz||'').trim();
