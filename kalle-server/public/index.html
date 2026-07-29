@@ -2558,9 +2558,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V6.4';
+const UI_VERSION='V6.5';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V6.5','Anfrage-Erfassung: Der Datenablage-Pfad ist jetzt manuell überschreibbar (Schritt „Ablageort"). Bei einem bereits bestehenden Ordner oder abweichendem Kundennamen einfach den Pfad anpassen — dann wird genau dieser verwendet (kein neuer Ordner). „↺ Auto" stellt den Vorschlag wieder her.'],
   ['V6.4','Monday-Item-Titel = exakt der Projekttitel aus REACTOR — der Ort/die Adresse kommt NICHT mehr in den Titel. Die E-Mail-Analyse liefert den Betreff jetzt ohne Ort/PLZ/Adresse, und eine erkannte „PLZ Ort"-Angabe wird zusätzlich aus dem Titel entfernt.'],
   ['V6.3','Monday-Anfrage: (1) Item-Name ist jetzt nur „Projektnummer + Beschrieb" — ohne Kunde (steht ja in der Kunde-Spalte) und ohne Trenn-Sonderzeichen (· — :). (2) Am Subelement „Anfrage eingegangen" wird automatisch der Ersteller als Bearbeiter eingetragen (über den persönlichen Monday-Token erkannt).'],
   ['V6.2','Cockpit: Jedes Projekt hat jetzt im Detail-Fenster den Button „→ In KALLE kalkulieren" — ein Klick lädt den Auftrag direkt in den Rechner (vorher gab es aus dem Cockpit keinen Weg in die Kalkulation).'],
@@ -16976,7 +16977,7 @@ function toggleEmailAnalyse(){
 (function(){
   const G=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', existing:false, mondayItem:'', notiz:'' };
+  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', existing:false, mondayItem:'', notiz:'', pfadEdited:false, pfadOverride:'' };
 
   // ---- Kunden aus dem echten Stamm normalisieren ----
   function kx(k){
@@ -17078,6 +17079,8 @@ function toggleEmailAnalyse(){
   .keg-path{display:flex;align-items:center;gap:10px;background:#f7f8fa;border:1px dashed #d6dade;border-radius:8px;padding:11px 13px;margin-bottom:11px;}
   .keg-path .lbl{font-size:9.5px;color:#9aa1ad;font-weight:700;text-transform:uppercase;letter-spacing:.4px;margin-bottom:2px;}
   .keg-path{align-items:flex-start;} .keg-path .val{font-family:ui-monospace,monospace;font-size:11.5px;white-space:normal;word-break:break-all;overflow-wrap:anywhere;line-height:1.5;} .keg-path .val b{color:#6f5a00;}
+  .kegpath-in{width:100%;font-family:ui-monospace,monospace;font-size:11.5px;padding:6px 8px;border:1.5px solid #d6dade;border-radius:6px;background:#fff;color:#20242c;box-sizing:border-box;}
+  .kegpath-in:focus{outline:none;border-color:#c8a000;box-shadow:0 0 0 3px #f5eed7;}
   .keg-note{font-size:11px;color:#565d6a;background:#f7f8fa;border:1px solid #e6e8ec;border-radius:7px;padding:8px 11px;display:flex;gap:8px;align-items:flex-start;line-height:1.45;} .keg-note b{color:#20242c;}
   .keg-sum{border:1px solid #e6e8ec;border-radius:8px;overflow:hidden;}
   .keg-sr{display:flex;gap:12px;padding:9px 12px;border-bottom:1px solid #e6e8ec;font-size:12px;} .keg-sr:last-child{border-bottom:none;}
@@ -17259,7 +17262,7 @@ function toggleEmailAnalyse(){
                     <div class="keg-f"><label>Strasse / Nr. (Objekt)</label><input id="kegObStr" placeholder="z. B. Musterstrasse 1"></div>
                   </div>
                 </div>
-                <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl">Ablageort (automatisch)</div><div class="val" id="kegPath">—</div></div></div>
+                <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;"><span>Datenablage-Pfad</span><span class="keg-link" id="kegPathReset" style="text-transform:none;letter-spacing:0;font-weight:600;">↺ Auto</span></div><input id="kegPathInput" class="kegpath-in" spellcheck="false" placeholder="\\\\server\\Offerten\\…"><div style="font-size:9.5px;color:#9aa1ad;margin-top:3px;line-height:1.4;">Automatisch vorgeschlagen — bei einem <b>bereits bestehenden Ordner</b> oder abweichendem Kundennamen hier anpassen. Dann wird genau dieser Pfad verwendet (kein neuer Ordner).</div></div></div>
                 <div style="margin-top:13px;">
                   <div style="font-size:10.5px;font-weight:700;color:#9aa1ad;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Unterlagen &amp; Anhänge</div>
                   <div class="keg-drop" id="kegDrop2" style="padding:12px;"><div class="t1">Weitere E-Mails &amp; Dateien hierher ziehen</div><div class="t2">jede Datei bekommt unten einen Zielordner (z. B. 02 Offertphase)</div></div>
@@ -17327,6 +17330,8 @@ function toggleEmailAnalyse(){
     // Objektadresse-Felder
     G('kegObOrt').addEventListener('input',()=>{ CUR.obOrt=G('kegObOrt').value; refresh(); });
     G('kegObStr').addEventListener('input',()=>{ CUR.obStr=G('kegObStr').value; refresh(); });
+    { const pin=G('kegPathInput'); if(pin) pin.addEventListener('input',()=>{ CUR.pfadEdited=true; CUR.pfadOverride=pin.value; }); }
+    { const pr=G('kegPathReset'); if(pr) pr.onclick=()=>{ CUR.pfadEdited=false; CUR.pfadOverride=''; refresh(); }; }
     // Zweites Drop-Feld (Step 2): weitere E-Mails/Dateien + Ordnerzuordnung
     const md2=G('kegDrop2');
     if(md2){ md2.onclick=()=>pickMailFiles();
@@ -17592,7 +17597,8 @@ function toggleEmailAnalyse(){
     const ort=CUR.obOrt||k.ort||'…', str=CUR.obStr||k.strasse||'…';
     const obRow=G('kegSumObRow'); if(obRow){ obRow.classList.toggle('keg-hide',CUR.ablage!=='o'); const ob=G('kegSumOb'); if(ob) ob.textContent=[str,ort].filter(x=>x&&x!=='…').join(', ')||'—'; }
     const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+ort+'\\'+str+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
-    const pv=G('kegPath'); if(pv) pv.innerHTML=esc(pfad)+'<b>'+esc((CUR.nr||'')+' '+(CUR.betreff||''))+'</b>\\';
+    const autoPfad = pfad + (CUR.nr||'') + ' ' + (CUR.betreff||'') + '\\';
+    const pin=G('kegPathInput'); if(pin && !CUR.pfadEdited){ pin.value=autoPfad; CUR.pfadOverride=''; }
     const pdf=G('kegPdf'); if(pdf) pdf.textContent='Offerte_'+(CUR.nr||'…')+'.pdf';
   }
 
@@ -17770,8 +17776,13 @@ function toggleEmailAnalyse(){
     try{ if(typeof window.commitVorgangsnummer==='function') await window.commitVorgangsnummer(CUR.nr); }catch(e){}
     const rows=[]; const srvOn=SRV(); let pfad='';
     // Projektordner + Upload
-    kegProgSet(34,'Projektordner wird angelegt …');
-    if(srvOn){
+    const _overr=(CUR.pfadEdited && (CUR.pfadOverride||'').trim()) ? CUR.pfadOverride.trim() : '';
+    kegProgSet(34, _overr?'Datenablage wird übernommen …':'Projektordner wird angelegt …');
+    if(_overr){
+      pfad=_overr; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
+      rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
+      if(srvOn && _fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
+    } else if(srvOn){
       try{
         const body={ typ:CUR.ablage==='o'?'objekt':'firma', projektnr:CUR.nr, bezeichnung:CUR.betreff, auftragsnr:CUR.nr };
         if(CUR.ablage==='o'){ body.ort=CUR.obOrt||k.ort||''; body.strasse=CUR.obStr||k.strasse||''; } else { body.firmaName=k.name; }
