@@ -45,6 +45,22 @@ const UNTERORDNER = [
   '07 Projektabschluss',
 ];
 
+// Verschachtelte Unterordner (werden INNERHALB des jeweiligen Hauptordners angelegt)
+const UNTERUNTERORDNER = {
+  '03 Ausführung': [
+    '00 Bemusterung',
+    '01 Angelieferte Rohdaten',
+    '02 Reinzeichnung',
+    '03 Materialeinkauf',
+    '04 Verortung',
+  ],
+  '04 Werkstattdaten': [
+    'Folientechnik - Druck',
+    'Fräsen',
+    'Gravur',
+  ],
+};
+
 console.log('[Projekte] Basispfad:', BASIS);
 
 // Ungültige Windows-Zeichen bereinigen
@@ -161,9 +177,19 @@ router.post('/', express.json({ limit: '5mb' }), async (req, res) => {
       return res.status(400).json({ error: 'typ muss "firma" oder "objekt" sein' });
     }
 
-    // ── Unterordner ───────────────────────────────────────────────────────
+    // ── Unterordner (inkl. verschachtelte Unter-Unterordner) ───────────────
     for (const sub of UNTERORDNER) {
-      try { mkDir(path.join(projektPfad, sub)); erstellteOrdner.push(sub); }
+      try {
+        const subPfad = path.join(projektPfad, sub);
+        mkDir(subPfad); erstellteOrdner.push(sub);
+        const kinder = UNTERUNTERORDNER[sub];
+        if (kinder) {
+          for (const kind of kinder) {
+            try { mkDir(path.join(subPfad, kind)); erstellteOrdner.push(`${sub}/${kind}`); }
+            catch (e) { warnungen.push(`${sub}/${kind}: ${e.message}`); }
+          }
+        }
+      }
       catch (e) { warnungen.push(`${sub}: ${e.message}`); }
     }
 
