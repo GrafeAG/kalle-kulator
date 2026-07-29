@@ -15,6 +15,7 @@ const COL = {
   montage:   'date_mkwb2tev',                // MONTAGETERMIN
   pl:        'people0',                       // Projektleiter
   adresse:   'location_mksw41wx',             // Montageadresse
+  datenpfad: 'text_mksqs2p4',                 // Datenpfad / Ablage
 };
 const SUB = {                                // „Montage"-Subelement (Board 1012481470)
   person:       'person',                    // Bearbeiter = Monteure
@@ -56,7 +57,7 @@ router.get('/', async (req, res) => {
         items_page_by_column_values(board_id:${BOARD}, columns:[{column_id:"${COL.projektnr}", column_values:$nr}], limit:1){
           items{
             id name
-            cols: column_values(ids:["${COL.pl}","${COL.kunde}","${COL.versand}","${COL.montage}","${COL.adresse}"]){ id text }
+            cols: column_values(ids:["${COL.pl}","${COL.kunde}","${COL.versand}","${COL.montage}","${COL.adresse}","${COL.datenpfad}"]){ id text }
             subitems{ name column_values(ids:["${SUB.person}","${SUB.datum}","${SUB.montagedatum}"]){ id text } }
           }
         }
@@ -86,6 +87,7 @@ router.get('/', async (req, res) => {
       montagedatum:  fmtDate(c[COL.montage] || subMontagedatum),
       versanddatum:  fmtDate(c[COL.versand] || ''),
       montageadresse: c[COL.adresse] || '',
+      datenpfad:      c[COL.datenpfad] || '',
     });
   }catch(e){
     console.error('[Label] Fehler:', e.message);

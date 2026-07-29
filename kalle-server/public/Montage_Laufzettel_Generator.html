@@ -2338,34 +2338,33 @@ var qrcode = function() {
   /* ---------- LABEL 210 x 90 mm ---------- */
   #out{margin-top:24px;display:flex;flex-direction:column;gap:16px;align-items:flex-start;}
   .label{
-    width:210mm;height:90mm;background:#fff;position:relative;overflow:hidden;
+    width:210mm;height:70mm;background:#fff;position:relative;overflow:hidden;
     border:1px solid var(--line);border-radius:8px;box-shadow:0 2px 10px rgba(20,25,15,.07);
-    padding:5mm 8mm;display:flex;flex-direction:column;
+    padding:4mm 7mm;display:flex;flex-direction:column;
   }
   .label .accent{position:absolute;top:0;left:0;width:34mm;height:34mm;transform:translate(-17mm,-17mm) rotate(45deg);background:var(--yellow);opacity:.18;}
   .label .accent2{position:absolute;top:0;left:0;width:22mm;height:22mm;transform:translate(-11mm,-11mm) rotate(45deg);background:var(--sage);opacity:.5;}
   .lbl-top{display:flex;justify-content:space-between;align-items:flex-start;z-index:2;}
-  .lbl-brand{display:flex;flex-direction:column;gap:.5mm;}
-  .lbl-brand .lg{width:26mm}
+  .lbl-brand{display:flex;flex-direction:column;align-items:flex-end;gap:1mm;}
+  .lbl-brand .lg{width:17mm}
   .lbl-brand .lg svg{width:100%;height:auto;display:block}
-  .lbl-brand .tag{font-size:7pt;letter-spacing:.8px;color:var(--muted);text-transform:uppercase}
-  .lbl-kind{text-align:right;font-size:8pt;color:var(--muted);line-height:1.2;display:flex;flex-direction:column;align-items:flex-end}
-  .lbl-kind b{display:block;font-size:11.5pt;color:var(--ink);letter-spacing:-.2px}
-  .lbl-kind .bar{display:block;margin-top:1.5mm;height:2.4mm;width:24mm;background:linear-gradient(90deg,var(--yellow) 0 50%,var(--sage) 50% 100%);border-radius:2px}
+  .lbl-brand .bar{display:block;height:2.2mm;width:17mm;background:var(--ink);border-radius:1px}
+  .lbl-kind{text-align:left;font-size:8pt;color:var(--muted);line-height:1.15;display:flex;flex-direction:column;align-items:flex-start}
+  .lbl-kind b{display:block;font-size:13pt;color:var(--ink);letter-spacing:-.2px}
+  .lbl-kind .sub{font-size:8pt;color:var(--muted)}
 
-  .lbl-body{display:flex;gap:7mm;flex:1;z-index:2;margin-top:8mm}
+  .lbl-body{display:flex;gap:6mm;flex:1;z-index:2;margin-top:2mm}
   .lbl-main{flex:1;min-width:0;display:flex;flex-direction:column}
   .pnrrow{display:flex;align-items:flex-start;gap:6mm}
-  .pnrrow .pnrlab{font-size:8pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
-  .pnrrow .pnr{font-size:27pt;font-weight:800;letter-spacing:-.5px;line-height:.95}
-  .fld.mont{border-bottom:2pt solid var(--ink);padding-bottom:1mm;margin-bottom:.6mm}
-  .fld.mont .k{align-self:center}
-  .fld.mont .v{font-size:14pt;font-weight:800;line-height:1.15}
-  .fld.mont.empty{border-bottom-style:dashed;border-color:var(--line)}
-  .fld.mont.empty .v{color:var(--muted);font-size:11pt;font-weight:400}
+  .pnrrow .pnrlab{font-size:7pt;font-weight:700;text-transform:uppercase;letter-spacing:1px;color:var(--muted)}
+  .pnrrow .pnr{font-size:19pt;font-weight:800;letter-spacing:-.5px;line-height:.95}
+  .projbez{font-size:11pt;font-weight:700;line-height:1.1;margin-top:.6mm;color:var(--ink);display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+  .fld.mont{border-bottom:2pt solid var(--ink);padding-bottom:.6mm;margin-top:1.2mm;margin-bottom:.3mm;align-items:baseline}
+  .fld.mont .k{align-self:center;font-weight:700;text-transform:uppercase;font-size:7.5pt;letter-spacing:.5px}
+  .fld.mont .v{font-size:12pt;font-weight:800;line-height:1.1}
 
-  .grid{margin-top:5mm;display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;row-gap:1mm}
-  .fld{font-size:10pt;line-height:1.3;display:flex;gap:1.5mm;min-width:0}
+  .grid{margin-top:1.4mm;display:grid;grid-template-columns:1fr 1fr;column-gap:6mm;row-gap:.5mm}
+  .fld{font-size:8.5pt;line-height:1.2;display:flex;gap:1.5mm;min-width:0}
   .fld .k{color:var(--muted);white-space:nowrap}
   .fld .v{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
   .fld.wide{grid-column:1 / -1}
@@ -2373,7 +2372,7 @@ var qrcode = function() {
   .fld.adr .v{white-space:normal;line-height:1.15;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
 
   .lbl-qr{flex:0 0 auto;text-align:center;display:flex;flex-direction:column;align-items:center}
-  .lbl-qr .qr{width:43mm;height:43mm;padding:1.5mm;border:1px solid var(--line);border-radius:5px;background:#fff}
+  .lbl-qr .qr{width:33mm;height:33mm;padding:1.2mm;border:1px solid var(--line);border-radius:5px;background:#fff}
   .lbl-qr .qr svg{width:100%;height:100%;display:block}
   .lbl-qr .cap{font-size:8pt;font-weight:700;margin-top:1mm}
   .lbl-qr .cap small{display:block;font-weight:400;color:var(--muted);font-size:7pt}
@@ -2426,7 +2425,7 @@ viewBox="163 118 190 114"
 </svg></div>
     <div>
       <h1>Montage-Laufzettel Generator</h1>
-      <p>Für die Produktionsleitung: Projektnummer(n) eingeben → Kisten-Label (210 × 90 mm). Die Angaben (Projektleiter, Monteure, Montage-/Versanddatum) werden <b>live aus Monday</b> geholt; das Erzeugungsdatum wird automatisch gesetzt. Der Monteur scannt den QR und meldet zurück.</p>
+      <p>Für die Produktionsleitung: Projektnummer(n) eingeben → Kisten-Label (210 × 70 mm). Die Angaben (Projektleiter, Monteure, Montage-/Versanddatum) werden <b>live aus Monday</b> geholt; das Erzeugungsdatum wird automatisch gesetzt. Der Monteur scannt den QR und meldet zurück.</p>
     </div>
   </header>
 
@@ -2524,30 +2523,32 @@ function fld(k,v,opts){
 }
 
 function labelHTML(d, idx){
-  const montage = `<div class="fld mont wide"><span class="k">Montage</span><span class="v">${esc(d.montagedatum||'—')}</span></div>`;
+  const montagedatum = d.montagedatum
+    ? `<div class="fld mont wide"><span class="k">Montagedatum</span><span class="v">${esc(d.montagedatum)}</span></div>` : '';
   return `
   <div class="label">
     <div class="accent"></div><div class="accent2"></div>
     <div class="lbl-top">
+      <div class="lbl-kind"><b>Montage-Laufzettel</b><span class="sub">Rückmeldung Montage</span></div>
       <div class="lbl-brand">
         <div class="lg">${logoSVG()}</div>
-        <div class="tag">Signaletik &amp; Beschriftung</div>
+        <span class="bar"></span>
       </div>
-      <div class="lbl-kind"><b>Montage-Laufzettel</b>Rückmeldung Montage<span class="bar"></span></div>
     </div>
     <div class="lbl-body">
       <div class="lbl-main">
         <div class="pnrrow">
           <div><div class="pnrlab">Projektnummer</div><div class="pnr">${esc(d.projektnr)}</div></div>
         </div>
+        <div class="projbez">${esc(d.name||'—')}</div>
+        ${montagedatum}
         <div class="grid">
-          ${montage}
-          ${fld('Adresse', d.montageadresse, {wide:true, adr:true})}
-          ${fld('Projekt', d.name, {wide:true})}
           ${fld('Kunde', d.kunde, {wide:true})}
+          ${fld('Adresse', d.montageadresse, {wide:true, adr:true})}
           ${fld('Projektleiter', d.projektleiter)}
-          ${fld('Versand', d.versanddatum, {mut:true})}
+          ${d.versanddatum ? fld('Versanddatum', d.versanddatum) : ''}
           ${fld('Monteure', d.monteure, {wide:true})}
+          ${d.datenpfad ? fld('Datenablage', d.datenpfad, {wide:true}) : ''}
         </div>
       </div>
       <div class="lbl-qr">

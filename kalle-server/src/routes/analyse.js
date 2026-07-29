@@ -23,13 +23,14 @@ Extrahiere folgende Felder (wenn vorhanden):
 - adresseStrasse: Strasse + Hausnummer (z.B. "Hauptstrasse 12")
 - adressePLZ: Postleitzahl (4-stellig, z.B. "4127")
 - adresseOrt: Ortsname (z.B. "Birsfelden")
-- betreff: Kurze Zusammenfassung worum es geht (max 80 Zeichen)
+- betreff: Kurzer Projekttitel / Betreff der Anfrage (max 80 Zeichen, KEINE Zeichen : oder -). NUR Thema/Was — OHNE Ort, Adresse, PLZ und OHNE Kundenname (Adresse & Kunde werden separat erfasst).
+- zusammenfassung: 1–2 ganze Sätze, worum es in der Anfrage konkret geht — so dass man die E-Mail NICHT lesen muss (wird als Monday-Kommentar hinterlegt)
 
 Wichtig: Trenne die Adresse immer in Strasse, PLZ und Ort auf — auch wenn sie in einer Zeile steht.
 Schweizer PLZ sind immer 4-stellig. Deutsche PLZ sind 5-stellig.
 
 Antworte NUR mit einem JSON-Objekt, ohne Erklärungen, ohne Markdown-Backticks:
-{"kundenname":"...","kontaktperson":"...","telefon":"...","email":"...","adresseStrasse":"...","adressePLZ":"...","adresseOrt":"...","betreff":"..."}
+{"kundenname":"...","kontaktperson":"...","telefon":"...","email":"...","adresseStrasse":"...","adressePLZ":"...","adresseOrt":"...","betreff":"...","zusammenfassung":"..."}
 
 Wenn ein Feld nicht gefunden wird, setze es auf "".
 
