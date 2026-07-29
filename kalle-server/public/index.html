@@ -2558,9 +2558,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V6.6';
+const UI_VERSION='V6.7';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V6.7','Kundenerkennung zuverlässiger: Die KI weiss jetzt, dass „Grafe" das eigene Unternehmen (Empfänger) ist und NIE der Kunde — der Kunde ist der Absender (Nicht-grafe.ch-Domain + Signatur). Zusätzlich zieht der Bestandskunden-Abgleich die eigene Firma nie mehr als Kunde. Ansprechperson = nur der Name.'],
   ['V6.6','Kalkulator: Klare Rückmeldung bei der Offerte-Ablage — „✓ Offerte als PDF erstellt und im Projekt abgelegt (02 Offertphase)". Und ehrliche Meldung, wenn NICHT abgelegt werden konnte (kein Projektordner / Server offline / Fehler) statt stiller Ablage.'],
   ['V6.5','Anfrage-Erfassung: Der Datenablage-Pfad ist jetzt manuell überschreibbar (Schritt „Ablageort"). Bei einem bereits bestehenden Ordner oder abweichendem Kundennamen einfach den Pfad anpassen — dann wird genau dieser verwendet (kein neuer Ordner). „↺ Auto" stellt den Vorschlag wieder her.'],
   ['V6.4','Monday-Item-Titel = exakt der Projekttitel aus REACTOR — der Ort/die Adresse kommt NICHT mehr in den Titel. Die E-Mail-Analyse liefert den Betreff jetzt ohne Ort/PLZ/Adresse, und eine erkannte „PLZ Ort"-Angabe wird zusätzlich aus dem Titel entfernt.'],
@@ -3193,13 +3194,20 @@ window.sanitizeMailText=sanitizeMailText; window.parseEml=parseEml; window.msgTo
 async function analyseWithClaude(text,apiKey){
   try{
     text = (typeof sanitizeMailText==='function') ? sanitizeMailText(text) : text;
-    const prompt=`Du analysierst einen E-Mail-Text und extrahierst Kundendaten für ein Schweizer Werbetechnik-Unternehmen.
+    const prompt=`Du analysierst eine eingehende Kunden-E-Mail und extrahierst die Daten des ABSENDERS (= Kunde) für unser Schweizer Werbetechnik-Unternehmen „Grafe AG".
 
-Extrahiere folgende Felder (wenn vorhanden):
-- kundenname: Firmenname oder vollständiger Name des Absenders
-- kontaktperson: Vorname + Nachname der Kontaktperson
-- telefon: Telefonnummer (mit Vorwahl, z.B. +41 61 123 45 67)
-- email: E-Mail-Adresse des Absenders
+WICHTIGE REGELN (unbedingt beachten):
+- „Grafe", „Grafe AG", „grafe.ch" sind UNSER EIGENES Unternehmen (der Empfänger) — NIEMALS der Kunde. Kommt „Grafe" im Text vor, ignoriere es als Kundennamen.
+- Der KUNDE ist der ABSENDER (Von/From). Erkenne ihn an der Absender-E-Mail (die Domain, die NICHT grafe.ch ist) und an der Signatur am Ende der Nachricht (Firmenname, Adresse, Telefon).
+- kundenname = Firma/Organisation des Absenders aus Signatur bzw. E-Mail-Domain (z. B. @bhm.ch → „Bernisches Historisches Museum"). Eine im Fliesstext beiläufig genannte Firma ist NICHT der Kunde.
+- kontaktperson = NUR Vor- und Nachname der Absender-Person — niemals ein ganzer Satz.
+- Adresse/Telefon = aus der Absender-Signatur (nicht unsere Adresse).
+
+Extrahiere folgende Felder (leer lassen, wenn nicht vorhanden):
+- kundenname: Firma/Organisation des Absenders (oder vollständiger Name bei Privatperson)
+- kontaktperson: Vorname + Nachname der Absender-Person (nur der Name!)
+- telefon: Telefonnummer des Absenders (mit Vorwahl, z.B. +41 61 123 45 67)
+- email: E-Mail-Adresse des Absenders (die Nicht-grafe.ch-Adresse)
 - adresseStrasse: Strasse + Hausnummer (z.B. "Hauptstrasse 12" oder "Rheinfelderstrasse 12")
 - adressePLZ: Postleitzahl (4-stellig, z.B. "4127")
 - adresseOrt: Ortsname (z.B. "Birsfelden")
@@ -17833,10 +17841,14 @@ function toggleEmailAnalyse(){
   }
   function matchKunde(kd){
     if(!kd) return null; var list=KUN(); if(!list||!list.length) return null;
+    var OWN=function(s){ return /\bgrafe\b/i.test(String(s||'')); }; // eigene Firma
     var em=(kd.email||'').toLowerCase(), nm=(kd.name||'').toLowerCase(); var m=null;
-    if(em) m=list.find(function(x){return (x.email||'').toLowerCase()===em;});
-    if(!m&&nm) m=list.find(function(x){return (x.name||x.Firma||x.kundenname||'').toLowerCase()===nm;});
-    if(!m&&nm&&nm.length>4) m=list.find(function(x){var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); return xn&&(xn.indexOf(nm)>=0||nm.indexOf(xn)>=0);});
+    // Eigene Firma (Grafe) ist NIE ein Kunde — nicht als Suchbegriff und nicht als Treffer
+    if(OWN(nm)) nm='';
+    if(/@grafe\.ch$/i.test(em)) em='';
+    if(em) m=list.find(function(x){return (x.email||'').toLowerCase()===em && !OWN(x.name||x.Firma||x.kundenname);});
+    if(!m&&nm) m=list.find(function(x){var xn=(x.name||x.Firma||x.kundenname||''); return xn.toLowerCase()===nm && !OWN(xn);});
+    if(!m&&nm&&nm.length>4) m=list.find(function(x){var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); return xn && !OWN(xn) && (xn.indexOf(nm)>=0||nm.indexOf(xn)>=0);});
     return m?kx(m):null;
   }
 
