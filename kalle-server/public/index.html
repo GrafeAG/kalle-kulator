@@ -2561,9 +2561,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V6.9';
+const UI_VERSION='V7.0';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.0','Adresseingabe: neues Feld „Adresszusatz" bei der Objektadresse (Gebäude, Stockwerk, Eingang, c/o …). — Roche-Sonderablage: Wird als Kunde „Roche" erkannt, erscheint ein eigenes Panel: entweder Jahresablage (Objekte/Basel/Roche/<Jahr>/<Projekt>) oder Zuordnung zu einem Bau (Dropdown der bestehenden Bauten, live vom Laufwerk, oder neuen Bau anlegen → Objekte/Basel/Roche/<Bau>/<Projekt>). Voraussetzung: neue Server-Route /roche (+ ROCHE_BASE in der .env).'],
   ['V6.9','Projekt löschen: Erfasste Projekte lassen sich jetzt vollständig löschen — Monday-Eintrag (inkl. Subelemente) wird entfernt, Offerte/Positionen gelöscht und die Projektnummer wieder freigegeben (wiederverwendbar). Optional wird auch der Projektordner gelöscht (mit Rückfrage). Button in der Auftragsübersicht (🗑) und im geöffneten Projekt („🗑 Projekt löschen" in der Projektordner-Sektion). Voraussetzung: neue Server-Route /projekt-loeschen. — Zusätzlich: Klick auf das Grafe-Logo oben links führt zurück zur Startseite (Neuer Vorgang).'],
   ['V6.8','Monday-Intake: Beim Erfassen wird jetzt zusätzlich zum Subelement „Anfrage eingegangen" automatisch ein zweites Subelement „Offerte erstellen" mit Frist +3 Werktage angelegt (Samstag & Sonntag zählen nicht mit), gleicher Bearbeiter. So steht die Offert-Frist sofort terminiert im Board.'],
   ['V6.7','Kundenerkennung zuverlässiger: Die KI weiss jetzt, dass „Grafe" das eigene Unternehmen (Empfänger) ist und NIE der Kunde — der Kunde ist der Absender (Nicht-grafe.ch-Domain + Signatur). Zusätzlich zieht der Bestandskunden-Abgleich die eigene Firma nie mehr als Kunde. Ansprechperson = nur der Name.'],
@@ -17060,7 +17061,7 @@ function toggleEmailAnalyse(){
 (function(){
   const G=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', existing:false, mondayItem:'', notiz:'', pfadEdited:false, pfadOverride:'' };
+  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', obZusatz:'', existing:false, mondayItem:'', notiz:'', pfadEdited:false, pfadOverride:'', roche:{active:false,modus:'jahr',bau:'',_loaded:false} };
 
   // ---- Kunden aus dem echten Stamm normalisieren ----
   function kx(k){
@@ -17344,9 +17345,25 @@ function toggleEmailAnalyse(){
                   <div class="keg-g2">
                     <div class="keg-f"><label>Ort (Objekt)</label><input id="kegObOrt" placeholder="z. B. Birsfelden"></div>
                     <div class="keg-f"><label>Strasse / Nr. (Objekt)</label><input id="kegObStr" placeholder="z. B. Musterstrasse 1"></div>
+                    <div class="keg-f" style="grid-column:span 2;"><label>Adresszusatz (optional)</label><input id="kegObZusatz" placeholder="z. B. Gebäude B · 3. OG · Eingang Nord · c/o …"></div>
                   </div>
                 </div>
                 <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;"><span>Datenablage-Pfad</span><span class="keg-link" id="kegPathReset" style="text-transform:none;letter-spacing:0;font-weight:600;">↺ Auto</span></div><input id="kegPathInput" class="kegpath-in" spellcheck="false" placeholder="\\\\server\\Offerten\\…"><div style="font-size:9.5px;color:#9aa1ad;margin-top:3px;line-height:1.4;">Automatisch vorgeschlagen — bei einem <b>bereits bestehenden Ordner</b> oder abweichendem Kundennamen hier anpassen. Dann wird genau dieser Pfad verwendet (kein neuer Ordner).</div></div></div>
+                <div id="kegRoche" class="keg-hide" style="margin-top:12px;border:1.5px solid #e6d9a6;background:#fdfbf3;border-radius:10px;padding:12px 14px;">
+                  <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:#6f5a00;margin-bottom:8px;display:flex;align-items:center;gap:7px;">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="1.7"/><ellipse cx="12" cy="12" rx="10" ry="4.2"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(120 12 12)"/></svg>
+                    Roche-Sonderablage
+                  </div>
+                  <div class="keg-seg" style="margin-bottom:9px;">
+                    <button type="button" class="on" id="kegRJahr"><span class="tt">Jahresablage</span><span class="tg">kein Bau</span></button>
+                    <button type="button" id="kegRBau"><span class="tt">Bau zuordnen</span><span class="tg">bestehend / neu</span></button>
+                  </div>
+                  <div id="kegRBauWrap" class="keg-hide">
+                    <div class="keg-f"><label>Bau</label><select id="kegRBauSel" style="width:100%;padding:8px 10px;border:1.5px solid #d6dade;border-radius:8px;font-family:inherit;font-size:12.5px;background:#fff;color:#20242c;"><option value="">— lädt … —</option></select></div>
+                    <div id="kegRNewWrap" class="keg-hide" style="margin-top:7px;"><div class="keg-f"><label>Neuer Bau (Name)</label><input id="kegRNew" placeholder="z. B. Bau 91"></div></div>
+                  </div>
+                  <div style="font-size:10.5px;color:#6f5a00;margin-top:9px;line-height:1.5;">Ablage: <span style="font-family:ui-monospace,monospace;" id="kegRPreview">Objekte/Basel/Roche/…</span></div>
+                </div>
                 <div style="margin-top:13px;">
                   <div style="font-size:10.5px;font-weight:700;color:#9aa1ad;text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px;">Unterlagen &amp; Anhänge</div>
                   <div class="keg-drop" id="kegDrop2" style="padding:12px;"><div class="t1">Weitere E-Mails &amp; Dateien hierher ziehen</div><div class="t2">jede Datei bekommt unten einen Zielordner (z. B. 02 Offertphase)</div></div>
@@ -17426,6 +17443,10 @@ function toggleEmailAnalyse(){
     G('kegManual').onclick=manual; G('kegEdit').onclick=()=>G('kegDet').classList.toggle('open');
     G('kegLoad').onclick=ladeDialog;
     G('kegSgF').onclick=()=>seg('f'); G('kegSgO').onclick=()=>seg('o');
+    { const rj=G('kegRJahr'); if(rj) rj.onclick=()=>kegRocheMode('jahr'); }
+    { const rb=G('kegRBau'); if(rb) rb.onclick=()=>kegRocheMode('bau'); }
+    { const rs=G('kegRBauSel'); if(rs) rs.onchange=()=>{ const nw=G('kegRNewWrap'); if(nw) nw.classList.toggle('keg-hide', rs.value!=='__neu'); refresh(); }; }
+    { const rn=G('kegRNew'); if(rn) rn.addEventListener('input',refresh); }
     G('kegSrv').onclick=()=>{ if(typeof window.KALLE_SERVER!=='undefined'){ const u=prompt('Server-Adresse:', window.KALLE_SERVER); if(u){ try{localStorage.setItem('kalle_server_url',u.trim());}catch(e){} location.reload(); } } };
     const su=G('kegSuche');
     su.addEventListener('input',renderDD); su.addEventListener('focus',renderDD);
@@ -17668,6 +17689,42 @@ function toggleEmailAnalyse(){
     refresh(); }
 
   function _fileCount(){ try{ return (typeof _projDropFiles!=='undefined'&&_projDropFiles)?_projDropFiles.length:0; }catch(e){ return 0; } }
+
+  // ── Roche-Sonderablage ──
+  function kegRocheApply(){
+    var nm=((CUR.kunde&&CUR.kunde.name)|| (G('kegFirma')&&G('kegFirma').value) ||'');
+    var isR=/\broche\b/i.test(nm);
+    CUR.roche.active=isR;
+    var box=G('kegRoche'); if(box) box.classList.toggle('keg-hide',!isR);
+    if(isR && !CUR.roche._loaded){ CUR.roche._loaded=true; kegRocheLoadBauten(); }
+  }
+  function kegRocheLoadBauten(){
+    var sel=G('kegRBauSel'); if(!sel) return;
+    try{
+      fetch(_srv()+'/roche/bauten').then(function(r){return r.json();}).then(function(d){
+        if(!d||!d.ok){ sel.innerHTML='<option value="">— Server ohne ROCHE_BASE —</option>'; return; }
+        var list=(d.bauten&&d.bauten.length)?d.bauten:(d.alle||[]);
+        sel.innerHTML='<option value="">— Bau wählen —</option>'+list.map(function(n){return '<option>'+esc(n)+'</option>';}).join('')+'<option value="__neu">➕ Neuer Bau …</option>';
+        refresh();
+      }).catch(function(){ sel.innerHTML='<option value="">— Bauten nicht geladen —</option>'; });
+    }catch(e){ sel.innerHTML='<option value="">— Server offline —</option>'; }
+  }
+  function kegRocheMode(m){
+    CUR.roche.modus=m;
+    var a=G('kegRJahr'); if(a) a.classList.toggle('on',m==='jahr');
+    var b=G('kegRBau'); if(b) b.classList.toggle('on',m==='bau');
+    var w=G('kegRBauWrap'); if(w) w.classList.toggle('keg-hide',m!=='bau');
+    refresh();
+  }
+  function kegRocheZiel(){
+    if(CUR.roche.modus==='bau'){
+      var sel=G('kegRBauSel'); var v=sel?sel.value:'';
+      if(v==='__neu'){ v=((G('kegRNew')&&G('kegRNew').value)||'').trim(); }
+      return v;
+    }
+    return String(new Date().getFullYear());
+  }
+
   function refresh(){
     const k=CUR.kunde||{}; const nr=CUR.nr||'—';
     G('kegVgNr').textContent=nr; G('kegProjNr').textContent=nr; G('kegSumNr').textContent=nr;
@@ -17678,11 +17735,22 @@ function toggleEmailAnalyse(){
     G('kegSumA').textContent=CUR.ablage==='o'?'Objekt · Montage vor Ort':'Firmenkunde · Lieferauftrag';
     const cnt=_fileCount(); const su=G('kegSumU'); if(su) su.textContent=cnt+(cnt===1?' Datei':' Dateien');
     const nz=(CUR.notiz||'').trim(); const nzRow=G('kegSumNotizRow'); if(nzRow){ nzRow.classList.toggle('keg-hide',!nz); const nzv=G('kegSumNotiz'); if(nzv) nzv.textContent=nz?(nz.length>120?nz.slice(0,120)+' …':nz):'—'; }
+    const zus=((G('kegObZusatz')&&G('kegObZusatz').value)||'').trim(); CUR.obZusatz=zus;
     const ort=CUR.obOrt||k.ort||'…', str=CUR.obStr||k.strasse||'…';
-    const obRow=G('kegSumObRow'); if(obRow){ obRow.classList.toggle('keg-hide',CUR.ablage!=='o'); const ob=G('kegSumOb'); if(ob) ob.textContent=[str,ort].filter(x=>x&&x!=='…').join(', ')||'—'; }
-    const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+ort+'\\'+str+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
-    const autoPfad = pfad + (CUR.nr||'') + ' ' + (CUR.betreff||'') + '\\';
-    const pin=G('kegPathInput'); if(pin && !CUR.pfadEdited){ pin.value=autoPfad; CUR.pfadOverride=''; }
+    const obRow=G('kegSumObRow'); if(obRow){ obRow.classList.toggle('keg-hide',CUR.ablage!=='o'); const ob=G('kegSumOb'); if(ob) ob.textContent=[str,ort,zus].filter(x=>x&&x!=='…').join(', ')||'—'; }
+    kegRocheApply();
+    const pin=G('kegPathInput');
+    if(CUR.roche.active){
+      const ziel=kegRocheZiel()||'(Bau/Jahr wählen)';
+      const leaf=((CUR.nr?CUR.nr+' ':'')+(CUR.betreff||'')).trim()||'(Projekt)';
+      const prev=G('kegRPreview'); if(prev) prev.textContent='Objekte/Basel/Roche/'+ziel+'/'+leaf;
+      CUR.roche.bau=(CUR.roche.modus==='bau')?ziel:'';
+      if(pin && !CUR.pfadEdited){ pin.value='…\\Objekte\\Basel\\Roche\\'+ziel+'\\'+leaf+'\\'; CUR.pfadOverride=''; }
+    } else {
+      const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+ort+'\\'+str+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
+      const autoPfad = pfad + (CUR.nr||'') + ' ' + (CUR.betreff||'') + '\\';
+      if(pin && !CUR.pfadEdited){ pin.value=autoPfad; CUR.pfadOverride=''; }
+    }
     const pdf=G('kegPdf'); if(pdf) pdf.textContent='Offerte_'+(CUR.nr||'…')+'.pdf';
   }
 
@@ -17855,6 +17923,8 @@ function toggleEmailAnalyse(){
     if(!(CUR.betreff||'').trim()){ alert('Bitte einen Betreff eingeben (wird zur Projektbezeichnung).'); go(0); setTimeout(()=>G('kegBetreff').focus(),50); return; }
     if(CUR.ablage==='o'){ CUR.obOrt=(G('kegObOrt').value||'').trim(); CUR.obStr=(G('kegObStr').value||'').trim();
       if(!CUR.obOrt||!CUR.obStr){ alert('Bitte Objekt-Ort und -Strasse eingeben (Ablageort).'); return; } }
+    CUR.obZusatz=((G('kegObZusatz')&&G('kegObZusatz').value)||'').trim();
+    if(CUR.roche && CUR.roche.active && CUR.roche.modus==='bau' && !kegRocheZiel()){ alert('Bitte einen Bau wählen oder einen neuen Bau-Namen eingeben (Roche-Ablage).'); return; }
     const btn=G('kegFinish'); btn.disabled=true; btn.textContent='Erfasse …';
     kegProgStart();
     await _kegWait(350);
@@ -17873,6 +17943,17 @@ function toggleEmailAnalyse(){
       pfad=_overr; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
       rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
       if(srvOn && _fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
+    } else if(CUR.roche && CUR.roche.active && srvOn){
+      try{
+        const ziel=kegRocheZiel();
+        const projbez=((CUR.nr?CUR.nr+' ':'')+(CUR.betreff||'')).trim();
+        const r=await fetch(_srv()+'/roche/ordner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ziel:ziel, projektbezeichnung:projbez})});
+        const d=await r.json();
+        if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
+          rows.push(['ok','Roche-Ablage angelegt'+(d.neuerBau?' (neuer Bau)':''),pfad]);
+          if(_fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
+        } else { rows.push(['warn','Roche-Ablage',(d&&d.error)||'nicht angelegt — Server ohne ROCHE_BASE?']); }
+      }catch(e){ rows.push(['warn','Roche-Ablage','Server nicht erreichbar: '+e.message]); }
     } else if(srvOn){
       try{
         const body={ typ:CUR.ablage==='o'?'objekt':'firma', projektnr:CUR.nr, bezeichnung:CUR.betreff, auftragsnr:CUR.nr };
