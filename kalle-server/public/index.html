@@ -2558,9 +2558,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V6.7';
+const UI_VERSION='V6.8';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V6.8','Monday-Intake: Beim Erfassen wird jetzt zusätzlich zum Subelement „Anfrage eingegangen" automatisch ein zweites Subelement „Offerte erstellen" mit Frist +3 Werktage angelegt (Samstag & Sonntag zählen nicht mit), gleicher Bearbeiter. So steht die Offert-Frist sofort terminiert im Board.'],
   ['V6.7','Kundenerkennung zuverlässiger: Die KI weiss jetzt, dass „Grafe" das eigene Unternehmen (Empfänger) ist und NIE der Kunde — der Kunde ist der Absender (Nicht-grafe.ch-Domain + Signatur). Zusätzlich zieht der Bestandskunden-Abgleich die eigene Firma nie mehr als Kunde. Ansprechperson = nur der Name.'],
   ['V6.6','Kalkulator: Klare Rückmeldung bei der Offerte-Ablage — „✓ Offerte als PDF erstellt und im Projekt abgelegt (02 Offertphase)". Und ehrliche Meldung, wenn NICHT abgelegt werden konnte (kein Projektordner / Server offline / Fehler) statt stiller Ablage.'],
   ['V6.5','Anfrage-Erfassung: Der Datenablage-Pfad ist jetzt manuell überschreibbar (Schritt „Ablageort"). Bei einem bereits bestehenden Ordner oder abweichendem Kundennamen einfach den Pfad anpassen — dann wird genau dieser verwendet (kein neuer Ordner). „↺ Auto" stellt den Vorschlag wieder her.'],
@@ -16816,6 +16817,13 @@ async function mondayAttachFiles(subitemId, files, token){
 }
 window.mondayAttachFiles = mondayAttachFiles;
 
+// Frist in Werktagen ab heute (Samstag/Sonntag zählen NICHT mit) → 'YYYY-MM-DD'
+function _plusWerktage(n){
+  const d=new Date(); let added=0;
+  while(added<n){ d.setDate(d.getDate()+1); const wd=d.getDay(); if(wd!==0 && wd!==6) added++; }
+  return d.toISOString().slice(0,10);
+}
+
 // Intake: Item + Subelement „Anfrage eingegangen" im Produktionsboard anlegen
 async function mondayProdAnfrage(data, token){
   const nr=String(data.nr||''), kunde=data.kunde||'', betreff=(data.betreff||'').toString().trim();
@@ -16850,6 +16858,12 @@ async function mondayProdAnfrage(data, token){
     const sr=await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Anfrage eingegangen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
     subId=sr&&sr.create_subitem&&sr.create_subitem.id;
   }catch(e){ console.warn('[Monday] Subelement „Anfrage eingegangen":', e.message); }
+  // Zweites Subelement „Offerte erstellen" mit Frist +3 Werktage (Sa/So ausgenommen), gleicher Bearbeiter
+  try{
+    const scv2={}; scv2[MONDAY_PROD.subCol.datum]={date:_plusWerktage(3)};
+    if(meId && MONDAY_PROD.subCol.bearbeiter) scv2[MONDAY_PROD.subCol.bearbeiter]={ personsAndTeams:[{id:Number(meId), kind:'person'}] };
+    await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Offerte erstellen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv2)}}, token);
+  }catch(e){ console.warn('[Monday] Subelement „Offerte erstellen":', e.message); }
   // Kurzbeschrieb als Kommentar am Item
   if(data.kurzbeschrieb){ try{ await _mondayFetch({query:`mutation($b:String!){ create_update(item_id:${itemId}, body:$b){ id } }`, variables:{b:'Kurzbeschrieb zur Anfrage '+nr+':\n\n'+data.kurzbeschrieb}}, token); }catch(e){} }
   return {itemId, subId, existing:false};
