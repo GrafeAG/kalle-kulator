@@ -3,21 +3,28 @@
 //         Vergangenheit hat UND nicht "Fertig"/"Brauchts nicht" ist UND nicht
 //         "Anfrage eingegangen" heisst. Sonst 🟢 OK.
 //
+// Optimiert für häufige Läufe: schreibt NUR Projekte, deren Status sich ändert
+// (alle anderen werden nur gelesen). Dadurch kann der Job alle paar Minuten laufen.
+//
 // Läuft komplett serverseitig (Monday-Token aus der .env, verlässt den Server nie).
-// Einmal ausführen füllt/aktualisiert ALLE Projekte:  node src/scripts/terminstatus.js
-// Für die Automatik täglich per Aufgabenplanung / cron starten (siehe LIESMICH.txt).
+//   Einmal/periodisch:  node scripts/terminstatus.js
+// Für schnelle Aktualisierung alle 5 Min per Aufgabenplanung / cron (siehe LIESMICH.txt).
 //
 // Voraussetzung in .env:  MONDAY_TOKEN=<Monday-API-Token>
 
 const MONDAY_API = 'https://api.monday.com/v2';
 const BOARD      = 1012481465;              // GRAFE Produktionsübersicht (Projekte)
 const COL_STATUS = 'color_mm5syzb9';        // Spalte "Terminstatus"
-const LABEL_RED  = '2';                     // 🔴 Überfällig
-const LABEL_OK   = '1';                     // 🟢 OK
+const LABEL_RED  = '2';                     // 🔴 Überfällig  (Label-ID)
+const LABEL_OK   = '1';                     // 🟢 OK          (Label-ID)
+const TEXT_RED   = '🔴 Überfällig';         // angezeigter Text (für Vergleich)
+const TEXT_OK    = '🟢 OK';
 const SUB_DATE   = 'date0';                 // Subelement: Datum
 const SUB_STATUS = 'status';               // Subelement: Status
 const DONE       = new Set(['Fertig', 'Brauchts nicht']);
 const IGNORE_SUB = 'Anfrage eingegangen';   // dieses Subelement zählt nie
+
+try { require('dotenv').config(); } catch (e) {}
 
 const TOKEN = process.env.MONDAY_TOKEN;
 if (!TOKEN) { console.error('MONDAY_TOKEN fehlt (.env)'); process.exit(1); }
@@ -39,8 +46,6 @@ async function gql(query, variables = {}) {
   return j.data;
 }
 
-// Ein Subelement ist "überfällig", wenn Datum < heute, Status nicht erledigt,
-// und es nicht das Info-Subelement "Anfrage eingegangen" ist.
 function subOverdue(s) {
   const name = (s.name || '').trim();
   if (name === IGNORE_SUB) return false;
@@ -50,8 +55,7 @@ function subOverdue(s) {
   const dt = cv[SUB_DATE]   || '';
   if (DONE.has(st)) return false;
   if (!dt) return false;
-  const day = dt.slice(0, 10);               // "YYYY-MM-DD" (evtl. + Uhrzeit)
-  return day < TODAY;                        // ISO-Datum: lexikografisch = chronologisch
+  return dt.slice(0, 10) < TODAY;            // ISO-Datum: lexikografisch = chronologisch
 }
 
 async function fetchAllProjects() {
@@ -63,7 +67,11 @@ async function fetchAllProjects() {
         boards(ids:${BOARD}){
           items_page(limit:200, cursor:$cursor){
             cursor
-            items{ id subitems{ name column_values(ids:["${SUB_DATE}","${SUB_STATUS}"]){ id text } } }
+            items{
+              id
+              column_values(ids:["${COL_STATUS}"]){ text }
+              subitems{ name column_values(ids:["${SUB_DATE}","${SUB_STATUS}"]){ id text } }
+            }
           }
         }
       }`, { cursor });
@@ -74,7 +82,6 @@ async function fetchAllProjects() {
   return items;
 }
 
-// Status je Projekt setzen — gebündelt (aliased), ~40 pro Request.
 async function setStatuses(updates) {
   const CHUNK = 40;
   for (let i = 0; i < updates.length; i += CHUNK) {
@@ -83,20 +90,20 @@ async function setStatuses(updates) {
       `a${j}: change_simple_column_value(board_id:${BOARD}, item_id:${u.id}, column_id:"${COL_STATUS}", value:"${u.value}"){id}`
     );
     await gql(`mutation{ ${parts.join(' ')} }`);
-    process.stdout.write(`  ${Math.min(i + CHUNK, updates.length)}/${updates.length}\r`);
   }
 }
 
 (async () => {
-  console.log(`[Terminstatus] Heute = ${TODAY}. Lade Projekte…`);
   const items = await fetchAllProjects();
   let red = 0, ok = 0;
-  const updates = items.map(it => {
+  const updates = [];
+  for (const it of items) {
     const isRed = (it.subitems || []).some(subOverdue);
     if (isRed) red++; else ok++;
-    return { id: it.id, value: isRed ? LABEL_RED : LABEL_OK };
-  });
-  console.log(`[Terminstatus] ${items.length} Projekte · 🔴 ${red} · 🟢 ${ok}. Schreibe…`);
+    const current = ((it.column_values && it.column_values[0] && it.column_values[0].text) || '').trim();
+    const wantText = isRed ? TEXT_RED : TEXT_OK;
+    if (current !== wantText) updates.push({ id: it.id, value: isRed ? LABEL_RED : LABEL_OK });
+  }
   await setStatuses(updates);
-  console.log(`\n[Terminstatus] Fertig.`);
+  console.log(`[Terminstatus ${TODAY}] ${items.length} Projekte · 🔴 ${red} · 🟢 ${ok} · geändert: ${updates.length}`);
 })().catch(e => { console.error('[Terminstatus] Fehler:', e.message); process.exit(1); });
