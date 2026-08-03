@@ -24,10 +24,13 @@ const SUB_STATUS = 'status';               // Subelement: Status
 const DONE       = new Set(['Fertig', 'Brauchts nicht']);
 const IGNORE_SUB = 'Anfrage eingegangen';   // dieses Subelement zählt nie
 
-try { require('dotenv').config(); } catch (e) {}
+// .env robust laden: absoluter Pfad relativ zum Skript (…/scripts/terminstatus.js → …/.env),
+// damit der Job unabhängig vom Arbeitsverzeichnis der Aufgabenplanung funktioniert.
+try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); } catch (e) {}
+try { if(!process.env.MONDAY_TOKEN) require('dotenv').config(); } catch (e) {}
 
 const TOKEN = process.env.MONDAY_TOKEN;
-if (!TOKEN) { console.error('MONDAY_TOKEN fehlt (.env)'); process.exit(1); }
+if (!TOKEN) { console.error('[Terminstatus] MONDAY_TOKEN fehlt — .env nicht gefunden? Skript in …/scripts/ ablegen, .env im kalle-server-Stamm.'); process.exit(1); }
 
 function todayStr() {
   const d = new Date();
