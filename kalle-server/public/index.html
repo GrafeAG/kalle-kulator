@@ -778,6 +778,11 @@ a, button, input, select, textarea, label,
           <div class="type-btn-name">Montage Gesamtauftrag</div>
           <div class="type-btn-sub">Anfahrt · Personal · Zusatz</div>
         </div>
+        <div class="type-btn stl" id="tb-versand" onclick="startPos('versand')">
+          <div class="type-btn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 8V19a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V8"/><path d="M2 8l2-4h16l2 4H2z"/><line x1="12" y1="4" x2="12" y2="20"/><line x1="9" y1="12" x2="15" y2="12"/></svg></div>
+          <div class="type-btn-name">Versand</div>
+          <div class="type-btn-sub">DPD · Camion · frei</div>
+        </div>
         <div class="type-btn" id="tb-text" onclick="startPos('text')" style="border-color:var(--teal);">
           <div class="type-btn-icon" style="color:var(--teal);">¶</div>
           <div class="type-btn-name">Textposition</div>
@@ -2163,6 +2168,48 @@ a, button, input, select, textarea, label,
     <button class="btn btn-y" onclick="saveTextPos()" style="width:100%;font-size:14px;padding:11px;">✓ Textposition speichern</button>
   </div>
 
+  <div id="versandForm" style="display:none;" class="sec">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;">📦 Versand</div>
+      <button class="btn btn-gh" onclick="closeVersandForm()" style="font-size:11px;">✕ Abbrechen</button>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Bezeichnung <span style="font-size:9px;color:var(--muted);">(Positionstitel in der Offerte)</span></label>
+      <input type="text" id="vsLabel" value="Versand" placeholder="Versand"
+        style="width:100%;font-size:14px;font-weight:600;">
+    </div>
+
+    <!-- DPD / Camion (wiederverwendete Versand-Sektion) -->
+    <div id="vsVersandWrap"></div>
+
+    <!-- Freie Eingabe -->
+    <div class="st t" style="font-size:9px;margin-bottom:8px;margin-top:14px;">Freier Versand-Betrag (optional)</div>
+    <div class="g2" style="gap:8px;">
+      <div class="field">
+        <label>Bezeichnung</label>
+        <input type="text" id="vsFreiBez" placeholder="z.B. Versandpauschale, Kurier, Porto"
+          oninput="cVersandProd()"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;">
+      </div>
+      <div class="field">
+        <label>Betrag (CHF) <span style="font-size:9px;color:var(--muted);">Verkaufspreis</span></label>
+        <input type="number" id="vsFreiBetrag" min="0" step="5" placeholder="0.00"
+          oninput="cVersandProd()"
+          style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;">
+      </div>
+    </div>
+
+    <div class="field" style="margin:12px 0;">
+      <label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);">(optional)</span></label>
+      <input type="text" id="vsNotiz" placeholder="z.B. Lieferung frei Haus, Abholung durch Kunde..."
+        style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;">
+    </div>
+
+    <div id="vsTotalPreview" style="text-align:right;font-size:13px;font-weight:800;color:var(--accent);margin-bottom:12px;">Total Versand: CHF 0.00</div>
+
+    <button class="btn btn-y" onclick="saveVersandPos()" style="width:100%;font-size:14px;padding:11px;">✓ Versand-Position speichern</button>
+  </div>
+
   <div id="fahrzeugForm" style="display:none;" class="sec">
     <style>
       #fahrzeugForm .fz-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;}
@@ -2562,9 +2609,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.6';
+const UI_VERSION='V7.7';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.7','Neu: „Versand" ist jetzt ein eigenes Produkt/Position — wie „Montage Gesamtauftrag". Über die Produkt-Kachel „Versand" wählbar: DPD-Klasse (S–XXL, automatischer Preis) und/oder Camion-Transport sowie ein freier Betrag mit eigener Bezeichnung. Erscheint als eigene Positionszeile mit Preis in der Offerte (Menge „Psch."). Wird gespeichert, in der Positionsliste angezeigt und lässt sich normal bearbeiten.'],
   ['V7.6','Fix: Die Umschaltung „Total / p. Stk" bei der Arbeitszeit in der Werbetechnik (Folientechnik) wird jetzt korrekt gespeichert und beim Wieder-Öffnen/Bearbeiten einer Offerte wiederhergestellt. Bisher fiel der Modus beim erneuten Öffnen auf „Total" zurück, obwohl „p. Stk" gewählt war.'],
   ['V7.5','(1) Buttons neu geordnet: „Sichern" = Auftrag speichern · „Offerte PDF" = erzeugt die Offerte und legt sie NUR im Projektordner ab (kein Druckfenster mehr) · NEU „Offerte drucken" = öffnet den Druckdialog. (2) PDF: Der Versand erscheint jetzt bei allen Positionsarten als Texthinweis (z. B. „Versand: DPD …" / „Camion-Transport") — in der Kunden-Offerte ohne Preis. (3) PDF: Bei den Vorbereitungsarbeiten (Datenerstellung, Layout, GzA …) wird nun die Zeitangabe mit ausgewiesen. (4) Datenpfad rechts im Kontrollfeld ist klickbar — ein Klick kopiert den Pfad in die Zwischenablage, damit der Ordner im Explorer geöffnet werden kann (E-Mail schreiben, Offerte anhängen).'],
   ['V7.4','(1) Navigation: Der Tab „Aufträge" öffnet jetzt wieder direkt die Liste der gespeicherten Aufträge (statt des Kontrollraums). Den Kontrollraum erreichst du weiterhin über „← Kontrollraum" in der Auftragsliste sowie über die Reaktor-Startseite. (2) Reaktor-Startseite & Auftragsliste aktualisieren jetzt zuverlässig: Die Auftragslisten wurden bisweilen aus dem Browser-Cache geladen, sodass neu erfasste Aufträge nicht erschienen. Die Listen werden jetzt immer frisch vom Server geholt (kein Cache), und nach dem Erfassen wird die Startseiten-Liste sofort aktualisiert.'],
@@ -9830,7 +9878,7 @@ function startPosWithCopy(type){
 // ── Positions-Formulare: EINE Quelle der Wahrheit ────────────────────
 // Unvollständige Listen führten dazu, dass zwei Formulare gleichzeitig offen
 // waren — Eingabe im einen, Validierung im anderen (leeren).
-const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm','fahrzeugForm'];
+const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm','fahrzeugForm','versandForm'];
 function hidePosForms(inklDialog){
   POS_FORMS.forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   if(inklDialog){ const t=document.getElementById('typeDialog'); if(t) t.style.display='none'; }
@@ -9839,6 +9887,7 @@ function hidePosForms(inklDialog){
 function startPos(type){
   if(type==='text'){openTextForm();return;}
   if(type==='fahrzeug'){editIdx=-1;openFahrzeugForm();return;}
+  if(type==='versand'){editIdx=-1;openVersandForm();return;}
   $('typeDialog').style.display='none';
   hidePosForms(false);
   if(type==='schild'){
@@ -11217,7 +11266,7 @@ function buildVersandSection(wrap, pfx, calcFn){
 
   const head=document.createElement('div');
   head.className='st t';head.style.cssText='font-size:9px;margin-bottom:8px;margin-top:12px;';
-  head.textContent='Versand (statt Montage)';wrap.appendChild(head);
+  head.textContent=(pfx==='vs')?'DPD / Camion':'Versand (statt Montage)';wrap.appendChild(head);
 
   // ── DPD Sektion ─────────────────────────────────────
   const dpdRow=document.createElement('div');dpdRow.className='tr';dpdRow.style.marginBottom='6px';
@@ -11542,6 +11591,66 @@ function saveTextPos(){
   renderPos();updateTotals();
   $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
   showToast(wasEdit?'Textposition aktualisiert ✓':'Textposition gespeichert ✓');
+}
+
+/* ═══════════════════ Versand (eigene Position) ═══════════════════
+   Eigener Positionstyp „versand" — wie Montage Gesamtauftrag, aber für Versand.
+   DPD/Camion (automatischer Preis) UND/ODER freier Betrag. Erscheint als
+   normale Positionszeile mit Preis. */
+function vsBuildSection(){
+  const w=document.getElementById('vsVersandWrap');
+  if(w){ w.innerHTML=''; if(typeof buildVersandSection==='function') buildVersandSection(w,'vs','cVersandProd'); }
+}
+function openVersandForm(){
+  hidePosForms(false);
+  $('typeDialog').style.display='none';
+  vsBuildSection();
+  $('versandForm').style.display='block';
+  if(editIdx<0){
+    if($('vsLabel'))$('vsLabel').value='Versand';
+    if($('vsFreiBez'))$('vsFreiBez').value='';
+    if($('vsFreiBetrag'))$('vsFreiBetrag').value='';
+    if($('vsNotiz'))$('vsNotiz').value='';
+  }
+  cVersandProd();
+  if($('vsLabel'))$('vsLabel').focus();
+}
+function closeVersandForm(){
+  $('versandForm').style.display='none';
+  $('typeDialog').style.display='block';
+  editIdx=-1;
+}
+function cVersandProd(){
+  const vVK = (typeof calcVersandVK==='function') ? (calcVersandVK('vs')||0) : 0;
+  const frei = parseFloat($('vsFreiBetrag')?.value)||0;
+  const total = vVK + frei;
+  const el=$('vsTotalPreview');
+  if(el) el.textContent = 'Total Versand: CHF '+total.toFixed(2);
+  return total;
+}
+function saveVersandPos(){
+  const vd = (typeof getVersandData==='function') ? getVersandData('vs') : {dpdAkt:false,camionAkt:false,versandVK:0};
+  const freiBez = $('vsFreiBez')?.value?.trim()||'';
+  const freiBetrag = parseFloat($('vsFreiBetrag')?.value)||0;
+  if(!vd.dpdAkt && !vd.camionAkt && freiBetrag<=0 && !freiBez){
+    showToast('Bitte Versandart wählen oder einen Betrag eingeben','error'); return;
+  }
+  const total = (vd.versandVK||0) + freiBetrag;
+  const data = {
+    type:'versand',
+    label: $('vsLabel')?.value?.trim() || 'Versand',
+    versand: vd,
+    freiBez, freiBetrag,
+    notiz: $('vsNotiz')?.value?.trim() || '',
+    totalVK: total, proStk: total, stk:1,
+  };
+  const wasEdit = editIdx>=0;
+  if(editIdx>=0) positions[editIdx]=data; else positions.push(data);
+  editIdx=-1;
+  $('versandForm').style.display='none';
+  renderPos(); updateTotals();
+  $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
+  showToast(wasEdit?'Versand aktualisiert ✓':'Versand-Position gespeichert ✓');
 }
 
 /* ═══════════════════ Fahrzeugbeschriftung ═══════════════════
@@ -13636,6 +13745,13 @@ function renderPos(){
       badge='Fahrzeug';
       const fzAus=p.fzAusf==='digital'?'Digitaldruck':'2-farbig';
       sub=`${p.fzModell?p.fzModell+' · ':''}${p.fzTypNm||''} · ${fzAus} · ${p.stk||1}Stk${p.fzFen?' · Window Graphic':''}${p.fzVor?' · Montage':''}`;
+    }else if(p.type==='versand'){
+      badge='Versand';
+      const vp=[];
+      if(p.versand?.dpdAkt)vp.push('DPD '+(p.versand.dpdLabel||'').split('—')[0].trim());
+      if(p.versand?.camionAkt)vp.push('Camion');
+      if(p.freiBetrag>0)vp.push(p.freiBez||'Pauschale');
+      sub=vp.join(' · ')||'Versand';
     }else{
       badge='Folie';
       sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²${p.minAkt?' ⚡':''}`;
@@ -14227,6 +14343,23 @@ function editPos(i){
     if($('txtLabel'))$('txtLabel').value=p.label||'';
     if($('txtInhalt'))$('txtInhalt').value=p.text||'';
     if($('txtStyle'))$('txtStyle').value=p.txtStyle||'normal';
+  }else if(p.type==='versand'){
+    hidePosForms(false);
+    $('typeDialog').style.display='none';
+    vsBuildSection();
+    $('versandForm').style.display='block';
+    if($('vsLabel'))$('vsLabel').value=p.label||'Versand';
+    if($('vsFreiBez'))$('vsFreiBez').value=p.freiBez||'';
+    if($('vsFreiBetrag'))$('vsFreiBetrag').value=(p.freiBetrag||'');
+    if($('vsNotiz'))$('vsNotiz').value=p.notiz||'';
+    setTimeout(()=>{
+      const vd=p.versand||{};
+      if(vd.dpdAkt){ const c=$('vsDpdAkt'); if(c)c.checked=true;
+        const sel=$('vsDpdKlasse'); if(sel){ const idx=(P.versand?.dpd||[]).findIndex(d=>d.klasse===vd.dpdKlasse||d.label===vd.dpdLabel); if(idx>=0)sel.value=String(idx); } }
+      if(vd.camionAkt){ const c=$('vsCamionAkt'); if(c)c.checked=true; const ek=$('vsCamionEK'); if(ek&&vd.camionEK)ek.value=vd.camionEK; }
+      cVersandProd();
+    },40);
+    $('versandForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='fahrzeug'){
     hidePosForms(false);
     $('typeDialog').style.display='none';
@@ -15473,6 +15606,25 @@ function printDoc(mode){
           ${rabattInline}
         </td>
         <td class="c-ep">${fmtVar(p,p.totalVK/(p.stk||1))}</td>
+        <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
+      </tr>`;
+    }
+    if(p.type==='versand'){
+      const vparts=[];
+      if(p.versand?.dpdAkt&&p.versand.dpdLabel) vparts.push('DPD '+p.versand.dpdLabel);
+      if(p.versand?.camionAkt) vparts.push('Camion-Transport (separat angefragt)');
+      if(p.freiBetrag>0) vparts.push(p.freiBez||'Versandpauschale');
+      let vdetail = vparts.join(' · ') || 'Versand';
+      if(isInt){
+        const eks=[];
+        if(p.versand?.dpdAkt) eks.push('DPD EK CHF '+((p.versand.dpdEK||0)+(p.versand.verpEK||0)).toFixed(2));
+        if(p.versand?.camionAkt) eks.push('Camion EK CHF '+(p.versand.camionEK||0).toFixed(2));
+        if(eks.length) vdetail+=' · '+eks.join(' · ');
+      }
+      return `<tr style="${variantStyle}">
+        <td class="c-pos">${i+1}</td><td class="c-menge">1</td><td class="c-me">Psch.</td>
+        <td class="c-bez"><strong>${p.label||'Versand'}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${vdetail}</span>${rabattInline}</td>
+        <td class="c-ep">${fmtVar(p,p.totalVK)}</td>
         <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
     }
