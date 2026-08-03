@@ -2561,9 +2561,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.1';
+const UI_VERSION='V7.2';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.2','Folientechnik → „Arbeitszeit in der Werbetechnik": Jeder Punkt (Entgittern, Tapen, Konfektionieren, Zuschnitt, Laminieren, Qualitätskontrolle) hat jetzt neben dem Minuten-Feld eine Umschaltung „Total / p. Stk". Bei „Total" gilt die Zeit wie bisher für die ganze Position; bei „p. Stk" wird die Zeit mit der Stückzahl multipliziert. Das Badge zeigt bei p. Stk zur Kontrolle die Rechnung (z. B. „CHF 32.40 (15×10)"). Die Einstellung wird mit der Offerte gespeichert und beim Bearbeiten wiederhergestellt.'],
   ['V7.1','(1) Monday: neue Projekte in „Projekt und Offertanfragen" bekommen jetzt zuverlässig den Status „Unbearbeitet". (2) Produkte: die Auswahl „Was soll kalkuliert werden?" heisst jetzt „Produkte" — Text und Rabatt entfernt, Stelen und M&M ergänzt (Leuchtwerbung bleibt). (3) Manuelle Nummer: über „✎ Nr. manuell" lässt sich eine bereits (z. B. in SelectLine) vergebene Projektnummer eintragen. Die automatisch reservierte wird freigegeben, die manuelle als vergeben markiert und aus dem Pool gestrichen. Wichtig für die Übergangsphase.'],
   ['V7.0','Adresseingabe: neues Feld „Adresszusatz" bei der Objektadresse (Gebäude, Stockwerk, Eingang, c/o …). — Roche-Sonderablage: Wird als Kunde „Roche" erkannt, erscheint ein eigenes Panel: entweder Jahresablage (Objekte/Basel/Roche/<Jahr>/<Projekt>) oder Zuordnung zu einem Bau (Dropdown der bestehenden Bauten, live vom Laufwerk, oder neuen Bau anlegen → Objekte/Basel/Roche/<Bau>/<Projekt>). Voraussetzung: neue Server-Route /roche (+ ROCHE_BASE in der .env).'],
   ['V6.9','Projekt löschen: Erfasste Projekte lassen sich jetzt vollständig löschen — Monday-Eintrag (inkl. Subelemente) wird entfernt, Offerte/Positionen gelöscht und die Projektnummer wieder freigegeben (wiederverwendbar). Optional wird auch der Projektordner gelöscht (mit Rückfrage). Button in der Auftragsübersicht (🗑) und im geöffneten Projekt („🗑 Projekt löschen" in der Projektordner-Sektion). Voraussetzung: neue Server-Route /projekt-loeschen. — Zusätzlich: Klick auf das Grafe-Logo oben links führt zurück zur Startseite (Neuer Vorgang).'],
@@ -5625,6 +5626,7 @@ function ftReBuild(){
     if(item.gruppe!=='Werbetechniker')return;
     const prevAkt=document.getElementById('ft-wt'+i)?.checked||false;
     const prevMin=parseFloat(document.getElementById('min-ft-wt'+i)?.value)||item.defaultMin||0;
+    const prevMod=document.getElementById('mod-ft-wt'+i)?.value||'pos';
     const wtRow=document.createElement('div');wtRow.className='tr';wtRow.style.marginBottom='4px';
     wtRow.innerHTML=`<div class="tr-l">
         <label class="tog" onclick=""><input type="checkbox" id="ft-wt${i}" onchange="cFt()"${prevAkt?' checked':''}><span class="tsl"></span></label>
@@ -5636,8 +5638,12 @@ function ftReBuild(){
           <input type="number" id="min-ft-wt${i}" value="${prevMin}" min="0" step="5"
             oninput="cFt()" style="width:58px;background:var(--surface2);border:1px solid var(--border);
             color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:right;">
-          <span style="font-size:10px;color:var(--muted);">Min</span>
+          <span style="font-size:10px;color:var(--muted);" id="unit-ft-wt${i}">Min</span>
         </div>
+        <select id="mod-ft-wt${i}" onchange="cFt()" title="Total = Zeit gilt für die ganze Position · p. Stk = Zeit wird mit der Stückzahl multipliziert" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 4px;border-radius:3px;font-size:10px;">
+          <option value="pos"${prevMod==='pos'?' selected':''}>Total</option>
+          <option value="stk"${prevMod==='stk'?' selected':''}>p. Stk</option>
+        </select>
         <span class="pbadge" id="pb-ft-wt${i}">–</span>
       </div>`;
     mat.appendChild(wtRow);
@@ -5958,10 +5964,14 @@ function cFt(){
     const chk=document.getElementById('ft-wt'+i);
     if(!chk?.checked)return;
     const min=parseFloat(document.getElementById('min-ft-wt'+i)?.value)||0;
-    const val=min*item.preis;
+    const mod=document.getElementById('mod-ft-wt'+i)?.value||'pos';
+    const effMin=mod==='stk'?min*stk:min;
+    const val=effMin*item.preis;
     ftWtVK+=val;
+    const unit=document.getElementById('unit-ft-wt'+i);
+    if(unit)unit.textContent=mod==='stk'?'Min/Stk':'Min';
     const pb=document.getElementById('pb-ft-wt'+i);
-    if(pb)pb.textContent=val>0?'CHF '+val.toFixed(2):'–';
+    if(pb)pb.textContent=val>0?('CHF '+val.toFixed(2)+(mod==='stk'?` (${min}×${stk})`:'')):'–';
     chk.closest('.tr')?.classList.toggle('on',val>0);
   });
 
@@ -6100,7 +6110,9 @@ function saveFolientechnik(){
         const chk=document.getElementById('ft-wt'+i);
         if(!chk||!chk.checked)return;
         const min=parseFloat(document.getElementById('min-ft-wt'+i)?.value)||0;
-        res.push({name:item.name,min,val:min*item.preis});
+        const mod=document.getElementById('mod-ft-wt'+i)?.value||'pos';
+        const effMin=mod==='stk'?min*(r.stk||1):min;
+        res.push({name:item.name,min,mod,val:effMin*item.preis});
       });
       return res;
     })(),
@@ -9944,6 +9956,8 @@ function startPos(type){
             if(chk)chk.checked=true;
             const inp=document.getElementById('min-ft-wt'+i);
             if(inp)inp.value=found.min||0;
+            const modSel=document.getElementById('mod-ft-wt'+i);
+            if(modSel&&found.mod)modSel.value=found.mod;
           }
         });
         cFt();
