@@ -8,9 +8,17 @@
 //
 // Läuft komplett serverseitig (Monday-Token aus der .env, verlässt den Server nie).
 //   Einmal/periodisch:  node scripts/terminstatus.js
-// Für schnelle Aktualisierung alle 5 Min per Aufgabenplanung / cron (siehe LIESMICH.txt).
+// Für schnelle Aktualisierung alle 2 Min per Aufgabenplanung / cron (siehe LIESMICH.txt).
 //
 // Voraussetzung in .env:  MONDAY_TOKEN=<Monday-API-Token>
+//
+// NEU: Jeder Lauf schreibt in eine Logdatei (…/terminstatus.log) und in
+//      …/terminstatus_last.txt (nur die letzte Zeile). Damit sieht man sofort,
+//      OB und WANN der Job zuletzt lief und ob er Fehler hatte — auch wenn er
+//      per Aufgabenplanung läuft (dort landet die Konsolenausgabe sonst nirgends).
+
+const fs   = require('fs');
+const path = require('path');
 
 const MONDAY_API = 'https://api.monday.com/v2';
 const BOARD      = 1012481465;              // GRAFE Produktionsübersicht (Projekte)
@@ -24,13 +32,40 @@ const SUB_STATUS = 'status';               // Subelement: Status
 const DONE       = new Set(['Fertig', 'Brauchts nicht']);
 const IGNORE_SUB = 'Anfrage eingegangen';   // dieses Subelement zählt nie
 
+// ── Logging in Datei (neben der .env im kalle-server-Stamm) ────────────────
+const LOG_FILE  = path.join(__dirname, '..', 'terminstatus.log');
+const LAST_FILE = path.join(__dirname, '..', 'terminstatus_last.txt');
+const MAX_LOG_LINES = 500;                  // Log rollt, damit es nicht endlos wächst
+
+function stamp() {
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  return `${d.getFullYear()}-${p(d.getMonth()+1)}-${p(d.getDate())} ${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+function log(msg) {
+  const line = `[${stamp()}] ${msg}`;
+  try {
+    let prev = '';
+    try { prev = fs.readFileSync(LOG_FILE, 'utf8'); } catch (e) {}
+    let lines = (prev ? prev.split('\n') : []).filter(Boolean);
+    lines.push(line);
+    if (lines.length > MAX_LOG_LINES) lines = lines.slice(lines.length - MAX_LOG_LINES);
+    fs.writeFileSync(LOG_FILE, lines.join('\n') + '\n');
+  } catch (e) { /* Log darf den Job nie stoppen */ }
+  try { fs.writeFileSync(LAST_FILE, line + '\n'); } catch (e) {}
+  console.log(msg);
+}
+
 // .env robust laden: absoluter Pfad relativ zum Skript (…/scripts/terminstatus.js → …/.env),
 // damit der Job unabhängig vom Arbeitsverzeichnis der Aufgabenplanung funktioniert.
-try { require('dotenv').config({ path: require('path').join(__dirname, '..', '.env') }); } catch (e) {}
+try { require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); } catch (e) {}
 try { if(!process.env.MONDAY_TOKEN) require('dotenv').config(); } catch (e) {}
 
 const TOKEN = process.env.MONDAY_TOKEN;
-if (!TOKEN) { console.error('[Terminstatus] MONDAY_TOKEN fehlt — .env nicht gefunden? Skript in …/scripts/ ablegen, .env im kalle-server-Stamm.'); process.exit(1); }
+if (!TOKEN) {
+  log('[Terminstatus] FEHLER: MONDAY_TOKEN fehlt — .env nicht gefunden? Skript in …/scripts/ ablegen, .env im kalle-server-Stamm.');
+  process.exit(1);
+}
 
 function todayStr() {
   const d = new Date();
@@ -108,5 +143,8 @@ async function setStatuses(updates) {
     if (current !== wantText) updates.push({ id: it.id, value: isRed ? LABEL_RED : LABEL_OK });
   }
   await setStatuses(updates);
-  console.log(`[Terminstatus ${TODAY}] ${items.length} Projekte · 🔴 ${red} · 🟢 ${ok} · geändert: ${updates.length}`);
-})().catch(e => { console.error('[Terminstatus] Fehler:', e.message); process.exit(1); });
+  log(`[Terminstatus ${TODAY}] ${items.length} Projekte · 🔴 ${red} · 🟢 ${ok} · geändert: ${updates.length}`);
+})().catch(e => {
+  log('[Terminstatus] FEHLER beim Lauf: ' + (e && e.message ? e.message : String(e)));
+  process.exit(1);
+});
