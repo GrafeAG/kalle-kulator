@@ -2561,9 +2561,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.0';
+const UI_VERSION='V7.1';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.1','(1) Monday: neue Projekte in „Projekt und Offertanfragen" bekommen jetzt zuverlässig den Status „Unbearbeitet". (2) Produkte: die Auswahl „Was soll kalkuliert werden?" heisst jetzt „Produkte" — Text und Rabatt entfernt, Stelen und M&M ergänzt (Leuchtwerbung bleibt). (3) Manuelle Nummer: über „✎ Nr. manuell" lässt sich eine bereits (z. B. in SelectLine) vergebene Projektnummer eintragen. Die automatisch reservierte wird freigegeben, die manuelle als vergeben markiert und aus dem Pool gestrichen. Wichtig für die Übergangsphase.'],
   ['V7.0','Adresseingabe: neues Feld „Adresszusatz" bei der Objektadresse (Gebäude, Stockwerk, Eingang, c/o …). — Roche-Sonderablage: Wird als Kunde „Roche" erkannt, erscheint ein eigenes Panel: entweder Jahresablage (Objekte/Basel/Roche/<Jahr>/<Projekt>) oder Zuordnung zu einem Bau (Dropdown der bestehenden Bauten, live vom Laufwerk, oder neuen Bau anlegen → Objekte/Basel/Roche/<Bau>/<Projekt>). Voraussetzung: neue Server-Route /roche (+ ROCHE_BASE in der .env).'],
   ['V6.9','Projekt löschen: Erfasste Projekte lassen sich jetzt vollständig löschen — Monday-Eintrag (inkl. Subelemente) wird entfernt, Offerte/Positionen gelöscht und die Projektnummer wieder freigegeben (wiederverwendbar). Optional wird auch der Projektordner gelöscht (mit Rückfrage). Button in der Auftragsübersicht (🗑) und im geöffneten Projekt („🗑 Projekt löschen" in der Projektordner-Sektion). Voraussetzung: neue Server-Route /projekt-loeschen. — Zusätzlich: Klick auf das Grafe-Logo oben links führt zurück zur Startseite (Neuer Vorgang).'],
   ['V6.8','Monday-Intake: Beim Erfassen wird jetzt zusätzlich zum Subelement „Anfrage eingegangen" automatisch ein zweites Subelement „Offerte erstellen" mit Frist +3 Werktage angelegt (Samstag & Sonntag zählen nicht mit), gleicher Bearbeiter. So steht die Offert-Frist sofort terminiert im Board.'],
@@ -10234,6 +10235,18 @@ window.reserveVorgangsnummer=reserveVorgangsnummer;
 window.commitVorgangsnummer=commitVorgangsnummer;
 window.freigebeVorgangsnummer=freigebeVorgangsnummer;
 
+// Manuelle Nummer setzen (bereits in SelectLine erfasst, Übergangsphase):
+// gibt die reservierte Auto-Nummer frei und übernimmt die manuelle. Beim Erfassen
+// wird sie via commit als 'vergeben' markiert → aus dem verfügbaren Pool gestrichen.
+async function setManualVorgangsnummer(nr){
+  nr=String(nr||'').trim(); if(!nr) return false;
+  await freigebeVorgangsnummer();            // reservierte Auto-Nummer zurückgeben
+  NUM_STATE={nr:nr,committed:false};          // manuelle Nummer übernehmen
+  const inp=$('auftragsnr'); if(inp){ inp.value=nr; inp.readOnly=false; inp.dataset.manual='1'; }
+  return true;
+}
+window.setManualVorgangsnummer=setManualVorgangsnummer;
+
 function renderBearbeiterBackend(){
   const wrap=$('beBearbeiter');if(!wrap)return;wrap.innerHTML='';
   const h=document.createElement('div');h.className='st a';
@@ -16856,7 +16869,7 @@ async function _mondayFetch(query,token){
 const MONDAY_PROD = {
   board:'1012481465',
   group:'group_mm5hq91f',            // Gruppe „Projekt und Offertanfragen"
-  statusCol:'status', statusAnfrage:'Anfragen unbearbeitet',
+  statusCol:'status', statusAnfrage:'Unbearbeitet',
   col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w' },
   labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
@@ -17199,7 +17212,7 @@ function toggleEmailAnalyse(){
   .kp-box.done .kp-fill::after{display:none;}
   `;
 
-  const LEIST=[['tb-schild','Schild'],['tb-leucht','Leuchtwerbung'],['tb-fahrzeug','Fahrzeugbeschriftung'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-text','Text'],['tb-rabatt','Rabatt']];
+  const LEIST=[['tb-schild','Schild'],['tb-leucht','Leuchtwerbung'],['tb-stele','Stelen'],['tb-fahrzeug','Fahrzeugbeschriftung'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-mm','M&M']];
   const LICON={
     'tb-schild':'<rect x="4" y="4" width="16" height="9" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/>',
     'tb-leucht':'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/>',
@@ -17208,8 +17221,8 @@ function toggleEmailAnalyse(){
     'tb-fraes':'<path d="M6 20L12 5l6 15"/><line x1="8.5" y1="14" x2="15.5" y2="14"/>',
     'tb-sbb':'<rect x="6" y="4" width="12" height="11" rx="2"/><line x1="6" y1="10" x2="18" y2="10"/><line x1="8" y1="15" x2="6" y2="20"/><line x1="16" y1="15" x2="18" y2="20"/>',
     'tb-montage':'<path d="M15 4a4 4 0 0 0-2.6 7l-6.4 6.4 1.6 1.6L14 12.6A4 4 0 0 0 19 8l-2.4 2.4-2-2z"/>',
-    'tb-text':'<line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="11" x2="19" y2="11"/><line x1="5" y1="16" x2="13" y2="16"/>',
-    'tb-rabatt':'<line x1="6" y1="18" x2="18" y2="6"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/>'
+    'tb-stele':'<rect x="9" y="3" width="6" height="14" rx="1"/><rect x="6.5" y="17" width="11" height="4" rx="1"/>',
+    'tb-mm':'<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>'
   };
   const svg=(p,sz)=>'<svg width="'+(sz||15)+'" height="'+(sz||15)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">'+p+'</svg>';
 
@@ -17221,6 +17234,7 @@ function toggleEmailAnalyse(){
         <div style="display:flex;align-items:center;gap:12px;">
           <span class="keg-srv" id="kegSrv">○ Server …</span>
           <div class="keg-vg keg-hide" id="kegVg"><span class="n" id="kegVgNr">—</span><span class="tag" id="kegVgTag">reserviert</span></div>
+          <span class="keg-link keg-hide" id="kegNrManual" style="font-size:10.5px;white-space:nowrap;" title="Bestehende Projektnummer (z. B. aus SelectLine) manuell setzen">✎ Nr. manuell</span>
         </div>
       </div>
       <div class="keg-mock">Geführte Erfassung &amp; Ablage · danach direkt in deinen gewohnten Rechner</div>
@@ -17324,7 +17338,7 @@ function toggleEmailAnalyse(){
                 <div class="keg-pl"><span class="num">2</span> Anfrage</div>
                 <div class="keg-f"><label>Betreff der Anfrage — wird zur Projektbezeichnung</label><input id="kegBetreff" placeholder="z. B. Beschriftung Fassade"></div>
                 <div class="keg-projname"><div class="lbl">Projektbezeichnung</div><div class="val"><span class="n" id="kegProjNr">—</span> <span id="kegProjTxt">…</span></div></div>
-                <div class="keg-hint">was soll kalkuliert werden? (Mehrfachauswahl)</div>
+                <div class="keg-hint">Produkte (Mehrfachauswahl)</div>
                 <div class="keg-chips" id="kegLeist"></div>
                 <div class="keg-hint" style="margin-top:13px;">Notiz / Kurzbeschrieb — bei <b>telefonischer Anfrage</b> hier kurz festhalten, worum es geht. Wird als Monday-Kommentar übernommen.</div>
                 <textarea id="kegNotiz" placeholder="z. B. Kunde hat telefonisch angefragt: Beschriftung von 3 Firmenfahrzeugen, Termin Ende August, Wunschtermin Vor-Ort-Aufnahme …" style="width:100%;min-height:82px;margin-top:6px;padding:9px 11px;border:1.5px solid #d6dade;border-radius:8px;font-family:inherit;font-size:12.5px;line-height:1.5;background:#f7f8fa;color:#20242c;resize:vertical;box-sizing:border-box;"></textarea>
@@ -17725,6 +17739,17 @@ function toggleEmailAnalyse(){
     return String(new Date().getFullYear());
   }
 
+  // Manuelle Projektnummer (Übergangsphase: Nummer schon in SelectLine erfasst)
+  async function kegManualNr(){
+    var v=prompt('Bestehende Projektnummer manuell setzen (z. B. bereits in SelectLine erfasst).\n\nDie Nummer wird als vergeben markiert und aus dem verfügbaren Pool gestrichen.\n\nNummer:', CUR.nr||'');
+    if(v===null) return;
+    var nr=String(v).trim(); if(!nr) return;
+    try{ if(typeof window.setManualVorgangsnummer==='function') await window.setManualVorgangsnummer(nr); }catch(e){}
+    CUR.nr=nr; CUR.nrManual=true;
+    var t=G('kegVgTag'); if(t) t.textContent='manuell';
+    refresh();
+  }
+
   function refresh(){
     const k=CUR.kunde||{}; const nr=CUR.nr||'—';
     G('kegVgNr').textContent=nr; G('kegProjNr').textContent=nr; G('kegSumNr').textContent=nr;
@@ -17767,6 +17792,7 @@ function toggleEmailAnalyse(){
   async function startAnfrage(){
     CUR.mode='anfrage'; CUR.betreff=CUR.betreff||'';
     G('kegGate').classList.add('keg-hide'); G('kegFlow').classList.remove('keg-hide'); G('kegVg').classList.remove('keg-hide');
+    { const mn=G('kegNrManual'); if(mn){ mn.classList.remove('keg-hide'); mn.onclick=kegManualNr; } }
     G('kegVgTag').textContent='reserviert';
     s=0; go(0);
     // echte Nummer vom Server ziehen (füllt zugleich das echte Feld)
