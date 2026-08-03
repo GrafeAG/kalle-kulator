@@ -470,14 +470,15 @@ a, button, input, select, textarea, label,
     <span class="logo-tool">KALLE-KULATOR</span><span id="appVersionBadge" style="font-size:9px;color:var(--muted);margin-left:8px;padding:2px 6px;background:var(--surface3);border-radius:3px;letter-spacing:.3px;"></span><span id="serverStatus" title="KALLE-Server Status" style="font-size:9px;margin-left:6px;padding:2px 7px;background:var(--surface3);border-radius:3px;color:var(--muted);cursor:help;">○ Server</span>
     <nav class="nav-pills" style="margin-left:16px;">
       <div class="nav-pill active" onclick="showPage('kalk',this)">Kalkulation</div>
-      <div class="nav-pill" onclick="showPage('cockpit',this)">Aufträge</div>
+      <div class="nav-pill" onclick="showPage('auftraege',this)">Aufträge</div>
       <div class="nav-pill" onclick="showPage('backend',this)">⚙ Administration</div>
     </nav>
   </div>
   <div class="hdr-act">
     <button id="themeToggleBtn" class="btn btn-gh" onclick="toggleTheme()" title="Hell/Dunkel Modus" style="font-size:13px;padding:5px 10px;display:none;">Modus</button>
     <button class="btn btn-gh" onclick="saveAuftrag()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h11l3 3v13a1 1 0 0 1-1 1H6a1 1 0 0 1-1-1z"/><path d="M8 4v5h7"/><rect x="8" y="14" width="8" height="6"/></svg> Sichern</button>
-    <button class="btn btn-y" onclick="printDocOffer()"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9.5 14.5 12 17l2.5-2.5"/></svg> Offerte PDF</button>
+    <button class="btn btn-y" onclick="printDocOffer()" title="Offerte als PDF erzeugen und im Projektordner ablegen (02 Offertphase)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z"/><path d="M14 3v5h5"/><path d="M12 11v6"/><path d="M9.5 14.5 12 17l2.5-2.5"/></svg> Offerte PDF</button>
+    <button class="btn btn-gh" onclick="printDocDruck()" title="Offerte im Druckdialog öffnen (drucken / als PDF speichern)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M6 9V3h12v6"/><path d="M6 18H4a2 2 0 0 1-2-2v-3a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v3a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8" rx="1"/></svg> Offerte drucken</button>
     <div class="hdr-menu">
       <button class="btn btn-gh" onclick="toggleHdrMenu('mSend',event)"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg> Senden &amp; Export <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round" style="opacity:.5"><path d="m6 9 6 6 6-6"/></svg></button>
       <div class="hdr-dd" id="mSend">
@@ -2561,9 +2562,12 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.3';
+const UI_VERSION='V7.6';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.6','Fix: Die Umschaltung „Total / p. Stk" bei der Arbeitszeit in der Werbetechnik (Folientechnik) wird jetzt korrekt gespeichert und beim Wieder-Öffnen/Bearbeiten einer Offerte wiederhergestellt. Bisher fiel der Modus beim erneuten Öffnen auf „Total" zurück, obwohl „p. Stk" gewählt war.'],
+  ['V7.5','(1) Buttons neu geordnet: „Sichern" = Auftrag speichern · „Offerte PDF" = erzeugt die Offerte und legt sie NUR im Projektordner ab (kein Druckfenster mehr) · NEU „Offerte drucken" = öffnet den Druckdialog. (2) PDF: Der Versand erscheint jetzt bei allen Positionsarten als Texthinweis (z. B. „Versand: DPD …" / „Camion-Transport") — in der Kunden-Offerte ohne Preis. (3) PDF: Bei den Vorbereitungsarbeiten (Datenerstellung, Layout, GzA …) wird nun die Zeitangabe mit ausgewiesen. (4) Datenpfad rechts im Kontrollfeld ist klickbar — ein Klick kopiert den Pfad in die Zwischenablage, damit der Ordner im Explorer geöffnet werden kann (E-Mail schreiben, Offerte anhängen).'],
+  ['V7.4','(1) Navigation: Der Tab „Aufträge" öffnet jetzt wieder direkt die Liste der gespeicherten Aufträge (statt des Kontrollraums). Den Kontrollraum erreichst du weiterhin über „← Kontrollraum" in der Auftragsliste sowie über die Reaktor-Startseite. (2) Reaktor-Startseite & Auftragsliste aktualisieren jetzt zuverlässig: Die Auftragslisten wurden bisweilen aus dem Browser-Cache geladen, sodass neu erfasste Aufträge nicht erschienen. Die Listen werden jetzt immer frisch vom Server geholt (kein Cache), und nach dem Erfassen wird die Startseiten-Liste sofort aktualisiert.'],
   ['V7.3','(1) PDF-Offerte: Der Einzelpreis wird jetzt bei jeder Position ausgewiesen — auch bei Stückzahl 1 (bisher erschien dort „–"). (2) Ablage-Trigger verschoben: Beim Klick auf „Sichern" wird die Offerte NICHT mehr als PDF erzeugt und im Projektordner abgelegt. Das passiert jetzt bewusst beim Klick auf „Offerte PDF" — die PDF wird immer im Projektordner (02 Offertphase) abgelegt, das Druckfenster ist nachgelagert. (3) Datenpfad-Anzeige korrigiert: Nach „Jetzt kalkulieren" im Reaktor zeigt das Kontrollfeld rechts oben nun korrekt den angelegten Projektordner statt „noch kein Projektordner".'],
   ['V7.2','Folientechnik → „Arbeitszeit in der Werbetechnik": Jeder Punkt (Entgittern, Tapen, Konfektionieren, Zuschnitt, Laminieren, Qualitätskontrolle) hat jetzt neben dem Minuten-Feld eine Umschaltung „Total / p. Stk". Bei „Total" gilt die Zeit wie bisher für die ganze Position; bei „p. Stk" wird die Zeit mit der Stückzahl multipliziert. Das Badge zeigt bei p. Stk zur Kontrolle die Rechnung (z. B. „CHF 32.40 (15×10)"). Die Einstellung wird mit der Offerte gespeichert und beim Bearbeiten wiederhergestellt.'],
   ['V7.1','(1) Monday: neue Projekte in „Projekt und Offertanfragen" bekommen jetzt zuverlässig den Status „Unbearbeitet". (2) Produkte: die Auswahl „Was soll kalkuliert werden?" heisst jetzt „Produkte" — Text und Rabatt entfernt, Stelen und M&M ergänzt (Leuchtwerbung bleibt). (3) Manuelle Nummer: über „✎ Nr. manuell" lässt sich eine bereits (z. B. in SelectLine) vergebene Projektnummer eintragen. Die automatisch reservierte wird freigegeben, die manuelle als vergeben markiert und aus dem Pool gestrichen. Wichtig für die Übergangsphase.'],
@@ -11367,6 +11371,20 @@ function versandPdfStr(p){
   return parts.length?('<br><strong>Versand:</strong> '+parts.join(' · ')):'';
 }
 
+// Versand als reiner Texthinweis für die Kunden-Offerte — OHNE Preise.
+function versandKundeStr(p){
+  if(!p||!p.versand)return'';
+  const parts=[];
+  if(p.versand.dpdAkt&&p.versand.dpdLabel) parts.push('DPD '+p.versand.dpdLabel);
+  if(p.versand.camionAkt) parts.push('Camion-Transport (separat angefragt)');
+  return parts.length?('Versand: '+parts.join(' · ')):'';
+}
+// Versandzeile je nach Modus: intern mit Preis, Kunde ohne Preis
+function versandZeile(p,isInt){
+  return isInt ? versandPdfStr(p).replace('<br><strong>Versand:</strong> ','Versand: ').replace(/<br>/g,'')
+               : versandKundeStr(p);
+}
+
 // ═══════════════════════════════════════════════════════
 // ABHOLUNG / ANLIEFERUNG DURCH GRAFE
 // ═══════════════════════════════════════════════════════
@@ -14176,12 +14194,13 @@ function editPos(i){
           const chk=document.getElementById('ft-arb'+idx);if(chk)chk.checked=true;
           const minEl=document.getElementById('min-ft-arb'+idx);if(minEl&&a.min>0)minEl.value=a.min;
         });
-        // WT Arbeitszeit (ft-wt)
+        // WT Arbeitszeit (ft-wt) inkl. Modus Total/p. Stk
         (window._ftObState?._pendingWtArbeiten||[]).forEach(a=>{
           const idx=P.arbeitswerte.findIndex(w=>w.name===a.label||w.name===a.name);
           if(idx<0)return;
           const chk=document.getElementById('ft-wt'+idx);if(chk)chk.checked=true;
           const minEl=document.getElementById('min-ft-wt'+idx);if(minEl&&a.min>0)minEl.value=a.min;
+          const modSel=document.getElementById('mod-ft-wt'+idx);if(modSel&&a.mod)modSel.value=a.mod;
         });
         delete window._ftObState._pendingWtArbeiten;
         delete window._ftObState._pendingFtArbeit;
@@ -14963,12 +14982,14 @@ function buildOfferteHtml(){
     // Dummy window.open damit kein Tab öffnet
     const origOpen = window.open;
     window.open = function(){ return {close:()=>{}}; };
-    
+    window._silentPdf = true;   // unterdrückt den „Offerte geöffnet"-Toast im stillen Bau
+
     try { printDoc('offer'); } catch(e){}
-    
+
     window.Blob = origBlob;
     window.open = origOpen;
-    
+    window._silentPdf = false;
+
     setTimeout(()=> resolve(captured), 200);
   });
 }
@@ -15179,55 +15200,39 @@ function zeigeAblageDialog(onConfirm, onSkip){
 }
 
 // Haupt-Funktion: PDF generieren + automatisch ablegen
+// „Offerte PDF" = Offerte NUR im Projektordner ablegen (kein Druck-Tab).
+// Zum Drucken gibt es den separaten Button „Offerte drucken" (printDocDruck).
 function printDocOffer(){
   if(!positions||!positions.length){
     showToast('Keine Positionen vorhanden','error'); return;
   }
-
-  // Falls kein Server → einfach PDF ohne Ablage
   if(!serverVerfuegbar){
-    printDoc('offer'); return;
+    showToast('Server nicht erreichbar — Offerte kann nicht abgelegt werden','error',5000); return;
   }
 
   zeigeAblageDialog(
-    // onConfirm: Ordner vorhanden/erstellt → PDF + ablegen
+    // onConfirm: Ordner vorhanden/erstellt → HTML sauber bauen (ohne Tab) und ablegen
     async function(pfad){
-      // PDF generieren — wir brauchen den HTML-String
-      // Temporär printDoc aufrufen und HTML abfangen
-      let capturedHtml = null;
-      const origOpen = window.open;
-      window.open = function(url, target, feats){
-        // Öffne trotzdem den Tab für den User
-        const w = origOpen.call(window, url, target, feats);
-        return w;
-      };
-
-      // HTML über Blob-Intercept fangen
-      const origBlob = window.Blob;
-      window.Blob = function(parts, opts){
-        if(opts && opts.type && opts.type.includes('html') && parts && parts[0]){
-          capturedHtml = parts[0];
-        }
-        return new origBlob(parts, opts);
-      };
-
-      printDoc('offer');
-
-      // Kurz warten bis Blob erstellt
-      await new Promise(r => setTimeout(r, 300));
-      window.Blob = origBlob;
-      window.open = origOpen;
-
-      // HTML beim Server ablegen
-      if(capturedHtml){
-        await ablegenOfferte(capturedHtml, $('auftragsnr')?.value); // gibt selbst klares Feedback (erstellt & abgelegt / warum nicht)
+      const html = await buildOfferteHtml();   // erzeugt das Offerte-HTML, ohne einen Tab zu öffnen
+      if(html){
+        await ablegenOfferte(html, $('auftragsnr')?.value); // Feedback in ablegenOfferte
+      } else {
+        showToast('Offerte-HTML konnte nicht erzeugt werden','error');
       }
     },
-    // onSkip: Nur PDF
+    // onSkip: kein Projektordner gewählt → nichts ablegen
     function(){
-      printDoc('offer');
+      showToast('Kein Projektordner — Offerte wurde nicht abgelegt','warn',4500);
     }
   );
+}
+
+// „Offerte drucken" = Druckdialog öffnen (Offerte als PDF speichern / drucken).
+function printDocDruck(){
+  if(!positions||!positions.length){
+    showToast('Keine Positionen vorhanden','error'); return;
+  }
+  printDoc('offer');
 }
 
 function printDoc(mode){
@@ -15426,7 +15431,7 @@ function printDoc(mode){
           :p.eigenBefBez;
         mods.push(eigenStr);
       }
-      const slVStr=versandPdfStr(p);if(slVStr)mods.push(sp(slVStr.replace('<br><strong>Versand:</strong> ','Versand: ')));
+      const slVStr=versandZeile(p,isInt);if(slVStr)mods.push(slVStr);
       if(p.uebergabe?.typ==='abholung')mods.push('Übergabe: Abholung durch Kunde');
       else if(p.uebergabe?.typ==='anlieferung'){
         const anlStr=isInt&&p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):(p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'gegen Verrechnung':'kostenlos');
@@ -15435,7 +15440,7 @@ function printDoc(mode){
       if(p.anfahrtKm>0)mods.push(sp(`Anfahrt ${p.anfahrtKm}km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
       const arbStr=(p.arbeit||[])
         .filter(a=>a.gruppe==='Admin'||a.gruppe==='Grafik')
-        .map(a=>sp(`${a.label}`)).join(' · ');
+        .map(a=>sp(`${a.label}${a.min>0&&!a.isPauschal?' · '+a.min+' Min':''}`)).join(' · ');
       const montArbStr=(p.arbeit||[])
         .filter(a=>a.gruppe==='Montage'||a.gruppe==='Zusatz')
         .map(a=>sp(`${a.label}${a.isStd&&a.min>0?' · '+a.min+' h':a.isPauschal?'':''}`)).join(' · ');
@@ -15483,6 +15488,8 @@ function printDoc(mode){
       if(p.montageSeparat)ftMods.push('Montagekosten separat ausgewiesen');
       // Werbetechnikerarbeit
       (p.wtArbeiten||[]).forEach(a=>ftMods.push(`${a.name}`));
+      // Versand (Texthinweis — Kunde ohne Preis)
+      { const ftVStr=versandZeile(p,isInt); if(ftVStr) ftMods.push(ftVStr); }
       // Übergabe
       if(p.uebergabe?.typ==='abholung')ftMods.push('Übergabe: Abholung durch Kunde');
       else if(p.uebergabe?.typ==='anlieferung'){const anlStr2=p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):'kostenlos';ftMods.push('Anlieferung durch Grafe: '+anlStr2);}
@@ -15547,7 +15554,7 @@ function printDoc(mode){
 
       // ── Vorbereitungsarbeiten ─────────────────────────────────────────
       const arbParts=(p.arbeit||[]).filter(a=>a.gruppe==='Admin'||a.gruppe==='Grafik');
-      if(arbParts.length)frLines.push(`Vorbereitungsarbeiten: ${arbParts.map(a=>a.label).join(' · ')}`);
+      if(arbParts.length)frLines.push(`Vorbereitungsarbeiten: ${arbParts.map(a=>a.label+(a.min>0&&!a.isPauschal?' · '+a.min+' Min':'')).join(' · ')}`);
 
       // ── Montage ───────────────────────────────────────────────────────
       const montParts=[];
@@ -15561,7 +15568,7 @@ function printDoc(mode){
 
       // ── Notiz ─────────────────────────────────────────────────────────
       if(p.notiz)frLines.push(`<em style="color:#666;">${p.notiz}</em>`);
-      const frVStr=versandPdfStr(p);if(frVStr)frLines.push(frVStr.replace('<br>',''));
+      const frVStr=versandZeile(p,isInt);if(frVStr)frLines.push(frVStr);
       if(p.uebergabe?.typ==='abholung')frLines.push('Übergabe: Abholung durch Kunde');
       else if(p.uebergabe?.typ==='anlieferung'){
         const anlStr=p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):'kostenlos';
@@ -15582,6 +15589,7 @@ function printDoc(mode){
         ?`Logo${p.logoBreite&&p.logoHoehe?' · '+p.logoBreite+'×'+p.logoHoehe+'mm':''}${p.gravurMin?' · ca. '+p.gravurMin.toFixed(1)+' Min.':''}`
         :`${zeilenStr} · ${p.zeichenTotal||0} Zeichen · ${p.gravurMin?.toFixed(1)||'?'} Min.`;
       detail=`<strong>Beschriftung: Gravur</strong> · Format: ${p.l||'?'}×${p.b||'?'}mm · ${p.stk} Stk. · ${p.m2n?.toFixed(4)||'?'} m²<br>${_saGravStr}${p.schildName?' · Schildmaterial: '+p.schildName:''}${_gfc2?' · Einlegefarbe: '+_gfc2:''}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
+      { const gvVStr=versandZeile(p,isInt); if(gvVStr) detail+='<br>'+gvVStr; }
       if(isInt)detail+=`<br><span style="color:#999;">Material EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)}</span>`;
     }else if(p.type==='montage'){
       const mparts=[];
@@ -15602,7 +15610,8 @@ function printDoc(mode){
       if(p.pulverIGP)mats.push(`Pulver IGP ${p.pulverIGP.farbe}`);
       detail=`Format: ${p.l} × ${p.b} mm · ${p.stk} Stk.${p.minAkt?' (Mindestmenge)':''}`;
       if(mats.length)detail+='<br>'+mats.join(' · ');
-      if((p.arbeit||[]).length)detail+='<br>'+(p.arbeit||[]).map(a=>a.label).join(' · ');
+      if((p.arbeit||[]).length)detail+='<br>'+(p.arbeit||[]).map(a=>a.label+(a.min>0&&!a.isPauschal?' · '+a.min+(a.isStd?' h':' Min'):'')).join(' · ');
+      { const genVStr=versandZeile(p,isInt); if(genVStr) detail+='<br>'+genVStr; }
       if(isInt)detail+=`<br><span style="color:#999;">Material EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Veredelung/Druck CHF ${p.veredVK?.toFixed(2)}</span>`;
     }
 
@@ -15998,7 +16007,7 @@ ${!isInt ? agbHtml : ''}
     const w    = window.open(url, '_blank');
     if(w){
       setTimeout(()=>URL.revokeObjectURL(url), 60000);
-      showToast('✓ Offerte geöffnet — Druckdialog erscheint automatisch');
+      if(!window._silentPdf) showToast('✓ Offerte geöffnet — Druckdialog erscheint automatisch');
     } else {
       // Popup geblockt → Download
       const a = document.createElement('a');
@@ -16687,6 +16696,23 @@ function moveAuftragsdatenToAside(){
       document.getElementById('ccEdit').textContent=show?'▲ Kundendaten schließen':'✎ Kundendaten bearbeiten';
     });
 
+    // Datenpfad per Klick in die Zwischenablage kopieren — Ordner öffnen, um die E-Mail zu schreiben & Offerte anzuhängen
+    (function(){
+      const pfadEl=document.getElementById('ccPfad'); if(!pfadEl) return;
+      pfadEl.style.cursor='pointer';
+      pfadEl.title='Klicken, um den Datenpfad zu kopieren (dann im Explorer mit Strg+V öffnen)';
+      pfadEl.addEventListener('click',async function(){
+        const val=((window._projektPfad||(typeof _projektPfad!=='undefined'?_projektPfad:'')||'').trim())||(pfadEl.textContent||'').trim();
+        if(!val || val==='—' || val==='noch kein Projektordner'){ try{ showToast('Noch kein Projektordner vorhanden','warn',3000); }catch(e){} return; }
+        let ok=false;
+        try{ await navigator.clipboard.writeText(val); ok=true; }
+        catch(e){ try{ const ta=document.createElement('textarea'); ta.value=val; ta.style.position='fixed'; ta.style.opacity='0'; document.body.appendChild(ta); ta.select(); ok=document.execCommand('copy'); document.body.removeChild(ta); }catch(e2){} }
+        const old=pfadEl.textContent; pfadEl.textContent='✓ Pfad kopiert'; pfadEl.style.color='var(--green)';
+        setTimeout(()=>{ pfadEl.textContent=old; pfadEl.style.color=''; },1300);
+        try{ showToast(ok?'📋 Datenpfad kopiert — im Explorer mit Strg+V öffnen':'Kopieren nicht möglich — Pfad manuell markieren',ok?'':'warn',3500); }catch(e){}
+      });
+    })();
+
     function sync(){
       const g=id=>document.getElementById(id);
       g('ccVorgang').textContent=(g('auftragsnr')?.value||'').trim()||'–';
@@ -16828,7 +16854,7 @@ async function renderAuftragListe(){
   }
   if(sub) sub.textContent='Lade Offerten...';
   try{
-    const r=await fetch(KALLE_SERVER+'/offerten?limit=200');
+    const r=await fetch(KALLE_SERVER+'/offerten?limit=200&_='+Date.now(),{cache:'no-store'});
     if(!r.ok) throw new Error('HTTP '+r.status);
     const data=await r.json();
     alleOfferten=data.offerten||[];
@@ -18016,6 +18042,7 @@ function toggleEmailAnalyse(){
     rows.push(['ok','Nummer fest vergeben',CUR.nr+' — eindeutig']);
     kegProgSet(96,'Letzter Check …');
     try{ if(typeof window.renderAuftragListe==='function') window.renderAuftragListe(); }catch(e){}
+    try{ loadGateAuftraege(true); }catch(e){}
     await _kegWait(300);
     btn.disabled=false; btn.textContent='✓ Anfrage erfassen';
     kegProgDone(function(){ showKegDone(rows); });
@@ -18071,7 +18098,7 @@ function toggleEmailAnalyse(){
     if(!SRV()){ box.innerHTML='<span style="color:#9aa1ad">Server offline — melde dich im Firmennetz an, dann erscheinen die Aufträge hier.</span>'; return; }
     if(_recentBusy&&!force) return; _recentBusy=true;
     try{
-      const r=await fetch(_srv()+'/offerten?limit=100');
+      const r=await fetch(_srv()+'/offerten?limit=100&_='+Date.now(),{cache:'no-store'});
       const d=await r.json(); let list=(d.offerten||d||[]);
       const rank=s=>({entwurf:0,gesendet:1,bestellt:2,abgelehnt:3}[s]!=null?({entwurf:0,gesendet:1,bestellt:2,abgelehnt:3}[s]):1);
       list.sort((a,b)=>rank(a.status)-rank(b.status)||String(b.datum||'').localeCompare(String(a.datum||'')));
