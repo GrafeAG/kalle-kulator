@@ -2561,9 +2561,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.2';
+const UI_VERSION='V7.3';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.3','(1) PDF-Offerte: Der Einzelpreis wird jetzt bei jeder Position ausgewiesen — auch bei Stückzahl 1 (bisher erschien dort „–"). (2) Ablage-Trigger verschoben: Beim Klick auf „Sichern" wird die Offerte NICHT mehr als PDF erzeugt und im Projektordner abgelegt. Das passiert jetzt bewusst beim Klick auf „Offerte PDF" — die PDF wird immer im Projektordner (02 Offertphase) abgelegt, das Druckfenster ist nachgelagert. (3) Datenpfad-Anzeige korrigiert: Nach „Jetzt kalkulieren" im Reaktor zeigt das Kontrollfeld rechts oben nun korrekt den angelegten Projektordner statt „noch kein Projektordner".'],
   ['V7.2','Folientechnik → „Arbeitszeit in der Werbetechnik": Jeder Punkt (Entgittern, Tapen, Konfektionieren, Zuschnitt, Laminieren, Qualitätskontrolle) hat jetzt neben dem Minuten-Feld eine Umschaltung „Total / p. Stk". Bei „Total" gilt die Zeit wie bisher für die ganze Position; bei „p. Stk" wird die Zeit mit der Stückzahl multipliziert. Das Badge zeigt bei p. Stk zur Kontrolle die Rechnung (z. B. „CHF 32.40 (15×10)"). Die Einstellung wird mit der Offerte gespeichert und beim Bearbeiten wiederhergestellt.'],
   ['V7.1','(1) Monday: neue Projekte in „Projekt und Offertanfragen" bekommen jetzt zuverlässig den Status „Unbearbeitet". (2) Produkte: die Auswahl „Was soll kalkuliert werden?" heisst jetzt „Produkte" — Text und Rabatt entfernt, Stelen und M&M ergänzt (Leuchtwerbung bleibt). (3) Manuelle Nummer: über „✎ Nr. manuell" lässt sich eine bereits (z. B. in SelectLine) vergebene Projektnummer eintragen. Die automatisch reservierte wird freigegeben, die manuelle als vergeben markiert und aus dem Pool gestrichen. Wichtig für die Übergangsphase.'],
   ['V7.0','Adresseingabe: neues Feld „Adresszusatz" bei der Objektadresse (Gebäude, Stockwerk, Eingang, c/o …). — Roche-Sonderablage: Wird als Kunde „Roche" erkannt, erscheint ein eigenes Panel: entweder Jahresablage (Objekte/Basel/Roche/<Jahr>/<Projekt>) oder Zuordnung zu einem Bau (Dropdown der bestehenden Bauten, live vom Laufwerk, oder neuen Bau anlegen → Objekte/Basel/Roche/<Bau>/<Projekt>). Voraussetzung: neue Server-Route /roche (+ ROCHE_BASE in der .env).'],
@@ -14385,11 +14386,9 @@ function saveAuftrag(){
       showToast('✓ '+anr+' in Datenbank gespeichert');
       // Monday: verknüpftes Item mit Offertsumme + Phase „Offerte raus" aktualisieren
       try{ mondayAutoUpdate&&mondayAutoUpdate(); }catch(e){}
-      // Offerte automatisch im Projektordner ablegen (falls gesetzt)
-      if(_projektPfad && typeof ablegenOfferte === 'function'){
-        const html = typeof buildOfferteHtml==='function' ? await buildOfferteHtml() : null;
-        if(html){ await ablegenOfferte(html, anr); } // Feedback erfolgt in ablegenOfferte
-      }
+      // Hinweis: Die Offerte wird NICHT mehr beim Sichern abgelegt.
+      // Das PDF-Erzeugen + Ablegen im Projektordner passiert bewusst erst beim
+      // Klick auf „Offerte PDF" (printDocOffer → ablegenOfferte).
       // Liste neu laden (frischer Status), dann: erstellte Offerte ist nicht mehr
       // „unbearbeitet" → aus dem Entwurf-Status auf „Offerte raus" heben.
       // Bereits „bestellt"/„abgelehnt"/„Offerte raus" bleibt unverändert (kein Downgrade).
@@ -15468,7 +15467,7 @@ function printDoc(mode){
           </span>
           ${rabattInline}
         </td>
-        <td class="c-ep">${p.stk>1?fmtVar(p,p.totalVK/p.stk):'–'}</td>
+        <td class="c-ep">${fmtVar(p,p.totalVK/(p.stk||1))}</td>
         <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
     }
@@ -15612,7 +15611,7 @@ function printDoc(mode){
       <td class="c-menge">${p.stk||1}</td>
       <td class="c-me">Stk.</td>
       <td class="c-bez">${desc}${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${isInt?detail:cleanKunde(detail)}</span>${rabattInline}</td>
-      <td class="c-ep">${p.totalVK.toFixed(2)}</td>
+      <td class="c-ep">${fmtVar(p,p.totalVK/(p.stk||1))}</td>
       <td class="c-gp">${p.totalVK.toFixed(2)}<sup>2</sup></td>
     </tr>`;
   }).join('');
@@ -16694,7 +16693,7 @@ function moveAuftragsdatenToAside(){
       g('ccKunde').textContent=(g('kundenname')?.value||'').trim()||'–';
       g('ccBetreff').textContent=(g('bemerkung')?.value||'').trim()||'–';
       const badge=g('projektPfadBadge');
-      const pf=(badge&&badge.textContent.trim())||(window._projektPfad||'');
+      const pf=(badge&&badge.textContent.trim())||(window._projektPfad||(typeof _projektPfad!=='undefined'?_projektPfad:'')||'');
       g('ccPfad').textContent=pf||'noch kein Projektordner';
     }
     ['auftragsnr','kundenname','bemerkung'].forEach(id=>{const el=document.getElementById(id);if(el)el.addEventListener('input',sync);});
@@ -17033,7 +17032,7 @@ async function sendToMonday(){
     const anr=$('auftragsnr')?.value||'';
     const res=await window.mondayProdAnfrage({
       nr:anr, kunde:$('kundenname')?.value||'', betreff:($('bemerkung')?.value||'').trim(),
-      datenpfad:(window._projektPfad||'').trim(), email:$('email')?.value||''
+      datenpfad:((typeof _projektPfad!=='undefined'&&_projektPfad)||window._projektPfad||'').trim(), email:$('email')?.value||''
     }, token);
     if(!res||!res.itemId) throw new Error('Produktions-Element konnte nicht angelegt werden');
     window._currentMondayItem=res.itemId;   // immer die Prod-Item-ID (kein Anfragen-Board)
@@ -17980,7 +17979,7 @@ function toggleEmailAnalyse(){
     const _overr=(CUR.pfadEdited && (CUR.pfadOverride||'').trim()) ? CUR.pfadOverride.trim() : '';
     kegProgSet(34, _overr?'Datenablage wird übernommen …':'Projektordner wird angelegt …');
     if(_overr){
-      pfad=_overr; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
+      pfad=_overr; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad;
       rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
       if(srvOn && _fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
     } else if(CUR.roche && CUR.roche.active && srvOn){
@@ -17989,7 +17988,7 @@ function toggleEmailAnalyse(){
         const projbez=((CUR.nr?CUR.nr+' ':'')+(CUR.betreff||'')).trim();
         const r=await fetch(_srv()+'/roche/ordner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({ziel:ziel, projektbezeichnung:projbez})});
         const d=await r.json();
-        if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
+        if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad;
           rows.push(['ok','Roche-Ablage angelegt'+(d.neuerBau?' (neuer Bau)':''),pfad]);
           if(_fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
         } else { rows.push(['warn','Roche-Ablage',(d&&d.error)||'nicht angelegt — Server ohne ROCHE_BASE?']); }
@@ -18000,7 +17999,7 @@ function toggleEmailAnalyse(){
         if(CUR.ablage==='o'){ body.ort=CUR.obOrt||k.ort||''; body.strasse=CUR.obStr||k.strasse||''; } else { body.firmaName=k.name; }
         const r=await fetch(_srv()+'/projekte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
         const d=await r.json();
-        if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){ window._projektPfad=pfad; }
+        if(d&&d.ok&&d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad;
           rows.push(['ok','Projektordner angelegt',pfad]);
           if(_fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
         } else { rows.push(['warn','Projektordner',(d&&d.error)||'nicht angelegt']); }
