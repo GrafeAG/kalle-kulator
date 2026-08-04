@@ -2609,9 +2609,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.8';
+const UI_VERSION='V7.9';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.9','Fix: Der neue Positionstyp „Versand" erscheint jetzt korrekt in der Positions-Auswahl unter „Zusätze" (neben Montage, Textposition, Rabatt). Die Menü-Neugruppierung beim Start hatte die Kachel bisher verworfen — dieselbe Ursache wie früher bei „Fahrzeugbeschriftung".'],
   ['V7.8','Reaktor: In der Produkt-/Leistungsauswahl bei der Anfrageerfassung gibt es jetzt zusätzlich „Reklamation" (mit Warndreieck-Icon) — auswählbar wie die übrigen Produkte, erscheint in der Zusammenfassung und wird mit der Anfrage gespeichert.'],
   ['V7.7','Neu: „Versand" ist jetzt ein eigenes Produkt/Position — wie „Montage Gesamtauftrag". Über die Produkt-Kachel „Versand" wählbar: DPD-Klasse (S–XXL, automatischer Preis) und/oder Camion-Transport sowie ein freier Betrag mit eigener Bezeichnung. Erscheint als eigene Positionszeile mit Preis in der Offerte (Menge „Psch."). Wird gespeichert, in der Positionsliste angezeigt und lässt sich normal bearbeiten.'],
   ['V7.6','Fix: Die Umschaltung „Total / p. Stk" bei der Arbeitszeit in der Werbetechnik (Folientechnik) wird jetzt korrekt gespeichert und beim Wieder-Öffnen/Bearbeiten einer Offerte wiederhergestellt. Bisher fiel der Modus beim erneuten Öffnen auf „Total" zurück, obwohl „p. Stk" gewählt war.'],
@@ -16909,7 +16910,7 @@ function redesignV3(){
       const h1=document.createElement('div'); h1.className='type-group-h'; h1.textContent='Produkte';
       const h2=document.createElement('div'); h2.className='type-group-h'; h2.textContent='Zusätze';
       ['tb-schild','tb-fahrzeug','tb-fraes','tb-folientechnik','tb-sbb'].forEach(id=>{const e=document.getElementById(id);if(e)g1.appendChild(e);});
-      ['tb-montage','tb-text','tb-rabatt'].forEach(id=>{const e=document.getElementById(id);if(e)g2.appendChild(e);});
+      ['tb-montage','tb-versand','tb-text','tb-rabatt'].forEach(id=>{const e=document.getElementById(id);if(e)g2.appendChild(e);});
       sel.replaceWith(h1,g1,h2,g2);
     }
   }catch(e){ console.warn('[v3] Redesign:',e); }
