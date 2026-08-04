@@ -1,21 +1,30 @@
 // terminstatus.js — setzt am Projekt (Hauptboard) den "Terminstatus" 🔴/🟢
+//
 // Regel: 🔴 Überfällig, wenn IRGENDEIN Subelement einen Termin (Datum) in der
 //         Vergangenheit hat UND nicht "Fertig"/"Brauchts nicht" ist UND nicht
 //         "Anfrage eingegangen" heisst. Sonst 🟢 OK.
 //
-// Optimiert für häufige Läufe: schreibt NUR Projekte, deren Status sich ändert
-// (alle anderen werden nur gelesen). Dadurch kann der Job alle paar Minuten laufen.
+// NEU (wichtig): Die Ampel gilt NUR für die AKTIVEN Produktionsgruppen
+//   (Anfragen → Offerprüfung → Vorbereitung → Produktionsplanung →
+//    Montageplanung → Produktion → Endkontrolle → Montage).
+//   Die Gruppen "Rechnungsstellung" und "Abgeschlossen" werden bewusst NICHT
+//   bewertet — dort sind die Projekte erledigt, überfällige Termine wären nur
+//   Rauschen (und würden hunderte alte Projekte rot färben). Siehe ALLOWED_GROUPS.
 //
-// Läuft komplett serverseitig (Monday-Token aus der .env, verlässt den Server nie).
-//   Einmal/periodisch:  node scripts/terminstatus.js
-// Für schnelle Aktualisierung alle 2 Min per Aufgabenplanung / cron (siehe LIESMICH.txt).
+// NEU (Ausführung): Dieser Job muss nicht mehr über die Windows-Aufgabenplanung
+//   laufen. Am robustesten läuft er DIREKT IM kalle-server mit:
+//        require('./scripts/terminstatus').start();      // einmal in server.js
+//   Dann rechnet er beim Serverstart sofort und danach alle 2 Minuten — solange
+//   der Server läuft (also solange auch die App läuft). Kein externer Scheduler,
+//   der stillschweigend ausfallen kann.
+//   Weiterhin möglich: einmaliger/manueller Lauf per  node scripts/terminstatus.js
+//
+// Optimiert: schreibt NUR Projekte, deren Status sich ändert (alle anderen nur lesen).
 //
 // Voraussetzung in .env:  MONDAY_TOKEN=<Monday-API-Token>
 //
-// NEU: Jeder Lauf schreibt in eine Logdatei (…/terminstatus.log) und in
-//      …/terminstatus_last.txt (nur die letzte Zeile). Damit sieht man sofort,
-//      OB und WANN der Job zuletzt lief und ob er Fehler hatte — auch wenn er
-//      per Aufgabenplanung läuft (dort landet die Konsolenausgabe sonst nirgends).
+// Logdatei: …/terminstatus.log (Verlauf, 500 Zeilen) und …/terminstatus_last.txt
+//   (nur die letzte Zeile). So sieht man sofort, OB und WANN der Job zuletzt lief.
 
 const fs   = require('fs');
 const path = require('path');
@@ -32,10 +41,28 @@ const SUB_STATUS = 'status';               // Subelement: Status
 const DONE       = new Set(['Fertig', 'Brauchts nicht']);
 const IGNORE_SUB = 'Anfrage eingegangen';   // dieses Subelement zählt nie
 
+// ── Nur diese (aktiven) Gruppen bekommen eine Ampel ────────────────────────
+//   Bewusst NICHT enthalten:
+//     duplicate_of_project_a = "Rechnungsstellung"
+//     group_mksw4paf         = "Abgeschlossen"
+const ALLOWED_GROUPS = new Set([
+  'group_mm5hq91f',   // Projekt und Offertanfragen
+  'group_mm5p5zwq',   // Offerprüfung Kunde / Vergabe
+  'group_mkt2vn54',   // Vorbereitung
+  'new_group29179',   // Produktionsplanung
+  'group_mkw1rbx',    // Montageplanung
+  'new_group43041',   // Produktion
+  'group_mm5h369s',   // Endkontrolle
+  'topics',           // Montage
+]);
+
+// Wie oft im eingebetteten Betrieb neu gerechnet wird (Millisekunden):
+const INTERVAL_MS = 2 * 60 * 1000;          // alle 2 Minuten
+
 // ── Logging in Datei (neben der .env im kalle-server-Stamm) ────────────────
 const LOG_FILE  = path.join(__dirname, '..', 'terminstatus.log');
 const LAST_FILE = path.join(__dirname, '..', 'terminstatus_last.txt');
-const MAX_LOG_LINES = 500;                  // Log rollt, damit es nicht endlos wächst
+const MAX_LOG_LINES = 500;
 
 function stamp() {
   const d = new Date();
@@ -56,22 +83,16 @@ function log(msg) {
   console.log(msg);
 }
 
-// .env robust laden: absoluter Pfad relativ zum Skript (…/scripts/terminstatus.js → …/.env),
-// damit der Job unabhängig vom Arbeitsverzeichnis der Aufgabenplanung funktioniert.
+// .env robust laden (absoluter Pfad relativ zum Skript)
 try { require('dotenv').config({ path: path.join(__dirname, '..', '.env') }); } catch (e) {}
 try { if(!process.env.MONDAY_TOKEN) require('dotenv').config(); } catch (e) {}
 
 const TOKEN = process.env.MONDAY_TOKEN;
-if (!TOKEN) {
-  log('[Terminstatus] FEHLER: MONDAY_TOKEN fehlt — .env nicht gefunden? Skript in …/scripts/ ablegen, .env im kalle-server-Stamm.');
-  process.exit(1);
-}
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
-const TODAY = todayStr();
 
 async function gql(query, variables = {}) {
   const r = await fetch(MONDAY_API, {
@@ -84,7 +105,7 @@ async function gql(query, variables = {}) {
   return j.data;
 }
 
-function subOverdue(s) {
+function subOverdue(s, today) {
   const name = (s.name || '').trim();
   if (name === IGNORE_SUB) return false;
   const cv = {};
@@ -93,9 +114,10 @@ function subOverdue(s) {
   const dt = cv[SUB_DATE]   || '';
   if (DONE.has(st)) return false;
   if (!dt) return false;
-  return dt.slice(0, 10) < TODAY;            // ISO-Datum: lexikografisch = chronologisch
+  return dt.slice(0, 10) < today;            // ISO-Datum: lexikografisch = chronologisch
 }
 
+// Holt alle Projekte MIT Gruppe; behält nur die aktiven Gruppen.
 async function fetchAllProjects() {
   const items = [];
   let cursor = null;
@@ -107,6 +129,7 @@ async function fetchAllProjects() {
             cursor
             items{
               id
+              group{ id }
               column_values(ids:["${COL_STATUS}"]){ text }
               subitems{ name column_values(ids:["${SUB_DATE}","${SUB_STATUS}"]){ id text } }
             }
@@ -114,14 +137,16 @@ async function fetchAllProjects() {
         }
       }`, { cursor });
     const page = data.boards[0].items_page;
-    items.push(...page.items);
+    for (const it of page.items) {
+      if (it.group && ALLOWED_GROUPS.has(it.group.id)) items.push(it);
+    }
     cursor = page.cursor;
   } while (cursor);
   return items;
 }
 
 async function setStatuses(updates) {
-  const CHUNK = 40;
+  const CHUNK = 25;
   for (let i = 0; i < updates.length; i += CHUNK) {
     const slice = updates.slice(i, i + CHUNK);
     const parts = slice.map((u, j) =>
@@ -131,20 +156,53 @@ async function setStatuses(updates) {
   }
 }
 
-(async () => {
+// Ein einzelner Durchlauf. Gibt {items, red, ok, changed} zurück.
+async function run() {
+  const today = todayStr();
   const items = await fetchAllProjects();
   let red = 0, ok = 0;
   const updates = [];
   for (const it of items) {
-    const isRed = (it.subitems || []).some(subOverdue);
+    const isRed = (it.subitems || []).some(s => subOverdue(s, today));
     if (isRed) red++; else ok++;
     const current = ((it.column_values && it.column_values[0] && it.column_values[0].text) || '').trim();
     const wantText = isRed ? TEXT_RED : TEXT_OK;
     if (current !== wantText) updates.push({ id: it.id, value: isRed ? LABEL_RED : LABEL_OK });
   }
   await setStatuses(updates);
-  log(`[Terminstatus ${TODAY}] ${items.length} Projekte · 🔴 ${red} · 🟢 ${ok} · geändert: ${updates.length}`);
-})().catch(e => {
-  log('[Terminstatus] FEHLER beim Lauf: ' + (e && e.message ? e.message : String(e)));
-  process.exit(1);
-});
+  log(`[Terminstatus ${today}] ${items.length} aktive Projekte · 🔴 ${red} · 🟢 ${ok} · geändert: ${updates.length}`);
+  return { items: items.length, red, ok, changed: updates.length };
+}
+
+// Eingebetteter Dauerbetrieb: sofort rechnen + alle INTERVAL_MS wiederholen.
+// Läufe überlappen nie (Guard). Fehler werden geloggt, der Timer läuft weiter.
+let _running = false;
+async function tick() {
+  if (_running) return;
+  _running = true;
+  try { await run(); }
+  catch (e) { log('[Terminstatus] FEHLER beim Lauf: ' + (e && e.message ? e.message : String(e))); }
+  finally { _running = false; }
+}
+function start(intervalMs = INTERVAL_MS) {
+  if (!TOKEN) { log('[Terminstatus] FEHLER: MONDAY_TOKEN fehlt — .env prüfen. Job NICHT gestartet.'); return null; }
+  tick();                                   // sofort beim Start
+  const timer = setInterval(tick, intervalMs);
+  if (timer.unref) timer.unref();           // hält den Prozess nicht künstlich am Leben
+  log(`[Terminstatus] eingebetteter Betrieb aktiv — Intervall ${Math.round(intervalMs/1000)}s, ${[...ALLOWED_GROUPS].length} aktive Gruppen.`);
+  return timer;
+}
+
+module.exports = { start, run, tick, ALLOWED_GROUPS };
+
+// Direkter Aufruf (node scripts/terminstatus.js) → EIN Lauf, dann Ende.
+if (require.main === module) {
+  if (!TOKEN) {
+    log('[Terminstatus] FEHLER: MONDAY_TOKEN fehlt — .env nicht gefunden? Skript in …/scripts/ ablegen, .env im kalle-server-Stamm.');
+    process.exit(1);
+  }
+  run().catch(e => {
+    log('[Terminstatus] FEHLER beim Lauf: ' + (e && e.message ? e.message : String(e)));
+    process.exit(1);
+  });
+}
