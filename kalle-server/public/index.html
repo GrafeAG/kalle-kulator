@@ -2609,9 +2609,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.7';
+const UI_VERSION='V7.8';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V7.8','Reaktor: In der Produkt-/Leistungsauswahl bei der Anfrageerfassung gibt es jetzt zusätzlich „Reklamation" (mit Warndreieck-Icon) — auswählbar wie die übrigen Produkte, erscheint in der Zusammenfassung und wird mit der Anfrage gespeichert.'],
   ['V7.7','Neu: „Versand" ist jetzt ein eigenes Produkt/Position — wie „Montage Gesamtauftrag". Über die Produkt-Kachel „Versand" wählbar: DPD-Klasse (S–XXL, automatischer Preis) und/oder Camion-Transport sowie ein freier Betrag mit eigener Bezeichnung. Erscheint als eigene Positionszeile mit Preis in der Offerte (Menge „Psch."). Wird gespeichert, in der Positionsliste angezeigt und lässt sich normal bearbeiten.'],
   ['V7.6','Fix: Die Umschaltung „Total / p. Stk" bei der Arbeitszeit in der Werbetechnik (Folientechnik) wird jetzt korrekt gespeichert und beim Wieder-Öffnen/Bearbeiten einer Offerte wiederhergestellt. Bisher fiel der Modus beim erneuten Öffnen auf „Total" zurück, obwohl „p. Stk" gewählt war.'],
   ['V7.5','(1) Buttons neu geordnet: „Sichern" = Auftrag speichern · „Offerte PDF" = erzeugt die Offerte und legt sie NUR im Projektordner ab (kein Druckfenster mehr) · NEU „Offerte drucken" = öffnet den Druckdialog. (2) PDF: Der Versand erscheint jetzt bei allen Positionsarten als Texthinweis (z. B. „Versand: DPD …" / „Camion-Transport") — in der Kunden-Offerte ohne Preis. (3) PDF: Bei den Vorbereitungsarbeiten (Datenerstellung, Layout, GzA …) wird nun die Zeitangabe mit ausgewiesen. (4) Datenpfad rechts im Kontrollfeld ist klickbar — ein Klick kopiert den Pfad in die Zwischenablage, damit der Ordner im Explorer geöffnet werden kann (E-Mail schreiben, Offerte anhängen).'],
@@ -17403,7 +17404,7 @@ function toggleEmailAnalyse(){
   .kp-box.done .kp-fill::after{display:none;}
   `;
 
-  const LEIST=[['tb-schild','Schild'],['tb-leucht','Leuchtwerbung'],['tb-stele','Stelen'],['tb-fahrzeug','Fahrzeugbeschriftung'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-mm','M&M']];
+  const LEIST=[['tb-schild','Schild'],['tb-leucht','Leuchtwerbung'],['tb-stele','Stelen'],['tb-fahrzeug','Fahrzeugbeschriftung'],['tb-folientechnik','Folientechnik'],['tb-fraes','Reliefschrift'],['tb-sbb','SBB'],['tb-montage','Montage'],['tb-mm','M&M'],['tb-reklamation','Reklamation']];
   const LICON={
     'tb-schild':'<rect x="4" y="4" width="16" height="9" rx="1.5"/><line x1="12" y1="13" x2="12" y2="21"/><line x1="8" y1="21" x2="16" y2="21"/>',
     'tb-leucht':'<path d="M9 18h6"/><path d="M10 21h4"/><path d="M12 3a6 6 0 0 0-4 10.5c.7.6 1 1.4 1 2.5h6c0-1.1.3-1.9 1-2.5A6 6 0 0 0 12 3z"/>',
@@ -17413,7 +17414,8 @@ function toggleEmailAnalyse(){
     'tb-sbb':'<rect x="6" y="4" width="12" height="11" rx="2"/><line x1="6" y1="10" x2="18" y2="10"/><line x1="8" y1="15" x2="6" y2="20"/><line x1="16" y1="15" x2="18" y2="20"/>',
     'tb-montage':'<path d="M15 4a4 4 0 0 0-2.6 7l-6.4 6.4 1.6 1.6L14 12.6A4 4 0 0 0 19 8l-2.4 2.4-2-2z"/>',
     'tb-stele':'<rect x="9" y="3" width="6" height="14" rx="1"/><rect x="6.5" y="17" width="11" height="4" rx="1"/>',
-    'tb-mm':'<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>'
+    'tb-mm':'<path d="M12 3l9 5-9 5-9-5 9-5z"/><path d="M3 13l9 5 9-5"/>',
+    'tb-reklamation':'<path d="M12 4l8.5 15H3.5L12 4z"/><line x1="12" y1="10" x2="12" y2="14"/><circle cx="12" cy="16.6" r="0.7" fill="currentColor" stroke="none"/>'
   };
   const svg=(p,sz)=>'<svg width="'+(sz||15)+'" height="'+(sz||15)+'" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6">'+p+'</svg>';
 
