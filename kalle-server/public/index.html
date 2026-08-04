@@ -2217,90 +2217,140 @@ a, button, input, select, textarea, label,
 
   <div id="bodenForm" style="display:none;" class="sec">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
-      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;">▦ Bodenmarkierung</div>
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;">▦ Neue Position – Bodenmarkierung</div>
       <button class="btn btn-gh" onclick="closeBodenForm()" style="font-size:11px;">✕ Abbrechen</button>
     </div>
-    <div class="field" style="margin-bottom:10px;">
-      <label>Bezeichnung <span style="font-size:9px;color:var(--muted);">(Positionstitel in der Offerte)</span></label>
-      <input type="text" id="bmLabel" value="Bodenmarkierung" placeholder="Bodenmarkierung" style="width:100%;font-size:14px;font-weight:600;">
-    </div>
-    <div class="field" style="margin-bottom:12px;">
-      <label>Farbe / Material</label>
-      <select id="bmFarbe" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
-        <option value="weiss 2-K-Farbe">Weiss · 2-K-Farbe</option>
-        <option value="gelb 2-K-Farbe">Gelb · 2-K-Farbe</option>
-        <option value="weiss Kaltplastik">Weiss · Kaltplastik (langlebig)</option>
-        <option value="gelb Kaltplastik">Gelb · Kaltplastik (langlebig)</option>
-      </select>
+
+    <div class="g2" style="gap:10px;margin-bottom:8px;">
+      <div class="field"><label>Bezeichnung <span style="font-size:9px;color:var(--muted);">(Positionstitel in der Offerte)</span></label>
+        <input type="text" id="bmLabel" value="Bodenmarkierung" placeholder="Bodenmarkierung" style="width:100%;font-size:14px;font-weight:600;"></div>
+      <div class="field"><label>Farbe / Material</label>
+        <select id="bmFarbe" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+          <option value="weiss 2-K-Farbe">Weiss · 2-K-Farbe</option>
+          <option value="gelb 2-K-Farbe">Gelb · 2-K-Farbe</option>
+          <option value="weiss Kaltplastik">Weiss · Kaltplastik (langlebig)</option>
+          <option value="gelb Kaltplastik">Gelb · Kaltplastik (langlebig)</option>
+        </select></div>
     </div>
 
-    <div class="st t" style="font-size:9px;margin:6px 0 8px;">① Parkfeldmarkierung</div>
-    <div class="keg-seg" style="display:flex;gap:8px;margin-bottom:10px;">
-      <button type="button" id="bmModeFelder" onclick="bmSetMode('felder')" class="btn btn-y" style="flex:1;font-size:12px;padding:8px;">Anzahl Parkfelder</button>
-      <button type="button" id="bmModeLfm" onclick="bmSetMode('lfm')" class="btn btn-gh" style="flex:1;font-size:12px;padding:8px;">Laufmeter (Lfm)</button>
+    <div class="sl-live" style="display:flex;justify-content:space-between;align-items:center;background:var(--surface2);border:1px solid var(--border);border-radius:var(--rsm);padding:8px 12px;margin-bottom:14px;">
+      <span style="font-size:11px;color:var(--muted);"><b style="color:var(--text);" id="bmLiveInfo">–</b></span>
+      <span style="font-size:14px;font-weight:800;color:var(--accent);" id="bmLiveTotal">CHF 0.00</span>
+    </div>
+
+    <div class="st t" style="font-size:9px;margin:4px 0 6px;">① Parkfeldmarkierung</div>
+    <div class="zopt-row">
+      <div class="zopt sel" id="bmZoptFelder" onclick="bmSetMode('felder')" style="flex:1;">Anzahl Parkfelder<div class="zopt-sub">Linien werden berechnet</div></div>
+      <div class="zopt" id="bmZoptLfm" onclick="bmSetMode('lfm')" style="flex:1;">Laufmeter (Lfm)<div class="zopt-sub">Linienlänge direkt</div></div>
     </div>
     <div class="g2" style="gap:8px;margin-bottom:8px;">
-      <div class="field">
-        <label>Linienbreite</label>
-        <select id="bmBreite" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+      <div class="field"><label>Linienbreite</label>
+        <select id="bmBreite" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
           <option value="10">10 cm</option><option value="12">12 cm</option><option value="15" selected>15 cm</option>
-        </select>
-      </div>
-      <div class="field" id="bmFelderWrap">
-        <label>Anzahl Parkfelder</label>
-        <input type="number" id="bmFelderAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;">
-      </div>
-      <div class="field" id="bmLfmWrap" style="display:none;">
-        <label>Laufmeter Linien (Lfm)</label>
-        <input type="number" id="bmLfm" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;">
-      </div>
+        </select></div>
+      <div class="field" id="bmFelderWrap"><label>Anzahl Parkfelder</label>
+        <input type="number" id="bmFelderAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+      <div class="field" id="bmLfmWrap" style="display:none;"><label>Laufmeter Linien (Lfm)</label>
+        <input type="number" id="bmLfm" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:13px;"></div>
     </div>
     <div id="bmFelderOpts">
       <div class="g2" style="gap:8px;margin-bottom:6px;">
         <div class="field"><label>Feldtiefe (m) <span style="font-size:9px;color:var(--muted);">Linienlänge je Seite</span></label>
-          <input type="number" id="bmFeldtiefe" min="0" step="0.1" value="5.0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+          <input type="number" id="bmFeldtiefe" min="0" step="0.1" value="5.0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:13px;"></div>
         <div class="field"><label>Feldbreite (m) <span style="font-size:9px;color:var(--muted);">für Abschlusslinie</span></label>
-          <input type="number" id="bmFeldbreite" min="0" step="0.1" value="2.5" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+          <input type="number" id="bmFeldbreite" min="0" step="0.1" value="2.5" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:13px;"></div>
       </div>
-      <label class="tog" style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer;"><input type="checkbox" id="bmGeteilt" checked onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Mittellinien geteilt (Felder in Reihe teilen sich die Trennlinie)</span></label>
-      <label class="tog" style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer;"><input type="checkbox" id="bmAbschluss" onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Abschlusslinie (vorne) mitmarkieren</span></label>
+      <div class="tr" style="margin-bottom:5px;">
+        <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="bmGeteilt" checked onchange="cBoden()"><span class="tsl"></span></label>
+          <div><div class="tr-label">Mittellinien geteilt</div><div class="tr-sub">Felder in Reihe teilen sich die Trennlinie</div></div></div>
+        <div class="tr-r"></div>
+      </div>
+      <div class="tr" style="margin-bottom:5px;">
+        <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="bmAbschluss" onchange="cBoden()"><span class="tsl"></span></label>
+          <div><div class="tr-label">Abschlusslinie (vorne)</div><div class="tr-sub">vordere Querlinie mitmarkieren</div></div></div>
+        <div class="tr-r"></div>
+      </div>
     </div>
-    <div id="bmLinienHint" style="font-size:10px;color:var(--muted);margin-bottom:4px;"></div>
-    <div style="text-align:right;font-size:11px;color:var(--teal);margin-bottom:12px;" id="bmParkPreis">–</div>
-
-    <div class="st t" style="font-size:9px;margin:6px 0 8px;">② Parkfeldnummern</div>
-    <div class="g2" style="gap:8px;margin-bottom:6px;">
-      <div class="field"><label>Höhe</label>
-        <select id="bmNrHoehe" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;"></select></div>
-      <div class="field"><label>Anzahl Nummern</label>
-        <input type="number" id="bmNrAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+    <div class="tr">
+      <div class="tr-l"><div><div class="tr-sub" id="bmLinienHint" style="margin:0;">–</div></div></div>
+      <div class="tr-r"><span class="pbadge" id="bmParkPreis">–</span></div>
     </div>
-    <div style="text-align:right;font-size:11px;color:var(--teal);margin-bottom:12px;" id="bmNrPreis">–</div>
 
-    <div class="st t" style="font-size:9px;margin:6px 0 8px;">③ Richtungspfeile (Standard ~650 cm)</div>
-    <div class="field" style="margin-bottom:6px;"><label>Anzahl Pfeile</label>
-      <input type="number" id="bmPfeilAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
-    <div style="text-align:right;font-size:11px;color:var(--teal);margin-bottom:12px;" id="bmPfeilPreis">–</div>
-
-    <div class="st t" style="font-size:9px;margin:6px 0 8px;">④ Weitere Markierungen (optional)</div>
-    <div class="g2" style="gap:8px;">
-      <div class="field"><label>Fussgängerstreifen (Lfm)</label><input type="number" id="bmFussLfm" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
-      <div class="field"><label>Sperrfläche schraffiert (m²)</label><input type="number" id="bmSperrM2" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
-      <div class="field"><label>IV-/Behindertensignet (Stk)</label><input type="number" id="bmIvAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
-      <div class="field"><label>Mehrkilometer ab 30 km</label><input type="number" id="bmMehrKm" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+    <div class="st t" style="font-size:9px;margin:12px 0 6px;">② Parkfeldnummern</div>
+    <div class="tr">
+      <div class="tr-l"><div><div class="tr-label">Parkfeldnummern / Ziffern</div><div class="tr-sub">Höhe wählen · Anzahl eingeben</div></div></div>
+      <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <select id="bmNrHoehe" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:11px;"></select>
+        <input type="number" id="bmNrAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:center;">
+        <span style="font-size:10px;color:var(--muted);">Stk</span>
+        <span class="pbadge" id="bmNrPreis">–</span>
+      </div>
     </div>
-    <label class="tog" style="display:flex;align-items:center;gap:8px;margin:8px 0 4px;cursor:pointer;"><input type="checkbox" id="bmVormark" onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Einmessen / Vormarkierung (pauschal)</span></label>
-    <label class="tog" style="display:flex;align-items:center;gap:8px;margin:4px 0;cursor:pointer;"><input type="checkbox" id="bmReinigung" onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Reinigung der Markierflächen (pauschal)</span></label>
+
+    <div class="st t" style="font-size:9px;margin:12px 0 6px;">③ Richtungspfeile</div>
+    <div class="tr">
+      <div class="tr-l"><div><div class="tr-label">Richtungspfeile</div><div class="tr-sub">Standardgrösse (~650 cm)</div></div></div>
+      <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="bmPfeilAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:center;">
+        <span style="font-size:10px;color:var(--muted);">Stk</span>
+        <span class="pbadge" id="bmPfeilPreis">–</span>
+      </div>
+    </div>
+
+    <div class="st t" style="font-size:9px;margin:12px 0 6px;">④ Weitere Markierungen (optional)</div>
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><div><div class="tr-label">Fussgängerstreifen</div><div class="tr-sub">50 cm · CHF/lfm</div></div></div>
+      <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="bmFussLfm" min="0" step="0.5" value="0" oninput="cBoden()" style="width:56px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:center;"><span style="font-size:10px;color:var(--muted);">Lfm</span><span class="pbadge" id="bmFussPreis">–</span></div>
+    </div>
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><div><div class="tr-label">Sperrfläche schraffiert</div><div class="tr-sub">CHF/m²</div></div></div>
+      <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="bmSperrM2" min="0" step="0.5" value="0" oninput="cBoden()" style="width:56px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:center;"><span style="font-size:10px;color:var(--muted);">m²</span><span class="pbadge" id="bmSperrPreis">–</span></div>
+    </div>
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><div><div class="tr-label">IV-/Behindertensignet</div><div class="tr-sub">am Boden · je Stk</div></div></div>
+      <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="bmIvAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:56px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:center;"><span style="font-size:10px;color:var(--muted);">Stk</span><span class="pbadge" id="bmIvPreis">–</span></div>
+    </div>
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="bmVormark" onchange="cBoden()"><span class="tsl"></span></label>
+        <div><div class="tr-label">Einmessen / Vormarkierung</div><div class="tr-sub">pauschal</div></div></div>
+      <div class="tr-r"><span class="pbadge" id="bmVormPreis">–</span></div>
+    </div>
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="bmReinigung" onchange="cBoden()"><span class="tsl"></span></label>
+        <div><div class="tr-label">Reinigung der Markierflächen</div><div class="tr-sub">pauschal</div></div></div>
+      <div class="tr-r"><span class="pbadge" id="bmReinPreis">–</span></div>
+    </div>
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><div><div class="tr-label">Mehrkilometer</div><div class="tr-sub">ab 30 km ab Filiale · CHF/km</div></div></div>
+      <div class="tr-r" style="display:flex;gap:6px;align-items:center;">
+        <input type="number" id="bmMehrKm" min="0" step="1" value="0" oninput="cBoden()" style="width:56px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:3px 5px;border-radius:3px;font-size:11px;text-align:center;"><span style="font-size:10px;color:var(--muted);">km</span><span class="pbadge" id="bmKmPreis">–</span></div>
+    </div>
 
     <div class="st t" style="font-size:9px;margin:12px 0 6px;">⑤ Einrichtung</div>
-    <label class="tog" style="display:flex;align-items:center;gap:8px;margin:4px 0 10px;cursor:pointer;"><input type="checkbox" id="bmEinrichtung" checked onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Einrichtung / Installation Markiereinheit</span></label>
-
-    <div class="field" style="margin:6px 0 12px;">
-      <label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);">(optional)</span></label>
-      <input type="text" id="bmNotiz" placeholder="z. B. Objekt, Untergrund, Ausführungstermin..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;">
+    <div class="tr" style="margin-bottom:5px;">
+      <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="bmEinrichtung" checked onchange="cBoden()"><span class="tsl"></span></label>
+        <div><div class="tr-label">Einrichtung / Installation</div><div class="tr-sub">Markiereinheit · pauschal</div></div></div>
+      <div class="tr-r"><span class="pbadge" id="bmEinrPreis">–</span></div>
     </div>
 
-    <div id="bmTotalPreview" style="text-align:right;font-size:14px;font-weight:800;color:var(--accent);margin-bottom:12px;">Total: CHF 0.00</div>
+    <div class="field" style="margin:12px 0;">
+      <label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);">(optional)</span></label>
+      <input type="text" id="bmNotiz" placeholder="z. B. Objekt, Untergrund, Ausführungstermin..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:8px 9px;border-radius:var(--rsm);font-size:12px;">
+    </div>
+
+    <div class="fg" style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin:10px 0 14px;">
+      <div class="fgi"><div class="fgi-l">Parkfelder / Linien</div><div class="fgi-v" id="bmRPark">CHF 0.00</div></div>
+      <div class="fgi"><div class="fgi-l">Nummern</div><div class="fgi-v" id="bmRNr">CHF 0.00</div></div>
+      <div class="fgi"><div class="fgi-l">Pfeile</div><div class="fgi-v" id="bmRPf">CHF 0.00</div></div>
+      <div class="fgi"><div class="fgi-l">Weitere Markierungen</div><div class="fgi-v" id="bmRExtra">CHF 0.00</div></div>
+      <div class="fgi"><div class="fgi-l">Einrichtung</div><div class="fgi-v" id="bmREinr">CHF 0.00</div></div>
+      <div class="fgi"><div class="fgi-l">Preis / Parkfeld</div><div class="fgi-v tl" id="bmRProFeld">–</div></div>
+      <div class="fgi sp2"><div class="fgi-l">TOTAL Verkaufspreis (inkl. 50% Marge)</div><div class="fgi-v am" id="bmRTotal" style="font-size:17px;">CHF 0.00</div></div>
+    </div>
+
     <button class="btn btn-y" onclick="saveBodenPos()" style="width:100%;font-size:14px;padding:11px;">✓ Bodenmarkierung speichern</button>
   </div>
 
@@ -2703,9 +2753,13 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V8.2';
+const UI_VERSION='V8.6';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V8.6','Reaktor-Statusbalken (Erfassen & E-Mail-Analyse): Die Wortwitze erscheinen jetzt in zufälliger Reihenfolge (nie zweimal derselbe direkt hintereinander) statt immer gleich. Neu dabei u. a. „Reaktor wird angereichert …" und „Isotope werden gespalten …".'],
+  ['V8.5','Reaktor: Beim Reinziehen (oder Einfügen) einer E-Mail erscheint jetzt sofort ein Feedback-Overlay „E-Mail wird gelesen & analysiert" — mit laufendem Balken, „Reaktor liest mit …" und den bekannten Wortwitzen (gleiche Optik wie der Erfassen-Statusbalken). Vorher passierte 1–10 s lang scheinbar nichts, bis Kunde/Betreff auftauchten. Overlay verschwindet automatisch, sobald die Analyse fertig ist.'],
+  ['V8.4','Offerte-PDF · Positionsbeschrieb Folientechnik ausführlicher & klarer gegliedert: eigene, fett beschriftete Zeilen statt einer langen Textzeile — „Ausführung: Folientechnik · Digitaldruck", „Format: 900 × 1300 mm · Menge: 6 Stk. · Fläche: 7.02 m²", dann „Druckart:" (NEU — wurde bisher nicht ausgewiesen), „Folie:", „Laminat:", „Glasdekorfolie:", „Weiterverarbeitung:", Anfahrt/Montage und Versand-Hinweis. Format und Menge sind jetzt sauber benannt. (Vorlage für die übrigen Produkte — auf Wunsch ziehe ich denselben Stil bei Schild, Reliefschriften, Gravur usw. nach.)'],
+  ['V8.3','Bodenmarkierung: Formular an das UX der übrigen Kalkulatoren angeglichen — saubere Umschalt-Buttons (Anzahl Parkfelder / Laufmeter), korrekte Schalter-Zeilen, Preis-Badges je Position, LIVE-Leiste oben und ein Ergebnis-Raster mit Teilsummen + Total wie bei Schild/Folientechnik. (Zuvor waren Schalter und Umschalter fehlerhaft dargestellt.)'],
   ['V8.2','Robustheit: Der Positionstyp-Dialog verwirft keine Produkt-Kacheln mehr. Neu hinzugefügte Produkte erscheinen ab sofort automatisch in der Auswahl (als Sicherheitsnetz unter „Produkte") — auch wenn sie in der internen Gruppierungsliste vergessen würden. Das behebt die Ursache, die früher bei Fahrzeug/Versand zu fehlenden Buttons führte, dauerhaft.'],
   ['V8.1','Neues Produkt „Bodenmarkierung" (Gruppe Produkte): Parkfeldmarkierung wahlweise nach Laufmeter oder Anzahl Parkfelder — mit Logik für geteilte Mittellinien (Felder in Reihe teilen sich die Trennlinie) bzw. einzelne Felder, plus optionale Abschlusslinie. Dazu Parkfeldnummern in zwei Höhen (25/50 cm), Richtungspfeile (Standard), Einrichtung sowie Extras (Fussgängerstreifen, Sperrfläche, IV-Signet, Einmessen, Reinigung, Mehrkilometer). Preise aus euren Morf-/Mark-it!-Rechnungen abgeleitet, alle mit 50% Marge (in der Admin-Config editierbar). Erscheint als eigene Positionszeile mit Preis in der Offerte.'],
   ['V8.0','Reaktor: Bei den Kundendaten gibt es jetzt zwei zusätzliche Felder „Zusatz 1 (Abteilung o. ä.)" und „Zusatz 2" (z. B. Abteilung, z. Hd., Gebäude, Kostenstelle). Sind diese in den hinterlegten Kundendaten vorhanden, werden sie beim Auswählen eines Bestandskunden automatisch übernommen. Die Zusätze werden mit der Anfrage gespeichert.'],
@@ -11785,9 +11839,9 @@ function bmFillNummern(){
 }
 function bmSetMode(m){
   window._bmMode=m;
-  const fb=$('bmModeFelder'), lb=$('bmModeLfm');
-  if(fb) fb.className = (m==='felder')?'btn btn-y':'btn btn-gh';
-  if(lb) lb.className = (m==='lfm')?'btn btn-y':'btn btn-gh';
+  const zf=$('bmZoptFelder'), zl=$('bmZoptLfm');
+  if(zf) zf.classList.toggle('sel', m==='felder');
+  if(zl) zl.classList.toggle('sel', m==='lfm');
   const fw=$('bmFelderWrap'), lw=$('bmLfmWrap'), fo=$('bmFelderOpts');
   if(fw) fw.style.display = (m==='felder')?'':'none';
   if(lw) lw.style.display = (m==='lfm')?'':'none';
@@ -11802,14 +11856,15 @@ function cBoden(){
   const mode=window._bmMode||'felder';
   const breite=$('bmBreite')?.value||'15';
   const ekLfm=(C.parklinieEK&&C.parklinieEK[breite])||6.5;
-  let lfm=0, linienInfo='';
-  if(mode==='lfm'){ lfm=num('bmLfm'); linienInfo=lfm.toFixed(1)+' Lfm'; }
+  let lfm=0, linienInfo='', felderN=0;
+  if(mode==='lfm'){ lfm=num('bmLfm'); linienInfo = lfm>0 ? (lfm.toFixed(1)+' Lfm · '+breite+'cm') : '–'; }
   else {
-    const n=num('bmFelderAnz'), tiefe=num('bmFeldtiefe')||5, fbreite=num('bmFeldbreite')||2.5, geteilt=gc('bmGeteilt');
+    const n=num('bmFelderAnz'); felderN=n;
+    const tiefe=num('bmFeldtiefe')||5, fbreite=num('bmFeldbreite')||2.5, geteilt=gc('bmGeteilt');
     const seiten = n>0 ? (geteilt ? (n+1) : (2*n)) : 0;
     lfm=seiten*tiefe;
     if(gc('bmAbschluss')) lfm+=n*fbreite;
-    linienInfo = n>0 ? (n+' Felder · '+seiten+' Linien × '+tiefe.toFixed(1)+'m'+(gc('bmAbschluss')?(' + Abschluss '+n+'×'+fbreite.toFixed(1)+'m'):'')+' = '+lfm.toFixed(1)+' Lfm') : '';
+    linienInfo = n>0 ? (n+' Felder · '+seiten+' Linien × '+tiefe.toFixed(1)+'m'+(gc('bmAbschluss')?(' + Abschluss '+n+'×'+fbreite.toFixed(1)+'m'):'')+' = '+lfm.toFixed(1)+' Lfm · '+breite+'cm') : 'noch keine Felder';
   }
   const parkVK=lfm*ekLfm*M;
   const nrIdx=parseInt($('bmNrHoehe')?.value)||0, nrDef=(C.nummer||[])[nrIdx]||{ek:13.5,hoehe:''};
@@ -11822,13 +11877,19 @@ function cBoden(){
   const vormVK=gc('bmVormark')?(C.vormarkierungEK||0)*M:0;
   const reinVK=gc('bmReinigung')?(C.reinigungEK||0)*M:0;
   const einrVK=gc('bmEinrichtung')?(C.einrichtungEK||0)*M:0;
-  const total=parkVK+nrVK+pfVK+fussVK+sperrVK+ivVK+kmVK+vormVK+reinVK+einrVK;
+  const extraVK=fussVK+sperrVK+ivVK+kmVK+vormVK+reinVK;
+  const total=parkVK+nrVK+pfVK+extraVK+einrVK;
+  const bad=(id,v)=>{const e=$(id);if(e)e.textContent=v>0?('CHF '+v.toFixed(2)):'–';};
   const setT=(id,t)=>{const e=$(id);if(e)e.textContent=t;};
-  setT('bmLinienHint', linienInfo?('→ '+linienInfo+' · '+breite+'cm · CHF '+(ekLfm*M).toFixed(2)+'/Lfm'):'');
-  setT('bmParkPreis', parkVK>0?('CHF '+parkVK.toFixed(2)):'–');
-  setT('bmNrPreis', nrVK>0?('CHF '+nrVK.toFixed(2)+(nrDef.hoehe?(' · '+nrDef.hoehe):'')):'–');
-  setT('bmPfeilPreis', pfVK>0?('CHF '+pfVK.toFixed(2)):'–');
-  setT('bmTotalPreview','Total: CHF '+total.toFixed(2));
+  const setC=(id,v)=>{const e=$(id);if(e)e.textContent='CHF '+v.toFixed(2);};
+  setT('bmLinienHint', linienInfo?('→ '+linienInfo+(lfm>0?(' · CHF '+(ekLfm*M).toFixed(2)+'/Lfm'):'')):'–');
+  bad('bmParkPreis',parkVK); bad('bmNrPreis',nrVK); bad('bmPfeilPreis',pfVK);
+  bad('bmFussPreis',fussVK); bad('bmSperrPreis',sperrVK); bad('bmIvPreis',ivVK);
+  bad('bmVormPreis',vormVK); bad('bmReinPreis',reinVK); bad('bmKmPreis',kmVK); bad('bmEinrPreis',einrVK);
+  setC('bmRPark',parkVK); setC('bmRNr',nrVK); setC('bmRPf',pfVK); setC('bmRExtra',extraVK); setC('bmREinr',einrVK); setC('bmRTotal',total);
+  const pf=$('bmRProFeld'); if(pf) pf.textContent = felderN>0 ? ('CHF '+(total/felderN).toFixed(2)) : '–';
+  setT('bmLiveInfo', linienInfo||'–');
+  const lt=$('bmLiveTotal'); if(lt) lt.textContent='CHF '+total.toFixed(2);
   return { total, lfm, parkVK, nrVK, pfVK, fussVK, sperrVK, ivVK, kmVK, vormVK, reinVK, einrVK };
 }
 function openBodenForm(){
@@ -15925,21 +15986,27 @@ function printDoc(mode){
     let desc=`<strong>${p.label}</strong>`;
     let detail='';
     if(p.type==='folientechnik'){
-      const ftMods=[];
-        if(p.folie)ftMods.push('Folie: '+sp(p.folie));
-      if(p.laminat)ftMods.push('Laminat: '+sp(p.laminat));
-      if(p.glasdekorf)ftMods.push('Glasdekorfolie: '+sp(p.glasdekorf));
-      if(p.anfahrtKm>0)ftMods.push(sp(`Anfahrt ${p.anfahrtKm}km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
-      if(p.montPersAkt&&p.montStd>0)ftMods.push(`Montagepersonal ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd}h`);
-      if(p.montageSeparat)ftMods.push('Montagekosten separat ausgewiesen');
-      // Werbetechnikerarbeit
-      (p.wtArbeiten||[]).forEach(a=>ftMods.push(`${a.name}`));
-      // Versand (Texthinweis — Kunde ohne Preis)
-      { const ftVStr=versandZeile(p,isInt); if(ftVStr) ftMods.push(ftVStr); }
-      // Übergabe
-      if(p.uebergabe?.typ==='abholung')ftMods.push('Übergabe: Abholung durch Kunde');
-      else if(p.uebergabe?.typ==='anlieferung'){const anlStr2=p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):'kostenlos';ftMods.push('Anlieferung durch Grafe: '+anlStr2);}
-      detail=`<strong>Beschriftung: Folientechnik</strong> · ${p.l||'?'}×${p.b||'?'}mm · ${p.stk} Stk.${ftMods.length?'<br>'+ftMods.join('<br>'):''}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
+      // Ausführlichere, klar gegliederte Beschreibung mit fetten Labels.
+      const L=[];
+      const m2n=(p.m2n!=null?p.m2n:((p.l||0)/1000*(p.b||0)/1000*(p.stk||1)));
+      L.push(`<span style="color:#555;">Ausführung:</span> <strong>Folientechnik${p.druck?' · Digitaldruck':''}</strong>`);
+      L.push(`<b>Format:</b> ${p.l||'?'} × ${p.b||'?'} mm &nbsp;·&nbsp; <b>Menge:</b> ${p.stk||1} Stk.${m2n>0?` &nbsp;·&nbsp; <b>Fläche:</b> ${m2n.toFixed(2)} m²`:''}`);
+      if(p.druck)     L.push(`<b>Druckart:</b> ${sp(p.druck)}`);
+      if(p.folie)     L.push(`<b>Folie:</b> ${sp(p.folie)}`);
+      if(p.laminat)   L.push(`<b>Laminat:</b> ${sp(p.laminat)}`);
+      if(p.glasdekorf)L.push(`<b>Glasdekorfolie:</b> ${sp(p.glasdekorf)}`);
+      // Weiterverarbeitung (Werbetechnikerarbeit)
+      const nach=(p.wtArbeiten||[]).map(a=>a.name).filter(Boolean);
+      if(nach.length) L.push(`<b>Weiterverarbeitung:</b> ${nach.join(', ')}`);
+      if(p.anfahrtKm>0)L.push(sp(`<b>Anfahrt:</b> ${p.anfahrtKm} km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
+      if(p.montPersAkt&&p.montStd>0)L.push(`<b>Montagepersonal:</b> ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd} h`);
+      if(p.montageSeparat)L.push('<span style="color:#777;">Montagekosten separat ausgewiesen</span>');
+      // Versand (Texthinweis — Kunde ohne Preis) mit fettem Label
+      { const ftVStr=versandZeile(p,isInt); if(ftVStr){ const ci=ftVStr.indexOf(': '); L.push(ci>0?('<b>'+ftVStr.slice(0,ci)+':</b>'+ftVStr.slice(ci+1)):ftVStr); } }
+      if(p.uebergabe?.typ==='abholung')L.push('<b>Übergabe:</b> Abholung durch Kunde');
+      else if(p.uebergabe?.typ==='anlieferung'){const anlStr2=p.uebergabe.art==='betrag'&&p.uebergabe.betrag>0?'CHF '+p.uebergabe.betrag.toFixed(2):'kostenlos';L.push('<b>Anlieferung durch Grafe:</b> '+anlStr2);}
+      // Notiz NICHT hier anhängen — sie wird bereits generisch direkt unter der Bezeichnung ausgegeben (Zeile ~16131).
+      detail = L.join('<br>');
       if(isInt)detail+=`<br><span style="color:#999;font-size:9px;">Mat.EK CHF ${(p.matEK||0).toFixed(2)} · VK CHF ${(p.matVK||0).toFixed(2)}</span>`;
     } else if(p.type==='fraes'){
       const frLines=[];
@@ -18020,6 +18087,8 @@ function toggleEmailAnalyse(){
   }
   async function kegAnalyse(text){
     if(!text||text.trim().length<5) return;
+    kegAnalyseStart();
+    try{
     const apiKey=(document.getElementById('apiKey')&&document.getElementById('apiKey').value||localStorage.getItem('grafe_apikey')||'').trim();
     try{ window._kalleSummary=''; }catch(e){}
     try{
@@ -18049,6 +18118,7 @@ function toggleEmailAnalyse(){
       bd.style.background=existing?'#e6efe8':'#f5eed7'; bd.style.color=existing?'#2f7d54':'#6f5a00'; bd.style.borderColor=existing?'#bfe0c8':'#e6d9a6'; }
     showPickedFromCUR(true);
     refresh();
+    }finally{ kegAnalyseDone(); }
   }
   function showPickedFromCUR(detected){
     const k=CUR.kunde||{};
@@ -18386,7 +18456,8 @@ function toggleEmailAnalyse(){
   var KP_CHECK='<svg width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7"><circle cx="12" cy="12" r="9"/><path d="M8 12.4l2.6 2.6 5-5.6"/></svg>';
 
   var KEG_JOKES=[
-    'Nuklear-Engine wird hochgefahren …',
+    'Reaktor wird angereichert …',
+    'Isotope werden gespalten …',
     'Kettenreaktion höflich eingeleitet …',
     'Kühlbecken mit Aromat abgeschmeckt …',
     'Steuerstäbe nachgezogen — nur handfest …',
@@ -18403,12 +18474,50 @@ function toggleEmailAnalyse(){
     'Dosimeter auf „alles gut" gestellt …',
     'Reaktorkern flüstert „läuft" …'
   ];
-  var _kegProgEl=null, _kegJokeTimer=null, _kegJokeIx=0, _kegProgPct=0;
+  var _kegProgEl=null, _kegJokeTimer=null, _kegJokeIx=0, _kegProgPct=0, _kegCreepTimer=null;
+  // ── Feedback beim E-Mail-Einlesen/Analysieren (dauert 1–10 s) ──────────────
+  // Nutzt dieselbe Overlay-Optik + Wortwitze wie der Erfassen-Balken, aber mit
+  // „kriechendem" Balken Richtung 90 % (Dauer unbekannt), bis die Analyse fertig ist.
+  // Zufälliger Witz — nie zweimal derselbe direkt hintereinander.
+  function _kegRandJoke(){
+    if(!KEG_JOKES.length) return '';
+    if(KEG_JOKES.length<2){ _kegJokeIx=0; return KEG_JOKES[0]; }
+    var ix; do{ ix=Math.floor(Math.random()*KEG_JOKES.length); }while(ix===_kegJokeIx);
+    _kegJokeIx=ix; return KEG_JOKES[ix];
+  }
+  function _kegJokeCycle(){
+    if(_kegJokeTimer) clearInterval(_kegJokeTimer);
+    _kegJokeTimer=setInterval(function(){ var nx=_kegRandJoke();
+      var e=G('kpJoke'); if(e){ e.style.opacity='0'; setTimeout(function(){ e.textContent=nx; e.style.opacity='1'; },200); } },1400);
+  }
+  function kegAnalyseStart(){
+    _kegProgBuild(); _kegProgPct=0; _kegJokeIx=0;
+    var box=_kegProgEl.querySelector('.kp-box'); if(box) box.classList.remove('done');
+    var ic=G('kpIcon'); if(ic) ic.innerHTML=KP_ATOM;
+    var t=G('kpTitle'); if(t) t.textContent='E-Mail wird gelesen & analysiert';
+    _kegProgEl.classList.add('on');
+    kegProgSet(8,'Reaktor liest mit …');
+    _kegJokeIx=-1; var jk=G('kpJoke'); if(jk) jk.textContent=_kegRandJoke();
+    _kegJokeCycle();
+    if(_kegCreepTimer) clearInterval(_kegCreepTimer);
+    _kegCreepTimer=setInterval(function(){
+      if(_kegProgPct<90){ var step=Math.max(0.6,(90-_kegProgPct)*0.06); kegProgSet(_kegProgPct+step); }
+    },240);
+  }
+  function kegAnalyseDone(cb){
+    if(_kegCreepTimer){ clearInterval(_kegCreepTimer); _kegCreepTimer=null; }
+    if(_kegJokeTimer){ clearInterval(_kegJokeTimer); _kegJokeTimer=null; }
+    kegProgSet(100,'Fertig — erkannt ✓');
+    var jk=G('kpJoke'); if(jk){ jk.style.opacity='0'; setTimeout(function(){ jk.textContent='Kunde & Betreff rausgefiltert — kein Fallout.'; jk.style.opacity='1'; },200); }
+    var box=_kegProgEl&&_kegProgEl.querySelector('.kp-box'); if(box) box.classList.add('done');
+    var ic=G('kpIcon'); if(ic) ic.innerHTML=KP_CHECK;
+    setTimeout(function(){ if(_kegProgEl) _kegProgEl.classList.remove('on'); if(typeof cb==='function') cb(); },820);
+  }
   function _kegProgBuild(){
     if(_kegProgEl) return _kegProgEl;
     var d=document.createElement('div'); d.id='kegProg';
     d.innerHTML='<div class="kp-box"><div class="kp-icon" id="kpIcon">'+KP_ATOM+'</div>'+
-      '<div class="kp-title">Anfrage wird erfasst & abgelegt</div>'+
+      '<div class="kp-title" id="kpTitle">Anfrage wird erfasst & abgelegt</div>'+
       '<div class="kp-joke" id="kpJoke">…</div>'+
       '<div class="kp-track"><div class="kp-fill" id="kpFill"></div></div>'+
       '<div class="kp-row"><span class="kp-cap" id="kpCap">Reaktor startet …</span><span class="kp-pct" id="kpPct">0 %</span></div></div>';
@@ -18416,14 +18525,14 @@ function toggleEmailAnalyse(){
   }
   function kegProgStart(){
     _kegProgBuild(); _kegProgPct=0; _kegJokeIx=0;
+    if(_kegCreepTimer){ clearInterval(_kegCreepTimer); _kegCreepTimer=null; }
     var box=_kegProgEl.querySelector('.kp-box'); if(box) box.classList.remove('done');
     var ic=G('kpIcon'); if(ic){ ic.innerHTML=KP_ATOM; }
+    var t=G('kpTitle'); if(t) t.textContent='Anfrage wird erfasst & abgelegt';
     _kegProgEl.classList.add('on');
     kegProgSet(6,'Reaktor startet …');
-    var jk=G('kpJoke'); if(jk) jk.textContent=KEG_JOKES[0];
-    if(_kegJokeTimer) clearInterval(_kegJokeTimer);
-    _kegJokeTimer=setInterval(function(){ _kegJokeIx=(_kegJokeIx+1)%KEG_JOKES.length;
-      var e=G('kpJoke'); if(e){ e.style.opacity='0'; setTimeout(function(){ e.textContent=KEG_JOKES[_kegJokeIx]; e.style.opacity='1'; },200); } },1400);
+    _kegJokeIx=-1; var jk=G('kpJoke'); if(jk) jk.textContent=_kegRandJoke();
+    _kegJokeCycle();
   }
   function kegProgSet(pct,cap){
     _kegProgPct=Math.max(_kegProgPct,Math.min(100,pct));
