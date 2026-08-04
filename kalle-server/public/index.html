@@ -773,6 +773,11 @@ a, button, input, select, textarea, label,
           <div class="type-btn-name">SBB Provisorien</div>
           <div class="type-btn-sub">FIS-Schilder · M&amp;M Publicdesign</div>
         </div>
+        <div class="type-btn" id="tb-boden" onclick="startPos('bodenmarkierung')">
+          <div class="type-btn-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 20h18"/><path d="M6 20l1.5-5"/><path d="M18 20l-1.5-5"/><path d="M11 15h2l.4 5h-2.8z"/><path d="M9 8h6l-.6 4H9.6z"/><path d="M12 3v3"/></svg></div>
+          <div class="type-btn-name">Bodenmarkierung</div>
+          <div class="type-btn-sub">Parkfelder · Nummern · Pfeile</div>
+        </div>
         <div class="type-btn stl" id="tb-montage" onclick="startPos('montage')">
           <div class="type-btn-icon">⌖</div>
           <div class="type-btn-name">Montage Gesamtauftrag</div>
@@ -2210,6 +2215,95 @@ a, button, input, select, textarea, label,
     <button class="btn btn-y" onclick="saveVersandPos()" style="width:100%;font-size:14px;padding:11px;">✓ Versand-Position speichern</button>
   </div>
 
+  <div id="bodenForm" style="display:none;" class="sec">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;">▦ Bodenmarkierung</div>
+      <button class="btn btn-gh" onclick="closeBodenForm()" style="font-size:11px;">✕ Abbrechen</button>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Bezeichnung <span style="font-size:9px;color:var(--muted);">(Positionstitel in der Offerte)</span></label>
+      <input type="text" id="bmLabel" value="Bodenmarkierung" placeholder="Bodenmarkierung" style="width:100%;font-size:14px;font-weight:600;">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Farbe / Material</label>
+      <select id="bmFarbe" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+        <option value="weiss 2-K-Farbe">Weiss · 2-K-Farbe</option>
+        <option value="gelb 2-K-Farbe">Gelb · 2-K-Farbe</option>
+        <option value="weiss Kaltplastik">Weiss · Kaltplastik (langlebig)</option>
+        <option value="gelb Kaltplastik">Gelb · Kaltplastik (langlebig)</option>
+      </select>
+    </div>
+
+    <div class="st t" style="font-size:9px;margin:6px 0 8px;">① Parkfeldmarkierung</div>
+    <div class="keg-seg" style="display:flex;gap:8px;margin-bottom:10px;">
+      <button type="button" id="bmModeFelder" onclick="bmSetMode('felder')" class="btn btn-y" style="flex:1;font-size:12px;padding:8px;">Anzahl Parkfelder</button>
+      <button type="button" id="bmModeLfm" onclick="bmSetMode('lfm')" class="btn btn-gh" style="flex:1;font-size:12px;padding:8px;">Laufmeter (Lfm)</button>
+    </div>
+    <div class="g2" style="gap:8px;margin-bottom:8px;">
+      <div class="field">
+        <label>Linienbreite</label>
+        <select id="bmBreite" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+          <option value="10">10 cm</option><option value="12">12 cm</option><option value="15" selected>15 cm</option>
+        </select>
+      </div>
+      <div class="field" id="bmFelderWrap">
+        <label>Anzahl Parkfelder</label>
+        <input type="number" id="bmFelderAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;">
+      </div>
+      <div class="field" id="bmLfmWrap" style="display:none;">
+        <label>Laufmeter Linien (Lfm)</label>
+        <input type="number" id="bmLfm" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;">
+      </div>
+    </div>
+    <div id="bmFelderOpts">
+      <div class="g2" style="gap:8px;margin-bottom:6px;">
+        <div class="field"><label>Feldtiefe (m) <span style="font-size:9px;color:var(--muted);">Linienlänge je Seite</span></label>
+          <input type="number" id="bmFeldtiefe" min="0" step="0.1" value="5.0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+        <div class="field"><label>Feldbreite (m) <span style="font-size:9px;color:var(--muted);">für Abschlusslinie</span></label>
+          <input type="number" id="bmFeldbreite" min="0" step="0.1" value="2.5" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+      </div>
+      <label class="tog" style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer;"><input type="checkbox" id="bmGeteilt" checked onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Mittellinien geteilt (Felder in Reihe teilen sich die Trennlinie)</span></label>
+      <label class="tog" style="display:flex;align-items:center;gap:8px;margin:6px 0;cursor:pointer;"><input type="checkbox" id="bmAbschluss" onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Abschlusslinie (vorne) mitmarkieren</span></label>
+    </div>
+    <div id="bmLinienHint" style="font-size:10px;color:var(--muted);margin-bottom:4px;"></div>
+    <div style="text-align:right;font-size:11px;color:var(--teal);margin-bottom:12px;" id="bmParkPreis">–</div>
+
+    <div class="st t" style="font-size:9px;margin:6px 0 8px;">② Parkfeldnummern</div>
+    <div class="g2" style="gap:8px;margin-bottom:6px;">
+      <div class="field"><label>Höhe</label>
+        <select id="bmNrHoehe" onchange="cBoden()" style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;"></select></div>
+      <div class="field"><label>Anzahl Nummern</label>
+        <input type="number" id="bmNrAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+    </div>
+    <div style="text-align:right;font-size:11px;color:var(--teal);margin-bottom:12px;" id="bmNrPreis">–</div>
+
+    <div class="st t" style="font-size:9px;margin:6px 0 8px;">③ Richtungspfeile (Standard ~650 cm)</div>
+    <div class="field" style="margin-bottom:6px;"><label>Anzahl Pfeile</label>
+      <input type="number" id="bmPfeilAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+    <div style="text-align:right;font-size:11px;color:var(--teal);margin-bottom:12px;" id="bmPfeilPreis">–</div>
+
+    <div class="st t" style="font-size:9px;margin:6px 0 8px;">④ Weitere Markierungen (optional)</div>
+    <div class="g2" style="gap:8px;">
+      <div class="field"><label>Fussgängerstreifen (Lfm)</label><input type="number" id="bmFussLfm" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+      <div class="field"><label>Sperrfläche schraffiert (m²)</label><input type="number" id="bmSperrM2" min="0" step="0.5" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+      <div class="field"><label>IV-/Behindertensignet (Stk)</label><input type="number" id="bmIvAnz" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+      <div class="field"><label>Mehrkilometer ab 30 km</label><input type="number" id="bmMehrKm" min="0" step="1" value="0" oninput="cBoden()" style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:13px;"></div>
+    </div>
+    <label class="tog" style="display:flex;align-items:center;gap:8px;margin:8px 0 4px;cursor:pointer;"><input type="checkbox" id="bmVormark" onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Einmessen / Vormarkierung (pauschal)</span></label>
+    <label class="tog" style="display:flex;align-items:center;gap:8px;margin:4px 0;cursor:pointer;"><input type="checkbox" id="bmReinigung" onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Reinigung der Markierflächen (pauschal)</span></label>
+
+    <div class="st t" style="font-size:9px;margin:12px 0 6px;">⑤ Einrichtung</div>
+    <label class="tog" style="display:flex;align-items:center;gap:8px;margin:4px 0 10px;cursor:pointer;"><input type="checkbox" id="bmEinrichtung" checked onchange="cBoden()"><span class="tsl"></span><span style="font-size:12px;">Einrichtung / Installation Markiereinheit</span></label>
+
+    <div class="field" style="margin:6px 0 12px;">
+      <label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);">(optional)</span></label>
+      <input type="text" id="bmNotiz" placeholder="z. B. Objekt, Untergrund, Ausführungstermin..." style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;">
+    </div>
+
+    <div id="bmTotalPreview" style="text-align:right;font-size:14px;font-weight:800;color:var(--accent);margin-bottom:12px;">Total: CHF 0.00</div>
+    <button class="btn btn-y" onclick="saveBodenPos()" style="width:100%;font-size:14px;padding:11px;">✓ Bodenmarkierung speichern</button>
+  </div>
+
   <div id="fahrzeugForm" style="display:none;" class="sec">
     <style>
       #fahrzeugForm .fz-grid{display:grid;grid-template-columns:1fr 380px;gap:16px;}
@@ -2609,9 +2703,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V7.9';
+const UI_VERSION='V8.1';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V8.1','Neues Produkt „Bodenmarkierung" (Gruppe Produkte): Parkfeldmarkierung wahlweise nach Laufmeter oder Anzahl Parkfelder — mit Logik für geteilte Mittellinien (Felder in Reihe teilen sich die Trennlinie) bzw. einzelne Felder, plus optionale Abschlusslinie. Dazu Parkfeldnummern in zwei Höhen (25/50 cm), Richtungspfeile (Standard), Einrichtung sowie Extras (Fussgängerstreifen, Sperrfläche, IV-Signet, Einmessen, Reinigung, Mehrkilometer). Preise aus euren Morf-/Mark-it!-Rechnungen abgeleitet, alle mit 50% Marge (in der Admin-Config editierbar). Erscheint als eigene Positionszeile mit Preis in der Offerte.'],
+  ['V8.0','Reaktor: Bei den Kundendaten gibt es jetzt zwei zusätzliche Felder „Zusatz 1 (Abteilung o. ä.)" und „Zusatz 2" (z. B. Abteilung, z. Hd., Gebäude, Kostenstelle). Sind diese in den hinterlegten Kundendaten vorhanden, werden sie beim Auswählen eines Bestandskunden automatisch übernommen. Die Zusätze werden mit der Anfrage gespeichert.'],
   ['V7.9','Fix: Der neue Positionstyp „Versand" erscheint jetzt korrekt in der Positions-Auswahl unter „Zusätze" (neben Montage, Textposition, Rabatt). Die Menü-Neugruppierung beim Start hatte die Kachel bisher verworfen — dieselbe Ursache wie früher bei „Fahrzeugbeschriftung".'],
   ['V7.8','Reaktor: In der Produkt-/Leistungsauswahl bei der Anfrageerfassung gibt es jetzt zusätzlich „Reklamation" (mit Warndreieck-Icon) — auswählbar wie die übrigen Produkte, erscheint in der Zusammenfassung und wird mit der Anfrage gespeichert.'],
   ['V7.7','Neu: „Versand" ist jetzt ein eigenes Produkt/Position — wie „Montage Gesamtauftrag". Über die Produkt-Kachel „Versand" wählbar: DPD-Klasse (S–XXL, automatischer Preis) und/oder Camion-Transport sowie ein freier Betrag mit eigener Bezeichnung. Erscheint als eigene Positionszeile mit Preis in der Offerte (Menge „Psch."). Wird gespeichert, in der Positionsliste angezeigt und lässt sich normal bearbeiten.'],
@@ -2943,6 +3039,27 @@ const DEF={
       {klasse:'XXL',label:'XXL — Sondermass', format:'>150cm',     gewicht:'bis 60 kg', ekDpd:75.00, ekVerp:25.00},
     ],
     camionStdEK: 180.00,  // CHF Standard EK Camion
+  },
+  // Bodenmarkierungen — EK-Preise (Subunternehmer Karl Morf AG / Mark-it!), + 50% Marge.
+  // Alle Werte editierbar. VK = EK × (1 + marge).
+  bodenmarkierung:{
+    marge: 0.50,
+    // Parklinien CHF/lfm (EK) je Linienbreite (cm) — aus Rechnungen 4.5–10/lfm
+    parklinieEK: { '10':6.00, '12':6.50, '15':7.00 },
+    feldtiefe: 5.00,     // m — Standard-Parkfeldtiefe (Länge der seitlichen Linien)
+    feldbreite: 2.50,    // m — Standard-Parkfeldbreite (für Abschlusslinie)
+    // Parkfeldnummern / Ziffern je Stk (EK) — 2 Höhen
+    nummer: [ {key:'klein', hoehe:'25 cm', ek:13.50}, {key:'gross', hoehe:'50 cm', ek:25.00} ],
+    // Richtungspfeil Standard (~650 cm) je Stk (EK) — Rechnungen 29–43
+    pfeilEK: 40.00,
+    einrichtungEK: 250.00,   // Einrichtung / Installation Markiereinheit (EK) — 200–300
+    // Weitere Markierungen (EK)
+    fussgaengerEK: 20.00,    // Fussgängerstreifen 50cm CHF/lfm
+    sperrflaecheEK: 30.00,   // Sperrfläche schraffiert CHF/m²
+    ivSignetEK: 45.00,       // IV-/Behindertensignet am Boden je Stk
+    vormarkierungEK: 120.00, // Einmessen / Vormarkierung pauschal
+    reinigungEK: 300.00,     // Reinigung der Markierflächen pauschal
+    mehrkmEK: 3.90,          // Zuschlag CHF/km ab 30 km ab Filiale
   },
   integrations:{
     preislistePfad:'',  // Pfad zur Preisliste (z.B. kalle-preise.json)
@@ -9880,7 +9997,7 @@ function startPosWithCopy(type){
 // ── Positions-Formulare: EINE Quelle der Wahrheit ────────────────────
 // Unvollständige Listen führten dazu, dass zwei Formulare gleichzeitig offen
 // waren — Eingabe im einen, Validierung im anderen (leeren).
-const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm','fahrzeugForm','versandForm'];
+const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm','fahrzeugForm','versandForm','bodenForm'];
 function hidePosForms(inklDialog){
   POS_FORMS.forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   if(inklDialog){ const t=document.getElementById('typeDialog'); if(t) t.style.display='none'; }
@@ -9890,6 +10007,7 @@ function startPos(type){
   if(type==='text'){openTextForm();return;}
   if(type==='fahrzeug'){editIdx=-1;openFahrzeugForm();return;}
   if(type==='versand'){editIdx=-1;openVersandForm();return;}
+  if(type==='bodenmarkierung'){editIdx=-1;openBodenForm();return;}
   $('typeDialog').style.display='none';
   hidePosForms(false);
   if(type==='schild'){
@@ -11653,6 +11771,123 @@ function saveVersandPos(){
   renderPos(); updateTotals();
   $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
   showToast(wasEdit?'Versand aktualisiert ✓':'Versand-Position gespeichert ✓');
+}
+
+/* ═══════════════════ Bodenmarkierung (eigene Position) ═══════════════════
+   Parkfeldmarkierung (Lfm oder Anzahl Felder mit geteilten Mittellinien),
+   Parkfeldnummern (2 Höhen), Richtungspfeile, Einrichtung + Extras.
+   EK-Preise aus P.bodenmarkierung, + 50% Marge (VK = EK × (1+marge)). */
+function bmFillNummern(){
+  const sel=$('bmNrHoehe'); if(!sel) return;
+  const arr=(P.bodenmarkierung&&P.bodenmarkierung.nummer)||[];
+  sel.innerHTML=arr.map((n,i)=>`<option value="${i}">${n.hoehe}</option>`).join('');
+}
+function bmSetMode(m){
+  window._bmMode=m;
+  const fb=$('bmModeFelder'), lb=$('bmModeLfm');
+  if(fb) fb.className = (m==='felder')?'btn btn-y':'btn btn-gh';
+  if(lb) lb.className = (m==='lfm')?'btn btn-y':'btn btn-gh';
+  const fw=$('bmFelderWrap'), lw=$('bmLfmWrap'), fo=$('bmFelderOpts');
+  if(fw) fw.style.display = (m==='felder')?'':'none';
+  if(lw) lw.style.display = (m==='lfm')?'':'none';
+  if(fo) fo.style.display = (m==='felder')?'':'none';
+  cBoden();
+}
+function cBoden(){
+  const C=P.bodenmarkierung||{};
+  const M=1+(C.marge!=null?C.marge:0.5);
+  const num=id=>parseFloat($(id)?.value)||0;
+  const gc=id=>!!$(id)?.checked;
+  const mode=window._bmMode||'felder';
+  const breite=$('bmBreite')?.value||'15';
+  const ekLfm=(C.parklinieEK&&C.parklinieEK[breite])||6.5;
+  let lfm=0, linienInfo='';
+  if(mode==='lfm'){ lfm=num('bmLfm'); linienInfo=lfm.toFixed(1)+' Lfm'; }
+  else {
+    const n=num('bmFelderAnz'), tiefe=num('bmFeldtiefe')||5, fbreite=num('bmFeldbreite')||2.5, geteilt=gc('bmGeteilt');
+    const seiten = n>0 ? (geteilt ? (n+1) : (2*n)) : 0;
+    lfm=seiten*tiefe;
+    if(gc('bmAbschluss')) lfm+=n*fbreite;
+    linienInfo = n>0 ? (n+' Felder · '+seiten+' Linien × '+tiefe.toFixed(1)+'m'+(gc('bmAbschluss')?(' + Abschluss '+n+'×'+fbreite.toFixed(1)+'m'):'')+' = '+lfm.toFixed(1)+' Lfm') : '';
+  }
+  const parkVK=lfm*ekLfm*M;
+  const nrIdx=parseInt($('bmNrHoehe')?.value)||0, nrDef=(C.nummer||[])[nrIdx]||{ek:13.5,hoehe:''};
+  const nrVK=num('bmNrAnz')*(nrDef.ek||0)*M;
+  const pfVK=num('bmPfeilAnz')*(C.pfeilEK||0)*M;
+  const fussVK=num('bmFussLfm')*(C.fussgaengerEK||0)*M;
+  const sperrVK=num('bmSperrM2')*(C.sperrflaecheEK||0)*M;
+  const ivVK=num('bmIvAnz')*(C.ivSignetEK||0)*M;
+  const kmVK=num('bmMehrKm')*(C.mehrkmEK||0)*M;
+  const vormVK=gc('bmVormark')?(C.vormarkierungEK||0)*M:0;
+  const reinVK=gc('bmReinigung')?(C.reinigungEK||0)*M:0;
+  const einrVK=gc('bmEinrichtung')?(C.einrichtungEK||0)*M:0;
+  const total=parkVK+nrVK+pfVK+fussVK+sperrVK+ivVK+kmVK+vormVK+reinVK+einrVK;
+  const setT=(id,t)=>{const e=$(id);if(e)e.textContent=t;};
+  setT('bmLinienHint', linienInfo?('→ '+linienInfo+' · '+breite+'cm · CHF '+(ekLfm*M).toFixed(2)+'/Lfm'):'');
+  setT('bmParkPreis', parkVK>0?('CHF '+parkVK.toFixed(2)):'–');
+  setT('bmNrPreis', nrVK>0?('CHF '+nrVK.toFixed(2)+(nrDef.hoehe?(' · '+nrDef.hoehe):'')):'–');
+  setT('bmPfeilPreis', pfVK>0?('CHF '+pfVK.toFixed(2)):'–');
+  setT('bmTotalPreview','Total: CHF '+total.toFixed(2));
+  return { total, lfm, parkVK, nrVK, pfVK, fussVK, sperrVK, ivVK, kmVK, vormVK, reinVK, einrVK };
+}
+function openBodenForm(){
+  hidePosForms(false);
+  $('typeDialog').style.display='none';
+  bmFillNummern();
+  $('bodenForm').style.display='block';
+  if(editIdx<0){
+    ['bmFelderAnz','bmLfm','bmNrAnz','bmPfeilAnz','bmFussLfm','bmSperrM2','bmIvAnz','bmMehrKm'].forEach(id=>{const e=$(id);if(e)e.value='0';});
+    if($('bmLabel'))$('bmLabel').value='Bodenmarkierung';
+    if($('bmNotiz'))$('bmNotiz').value='';
+    if($('bmFeldtiefe'))$('bmFeldtiefe').value='5.0';
+    if($('bmFeldbreite'))$('bmFeldbreite').value='2.5';
+    if($('bmBreite'))$('bmBreite').value='15';
+    if($('bmFarbe'))$('bmFarbe').value='weiss 2-K-Farbe';
+    if($('bmNrHoehe'))$('bmNrHoehe').value='0';
+    if($('bmGeteilt'))$('bmGeteilt').checked=true;
+    if($('bmAbschluss'))$('bmAbschluss').checked=false;
+    if($('bmEinrichtung'))$('bmEinrichtung').checked=true;
+    if($('bmVormark'))$('bmVormark').checked=false;
+    if($('bmReinigung'))$('bmReinigung').checked=false;
+  }
+  bmSetMode(window._bmMode||'felder');
+  if($('bmLabel'))$('bmLabel').focus();
+}
+function closeBodenForm(){
+  $('bodenForm').style.display='none';
+  $('typeDialog').style.display='block';
+  editIdx=-1;
+}
+function saveBodenPos(){
+  const r=cBoden();
+  if(!r || r.total<=0){ showToast('Bitte mindestens eine Markierung erfassen','error'); return; }
+  const num=id=>parseFloat($(id)?.value)||0;
+  const gc=id=>!!$(id)?.checked;
+  const mode=window._bmMode||'felder';
+  const nrIdx=parseInt($('bmNrHoehe')?.value)||0;
+  const nrDef=((P.bodenmarkierung&&P.bodenmarkierung.nummer)||[])[nrIdx]||{};
+  const data={
+    type:'bodenmarkierung',
+    label:$('bmLabel')?.value?.trim()||'Bodenmarkierung',
+    farbe:$('bmFarbe')?.value||'',
+    bmMode:mode, breite:$('bmBreite')?.value||'15',
+    felderAnz:num('bmFelderAnz'), lfm:r.lfm, lfmDirekt:num('bmLfm'),
+    feldtiefe:num('bmFeldtiefe'), feldbreite:num('bmFeldbreite'), geteilt:gc('bmGeteilt'), abschluss:gc('bmAbschluss'),
+    nrHoeheIdx:nrIdx, nrHoehe:nrDef.hoehe||'', nrAnz:num('bmNrAnz'),
+    pfeilAnz:num('bmPfeilAnz'),
+    fussLfm:num('bmFussLfm'), sperrM2:num('bmSperrM2'), ivAnz:num('bmIvAnz'), mehrKm:num('bmMehrKm'),
+    vormark:gc('bmVormark'), reinigung:gc('bmReinigung'), einrichtung:gc('bmEinrichtung'),
+    notiz:$('bmNotiz')?.value?.trim()||'',
+    parkVK:r.parkVK, nrVK:r.nrVK, pfVK:r.pfVK, fussVK:r.fussVK, sperrVK:r.sperrVK, ivVK:r.ivVK, kmVK:r.kmVK, vormVK:r.vormVK, reinVK:r.reinVK, einrVK:r.einrVK,
+    totalVK:r.total, proStk:r.total, stk:1,
+  };
+  const wasEdit=editIdx>=0;
+  if(editIdx>=0)positions[editIdx]=data; else positions.push(data);
+  editIdx=-1;
+  $('bodenForm').style.display='none';
+  renderPos(); updateTotals();
+  $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
+  showToast(wasEdit?'Bodenmarkierung aktualisiert ✓':'Bodenmarkierung gespeichert ✓');
 }
 
 /* ═══════════════════ Fahrzeugbeschriftung ═══════════════════
@@ -13754,6 +13989,14 @@ function renderPos(){
       if(p.versand?.camionAkt)vp.push('Camion');
       if(p.freiBetrag>0)vp.push(p.freiBez||'Pauschale');
       sub=vp.join(' · ')||'Versand';
+    }else if(p.type==='bodenmarkierung'){
+      badge='Bodenmark.';
+      const bp=[];
+      if(p.felderAnz>0)bp.push(p.felderAnz+' Parkfelder');
+      if(p.bmMode==='lfm'&&p.lfm>0)bp.push(p.lfm.toFixed(1)+' Lfm');
+      if(p.nrAnz>0)bp.push(p.nrAnz+' Nummern');
+      if(p.pfeilAnz>0)bp.push(p.pfeilAnz+' Pfeile');
+      sub=bp.join(' · ')||'Bodenmarkierung';
     }else{
       badge='Folie';
       sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²${p.minAkt?' ⚡':''}`;
@@ -14362,6 +14605,25 @@ function editPos(i){
       cVersandProd();
     },40);
     $('versandForm').scrollIntoView({behavior:'smooth'});
+  }else if(p.type==='bodenmarkierung'){
+    hidePosForms(false);
+    $('typeDialog').style.display='none';
+    bmFillNummern();
+    $('bodenForm').style.display='block';
+    window._bmMode=p.bmMode||'felder';
+    const setV=(id,v)=>{const e=$(id);if(e)e.value=v;};
+    const setC=(id,v)=>{const e=$(id);if(e)e.checked=!!v;};
+    setV('bmLabel',p.label||'Bodenmarkierung'); setV('bmFarbe',p.farbe||'weiss 2-K-Farbe');
+    setV('bmBreite',p.breite||'15'); setV('bmFelderAnz',p.felderAnz||0); setV('bmLfm',p.lfmDirekt||0);
+    setV('bmFeldtiefe',p.feldtiefe||5.0); setV('bmFeldbreite',p.feldbreite||2.5);
+    setC('bmGeteilt',p.geteilt!==false); setC('bmAbschluss',p.abschluss);
+    setV('bmNrHoehe',p.nrHoeheIdx||0); setV('bmNrAnz',p.nrAnz||0);
+    setV('bmPfeilAnz',p.pfeilAnz||0);
+    setV('bmFussLfm',p.fussLfm||0); setV('bmSperrM2',p.sperrM2||0); setV('bmIvAnz',p.ivAnz||0); setV('bmMehrKm',p.mehrKm||0);
+    setC('bmVormark',p.vormark); setC('bmReinigung',p.reinigung); setC('bmEinrichtung',p.einrichtung!==false);
+    setV('bmNotiz',p.notiz||'');
+    bmSetMode(window._bmMode);
+    $('bodenForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='fahrzeug'){
     hidePosForms(false);
     $('typeDialog').style.display='none';
@@ -15626,6 +15888,35 @@ function printDoc(mode){
       return `<tr style="${variantStyle}">
         <td class="c-pos">${i+1}</td><td class="c-menge">1</td><td class="c-me">Psch.</td>
         <td class="c-bez"><strong>${p.label||'Versand'}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${vdetail}</span>${rabattInline}</td>
+        <td class="c-ep">${fmtVar(p,p.totalVK)}</td>
+        <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
+      </tr>`;
+    }
+    if(p.type==='bodenmarkierung'){
+      const bl=[];
+      if((p.parkVK||0)>0){
+        if(p.bmMode==='lfm') bl.push(`Parkfeldlinien ${(p.lfm||0).toFixed(1)} Lfm · ${p.breite}cm`);
+        else bl.push(`Parkfeldmarkierung: ${p.felderAnz} Parkfelder${p.geteilt!==false?' (geteilte Mittellinien)':' (einzeln)'} · ${p.breite}cm · ${(p.lfm||0).toFixed(1)} Lfm${p.abschluss?' inkl. Abschlusslinie':''}`);
+      }
+      if((p.nrVK||0)>0) bl.push(`Parkfeldnummern ${p.nrAnz} Stk · ${p.nrHoehe||''}`);
+      if((p.pfVK||0)>0) bl.push(`Richtungspfeile ${p.pfeilAnz} Stk (Standard)`);
+      if((p.fussVK||0)>0) bl.push(`Fussgängerstreifen ${(p.fussLfm||0).toFixed(1)} Lfm`);
+      if((p.sperrVK||0)>0) bl.push(`Sperrfläche schraffiert ${(p.sperrM2||0).toFixed(1)} m²`);
+      if((p.ivVK||0)>0) bl.push(`IV-/Behindertensignet ${p.ivAnz} Stk`);
+      if((p.vormVK||0)>0) bl.push(`Einmessen / Vormarkierung`);
+      if((p.reinVK||0)>0) bl.push(`Reinigung der Markierflächen`);
+      if((p.kmVK||0)>0) bl.push(`Mehrkilometer ${p.mehrKm} km`);
+      if((p.einrVK||0)>0) bl.push(`Einrichtung / Installation`);
+      if(p.farbe) bl.push(`Ausführung: ${p.farbe}`);
+      let bdetail = bl.join('<br>') || 'Bodenmarkierung';
+      if(isInt){
+        const C=P.bodenmarkierung||{}; const parts=[];
+        parts.push(`Marge ${Math.round((C.marge!=null?C.marge:0.5)*100)}%`);
+        bdetail += `<br><span style="color:#999;font-size:9px;">${parts.join(' · ')}</span>`;
+      }
+      return `<tr style="${variantStyle}">
+        <td class="c-pos">${i+1}</td><td class="c-menge">1</td><td class="c-me">Psch.</td>
+        <td class="c-bez"><strong>${p.label||'Bodenmarkierung'}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${bdetail}</span>${rabattInline}</td>
         <td class="c-ep">${fmtVar(p,p.totalVK)}</td>
         <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
@@ -16909,7 +17200,7 @@ function redesignV3(){
       const g2=document.createElement('div'); g2.className='type-grid4';
       const h1=document.createElement('div'); h1.className='type-group-h'; h1.textContent='Produkte';
       const h2=document.createElement('div'); h2.className='type-group-h'; h2.textContent='Zusätze';
-      ['tb-schild','tb-fahrzeug','tb-fraes','tb-folientechnik','tb-sbb'].forEach(id=>{const e=document.getElementById(id);if(e)g1.appendChild(e);});
+      ['tb-schild','tb-fahrzeug','tb-fraes','tb-folientechnik','tb-sbb','tb-boden'].forEach(id=>{const e=document.getElementById(id);if(e)g1.appendChild(e);});
       ['tb-montage','tb-versand','tb-text','tb-rabatt'].forEach(id=>{const e=document.getElementById(id);if(e)g2.appendChild(e);});
       sel.replaceWith(h1,g1,h2,g2);
     }
@@ -17279,7 +17570,9 @@ function toggleEmailAnalyse(){
     if(adr&&(!ort||!strasse)){ const m=adr.match(/(.*?)(\d{4})\s+(.+)$/); if(m){ strasse=strasse||m[1].replace(/[,\s]+$/,''); plz=plz||m[2]; ort=ort||m[3]; } else if(!strasse){ strasse=adr; } }
     return { nr:g('nr','Nummer','sl_kundennr','slKundennummer','kundennr').replace(/\.0$/,''), name,
       kontakt:g('kontakt','kontaktperson','Kontakt','ansprechperson'), strasse, plz, ort,
-      tel:g('tel','telefon','Telefon','Telefon1'), email:g('email','Email','E-Mail') };
+      tel:g('tel','telefon','Telefon','Telefon1'), email:g('email','Email','E-Mail'),
+      zusatz1:g('zusatz1','Zusatz1','Zusatz 1','adresszusatz1','Adresszusatz1','zusatz','Zusatz','adresszusatz','Adresszusatz','abteilung','Abteilung'),
+      zusatz2:g('zusatz2','Zusatz2','Zusatz 2','adresszusatz2','Adresszusatz2','abteilung2','Abteilung2','zHd','zhd') };
   }
   function suche(q){
     if(!q||q.length<2) return [];
@@ -17521,6 +17814,8 @@ function toggleEmailAnalyse(){
                       <div class="keg-f lit" style="grid-column:span 2;"><label>Strasse / Nr.</label><input id="kegStr"></div>
                       <div class="keg-f lit"><label>PLZ</label><input id="kegPlz"></div>
                       <div class="keg-f lit"><label>Ort</label><input id="kegOrt"></div>
+                      <div class="keg-f lit"><label>Zusatz 1 (Abteilung o. ä.)</label><input id="kegZusatz1" placeholder="z. B. Abteilung Einkauf"></div>
+                      <div class="keg-f lit"><label>Zusatz 2</label><input id="kegZusatz2" placeholder="z. B. z. Hd. / Gebäude / Kostenstelle"></div>
                       <div class="keg-f lit"><label>Telefon</label><input id="kegTel"></div>
                       <div class="keg-f lit"><label>E-Mail</label><input id="kegMail"></div>
                       <div class="keg-f lit"><label>Kundennummer (SelectLine)</label><input id="kegNr" placeholder="z. B. 10234"></div>
@@ -17664,7 +17959,7 @@ function toggleEmailAnalyse(){
     bt.addEventListener('blur',()=>{ const c=sauberBez(bt.value); if(c!==bt.value) bt.value=c; CUR.betreff=c; refresh(); });
     const nt=G('kegNotiz');
     if(nt) nt.addEventListener('input',()=>{ CUR.notiz=nt.value; refresh(); });
-    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('input',syncManual); });
+    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegZusatz1','kegZusatz2','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('input',syncManual); });
     ['kegFirma','kegMail'].forEach(id=>{ const e=G(id); if(e) e.addEventListener('blur',kegRematch); });
     { const ef=G('kegFirma'); if(ef){ ef.addEventListener('input',kegFirmaAC); ef.addEventListener('focus',kegFirmaAC); } }
     { const rs=G('kegReset'); if(rs) rs.onclick=kegResetKunde; }
@@ -17741,7 +18036,8 @@ function toggleEmailAnalyse(){
     // DB-Abgleich: passenden Bestandskunden vorauswählen
     let existing=false; const m=matchKunde(CUR.kunde);
     if(m){ CUR.kunde={ name:m.name||CUR.kunde.name, kontakt:m.kontakt||CUR.kunde.kontakt, strasse:m.strasse||CUR.kunde.strasse,
-        plz:m.plz||CUR.kunde.plz, ort:m.ort||CUR.kunde.ort, tel:m.tel||CUR.kunde.tel, email:m.email||CUR.kunde.email, nr:m.nr||'' }; existing=true; }
+        plz:m.plz||CUR.kunde.plz, ort:m.ort||CUR.kunde.ort, tel:m.tel||CUR.kunde.tel, email:m.email||CUR.kunde.email, nr:m.nr||'',
+        zusatz1:m.zusatz1||CUR.kunde.zusatz1||'', zusatz2:m.zusatz2||CUR.kunde.zusatz2||'' }; existing=true; }
     CUR.existing=existing;
     const bd=G('kegDetected');
     if(bd){ bd.textContent=existing?'Bestandskunde aus Datenbank — vorausgewählt':'Aus E-Mail erkannt — bitte kurz prüfen';
@@ -17754,7 +18050,7 @@ function toggleEmailAnalyse(){
     G('kegPkName').textContent=k.name||'Neuer Kunde';
     G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'Angaben unten prüfen';
     G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
-    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; if(G('kegZusatz1'))G('kegZusatz1').value=k.zusatz1||''; if(G('kegZusatz2'))G('kegZusatz2').value=k.zusatz2||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
     if(G('kegNr')) G('kegNr').value=k.nr||'';
     document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.toggle('lit',!!detected));
     const bd=G('kegDetected'); if(bd) bd.style.display=detected?'inline-flex':'none';
@@ -17792,7 +18088,7 @@ function toggleEmailAnalyse(){
     G('kegPkName').textContent=k.name||'—';
     G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'—';
     G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
-    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; if(G('kegZusatz1'))G('kegZusatz1').value=k.zusatz1||''; if(G('kegZusatz2'))G('kegZusatz2').value=k.zusatz2||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
     if(G('kegNr')) G('kegNr').value=k.nr||'';
     document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.add('lit'));
     G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide'); refresh();
@@ -17817,7 +18113,7 @@ function toggleEmailAnalyse(){
     const dd=G('kegFirmaDD'); if(dd){ dd.classList.add('keg-hide'); dd.innerHTML=''; }
     CUR.kunde=Object.assign({}, k); CUR.existing=true;
     G('kegFirma').value=k.name||''; G('kegPerson').value=k.kontakt||''; G('kegStr').value=k.strasse||'';
-    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
+    G('kegPlz').value=k.plz||''; G('kegOrt').value=k.ort||''; if(G('kegZusatz1'))G('kegZusatz1').value=k.zusatz1||''; if(G('kegZusatz2'))G('kegZusatz2').value=k.zusatz2||''; G('kegTel').value=k.tel||''; G('kegMail').value=k.email||'';
     if(G('kegNr')) G('kegNr').value=k.nr||'';
     G('kegPkName').textContent=k.name||'—';
     G('kegPkDt').textContent=[k.kontakt,[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ')].filter(Boolean).join(' · ')||'—';
@@ -17836,9 +18132,9 @@ function toggleEmailAnalyse(){
     refresh();
   }
   function manual(){
-    CUR.kunde={name:'',kontakt:'',strasse:'',plz:'',ort:'',tel:'',email:'',nr:''};
+    CUR.kunde={name:'',kontakt:'',strasse:'',plz:'',ort:'',tel:'',email:'',nr:'',zusatz1:'',zusatz2:''};
     G('kegPkName').textContent='Neuer Kunde'; G('kegPkDt').textContent='Angaben unten erfassen';
-    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.value=''; });
+    ['kegFirma','kegPerson','kegStr','kegPlz','kegOrt','kegZusatz1','kegZusatz2','kegTel','kegMail','kegNr'].forEach(id=>{ const e=G(id); if(e) e.value=''; });
     document.querySelectorAll('#kegDet .keg-f').forEach(f=>f.classList.remove('lit'));
     G('kegPick').classList.add('keg-hide'); G('kegPicked').classList.remove('keg-hide'); G('kegDet').classList.add('open'); refresh();
   }
@@ -17846,6 +18142,8 @@ function toggleEmailAnalyse(){
     CUR.kunde=CUR.kunde||{};
     CUR.kunde.name=G('kegFirma').value; CUR.kunde.kontakt=G('kegPerson').value; CUR.kunde.strasse=G('kegStr').value;
     CUR.kunde.plz=G('kegPlz').value; CUR.kunde.ort=G('kegOrt').value; CUR.kunde.tel=G('kegTel').value; CUR.kunde.email=G('kegMail').value;
+    if(G('kegZusatz1')) CUR.kunde.zusatz1=G('kegZusatz1').value;
+    if(G('kegZusatz2')) CUR.kunde.zusatz2=G('kegZusatz2').value;
     if(G('kegNr')) CUR.kunde.nr=G('kegNr').value;
     G('kegPkName').textContent=CUR.kunde.name||'Neuer Kunde'; refresh();
   }
@@ -17860,7 +18158,7 @@ function toggleEmailAnalyse(){
     if(!m||!m.name) return;
     CUR.kunde=Object.assign({}, m); CUR.existing=true;
     G('kegFirma').value=m.name||''; G('kegPerson').value=m.kontakt||''; G('kegStr').value=m.strasse||'';
-    G('kegPlz').value=m.plz||''; G('kegOrt').value=m.ort||''; G('kegTel').value=m.tel||''; G('kegMail').value=m.email||'';
+    G('kegPlz').value=m.plz||''; G('kegOrt').value=m.ort||''; if(G('kegZusatz1'))G('kegZusatz1').value=m.zusatz1||''; if(G('kegZusatz2'))G('kegZusatz2').value=m.zusatz2||''; G('kegTel').value=m.tel||''; G('kegMail').value=m.email||'';
     if(G('kegNr')) G('kegNr').value=m.nr||'';
     G('kegPkName').textContent=m.name;
     const bd=G('kegDetected'); if(bd){ bd.textContent='Bestandskunde erkannt'+(m.nr?(' — SL-Nr '+m.nr):'')+' · übernommen'; bd.style.display='inline-flex';
@@ -18008,6 +18306,7 @@ function toggleEmailAnalyse(){
     return { auftragsnr:CUR.nr, kundenname:k.name||'', kontaktperson:k.kontakt||'', email:k.email||'', telefon:k.tel||'',
       adresse:[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', '),
       adresseStrasse:k.strasse||'', adressePLZ:k.plz||'', adresseOrt:k.ort||'',
+      kundenZusatz1:k.zusatz1||'', kundenZusatz2:k.zusatz2||'',
       datum:new Date().toISOString().slice(0,10), bemerkung:CUR.betreff||'', status:'entwurf',
       projektPfad:pfad||'', leistungsart:(CUR.leistung||[]), ablageart:CUR.ablage==='o'?'Objekt':'Firmenkunde',
       objektOrt:CUR.obOrt||'', objektStrasse:CUR.obStr||'',
