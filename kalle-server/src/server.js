@@ -29,8 +29,16 @@ app.use('/projekte',     require('./routes/projekte'));
 app.use('/bearbeiter',   require('./routes/bearbeiter'));
 app.use('/kunden',       require('./routes/kunden'));
 app.use('/auswertungen', require('./routes/auswertungen'));
-app.use('/label',        require('./routes/label'));     // ← Kisten-/Montage-Laufzettel Live-Daten
-app.use('/analyse',      require('./routes/analyse'));   // ← E-Mail-Analyse via Claude (Key in .env)
+
+// ── NEU: Monday-Datei-Upload (Dateien/Offerte-PDF an Monday-Item hängen) ──
+// Abgesichert: fehlt src/routes/monday.js, startet der Server trotzdem (nur diese
+// Route ist dann inaktiv), statt beim Start abzustürzen.
+try {
+  app.use('/monday', require('./routes/monday'));
+  console.log('✓ Route /monday aktiv');
+} catch (e) {
+  console.warn('⚠ Route /monday NICHT geladen — fehlt src/routes/monday.js? (' + e.message + ')');
+}
 
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
@@ -61,11 +69,19 @@ async function start() {
   app.listen(PORT, '0.0.0.0', () => {
     console.log(`✓ KALLE App:   http://localhost:${PORT}/`);
     console.log(`✓ API Status:  http://localhost:${PORT}/status`);
-    console.log(`✓ Label:       http://localhost:${PORT}/label?nr=260215`);
-    console.log(`✓ Analyse:     POST http://localhost:${PORT}/analyse  { text }`);
     console.log(`✓ Datenbank:   ${process.env.DB_HOST || 'localhost'}/${process.env.DB_NAME || 'kalle'}`);
-    console.log(`✓ Anthropic:   ${process.env.ANTHROPIC_API_KEY ? 'Key gesetzt ✓' : '✗ ANTHROPIC_API_KEY fehlt in .env'}`);
+    console.log(`✓ Netzlaufwerk: ${process.env.OFFERTEN_PFAD || '(nicht konfiguriert)'}`);
     console.log('═══════════════════════════════════════════════════');
+
+    // ── NEU: Terminstatus-Ampel direkt im Server (alle 2 Min) ─────────────
+    // Startet den Ampel-Job, sobald der Server läuft. Abgesichert: fehlt
+    // scripts/terminstatus.js, läuft der Server normal weiter (nur ohne Job).
+    // Voraussetzung: scripts/terminstatus.js vorhanden + MONDAY_TOKEN in der .env.
+    try {
+      require('../scripts/terminstatus').start();
+    } catch (e) {
+      console.warn('⚠ Terminstatus-Job NICHT gestartet — fehlt scripts/terminstatus.js oder MONDAY_TOKEN? (' + e.message + ')');
+    }
   });
 }
 
