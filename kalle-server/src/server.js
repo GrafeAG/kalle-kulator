@@ -40,6 +40,14 @@ try {
   console.warn('⚠ Route /monday NICHT geladen — fehlt src/routes/monday.js? (' + e.message + ')');
 }
 
+// ── NEU: Projekt löschen (Monday-Item + Offerte + Nummer freigeben + Ordner) ──
+try {
+  app.use('/projekt-loeschen', require('./routes/projekt_loeschen'));
+  console.log('✓ Route /projekt-loeschen aktiv');
+} catch (e) {
+  console.warn('⚠ Route /projekt-loeschen NICHT geladen — fehlt src/routes/projekt_loeschen.js? (' + e.message + ')');
+}
+
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
   // API-Routen: JSON
