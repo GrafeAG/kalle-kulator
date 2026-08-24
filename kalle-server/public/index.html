@@ -1734,6 +1734,23 @@ a, button, input, select, textarea, label,
           </div>
         </div>
 
+        <div class="st g" style="font-size:9px;margin-bottom:6px;margin-top:8px;">Übernachtung / Spesen</div>
+        <div class="tr" id="gvUenRow" style="margin-bottom:6px;">
+          <div class="tr-l"><label class="tog" onclick=""><input type="checkbox" id="gvUenAkt" onchange="cGv()"><span class="tsl"></span></label>
+            <div><div class="tr-label">Übernachtung / Spesen</div><div class="tr-sub">CHF 150/Nacht · CHF 25 Tagesspesen · je Monteur</div></div></div>
+          <div class="tr-r" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+            <input type="number" id="gvUenNaechte" value="" min="0" step="1" placeholder="0" title="Anzahl Nächte"
+              oninput="const a=document.getElementById('gvUenAkt');if(a&&this.value>0&&!a.checked)a.checked=true;cGv();"
+              style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:13px;text-align:center;">
+            <span style="font-size:10px;color:var(--muted);">Nächte</span>
+            <input type="number" id="gvUenTage" value="" min="0" step="1" placeholder="0" title="Anzahl Spesentage"
+              oninput="const a=document.getElementById('gvUenAkt');if(a&&this.value>0&&!a.checked)a.checked=true;cGv();"
+              style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:13px;text-align:center;">
+            <span style="font-size:10px;color:var(--muted);">Tage</span>
+            <span class="pbadge" id="pb-gvUen">–</span>
+          </div>
+        </div>
+
         <div class="st g" style="font-size:9px;margin-bottom:6px;margin-top:8px;">Befestigung vor Ort</div>
         <div id="tgGvMon"></div>
       </div>
@@ -2530,6 +2547,25 @@ a, button, input, select, textarea, label,
       </div>
     </div>
 
+    <div class="st t" style="margin-bottom:6px;">Übernachtung / Spesen</div>
+    <div class="tr" id="gmUenRow" style="margin-bottom:8px;">
+      <div class="tr-l">
+        <label class="tog" onclick=""><input type="checkbox" id="gmUenAkt" onchange="calcGlobalMontage()"><span class="tsl"></span></label>
+        <div><div class="tr-label">Übernachtung / Spesen</div><div class="tr-sub">CHF 150/Nacht · CHF 25 Tagesspesen · je Monteur</div></div>
+      </div>
+      <div class="tr-r" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+        <input type="number" id="gmUenNaechte" value="" min="0" step="1" placeholder="0" title="Anzahl Nächte"
+          oninput="const a=document.getElementById('gmUenAkt');if(a&&this.value>0&&!a.checked)a.checked=true;calcGlobalMontage();"
+          style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:13px;text-align:center;">
+        <span style="font-size:10px;color:var(--muted);">Nächte</span>
+        <input type="number" id="gmUenTage" value="" min="0" step="1" placeholder="0" title="Anzahl Spesentage"
+          oninput="const a=document.getElementById('gmUenAkt');if(a&&this.value>0&&!a.checked)a.checked=true;calcGlobalMontage();"
+          style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:13px;text-align:center;">
+        <span style="font-size:10px;color:var(--muted);">Tage</span>
+        <span class="pbadge" id="pb-gmUen">–</span>
+      </div>
+    </div>
+
     <div class="st t" style="margin-bottom:6px;">Zusatzkosten</div>
     <div id="tgGlobalMon"></div>
 
@@ -2753,9 +2789,12 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V8.6';
+const UI_VERSION='V8.9';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V8.9','Reaktor · Datenablage-Pfad: Die Vorschau zeigt jetzt den ECHTEN Serverpfad statt des Platzhalters „\\\\server\\Offerten\\…". Der Basispfad kommt vom Server (/projekte/info, UNC bevorzugt) — Fallback ist der echte UNC-Pfad \\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte. Ordnername exakt wie der Server: „<Nr> - <Betreff>". Damit ist der angezeigte/kopierte Pfad auf jedem PC im Netz gültig.'],
+  ['V8.8','Anfahrt erweitert: (1) Fernbereich (150–300 km) neu mit reduzierter Wegzeit (60%) gerechnet — marktgerechter bei Mehr-Monteur-Fahrten (z.B. 300 km/3 MA neu 1780 statt 2610). Nahbereich unverändert. (2) NEU „Übernachtung / Spesen" bei allen Produkten mit Anfahrt (Schild, Folientechnik, Reliefschriften, Gravur, Montage-Gesamtauftrag): Anzahl Nächte × CHF 150 + Spesentage × CHF 25, je Monteur. Erscheint als Texthinweis in der Offerte. Sätze/Faktor in der Admin-Config anpassbar (wegzeitFaktor, uebernachtung, tagesspesen).'],
+  ['V8.7','Anfahrt: (1) Fix — bei Ermittlung über die Adresseingabe (Ort → km per Route) wurde der Preis ab >105 km nicht übernommen (fiel auf 0). Ursache war ein fixer 105-km-Deckel in der Preislogik. (2) Die km-Tabelle geht jetzt bis 300 km: Nahbereich unverändert (15–105 km), Fernbereich neu in 50-km-Stufen (150/200/250/300 km) für 1/2/3 Monteure. Werte aus der bestehenden Kurve hochgerechnet (~4/6.4/8.7 CHF pro km) — in der Admin-Config anpassbar. Über 300 km weiterhin „individuelle Offerte". Gilt für alle Produkte mit Anfahrt (Schild, Folientechnik, Reliefschriften, Gravur, Montage-Gesamtauftrag).'],
   ['V8.6','Reaktor-Statusbalken (Erfassen & E-Mail-Analyse): Die Wortwitze erscheinen jetzt in zufälliger Reihenfolge (nie zweimal derselbe direkt hintereinander) statt immer gleich. Neu dabei u. a. „Reaktor wird angereichert …" und „Isotope werden gespalten …".'],
   ['V8.5','Reaktor: Beim Reinziehen (oder Einfügen) einer E-Mail erscheint jetzt sofort ein Feedback-Overlay „E-Mail wird gelesen & analysiert" — mit laufendem Balken, „Reaktor liest mit …" und den bekannten Wortwitzen (gleiche Optik wie der Erfassen-Statusbalken). Vorher passierte 1–10 s lang scheinbar nichts, bis Kunde/Betreff auftauchten. Overlay verschwindet automatisch, sobald die Analyse fertig ist.'],
   ['V8.4','Offerte-PDF · Positionsbeschrieb Folientechnik ausführlicher & klarer gegliedert: eigene, fett beschriftete Zeilen statt einer langen Textzeile — „Ausführung: Folientechnik · Digitaldruck", „Format: 900 × 1300 mm · Menge: 6 Stk. · Fläche: 7.02 m²", dann „Druckart:" (NEU — wurde bisher nicht ausgewiesen), „Folie:", „Laminat:", „Glasdekorfolie:", „Weiterverarbeitung:", Anfahrt/Montage und Versand-Hinweis. Format und Menge sind jetzt sauber benannt. (Vorlage für die übrigen Produkte — auf Wunsch ziehe ich denselben Stil bei Schild, Reliefschriften, Gravur usw. nach.)'],
@@ -3074,14 +3113,23 @@ const DEF={
   },
   anfahrt:{
     kmSatz:1.00, maSatz:95,
+    wegzeitFaktor:0.60,      // Fernbereich: Wegzeit nur zu 60% verrechnet (marktgerechter bei Mehr-Monteur-Fahrten)
+    tagesspesen:25,          // CHF pro Monteur und Tag (Verpflegung)
+    uebernachtung:150,       // CHF pro Monteur und Nacht (Hotelpauschale)
     tabelle:[
-      {bisKm:15,  p1:115, p2:195, p3:275},
-      {bisKm:30,  p1:175, p2:290, p3:405},
-      {bisKm:45,  p1:215, p2:335, p3:460},
-      {bisKm:60,  p1:285, p2:450, p3:610},
-      {bisKm:75,  p1:320, p2:490, p3:655},
-      {bisKm:90,  p1:385, p2:585, p3:785},
-      {bisKm:105, p1:445, p2:680, p3:915},
+      {bisKm:15,  p1:115,  p2:195,  p3:275},
+      {bisKm:30,  p1:175,  p2:290,  p3:405},
+      {bisKm:45,  p1:215,  p2:335,  p3:460},
+      {bisKm:60,  p1:285,  p2:450,  p3:610},
+      {bisKm:75,  p1:320,  p2:490,  p3:655},
+      {bisKm:90,  p1:385,  p2:585,  p3:785},
+      {bisKm:105, p1:445,  p2:680,  p3:915},
+      // Fernbereich in 50-km-Stufen — Fahrzeug voll, Wegzeit zu 60% (siehe wegzeitFaktor).
+      // Hochgerechnet aus der bestehenden Kurve; in der Admin-Config anpassbar.
+      {bisKm:150, p1:490,  p2:695,  p3:920},
+      {bisKm:200, p1:645,  p2:915,  p3:1190},
+      {bisKm:250, p1:795,  p2:1140, p3:1485},
+      {bisKm:300, p1:950,  p2:1365, p3:1780},
     ],
   },
   versand:{
@@ -4832,6 +4880,7 @@ function buildFrMontageStep(){
     <span class="pbadge" id="pb-frarb${midx}">–</span>
   </div>`;
   ac.appendChild(persRow);
+  const frUenWrap=document.createElement('div'); frUenWrap.innerHTML=uebernachtungHTML('fr','cFr()'); ac.appendChild(frUenWrap.firstElementChild);
 
   addSecHead&&addSecHead(ac,'Zusatzkosten','t');
   P.arbeitswerte.forEach((item,i)=>{
@@ -4870,7 +4919,7 @@ function frAnfahrtUpdate(){
   const hint=$('frAnfahrtHint');
   tabelle.forEach(r=>{const tr=document.getElementById('frafrow-'+r.bisKm);if(tr)tr.style.background='';});
   if(km<=0){if(hint)hint.textContent='Einfache Strecke eingeben';return;}
-  if(km>105){if(hint)hint.textContent='Über 105 km — individuelle Offerte';return;}
+  if(km>300){if(hint)hint.textContent='Über 300 km — individuelle Offerte';return;}
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   const activeRow=document.getElementById('frafrow-'+row.bisKm);
@@ -5275,9 +5324,9 @@ function cFr(){
     const km=parseFloat(kmInpEl?.value)||0;
     if(kmInpEl?.dataset.ortspauschale==='1'){
       frAnfahrtVK=parseFloat(kmInpEl.dataset.ortspreis)||0;
-    } else if(km>0&&km<=105){
+    } else if(km>0&&km<=300){
       const nMA=parseInt($('frMontAnzMA')?.value)||1;
-      const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[])[6];
+      const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[]).slice(-1)[0];
       if(row)frAnfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
     }
     if(!kmInpEl?.dataset.ortspauschale)frAnfahrtUpdate();
@@ -5288,7 +5337,9 @@ function cFr(){
     $('frAnfahrtAkt')?.closest('.tr')?.classList.remove('on');
   }
 
-  const montVK=bolzenVK+schabTotal+frEigenBefVK+frAnfahrtVK+frArbVK+frZuschnittVK;
+  const frUen=uebernachtungCalc('fr', parseInt($('frMontAnzMA')?.value)||1);
+  const frUenVK=frUen.vk;
+  const montVK=bolzenVK+schabTotal+frEigenBefVK+frAnfahrtVK+frArbVK+frZuschnittVK+frUenVK;
   const frVersandVK=calcVersandVK('fr')+calcUebergabeVK('fr');
   const total=fraeskosten+matVK+prodAufschlag+lackTotal+frPulverTotal+setup+montVK+frEloxVK+frBruenVK+frVersandVK;
   const proStk=anzGes>0?total/anzGes:0;
@@ -5378,7 +5429,7 @@ function cFr(){
     matFN,matFM,nesting,matGew,matEK,matVK,fraeskosten,prodAufschlag,
     lackTotal,frPulverTotal,frEloxVK,frBruenVK,frZuschnittVK,
     bolzenVK,schabTotal,frEigenBefVK,frArbVK,frAnfahrtVK,frVersandVK,montVK,setup,total,proStk,proSatz,
-    matMargePct,gezaehlt};
+    frUenVK,frUen,matMargePct,gezaehlt};
 }
 
 function saveFraes(){
@@ -5466,6 +5517,7 @@ function saveFraes(){
     anfahrtKm:parseFloat($('frAnfahrtKm')?.value)||0,
     anfahrtNMA:parseInt($('frMontAnzMA')?.value)||1,
     anfahrtVK:r.frAnfahrtVK||0,
+    uenAkt:!!(r.frUen&&r.frUen.akt), uenNaechte:(r.frUen&&r.frUen.naechte)||0, uenTage:(r.frUen&&r.frUen.tage)||0, uenNMA:(r.frUen&&r.frUen.MA)||1, uenVK:r.frUenVK||0,
     montage:montD.items,
     montageSeparat:gC('frMontageSeparat')||false,
     montVK:r.montVK,totalVK:r.total,stueck:r.proStk,proSatz:r.proSatz,
@@ -5500,6 +5552,7 @@ function saveGravur(){
     vhbAkt:gC('gvVhbAkt'),vhbVK:r.gvVhbVK||0,
     anfahrtKm:parseFloat($('gvAnfahrtKm')?.value)||0,
     anfahrtNMA:parseInt($('gvMontAnzMA')?.value)||1,anfahrtVK:r.gvAnfahrtVK||0,
+    uenAkt:!!(r.gvUen&&r.gvUen.akt), uenNaechte:(r.gvUen&&r.gvUen.naechte)||0, uenTage:(r.gvUen&&r.gvUen.tage)||0, uenNMA:(r.gvUen&&r.gvUen.MA)||1, uenVK:r.gvUenVK||0,
     gvArbVK:r.gvArbVK||0,gvFarben:gvGetFarben(),
     setup:r.setup,montVK:montD.total,
     totalVK:r.total,stueck:r.proStk,gravurMin:r.gravurMin,sekZ:r.sekZ,marge:r.marge,
@@ -5728,7 +5781,7 @@ function gvAnfahrtUpdate(){
   const hint=$('gvAnfahrtHint');
   tabelle.forEach(r=>{const tr=document.getElementById('gvafrow-'+r.bisKm);if(tr)tr.style.background='';});
   if(km<=0){if(hint)hint.textContent='Einfache Strecke eingeben';return;}
-  if(km>105){if(hint)hint.textContent='Über 105 km — individuelle Offerte';return;}
+  if(km>300){if(hint)hint.textContent='Über 300 km — individuelle Offerte';return;}
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}${$('adresseOrt')?.value?' → '+$('adresseOrt').value:''}`;
@@ -6028,6 +6081,7 @@ function buildFtMontage(){
       <span class="pbadge" id="pb-ftMontPers">–</span>
     </div>`;
   ac.appendChild(mRow);
+  const ftUenWrap=document.createElement('div'); ftUenWrap.innerHTML=uebernachtungHTML('ft','cFt()'); ac.appendChild(ftUenWrap.firstElementChild);
 
   const zHead=document.createElement('div');zHead.className='st t';zHead.style.marginBottom='6px';zHead.textContent='Zusatzkosten';ac.appendChild(zHead);
   P.arbeitswerte.forEach((item,i)=>{
@@ -6053,7 +6107,7 @@ function ftAnfahrtUpdate(){
   const tabelle=P.anfahrt?.tabelle||[];
   const hint=$('ftAnfahrtHint');
   if(km<=0){if(hint)hint.textContent='Einfache Strecke eingeben';return;}
-  if(km>105){if(hint)hint.textContent='Über 105 km — individuelle Offerte';return;}
+  if(km>300){if(hint)hint.textContent='Über 300 km — individuelle Offerte';return;}
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   if(hint)hint.textContent=`${km} km · ${nMA} Monteur${nMA>1?'e':''} → CHF ${preis}`;
@@ -6225,9 +6279,9 @@ function cFt(){
       ftAnfahrtVK=parseFloat(kmInpEl.dataset.ortspreis)||0;
     } else {
       const km=parseFloat(kmInpEl?.value)||0;
-      if(km>0&&km<=105){
+      if(km>0&&km<=300){
         const nMA=parseInt($('ftMontMA')?.value)||1;
-        const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[])[6];
+        const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[]).slice(-1)[0];
         if(row)ftAnfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
       }
     }
@@ -6254,7 +6308,9 @@ function cFt(){
     const pb=$('pb-ftmarb'+i);if(pb)pb.textContent='CHF '+val.toFixed(2);
     chk.closest('.tr')?.classList.add('on');
   });
-  const montVK=gC('ftMontageSeparat')?0:(ftAnfahrtVK+ftMontVK+ftZusatzVK);
+  const ftUen=uebernachtungCalc('ft', parseInt($('ftMontMA')?.value)||1);
+  const ftUenVK=ftUen.vk;
+  const montVK=gC('ftMontageSeparat')?0:(ftAnfahrtVK+ftMontVK+ftZusatzVK+ftUenVK);
 
   const ftVersandVK=calcVersandVK('ft');
   const totalVK=matVK+veredVK+arbVK+ftWtVK+ftVersandVK+montVK;
@@ -6305,7 +6361,7 @@ function cFt(){
 
   updateTotals();
   return{l,h,stk,m2n,m2e,m2pEff,marge,matEK,matVK,veredVK,arbVK,ftWtVK,ftVersandVK,montVK,ftAnfahrtVK,ftMontVK,totalVK,proStk,
-    setupDDVK,setupPSVK,pEK,tEK,fEK,lEK,gdEK,druckVK};
+    setupDDVK,setupPSVK,pEK,tEK,fEK,lEK,gdEK,druckVK,ftUenVK,ftUen};
 }
 
 function saveFolientechnik(){
@@ -6356,6 +6412,7 @@ function saveFolientechnik(){
     montage:getMonData('tgFtMon').items,
     montageVK:getMonData('tgFtMon').total,
     montageSeparat:gC('ftMontageSeparat')||false,
+    uenAkt:!!(r.ftUen&&r.ftUen.akt), uenNaechte:(r.ftUen&&r.ftUen.naechte)||0, uenTage:(r.ftUen&&r.ftUen.tage)||0, uenNMA:(r.ftUen&&r.ftUen.MA)||1, uenVK:r.ftUenVK||0,
     folie:gC('ftAktFolie')?ftSelTxt('ftAktFolie'):'',
     folieIdx:(()=>{const chk=$('ftAktFolie');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
     laminat:gC('ftAktLaminat')?ftSelTxt('ftAktLaminat'):'',
@@ -6578,9 +6635,9 @@ function cGv(){
   let gvAnfahrtVK=0;
   if(gC('gvAnfahrtAkt')){
     const km=parseFloat($('gvAnfahrtKm')?.value)||0;
-    if(km>0&&km<=105){
+    if(km>0&&km<=300){
       const nMA=parseInt($('gvMontAnzMA')?.value)||1;
-      const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[])[6];
+      const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[]).slice(-1)[0];
       if(row)gvAnfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
     }
     const pb=$('pb-gvAnfahrt');if(pb)pb.textContent=gvAnfahrtVK>0?'CHF '+gvAnfahrtVK:'– km eingeben';
@@ -6595,7 +6652,9 @@ function cGv(){
     const bEl=$('pb-gvarb'+i);if(bEl)bEl.textContent=val>0?'CHF '+val.toFixed(2):'–';
     aktEl.closest('.tr')?.classList.toggle('on',aktEl.checked&&val>0);
   });
-  const montVK=gvBolzenVK+gvVhbVK+gvAnfahrtVK+gvArbVK;
+  const gvUen=uebernachtungCalc('gv', parseInt($('gvMontAnzMA')?.value)||1);
+  const gvUenVK=gvUen.vk;
+  const montVK=gvBolzenVK+gvVhbVK+gvAnfahrtVK+gvArbVK+gvUenVK;
   const total=gravurkosten+matVK+farbeTotal+setup+montVK;
   const proStk=stk>0?total/stk:0;
 
@@ -6626,7 +6685,7 @@ function cGv(){
     <div class="sum-row"><span class="sl">Preis/Stück</span><span class="sv">CHF ${proStk.toFixed(2)}</span></div>`;
 
   updateTotals();
-  return{totalVK:total,text,l,b,stk,m2n,vh,matEK,matVK,schildName:schildData.name,gravurkosten,farbeTotal,setup,montVK,total,proStk,gravurMin,zeichenTotal,zeichenProSchild,sekZ,marge,gvBolzenVK,gvVhbVK,gvAnfahrtVK,gvArbVK};
+  return{totalVK:total,text,l,b,stk,m2n,vh,matEK,matVK,schildName:schildData.name,gravurkosten,farbeTotal,setup,montVK,total,proStk,gravurMin,zeichenTotal,zeichenProSchild,sekZ,marge,gvBolzenVK,gvVhbVK,gvAnfahrtVK,gvArbVK,gvUenVK,gvUen};
 }
 
 
@@ -8347,6 +8406,7 @@ function buildSlMontageStep(){
     <span class="pbadge" id="pb-slarb${idx}">–</span>
   </div>`;
   ac.appendChild(persRow);
+  const slUenWrap=document.createElement('div'); slUenWrap.innerHTML=uebernachtungHTML('sl','cSl()'); ac.appendChild(slUenWrap.firstElementChild);
 
   addSecHead&&addSecHead(ac,'Zusatzkosten','t');
   P.arbeitswerte.forEach((item,i)=>{
@@ -8395,8 +8455,8 @@ function slAnfahrtUpdate(){
     if(hint)hint.textContent='Einfache Strecke eingeben → Staffel wird automatisch gewählt';
     return;
   }
-  if(km>105){
-    if(hint)hint.textContent='Über 105 km — bitte individuelle Offerte erstellen';
+  if(km>300){
+    if(hint)hint.textContent='Über 300 km — bitte individuelle Offerte erstellen';
     return;
   }
 
@@ -8780,13 +8840,13 @@ function cSl(){
   let anfahrtVK=0;
   if(gC('slAnfahrtAkt')){
     const km=parseFloat($('slAnfahrtKm')?.value)||0;
-    if(km>0 && km<=105){
+    if(km>0 && km<=300){
       const nMA=parseInt($('montAnzMA')?.value)||1;
       const tabelle=P.anfahrt?.tabelle||[];
       const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
       if(row) anfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
     }
-    const pb=$('pb-slAnfahrt');if(pb)pb.textContent=anfahrtVK>0?'CHF '+anfahrtVK:(km<=0?'– km eingeben':'– über 105 km');
+    const pb=$('pb-slAnfahrt');if(pb)pb.textContent=anfahrtVK>0?'CHF '+anfahrtVK:(km<=0?'– km eingeben':'– über 300 km');
     $('slAnfahrtAkt')?.closest('.tr')?.classList.toggle('on',anfahrtVK>0);
   } else {
     const pb=$('pb-slAnfahrt');if(pb)pb.textContent='–';
@@ -8834,8 +8894,10 @@ function cSl(){
     const det=$('slSpezMatDetail');if(det)det.style.display='none';
   }
 
+  const slUen=uebernachtungCalc('sl', parseInt($('montAnzMA')?.value)||1);
+  const slUenVK=slUen.vk;
   const slVersandVK=calcVersandVK('sl')+calcUebergabeVK('sl');
-  const totalVK=matVK+spezMatVK+folieMatVK+veredVK+gravurVK+wtVK+arbVK+zuschnittVK+befestigungVK+montVK+anfahrtVK+slVersandVK;
+  const totalVK=matVK+spezMatVK+folieMatVK+veredVK+gravurVK+wtVK+arbVK+zuschnittVK+befestigungVK+montVK+anfahrtVK+slUenVK+slVersandVK;
   const proStk=stk>0?totalVK/stk:0;
 
   function badge(pbId,chkId,ek,isEK){
@@ -8923,6 +8985,7 @@ function cSl(){
   updateTotals();
   return{l,b,stk,m2n,m2e,marge,matEK,matVK,matName:getMatLabel(mat),
     folieMatEK,folieMatVK,veredVK,gravurVK,wtVK,arbVK,spezMatVK,montVK,slVersandVK,totalVK,proStk,
+    slUenVK,slUen,anfahrtVK,
     gravurAkt,gvText:$('slGvText')?.value||'',gvVH:gN('slGvVH')||5,
     gvZeichen:parseInt($('slGvZManual')?.value)||0};
 }
@@ -9766,6 +9829,7 @@ function saveSchild(){
     anfahrtKm:parseFloat($('slAnfahrtKm')?.value)||0,
     anfahrtNMA:parseInt($('montAnzMA')?.value)||1,
     anfahrtVK:r.anfahrtVK||0,
+    uenAkt:!!(r.slUen&&r.slUen.akt), uenNaechte:(r.slUen&&r.slUen.naechte)||0, uenTage:(r.slUen&&r.slUen.tage)||0, uenNMA:(r.slUen&&r.slUen.MA)||1, uenVK:r.slUenVK||0,
     montageSeparat:gC('slMontageSeparat')||false,
     totalVK:r.totalVK,stueck:r.proStk,
     wtPlott:gC('slAktWtPlott'), wtLam:gC('slAktWtLam'),
@@ -9800,7 +9864,7 @@ function gmAnfahrtUpdate(){
   const hint=$('gmAnfahrtHint');
   tabelle.forEach(r=>{const tr=document.getElementById('gmafrow-'+r.bisKm);if(tr)tr.style.background='';});
   if(km<=0){if(hint)hint.textContent='Einfache Strecke eingeben';return;}
-  if(km>105){if(hint)hint.textContent='Über 105 km — individuelle Offerte';return;}
+  if(km>300){if(hint)hint.textContent='Über 300 km — individuelle Offerte';return;}
   const row=tabelle.find(r=>km<=r.bisKm)||tabelle[tabelle.length-1];
   const preis=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
   const activeRow=document.getElementById('gmafrow-'+row.bisKm);
@@ -9870,9 +9934,9 @@ function calcGlobalMontage(){
       gmAnfahrtVK=parseFloat(kmInpEl.dataset.ortspreis)||0;
     } else {
       const km=parseFloat(kmInpEl?.value)||0;
-      if(km>0&&km<=105){
+      if(km>0&&km<=300){
         const nMA=parseInt($('gmMontMA')?.value)||1;
-        const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[])[6];
+        const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[]).slice(-1)[0];
         if(row)gmAnfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
       }
     }
@@ -9904,10 +9968,12 @@ function calcGlobalMontage(){
     const bEl=$('pb-gmarb'+i);if(bEl)bEl.textContent='CHF '+val.toFixed(2);
     aktEl.closest('.tr')?.classList.add('on');
   });
-  const total=gmAnfahrtVK+gmMontVK+gmZusatzVK;
+  const gmUen=uebernachtungCalc('gm', parseInt($('gmMontMA')?.value)||1);
+  const gmUenVK=gmUen.vk;
+  const total=gmAnfahrtVK+gmMontVK+gmZusatzVK+gmUenVK;
   const el=$('globalMonTotal');if(el)el.textContent='CHF '+total.toFixed(2);
   updateTotals();
-  return{total,gmAnfahrtVK,gmMontVK,gmZusatzVK,
+  return{total,gmAnfahrtVK,gmMontVK,gmZusatzVK,gmUenVK,gmUen,
     label:$('gmLabel')?.value||'Montage Gesamtauftrag',
     notiz:$('gmNotiz')?.value||''};
 }
@@ -9927,6 +9993,7 @@ function saveGlobalMontage(){
     montMA:parseInt($('gmMontMA')?.value)||1,
     montVK:r.gmMontVK,
     zusatzVK:r.gmZusatzVK,
+    uenAkt:!!(r.gmUen&&r.gmUen.akt), uenNaechte:(r.gmUen&&r.gmUen.naechte)||0, uenTage:(r.gmUen&&r.gmUen.tage)||0, uenNMA:(r.gmUen&&r.gmUen.MA)||1, uenVK:r.gmUenVK||0,
     totalVK:r.total,stueck:1,
     wtArbeiten:(()=>{const res=[];P.montage&&P.montage.forEach((m,i)=>{const chk=$('makt-gm-'+i);if(chk?.checked){const min=parseFloat($('mmin-gm-'+i)?.value)||0;res.push({name:m.name,min,val:min*m.preis});}});return res;})(),
   };
@@ -9952,9 +10019,9 @@ function getGlobalMontageTotal(){
       gmAnfahrtVK=parseFloat(kmInpEl.dataset.ortspreis)||0;
     } else {
       const km=parseFloat(kmInpEl?.value)||0;
-      if(km>0&&km<=105){
+      if(km>0&&km<=300){
         const nMA=parseInt($('gmMontMA')?.value)||1;
-        const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[])[6];
+        const row=(P.anfahrt?.tabelle||[]).find(r=>km<=r.bisKm)||(P.anfahrt?.tabelle||[]).slice(-1)[0];
         if(row)gmAnfahrtVK=nMA>=3?row.p3:nMA>=2?row.p2:row.p1;
       }
     }
@@ -13264,6 +13331,60 @@ function splitAdresse(adr){
 const GRAFE_LNG = 7.6247;
 const GRAFE_LAT = 47.5542;
 
+// ── Übernachtung / Tagesspesen (geteilt über alle Produkte mit Anfahrt) ────
+// UI-Block: Nächte + Spesentage, je Monteur. calcCall = Recalc der Form, z.B. "cFt()".
+function uebernachtungHTML(pfx, calcCall){
+  const u=(P.anfahrt&&P.anfahrt.uebernachtung!=null)?P.anfahrt.uebernachtung:150;
+  const s=(P.anfahrt&&P.anfahrt.tagesspesen!=null)?P.anfahrt.tagesspesen:25;
+  return `<div class="tr" id="${pfx}UenRow" style="margin-bottom:6px;">
+    <div class="tr-l"><label class="tog"><input type="checkbox" id="${pfx}UenAkt" onchange="${calcCall}"><span class="tsl"></span></label>
+      <div><div class="tr-label">Übernachtung / Spesen</div><div class="tr-sub">CHF ${u}/Nacht · CHF ${s} Tagesspesen · je Monteur</div></div></div>
+    <div class="tr-r" style="display:flex;gap:5px;align-items:center;flex-wrap:wrap;justify-content:flex-end;">
+      <input type="number" id="${pfx}UenNaechte" value="" min="0" step="1" placeholder="0" title="Anzahl Nächte"
+        oninput="const a=document.getElementById('${pfx}UenAkt');if(a&&this.value>0&&!a.checked)a.checked=true;${calcCall}"
+        style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:13px;text-align:center;">
+      <span style="font-size:10px;color:var(--muted);">Nächte</span>
+      <input type="number" id="${pfx}UenTage" value="" min="0" step="1" placeholder="0" title="Anzahl Spesentage"
+        oninput="const a=document.getElementById('${pfx}UenAkt');if(a&&this.value>0&&!a.checked)a.checked=true;${calcCall}"
+        style="width:52px;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 6px;border-radius:5px;font-size:13px;text-align:center;">
+      <span style="font-size:10px;color:var(--muted);">Tage</span>
+      <span class="pbadge" id="pb-${pfx}Uen">–</span>
+    </div>
+  </div>`;
+}
+// Berechnung: gibt {vk, naechte, tage, akt} zurück und aktualisiert das Badge.
+function uebernachtungCalc(pfx, nMA){
+  const akt=document.getElementById(pfx+'UenAkt');
+  const naechte=parseInt(document.getElementById(pfx+'UenNaechte')?.value)||0;
+  const tage=parseInt(document.getElementById(pfx+'UenTage')?.value)||0;
+  const MA=Math.max(1, parseInt(nMA)||1);
+  const uPreis=(P.anfahrt&&P.anfahrt.uebernachtung!=null)?P.anfahrt.uebernachtung:150;
+  const sPreis=(P.anfahrt&&P.anfahrt.tagesspesen!=null)?P.anfahrt.tagesspesen:25;
+  const on=!!(akt&&akt.checked);
+  const vk=on?((naechte*uPreis + tage*sPreis)*MA):0;
+  const pb=document.getElementById('pb-'+pfx+'Uen');
+  if(pb)pb.textContent=vk>0?('CHF '+vk.toFixed(2)):'–';
+  document.getElementById(pfx+'UenRow')?.classList.toggle('on', vk>0);
+  return {vk, naechte, tage, akt:on, MA};
+}
+// Übernachtung-Felder aus gespeicherter Position wiederherstellen (editPos).
+function uebernachtungRestore(pfx, p){
+  const a=document.getElementById(pfx+'UenAkt'); if(a) a.checked=!!p.uenAkt;
+  const n=document.getElementById(pfx+'UenNaechte'); if(n) n.value=p.uenNaechte>0?p.uenNaechte:'';
+  const t=document.getElementById(pfx+'UenTage'); if(t) t.value=p.uenTage>0?p.uenTage:'';
+}
+// Klartext-Zeile für die Offerte (ohne Preis beim Kunden; mit Preis intern).
+function uebernachtungText(p, isInt){
+  if(!p||!p.uenAkt||(!(p.uenNaechte>0)&&!(p.uenTage>0)))return '';
+  const parts=[];
+  if(p.uenNaechte>0) parts.push(p.uenNaechte+' Nacht'+(p.uenNaechte>1?'e':''));
+  if(p.uenTage>0)    parts.push(p.uenTage+' Spesentag'+(p.uenTage>1?'e':''));
+  const ma=p.uenNMA||p.anfahrtNMA||1;
+  let s='Übernachtung / Spesen: '+parts.join(' · ')+' · '+ma+' Monteur'+(ma>1?'e':'');
+  if(isInt&&p.uenVK>0) s+=' · CHF '+p.uenVK.toFixed(2);
+  return s;
+}
+
 async function berechneFahrstrecke(ort, kmInputId, hintId, pfx){
   if(!ort || ort.length < 2) return;
   const hint = document.getElementById(hintId);
@@ -13328,10 +13449,12 @@ async function berechneFahrstrecke(ort, kmInputId, hintId, pfx){
       hint.style.color = 'var(--green)';
     }
 
-    // Update anfahrt table highlight
+    // Update anfahrt table highlight + Preisübernahme in die Kalkulation
     if(typeof slAnfahrtUpdate==='function' && pfx==='sl') slAnfahrtUpdate();
-    if(typeof frAnfahrtUpdate==='function' && pfx==='fr') frAnfahrtUpdate();
+    if(typeof frAnfahrtUpdate==='function' && pfx==='fr') { frAnfahrtUpdate(); if(typeof cFr==='function') cFr(); }
     if(typeof gmAnfahrtUpdate==='function' && pfx==='gm') gmAnfahrtUpdate();
+    if(typeof ftAnfahrtUpdate==='function' && pfx==='ft') { ftAnfahrtUpdate(); if(typeof cFt==='function') cFt(); }
+    if(typeof gvAnfahrtUpdate==='function' && pfx==='gv') { gvAnfahrtUpdate(); if(typeof cGv==='function') cGv(); }
 
   }catch(e){
     if(hint){ hint.textContent = '✗ Fehler: ' + e.message; hint.style.color = 'var(--danger)'; }
@@ -13428,7 +13551,7 @@ async function ladeProjektBasis(){
     const r = await fetch(KALLE_SERVER+'/projekte/info');
     if(r.ok){
       const d = await r.json();
-      _projektBasis = d.basis || '';
+      _projektBasis = d.basis_unc || d.basis || '';  // UNC bevorzugen (funktioniert auf jedem PC)
       if(!d.zugriffsbar){
         console.warn('[Projekte] Basispfad nicht erreichbar:', _projektBasis);
       }
@@ -13471,7 +13594,7 @@ function updateProjPfadVorschau(){
   const bez = $('projBezeichnung')?.value?.trim() || '…';
   const projektOrdner = `${nr} - ${bez}`;
   // Basis vom Server oder Fallback-Anzeige
-  const basis = _projektBasis || '\\\\SERVER\\Share\\01-Kundenprojekte';
+  const basis = _projektBasis || '\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte';
   let pfad = '';
   if(_projektTyp === 'firma'){
     const firma = $('projFirmaName')?.value?.trim() || '[Firmenname]';
@@ -14338,6 +14461,7 @@ function editPos(i){
           const stkEl=$('mstk-tgSlMon-'+idx);if(stkEl&&m.stk>0)stkEl.value=m.stk;
         });
         if(p.anfahrtNMA&&$('montAnzMA'))$('montAnzMA').value=p.anfahrtNMA;
+        uebernachtungRestore('sl',p);
         // Versand restore
         if(p.versandDpdAkt){
           const el=document.getElementById('slDpdAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
@@ -14498,6 +14622,7 @@ function editPos(i){
             frAnfahrtUpdate();
           }
           if(p.anfahrtNMA&&$('frMontAnzMA'))$('frMontAnzMA').value=p.anfahrtNMA;
+          uebernachtungRestore('fr',p);
           // Versand restore
           if(p.versandDpdAkt){
             const el=document.getElementById('frDpdAkt');if(el){el.checked=true;el.dispatchEvent(new Event('change',{bubbles:true}));}
@@ -14585,6 +14710,7 @@ function editPos(i){
       },250);
       if(p.montPersAkt){const e=$('ftMontPersAkt');if(e)e.checked=true;}
       if(p.montStd&&$('ftMontStd'))$('ftMontStd').value=p.montStd;
+      uebernachtungRestore('ft',p);
       const fms=$('ftMontageSeparat');if(fms)fms.checked=!!p.montageSeparat;
       // Versand restore
       if(p.versandDpdAkt){
@@ -14777,6 +14903,7 @@ function editPos(i){
         const km=$('gvAnfahrtKm');if(km)km.value=p.anfahrtKm;
       }
       if(p.anfahrtNMA&&$('gvMontAnzMA'))$('gvMontAnzMA').value=p.anfahrtNMA;
+      uebernachtungRestore('gv',p);
       cGv();
     },40);
     $('gravurForm').scrollIntoView({behavior:'smooth'});
@@ -14794,6 +14921,7 @@ function editPos(i){
       if($('gmMontMA'))$('gmMontMA').value=p.montMA||p.anfahrtNMA||1;
       if(p.montPersAkt){const e=$('gmMontPersAkt');if(e)e.checked=true;}
       if($('gmMontStd')&&p.montStd!=null)$('gmMontStd').value=p.montStd;
+      uebernachtungRestore('gm',p);
       // Zusatz-Arbeitswerte wiederherstellen
       (p.wtArbeiten||[]).forEach(w=>{ if(!(typeof P!=='undefined'&&P.montage))return; const idx=P.montage.findIndex(m=>m.name===w.name); if(idx<0)return; const chk=$('makt-gm-'+idx); if(chk)chk.checked=true; const mn=$('mmin-gm-'+idx); if(mn&&w.min>0)mn.value=w.min; });
       if(typeof calcGlobalMontage==='function')calcGlobalMontage();
@@ -15897,6 +16025,7 @@ function printDoc(mode){
         mods.push('Anlieferung durch Grafe: '+anlStr);
       }
       if(p.anfahrtKm>0)mods.push(sp(`Anfahrt ${p.anfahrtKm}km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
+      { const slUT=uebernachtungText(p,isInt); if(slUT)mods.push(slUT); }
       const arbStr=(p.arbeit||[])
         .filter(a=>a.gruppe==='Admin'||a.gruppe==='Grafik')
         .map(a=>sp(`${a.label}${a.min>0&&!a.isPauschal?' · '+a.min+' Min':''}`)).join(' · ');
@@ -16000,6 +16129,7 @@ function printDoc(mode){
       if(nach.length) L.push(`<b>Weiterverarbeitung:</b> ${nach.join(', ')}`);
       if(p.anfahrtKm>0)L.push(sp(`<b>Anfahrt:</b> ${p.anfahrtKm} km · ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · CHF ${(p.anfahrtVK||0).toFixed(2)}`));
       if(p.montPersAkt&&p.montStd>0)L.push(`<b>Montagepersonal:</b> ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} · ${p.montStd} h`);
+      { const uT=uebernachtungText(p,isInt); if(uT){ const ci=uT.indexOf(': '); L.push(ci>0?('<b>'+uT.slice(0,ci)+':</b>'+uT.slice(ci+1)):uT); } }
       if(p.montageSeparat)L.push('<span style="color:#777;">Montagekosten separat ausgewiesen</span>');
       // Versand (Texthinweis — Kunde ohne Preis) mit fettem Label
       { const ftVStr=versandZeile(p,isInt); if(ftVStr){ const ci=ftVStr.indexOf(': '); L.push(ci>0?('<b>'+ftVStr.slice(0,ci)+':</b>'+ftVStr.slice(ci+1)):ftVStr); } }
@@ -16077,6 +16207,7 @@ function printDoc(mode){
       const zusatzArb=(p.arbeit||[]).filter(a=>a.gruppe==='Zusatz');
       if(zusatzArb.length)zusatzArb.forEach(a=>montParts.push(a.label));
       if(montParts.length)frLines.push(`Montage: ${montParts.join(' · ')}`);
+      { const uT=uebernachtungText(p,isInt); if(uT)frLines.push(uT); }
       if(p.montageSeparat)frLines.push(`<em style="color:#888;">Montagekosten separat ausgewiesen</em>`);
 
       // ── Notiz ─────────────────────────────────────────────────────────
@@ -16102,12 +16233,14 @@ function printDoc(mode){
         ?`Logo${p.logoBreite&&p.logoHoehe?' · '+p.logoBreite+'×'+p.logoHoehe+'mm':''}${p.gravurMin?' · ca. '+p.gravurMin.toFixed(1)+' Min.':''}`
         :`${zeilenStr} · ${p.zeichenTotal||0} Zeichen · ${p.gravurMin?.toFixed(1)||'?'} Min.`;
       detail=`<strong>Beschriftung: Gravur</strong> · Format: ${p.l||'?'}×${p.b||'?'}mm · ${p.stk} Stk. · ${p.m2n?.toFixed(4)||'?'} m²<br>${_saGravStr}${p.schildName?' · Schildmaterial: '+p.schildName:''}${_gfc2?' · Einlegefarbe: '+_gfc2:''}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
+      { const gvUT=uebernachtungText(p,isInt); if(gvUT) detail+='<br>'+gvUT; }
       { const gvVStr=versandZeile(p,isInt); if(gvVStr) detail+='<br>'+gvVStr; }
       if(isInt)detail+=`<br><span style="color:#999;">Material EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)}</span>`;
     }else if(p.type==='montage'){
       const mparts=[];
       if(p.anfahrtKm>0)mparts.push(`Anfahrt: ${p.anfahrtKm} km, ${p.anfahrtNMA||1} Monteur${(p.anfahrtNMA||1)>1?'e':''} → CHF ${(p.anfahrtVK||0).toFixed(2)}`);
       if(p.montPersAkt&&p.montStd>0)mparts.push(`Montagepersonal: ${p.montMA||1} Monteur${(p.montMA||1)>1?'e':''} × ${p.montStd} h`);
+      { const gmUT=uebernachtungText(p,isInt); if(gmUT)mparts.push(gmUT); }
       if(p.zusatzVK>0)mparts.push(`Zusatzkosten: CHF ${p.zusatzVK.toFixed(2)}`);
       detail=`Montage Gesamtauftrag${mparts.length?'<br>'+mparts.join('<br>'):' · Pauschal'}${p.notiz?`<br><em style="color:#666;font-size:10px;">${p.notiz}</em>`:''}`;
     }else{
@@ -17923,7 +18056,7 @@ function toggleEmailAnalyse(){
                     <div class="keg-f" style="grid-column:span 2;"><label>Adresszusatz (optional)</label><input id="kegObZusatz" placeholder="z. B. Gebäude B · 3. OG · Eingang Nord · c/o …"></div>
                   </div>
                 </div>
-                <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;"><span>Datenablage-Pfad</span><span class="keg-link" id="kegPathReset" style="text-transform:none;letter-spacing:0;font-weight:600;">↺ Auto</span></div><input id="kegPathInput" class="kegpath-in" spellcheck="false" placeholder="\\\\server\\Offerten\\…"><div style="font-size:9.5px;color:#9aa1ad;margin-top:3px;line-height:1.4;">Automatisch vorgeschlagen — bei einem <b>bereits bestehenden Ordner</b> oder abweichendem Kundennamen hier anpassen. Dann wird genau dieser Pfad verwendet (kein neuer Ordner).</div></div></div>
+                <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;"><span>Datenablage-Pfad</span><span class="keg-link" id="kegPathReset" style="text-transform:none;letter-spacing:0;font-weight:600;">↺ Auto</span></div><input id="kegPathInput" class="kegpath-in" spellcheck="false" placeholder="\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte\\…"><div style="font-size:9.5px;color:#9aa1ad;margin-top:3px;line-height:1.4;">Automatisch vorgeschlagen — bei einem <b>bereits bestehenden Ordner</b> oder abweichendem Kundennamen hier anpassen. Dann wird genau dieser Pfad verwendet (kein neuer Ordner).</div></div></div>
                 <div id="kegRoche" class="keg-hide" style="margin-top:12px;border:1.5px solid #e6d9a6;background:#fdfbf3;border-radius:10px;padding:12px 14px;">
                   <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:#6f5a00;margin-bottom:8px;display:flex;align-items:center;gap:7px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="1.7"/><ellipse cx="12" cy="12" rx="10" ry="4.2"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(120 12 12)"/></svg>
@@ -18339,8 +18472,12 @@ function toggleEmailAnalyse(){
       CUR.roche.bau=(CUR.roche.modus==='bau')?ziel:'';
       if(pin && !CUR.pfadEdited){ pin.value='…\\Objekte\\Basel\\Roche\\'+ziel+'\\'+leaf+'\\'; CUR.pfadOverride=''; }
     } else {
-      const pfad=CUR.ablage==='o' ? '\\\\server\\Offerten\\Objekte\\'+ort+'\\'+str+'\\' : '\\\\server\\Offerten\\Firmenkunden\\'+(k.name||'…')+'\\';
-      const autoPfad = pfad + (CUR.nr||'') + ' ' + (CUR.betreff||'') + '\\';
+      // Echten Server-Basispfad verwenden (vom Server via /projekte/info geladen; mit Variante-A-.env ist das direkt UNC).
+      const base=(typeof _projektBasis!=='undefined' && _projektBasis) ? _projektBasis : '\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte';
+      // Ordnername exakt wie der Server: "<Nr> - <Betreff>"
+      const leaf=((CUR.nr?CUR.nr+' - ':'')+(CUR.betreff||'')).trim();
+      const pfad=CUR.ablage==='o' ? base+'\\Objekte\\'+ort+'\\'+str+'\\' : base+'\\Firmenkunden\\'+(k.name||'…')+'\\';
+      const autoPfad = pfad + leaf + '\\';
       if(pin && !CUR.pfadEdited){ pin.value=autoPfad; CUR.pfadOverride=''; }
     }
     const pdf=G('kegPdf'); if(pdf) pdf.textContent='Offerte_'+(CUR.nr||'…')+'.pdf';
@@ -18692,7 +18829,8 @@ function toggleEmailAnalyse(){
   function open(){ const ov=G('kegOverlay'); if(!ov) return; ov.classList.remove('keg-hide');
     G('kegGate').classList.remove('keg-hide'); G('kegFlow').classList.add('keg-hide'); G('kegDone').classList.add('keg-hide');
     const nav=document.querySelector('#kegOverlay .keg-nav'); if(nav) nav.style.display='';
-    G('kegVg').classList.add('keg-hide'); updateSrv(); loadGateAuftraege(true); window.scrollTo({top:0}); }
+    G('kegVg').classList.add('keg-hide'); updateSrv(); loadGateAuftraege(true); window.scrollTo({top:0});
+    try{ if(typeof ladeProjektBasis==='function') ladeProjektBasis().then(()=>{ try{ refresh(); }catch(e){} }); }catch(e){} }
   window.KEG={open,close};
 
   // Reopen-Button in die Nav einhängen
