@@ -793,6 +793,11 @@ a, button, input, select, textarea, label,
           <div class="type-btn-name">Textposition</div>
           <div class="type-btn-sub">Hinweis · Bemerkung · Info</div>
         </div>
+        <div class="type-btn" id="tb-frei" onclick="startPos('frei')">
+          <div class="type-btn-icon"><svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h7"/><path d="M17 12.5v7"/><path d="M13.5 16h7"/></svg></div>
+          <div class="type-btn-name">Freier Artikel</div>
+          <div class="type-btn-sub">Freitext · Menge · Preis/Stück</div>
+        </div>
         <div class="type-btn" id="tb-fahrzeug" onclick="startPos('fahrzeug')">
           <div class="type-btn-icon"><svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M5 11l1.4-4A2 2 0 0 1 8.3 5.7h7.4a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3" y="11" width="18" height="6" rx="1.5"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/></svg></div>
           <div class="type-btn-name">Fahrzeugbeschriftung</div>
@@ -2190,6 +2195,40 @@ a, button, input, select, textarea, label,
     <button class="btn btn-y" onclick="saveTextPos()" style="width:100%;font-size:14px;padding:11px;">✓ Textposition speichern</button>
   </div>
 
+  <div id="freiForm" style="display:none;" class="sec">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
+      <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;">🧾 Freier Artikel</div>
+      <button class="btn btn-gh" onclick="closeFreiForm()" style="font-size:11px;">✕ Abbrechen</button>
+    </div>
+    <div class="field" style="margin-bottom:10px;">
+      <label>Bezeichnung <span style="font-size:9px;color:var(--muted);">(Positionstitel in Offerte)</span></label>
+      <input type="text" id="freiLabel" placeholder="z.B. Sonderanfertigung, Fremdleistung, Zubehör..." oninput="cFrei()"
+        style="width:100%;font-size:14px;font-weight:600;">
+    </div>
+    <div class="field" style="margin-bottom:12px;">
+      <label>Beschreibung <span style="font-size:9px;color:var(--muted);">(optional — erscheint in der Offerte)</span></label>
+      <textarea id="freiBeschreibung" rows="4" oninput="cFrei()"
+        placeholder="Freie Beschreibung des Artikels / der Leistung..."
+        style="width:100%;resize:vertical;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:9px 11px;border-radius:var(--rsm);font-size:13px;line-height:1.6;font-family:'Inter',sans-serif;"></textarea>
+    </div>
+    <div class="g3" style="margin-bottom:12px;gap:10px;">
+      <div class="field"><label>Menge</label>
+        <input type="number" id="freiStk" value="1" min="0" step="1" oninput="cFrei()"
+          style="width:100%;font-size:15px;font-weight:700;text-align:center;"></div>
+      <div class="field"><label>Einheit</label>
+        <input type="text" id="freiMe" value="Stk." placeholder="Stk." oninput="cFrei()"
+          style="width:100%;text-align:center;"></div>
+      <div class="field"><label>Preis / Stück (CHF)</label>
+        <input type="number" id="freiPreis" value="" min="0" step="0.05" placeholder="0.00" oninput="cFrei()"
+          style="width:100%;font-size:15px;font-weight:700;text-align:center;border:2px solid var(--accent);color:var(--accent);"></div>
+    </div>
+    <div style="display:flex;align-items:center;justify-content:space-between;background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:8px 12px;margin-bottom:14px;">
+      <span style="font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;">Total (Menge × Preis/Stück)</span>
+      <span id="freiTotal" style="font-family:'Sora',sans-serif;font-weight:800;font-size:18px;color:var(--accent);">CHF 0.00</span>
+    </div>
+    <button class="btn btn-y" onclick="saveFreiPos()" style="width:100%;font-size:14px;padding:11px;">✓ Freien Artikel speichern</button>
+  </div>
+
   <div id="versandForm" style="display:none;" class="sec">
     <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">
       <div style="font-family:'Sora',sans-serif;font-size:16px;font-weight:800;">📦 Versand</div>
@@ -2789,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V8.9';
+const UI_VERSION='V9.0';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.0','Neuer Positionstyp „Freier Artikel" (Gruppe Zusätze): komplett frei — Bezeichnung, freie Beschreibung, Menge, Einheit und Preis pro Stück. Total = Menge × Preis/Stück (Live-Anzeige). Erscheint als normale Positionszeile in der Offerte (Menge · ME · Einzelpreis · Gesamtpreis) und lässt sich normal bearbeiten/duplizieren. Für Sonderanfertigungen, Fremdleistungen, Zubehör usw. ohne eigene Kalkulationslogik.'],
   ['V8.9','Reaktor · Datenablage-Pfad: Die Vorschau zeigt jetzt den ECHTEN Serverpfad statt des Platzhalters „\\\\server\\Offerten\\…". Der Basispfad kommt vom Server (/projekte/info, UNC bevorzugt) — Fallback ist der echte UNC-Pfad \\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte. Ordnername exakt wie der Server: „<Nr> - <Betreff>". Damit ist der angezeigte/kopierte Pfad auf jedem PC im Netz gültig.'],
   ['V8.8','Anfahrt erweitert: (1) Fernbereich (150–300 km) neu mit reduzierter Wegzeit (60%) gerechnet — marktgerechter bei Mehr-Monteur-Fahrten (z.B. 300 km/3 MA neu 1780 statt 2610). Nahbereich unverändert. (2) NEU „Übernachtung / Spesen" bei allen Produkten mit Anfahrt (Schild, Folientechnik, Reliefschriften, Gravur, Montage-Gesamtauftrag): Anzahl Nächte × CHF 150 + Spesentage × CHF 25, je Monteur. Erscheint als Texthinweis in der Offerte. Sätze/Faktor in der Admin-Config anpassbar (wegzeitFaktor, uebernachtung, tagesspesen).'],
   ['V8.7','Anfahrt: (1) Fix — bei Ermittlung über die Adresseingabe (Ort → km per Route) wurde der Preis ab >105 km nicht übernommen (fiel auf 0). Ursache war ein fixer 105-km-Deckel in der Preislogik. (2) Die km-Tabelle geht jetzt bis 300 km: Nahbereich unverändert (15–105 km), Fernbereich neu in 50-km-Stufen (150/200/250/300 km) für 1/2/3 Monteure. Werte aus der bestehenden Kurve hochgerechnet (~4/6.4/8.7 CHF pro km) — in der Admin-Config anpassbar. Über 300 km weiterhin „individuelle Offerte". Gilt für alle Produkte mit Anfahrt (Schild, Folientechnik, Reliefschriften, Gravur, Montage-Gesamtauftrag).'],
@@ -10119,7 +10159,7 @@ function startPosWithCopy(type){
 // ── Positions-Formulare: EINE Quelle der Wahrheit ────────────────────
 // Unvollständige Listen führten dazu, dass zwei Formulare gleichzeitig offen
 // waren — Eingabe im einen, Validierung im anderen (leeren).
-const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm','fahrzeugForm','versandForm','bodenForm'];
+const POS_FORMS = ['folieForm','folientechnikForm','sbbForm','rabattForm','fraesForm','gravurForm','schildForm','textForm','freiForm','fahrzeugForm','versandForm','bodenForm'];
 function hidePosForms(inklDialog){
   POS_FORMS.forEach(id=>{ const e=document.getElementById(id); if(e) e.style.display='none'; });
   if(inklDialog){ const t=document.getElementById('typeDialog'); if(t) t.style.display='none'; }
@@ -10127,6 +10167,7 @@ function hidePosForms(inklDialog){
 
 function startPos(type){
   if(type==='text'){openTextForm();return;}
+  if(type==='frei'){openFreiForm();return;}
   if(type==='fahrzeug'){editIdx=-1;openFahrzeugForm();return;}
   if(type==='versand'){editIdx=-1;openVersandForm();return;}
   if(type==='bodenmarkierung'){editIdx=-1;openBodenForm();return;}
@@ -11833,6 +11874,60 @@ function saveTextPos(){
   renderPos();updateTotals();
   $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
   showToast(wasEdit?'Textposition aktualisiert ✓':'Textposition gespeichert ✓');
+}
+
+/* ═══════════════════ Freier Artikel (eigene Position) ═══════════════════
+   Komplett frei: Bezeichnung + Beschreibung + Menge + Einheit + Preis/Stück.
+   Total = Menge × Preis/Stück. Erscheint als normale Positionszeile in der Offerte. */
+function openFreiForm(){
+  hidePosForms(false);
+  $('typeDialog').style.display='none';
+  $('freiForm').style.display='block';
+  cFrei();
+  $('freiLabel')?.focus();
+}
+function closeFreiForm(){
+  $('freiForm').style.display='none';
+  $('typeDialog').style.display='block';
+  editIdx=-1;
+}
+function cFrei(){
+  const stk=parseFloat($('freiStk')?.value)||0;
+  const preis=parseFloat($('freiPreis')?.value)||0;
+  const total=stk*preis;
+  const el=$('freiTotal'); if(el)el.textContent='CHF '+total.toFixed(2);
+  return {stk,preis,total};
+}
+function saveFreiPos(){
+  const label=$('freiLabel')?.value?.trim();
+  const beschreibung=$('freiBeschreibung')?.value?.trim()||'';
+  const me=($('freiMe')?.value?.trim())||'Stk.';
+  const r=cFrei();
+  if(!label&&!beschreibung){showToast('Bitte eine Bezeichnung eingeben','error');return;}
+  const data={
+    type:'frei',
+    label:label||'Freier Artikel',
+    beschreibung:beschreibung,
+    me:me,
+    stk:r.stk||1,
+    proStk:r.preis||0,
+    stkVK:r.preis||0,
+    totalVK:r.total||0,
+    veredVK:0, arbVK:0, matEK:0, matVK:0,
+  };
+  const wasEdit=editIdx>=0;
+  if(editIdx>=0)positions[editIdx]=data;else positions.push(data);
+  editIdx=-1;
+  $('freiForm').style.display='none';
+  if($('freiLabel'))$('freiLabel').value='';
+  if($('freiBeschreibung'))$('freiBeschreibung').value='';
+  if($('freiMe'))$('freiMe').value='Stk.';
+  if($('freiStk'))$('freiStk').value='1';
+  if($('freiPreis'))$('freiPreis').value='';
+  const ft=$('freiTotal'); if(ft)ft.textContent='CHF 0.00';
+  renderPos();updateTotals();
+  $('posList').scrollIntoView({behavior:'smooth',block:'nearest'});
+  showToast(wasEdit?'Freier Artikel aktualisiert ✓':'Freier Artikel gespeichert ✓');
 }
 
 /* ═══════════════════ Versand (eigene Position) ═══════════════════
@@ -14182,6 +14277,10 @@ function renderPos(){
       if(p.nrAnz>0)bp.push(p.nrAnz+' Nummern');
       if(p.pfeilAnz>0)bp.push(p.pfeilAnz+' Pfeile');
       sub=bp.join(' · ')||'Bodenmarkierung';
+    }else if(p.type==='frei'){
+      badge='Freier Artikel';
+      const bz=(p.beschreibung||'').split('\n')[0];
+      sub=`${p.stk||1} ${p.me||'Stk.'} × CHF ${(p.proStk||0).toFixed(2)}${bz?' · '+bz.slice(0,50):''}`;
     }else{
       badge='Folie';
       sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²${p.minAkt?' ⚡':''}`;
@@ -14776,6 +14875,17 @@ function editPos(i){
     if($('txtLabel'))$('txtLabel').value=p.label||'';
     if($('txtInhalt'))$('txtInhalt').value=p.text||'';
     if($('txtStyle'))$('txtStyle').value=p.txtStyle||'normal';
+  }else if(p.type==='frei'){
+    hidePosForms(false);
+    $('typeDialog').style.display='none';
+    $('freiForm').style.display='block';
+    if($('freiLabel'))$('freiLabel').value=p.label||'';
+    if($('freiBeschreibung'))$('freiBeschreibung').value=p.beschreibung||'';
+    if($('freiMe'))$('freiMe').value=p.me||'Stk.';
+    if($('freiStk'))$('freiStk').value=(p.stk!=null?p.stk:1);
+    if($('freiPreis'))$('freiPreis').value=(p.proStk||'');
+    cFrei();
+    $('freiForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='versand'){
     hidePosForms(false);
     $('typeDialog').style.display='none';
@@ -16083,6 +16193,16 @@ function printDoc(mode){
         <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
     }
+    if(p.type==='frei'){
+      const beschr=(p.beschreibung||'').trim();
+      const beschrHtml=beschr?beschr.split('\n').map(l=>l||'&nbsp;').join('<br>'):'';
+      return `<tr style="${variantStyle}">
+        <td class="c-pos">${i+1}</td><td class="c-menge">${p.stk||1}</td><td class="c-me">${p.me||'Stk.'}</td>
+        <td class="c-bez"><strong>${p.label||'Freier Artikel'}</strong>${variantBadge}${beschrHtml?`<br><span class="sub">${beschrHtml}</span>`:''}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}${rabattInline}</td>
+        <td class="c-ep">${fmtVar(p,p.proStk||0)}</td>
+        <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
+      </tr>`;
+    }
     if(p.type==='bodenmarkierung'){
       const bl=[];
       if((p.parkVK||0)>0){
@@ -17382,7 +17502,8 @@ function redesignV3(){
       'tb-montage':'<path d="M15 4a4 4 0 0 0-2.6 7l-6.4 6.4 1.6 1.6L14 12.6A4 4 0 0 0 19 8l-2.4 2.4-2-2z"/>',
       'tb-text':'<line x1="5" y1="6" x2="19" y2="6"/><line x1="5" y1="11" x2="19" y2="11"/><line x1="5" y1="16" x2="13" y2="16"/>',
       'tb-fahrzeug':'<path d="M5 11l1.4-4A2 2 0 0 1 8.3 5.7h7.4a2 2 0 0 1 1.9 1.3L19 11"/><rect x="3" y="11" width="18" height="6" rx="1.5"/><circle cx="7.5" cy="17" r="1.6"/><circle cx="16.5" cy="17" r="1.6"/>',
-      'tb-rabatt':'<line x1="6" y1="18" x2="18" y2="6"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/>'
+      'tb-rabatt':'<line x1="6" y1="18" x2="18" y2="6"/><circle cx="8" cy="8" r="2"/><circle cx="16" cy="16" r="2"/>',
+      'tb-frei':'<path d="M4 7h16"/><path d="M4 12h10"/><path d="M4 17h7"/><path d="M17 12.5v7"/><path d="M13.5 16h7"/>'
     };
     Object.entries(TICON).forEach(([id,path])=>{
       const b=document.getElementById(id); if(!b) return;
@@ -17402,7 +17523,7 @@ function redesignV3(){
       const h1=document.createElement('div'); h1.className='type-group-h'; h1.textContent='Produkte';
       const h2=document.createElement('div'); h2.className='type-group-h'; h2.textContent='Zusätze';
       ['tb-schild','tb-fahrzeug','tb-fraes','tb-folientechnik','tb-sbb','tb-boden'].forEach(id=>{const e=document.getElementById(id);if(e)g1.appendChild(e);});
-      ['tb-montage','tb-versand','tb-text','tb-rabatt'].forEach(id=>{const e=document.getElementById(id);if(e)g2.appendChild(e);});
+      ['tb-montage','tb-versand','tb-frei','tb-text','tb-rabatt'].forEach(id=>{const e=document.getElementById(id);if(e)g2.appendChild(e);});
       // SICHERHEITSNETZ: jede Kachel, die (noch) keiner Gruppe zugeordnet wurde, landet
       // automatisch bei „Produkte" — so verschwindet ein neues Produkt NIE mehr aus der Auswahl,
       // auch wenn es oben in den Listen vergessen wurde.
