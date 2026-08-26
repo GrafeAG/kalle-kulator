@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.0';
+const UI_VERSION='V9.1';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.1','Monday-Intake: Das Subelement „Anfrage eingegangen" wird jetzt direkt mit Status „Fertig" angelegt (die Erfassung ist ja bereits erledigt). „Offerte erstellen" bleibt wie bisher offen/terminiert. Wirkt sich auch sauber auf die Terminstatus-Ampel aus.'],
   ['V9.0','Neuer Positionstyp „Freier Artikel" (Gruppe Zusätze): komplett frei — Bezeichnung, freie Beschreibung, Menge, Einheit und Preis pro Stück. Total = Menge × Preis/Stück (Live-Anzeige). Erscheint als normale Positionszeile in der Offerte (Menge · ME · Einzelpreis · Gesamtpreis) und lässt sich normal bearbeiten/duplizieren. Für Sonderanfertigungen, Fremdleistungen, Zubehör usw. ohne eigene Kalkulationslogik.'],
   ['V8.9','Reaktor · Datenablage-Pfad: Die Vorschau zeigt jetzt den ECHTEN Serverpfad statt des Platzhalters „\\\\server\\Offerten\\…". Der Basispfad kommt vom Server (/projekte/info, UNC bevorzugt) — Fallback ist der echte UNC-Pfad \\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte. Ordnername exakt wie der Server: „<Nr> - <Betreff>". Damit ist der angezeigte/kopierte Pfad auf jedem PC im Netz gültig.'],
   ['V8.8','Anfahrt erweitert: (1) Fernbereich (150–300 km) neu mit reduzierter Wegzeit (60%) gerechnet — marktgerechter bei Mehr-Monteur-Fahrten (z.B. 300 km/3 MA neu 1780 statt 2610). Nahbereich unverändert. (2) NEU „Übernachtung / Spesen" bei allen Produkten mit Anfahrt (Schild, Folientechnik, Reliefschriften, Gravur, Montage-Gesamtauftrag): Anzahl Nächte × CHF 150 + Spesentage × CHF 25, je Monteur. Erscheint als Texthinweis in der Offerte. Sätze/Faktor in der Admin-Config anpassbar (wegzeitFaktor, uebernachtung, tagesspesen).'],
@@ -17683,7 +17684,7 @@ const MONDAY_PROD = {
   col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w' },
   labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
-  subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e', bearbeiter:'person' }
+  subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e', bearbeiter:'person', status:'status' }
 };
 window.MONDAY_PROD = MONDAY_PROD;
 
@@ -17742,6 +17743,8 @@ async function mondayProdAnfrage(data, token){
     const scv={}; scv[MONDAY_PROD.subCol.datum]={date:new Date().toISOString().slice(0,10)};
     if(data.offertsumme) scv[MONDAY_PROD.subCol.offertsumme]=String(data.offertsumme);
     if(meId && MONDAY_PROD.subCol.bearbeiter) scv[MONDAY_PROD.subCol.bearbeiter]={ personsAndTeams:[{id:Number(meId), kind:'person'}] };
+    // „Anfrage eingegangen" ist mit dem Erfassen bereits erledigt → Status direkt „Fertig"
+    if(MONDAY_PROD.subCol.status) scv[MONDAY_PROD.subCol.status]={ label:'Fertig' };
     const sr=await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Anfrage eingegangen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
     subId=sr&&sr.create_subitem&&sr.create_subitem.id;
   }catch(e){ console.warn('[Monday] Subelement „Anfrage eingegangen":', e.message); }
