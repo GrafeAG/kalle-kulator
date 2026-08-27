@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.4';
+const UI_VERSION='V9.5';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.5','Offerte · „Montage separat": Ist bei einem Produkt (Folientechnik, Reliefschrift, Schild) der Haken „Montage separat ausweisen" gesetzt, erscheint im Offert-PDF jetzt automatisch eine eigene Position „Montage vor Ort" mit Preis und allen Angaben (Anfahrt/km, Anzahl Monteure, Montagedauer/-arbeiten, Übernachtung/Spesen). Der Produktpreis wird um genau diesen Betrag reduziert — die Endsumme bleibt gleich, der Kunde sieht die Montage aber klar getrennt ausgewiesen. Zusätzlich behoben: bei Folientechnik fiel die Montage mit gesetztem Haken bisher ganz aus der Offerte; sie wird jetzt korrekt ausgewiesen.'],
   ['V9.4','Kunden: Wird ein geladener Kunde von Hand geändert (Name, Ansprechperson, Adresse, PLZ, Ort, Telefon, E-Mail), fliegt die verknüpfte SL-Kundennummer automatisch raus — es ist dann ja nicht mehr derselbe Stammkunde. Damit „springt" die Offerte nach einer Adressänderung nicht mehr auf den ursprünglichen Kunden zurück und die Stammadresse wird nicht versehentlich überschrieben. Kunde neu wählen oder Offerte laden setzt die Nummer normal wieder.'],
   ['V9.3','Frästeile/Schilder · „Eigene Befestigung": Die frei eingegebene Befestigung (Beschreibung, Preistyp, Preis) ging beim Frästeil verloren, sobald der Befestigungs-Schritt neu aufgebaut wurde (z. B. beim Umschalten von VHB/Bolzen oder beim erneuten Öffnen einer gespeicherten Position) — beim nächsten Öffnen war die Position wieder leer. Die Eingaben bleiben jetzt über alle Neuaufbauten erhalten (wie bei den übrigen Befestigungs-Optionen und beim Schild). Speichern/Laden inklusive.'],
   ['V9.2','Reaktor · Datenpfad in Monday: Der Datenpfad wird jetzt IMMER ins Monday-Item geschrieben — auch dann, wenn der Server den Projektordner (noch) nicht anlegen konnte (z. B. Freigabe für den Dienst-Account kurz nicht erreichbar). In dem Fall wird der Pfad clientseitig nach demselben Schema berechnet (Firmenkunde → …\\Firmenkunden\\<Firma>\\<Nr - Betreff>, Objekt → …\\Objekte\\<Ort>\\<Strasse>\\<Nr - Betreff>) und als Link gesetzt. Damit ist ein via Reaktor erfasster Auftrag in Monday nicht mehr „ohne Pfad / unauffindbar". Server-Pfad hat weiterhin Vorrang.'],
@@ -5478,6 +5479,7 @@ function cFr(){
     matFN,matFM,nesting,matGew,matEK,matVK,fraeskosten,prodAufschlag,
     lackTotal,frPulverTotal,frEloxVK,frBruenVK,frZuschnittVK,
     bolzenVK,schabTotal,frEigenBefVK,frArbVK,frAnfahrtVK,frVersandVK,montVK,setup,total,proStk,proSatz,
+    frMontageSepVK:(frAnfahrtVK+frUenVK),
     frUenVK,frUen,matMargePct,gezaehlt};
 }
 
@@ -5569,6 +5571,7 @@ function saveFraes(){
     uenAkt:!!(r.frUen&&r.frUen.akt), uenNaechte:(r.frUen&&r.frUen.naechte)||0, uenTage:(r.frUen&&r.frUen.tage)||0, uenNMA:(r.frUen&&r.frUen.MA)||1, uenVK:r.frUenVK||0,
     montage:montD.items,
     montageSeparat:gC('frMontageSeparat')||false,
+    montageSep: gC('frMontageSeparat') ? { vk:r.frMontageSepVK||0, anfahrtKm:parseFloat($('frAnfahrtKm')?.value)||0, anfahrtNMA:parseInt($('frMontAnzMA')?.value)||1, anfahrtVK:r.frAnfahrtVK||0, uenAkt:!!(r.frUen&&r.frUen.akt), uenNaechte:(r.frUen&&r.frUen.naechte)||0, uenTage:(r.frUen&&r.frUen.tage)||0, uenNMA:(r.frUen&&r.frUen.MA)||1, uenVK:r.frUenVK||0 } : null,
     montVK:r.montVK,totalVK:r.total,stueck:r.proStk,proSatz:r.proSatz,
   };
   const wasEdit3=editIdx>=0;
@@ -6359,7 +6362,8 @@ function cFt(){
   });
   const ftUen=uebernachtungCalc('ft', parseInt($('ftMontMA')?.value)||1);
   const ftUenVK=ftUen.vk;
-  const montVK=gC('ftMontageSeparat')?0:(ftAnfahrtVK+ftMontVK+ftZusatzVK+ftUenVK);
+  const ftMontageSepVK=ftAnfahrtVK+ftMontVK+ftZusatzVK+ftUenVK;
+  const montVK=ftMontageSepVK; // Montage bleibt IMMER in der Positionssumme; „Montage separat" splittet nur die PDF-Ausgabe
 
   const ftVersandVK=calcVersandVK('ft');
   const totalVK=matVK+veredVK+arbVK+ftWtVK+ftVersandVK+montVK;
@@ -6409,7 +6413,7 @@ function cFt(){
     </div>`;
 
   updateTotals();
-  return{l,h,stk,m2n,m2e,m2pEff,marge,matEK,matVK,veredVK,arbVK,ftWtVK,ftVersandVK,montVK,ftAnfahrtVK,ftMontVK,totalVK,proStk,
+  return{l,h,stk,m2n,m2e,m2pEff,marge,matEK,matVK,veredVK,arbVK,ftWtVK,ftVersandVK,montVK,ftAnfahrtVK,ftMontVK,ftZusatzVK,ftMontageSepVK,totalVK,proStk,
     setupDDVK,setupPSVK,pEK,tEK,fEK,lEK,gdEK,druckVK,ftUenVK,ftUen};
 }
 
@@ -6461,6 +6465,7 @@ function saveFolientechnik(){
     montage:getMonData('tgFtMon').items,
     montageVK:getMonData('tgFtMon').total,
     montageSeparat:gC('ftMontageSeparat')||false,
+    montageSep: gC('ftMontageSeparat') ? { vk:r.ftMontageSepVK||0, anfahrtKm:parseFloat($('ftAnfahrtKm')?.value)||0, anfahrtNMA:parseInt($('ftMontMA')?.value)||1, anfahrtVK:r.ftAnfahrtVK||0, montPersAkt:gC('ftMontPersAkt'), montStd:parseFloat($('ftMontStd')?.value)||0, montMA:parseInt($('ftMontMA')?.value)||1, montageItems:(getMonData('tgFtMon').items)||[], zusatzVK:r.ftZusatzVK||0, uenAkt:!!(r.ftUen&&r.ftUen.akt), uenNaechte:(r.ftUen&&r.ftUen.naechte)||0, uenTage:(r.ftUen&&r.ftUen.tage)||0, uenNMA:(r.ftUen&&r.ftUen.MA)||1, uenVK:r.ftUenVK||0 } : null,
     uenAkt:!!(r.ftUen&&r.ftUen.akt), uenNaechte:(r.ftUen&&r.ftUen.naechte)||0, uenTage:(r.ftUen&&r.ftUen.tage)||0, uenNMA:(r.ftUen&&r.ftUen.MA)||1, uenVK:r.ftUenVK||0,
     folie:gC('ftAktFolie')?ftSelTxt('ftAktFolie'):'',
     folieIdx:(()=>{const chk=$('ftAktFolie');if(!chk||!chk.checked)return -1;const s=chk.closest('.tr')?.querySelector('select');return s?s.selectedIndex:-1;})(),
@@ -9880,6 +9885,7 @@ function saveSchild(){
     anfahrtVK:r.anfahrtVK||0,
     uenAkt:!!(r.slUen&&r.slUen.akt), uenNaechte:(r.slUen&&r.slUen.naechte)||0, uenTage:(r.slUen&&r.slUen.tage)||0, uenNMA:(r.slUen&&r.slUen.MA)||1, uenVK:r.slUenVK||0,
     montageSeparat:gC('slMontageSeparat')||false,
+    montageSep: gC('slMontageSeparat') ? { vk:(r.anfahrtVK||0)+(montD.total||0)+(r.slUenVK||0), anfahrtKm:parseFloat($('slAnfahrtKm')?.value)||0, anfahrtNMA:parseInt($('montAnzMA')?.value)||1, anfahrtVK:r.anfahrtVK||0, montageItems:(montD.items)||[], uenAkt:!!(r.slUen&&r.slUen.akt), uenNaechte:(r.slUen&&r.slUen.naechte)||0, uenTage:(r.slUen&&r.slUen.tage)||0, uenNMA:(r.slUen&&r.slUen.MA)||1, uenVK:r.slUenVK||0 } : null,
     totalVK:r.totalVK,stueck:r.proStk,
     wtPlott:gC('slAktWtPlott'), wtLam:gC('slAktWtLam'),
     wtPlottModus:(window._slObState?.wtPlottModus)||'pos',
@@ -15963,6 +15969,36 @@ function printDocDruck(){
   printDoc('offer');
 }
 
+// Separater Montage-Artikel im Offert-PDF: baut aus den Montage-Angaben einer Position
+// (Anfahrt/km, Personal, Dauer, Übernachtung, Zusatz) eine eigene Zeile mit Preis.
+// Wird nur genutzt, wenn bei der Position „Montage separat" gesetzt ist.
+function _montageCompanionRow(m, parent, isInt){
+  const esc=(window.esc||(s=>String(s==null?'':s)));
+  const parts=[];
+  if((m.anfahrtVK||0)>0 || (m.anfahrtKm||0)>0){
+    const ma=m.anfahrtNMA||1;
+    parts.push(`Anfahrt: ${m.anfahrtKm||0} km · ${ma} Monteur${ma>1?'e':''}${isInt?` → CHF ${(m.anfahrtVK||0).toFixed(2)}`:''}`);
+  }
+  if(m.montPersAkt && (m.montStd||0)>0){
+    const mm=m.montMA||1;
+    parts.push(`Montagezeit vor Ort: ${mm} Monteur${mm>1?'e':''} × ${m.montStd} h`);
+  }
+  if(Array.isArray(m.montageItems) && m.montageItems.length){
+    parts.push('Montagearbeiten: '+m.montageItems.map(it=>esc(it.name)+((it.min>0)?` (${it.min} Min.)`:'')).join(' · '));
+  }
+  { const ut=(typeof uebernachtungText==='function')?uebernachtungText(m,isInt):''; if(ut)parts.push(ut); }
+  if((m.zusatzVK||0)>0) parts.push(`Zusatzkosten${isInt?`: CHF ${(m.zusatzVK).toFixed(2)}`:''}`);
+  const label='Montage vor Ort'+((parent&&(parent.label))?' – '+esc(parent.label):'');
+  const vk=(m.vk||0);
+  return `<tr>
+      <td class="c-pos"></td>
+      <td class="c-menge">1</td>
+      <td class="c-me">Psch.</td>
+      <td class="c-bez"><strong>${label}</strong><br><span class="sub">${parts.length?parts.join('<br>'):'Montage vor Ort'}</span></td>
+      <td class="c-ep">${vk.toFixed(2)}</td>
+      <td class="c-gp">${vk.toFixed(2)}</td>
+    </tr>`;
+}
 function printDoc(mode){
   if(mode==='offerHtml'){
     // Nur HTML-String zurückgeben, kein PDF öffnen
@@ -16037,7 +16073,7 @@ function printDoc(mode){
     }
   });
 
-  const rows=positions.map((p,i)=>{
+  const _renderRow=(p,i)=>{
     const posRabatte=rabattMap[i]||[];
     // Varianten-Beträge in Klammern — signalisiert "nicht in der Summe"
     const fmtVar=(pp,v)=>pp.isVariante?'('+(v||0).toFixed(2)+')':(v||0).toFixed(2);
@@ -16420,6 +16456,14 @@ function printDoc(mode){
       <td class="c-ep">${fmtVar(p,p.totalVK/(p.stk||1))}</td>
       <td class="c-gp">${p.totalVK.toFixed(2)}<sup>2</sup></td>
     </tr>`;
+  };
+  // Montage separat: Produktzeile um den Montagebetrag reduzieren und eine eigene Montagezeile anhängen.
+  // Die Positionssumme (p.totalVK) bleibt unverändert → alle Summen stimmen weiterhin.
+  const rows=positions.map((p,i)=>{
+    const _ms=(p&&p.montageSep&&(p.montageSep.vk||0)>0)?p.montageSep:null;
+    const pEff=_ms?Object.assign({},p,{totalVK:(p.totalVK||0)-_ms.vk}):p;
+    const base=_renderRow(pEff,i);
+    return base+(_ms?_montageCompanionRow(_ms,p,isInt):'');
   }).join('');
 
   const mwst=grandTotal*0.081;
