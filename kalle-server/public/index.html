@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.1';
+const UI_VERSION='V9.2';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.2','Reaktor · Datenpfad in Monday: Der Datenpfad wird jetzt IMMER ins Monday-Item geschrieben — auch dann, wenn der Server den Projektordner (noch) nicht anlegen konnte (z. B. Freigabe für den Dienst-Account kurz nicht erreichbar). In dem Fall wird der Pfad clientseitig nach demselben Schema berechnet (Firmenkunde → …\\Firmenkunden\\<Firma>\\<Nr - Betreff>, Objekt → …\\Objekte\\<Ort>\\<Strasse>\\<Nr - Betreff>) und als Link gesetzt. Damit ist ein via Reaktor erfasster Auftrag in Monday nicht mehr „ohne Pfad / unauffindbar". Server-Pfad hat weiterhin Vorrang.'],
   ['V9.1','Monday-Intake: Das Subelement „Anfrage eingegangen" wird jetzt direkt mit Status „Fertig" angelegt (die Erfassung ist ja bereits erledigt). „Offerte erstellen" bleibt wie bisher offen/terminiert. Wirkt sich auch sauber auf die Terminstatus-Ampel aus.'],
   ['V9.0','Neuer Positionstyp „Freier Artikel" (Gruppe Zusätze): komplett frei — Bezeichnung, freie Beschreibung, Menge, Einheit und Preis pro Stück. Total = Menge × Preis/Stück (Live-Anzeige). Erscheint als normale Positionszeile in der Offerte (Menge · ME · Einzelpreis · Gesamtpreis) und lässt sich normal bearbeiten/duplizieren. Für Sonderanfertigungen, Fremdleistungen, Zubehör usw. ohne eigene Kalkulationslogik.'],
   ['V8.9','Reaktor · Datenablage-Pfad: Die Vorschau zeigt jetzt den ECHTEN Serverpfad statt des Platzhalters „\\\\server\\Offerten\\…". Der Basispfad kommt vom Server (/projekte/info, UNC bevorzugt) — Fallback ist der echte UNC-Pfad \\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte. Ordnername exakt wie der Server: „<Nr> - <Betreff>". Damit ist der angezeigte/kopierte Pfad auf jedem PC im Netz gültig.'],
@@ -17760,6 +17761,20 @@ async function mondayProdAnfrage(data, token){
 }
 window.mondayProdAnfrage = mondayProdAnfrage;
 
+// Datenpfad an einem bestehenden Item nur setzen, wenn er noch leer ist (kein Überschreiben).
+async function mondaySetDatenpfadIfEmpty(itemId, pfad, token){
+  if(!itemId || !pfad) return {set:false};
+  try{
+    const q=await _mondayFetch({query:`query($ids:[ID!]){ items(ids:$ids){ column_values(ids:["${MONDAY_PROD.col.datenpfad}"]){ text } } }`, variables:{ids:[String(itemId)]}}, token);
+    const cur=q&&q.items&&q.items[0]&&q.items[0].column_values&&q.items[0].column_values[0]&&q.items[0].column_values[0].text;
+    if(cur && String(cur).trim()) return {set:false}; // schon gesetzt → nicht anfassen
+    const cv={}; cv[MONDAY_PROD.col.datenpfad]=String(pfad);
+    await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify(cv)}}, token);
+    return {set:true};
+  }catch(e){ return {set:false, err:e.message}; }
+}
+window.mondaySetDatenpfadIfEmpty = mondaySetDatenpfadIfEmpty;
+
 // Offerte gespeichert: Subelement „Offerte verschickt" (Offertsumme) am bestehenden Item
 // (dedupliziert: aktualisiert ein bestehendes Subelement statt Doppel anzulegen)
 async function mondayProdOfferteVerschickt(itemId, offertsumme, token){
@@ -18695,7 +18710,12 @@ function toggleEmailAnalyse(){
     try{
       const res=await window.mondayProdAnfrage({ nr:CUR.nr, kunde:k.name||'', betreff:CUR.betreff||'', datenpfad:pfad||'', email:k.email||'', kurzbeschrieb:kegKurzbeschrieb() }, tok);
       CUR.mondayItem=res.itemId; try{ window._currentMondayItem=res.itemId; }catch(e){}
-      if(res.existing) return {ok:true,msg:'Bereits im Produktionsboard vorhanden (Projektnummer '+CUR.nr+') — kein Doppel'};
+      if(res.existing){
+        // Item existiert schon — fehlenden Datenpfad nachtragen, damit er nie leer bleibt.
+        let pfMsg='';
+        if(pfad){ try{ if(typeof window.mondaySetDatenpfadIfEmpty==='function'){ const up=await window.mondaySetDatenpfadIfEmpty(res.itemId, pfad, tok); pfMsg=up&&up.set?' · Datenpfad ergänzt':''; } }catch(e){} }
+        return {ok:true,msg:'Bereits im Produktionsboard vorhanden (Projektnummer '+CUR.nr+') — kein Doppel'+pfMsg};
+      }
       // E-Mail + Ablage-Dateien an Subelement „Anfrage eingegangen" hängen (serverseitig)
       let fileMsg='';
       try{
@@ -18811,6 +18831,27 @@ function toggleEmailAnalyse(){
   }
   var _kegWait=function(ms){ return new Promise(function(r){ setTimeout(r,ms); }); };
 
+  // Windows-taugliche Ordnernamen — identisch zur Server-Funktion sane():
+  // verbotene Zeichen → „_", Mehrfach-Leerzeichen zusammenziehen, auf 80 Zeichen kürzen.
+  function _saneWin(s){ return String(s||'').replace(/[<>:"/\\|?*\x00-\x1f]/g,'_').replace(/\s+/g,' ').trim().slice(0,80); }
+  // Datenpfad clientseitig nach demselben Schema wie der Server bilden.
+  // Wird als FALLBACK genutzt, wenn der Server keinen Ordnerpfad liefert (Freigabe/Dienst-Account
+  // kurz nicht erreichbar) — damit der Monday-Datenpfad NIE leer bleibt. Kein abschliessender „\".
+  function kegComputePfad(){
+    var k=CUR.kunde||{};
+    var base=(typeof _projektBasis!=='undefined' && _projektBasis) ? _projektBasis : '\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte';
+    base=String(base).replace(/[\\/]+$/,'');
+    var leaf=_saneWin(((CUR.nr?CUR.nr+' - ':'')+(CUR.betreff||'')).trim());
+    if(!leaf) return '';
+    if(CUR.ablage==='o'){
+      var ort=_saneWin(CUR.obOrt||k.ort||''), str=_saneWin(CUR.obStr||k.strasse||'');
+      if(!ort||!str) return '';
+      return base+'\\Objekte\\'+ort+'\\'+str+'\\'+leaf;
+    }
+    var firma=_saneWin(k.name||''); if(!firma) return '';
+    return base+'\\Firmenkunden\\'+firma+'\\'+leaf;
+  }
+
   async function kegErfassen(){
     const k=CUR.kunde||{};
     if(!k.name){ alert('Bitte zuerst einen Kunden wählen oder erfassen.'); go(0); return; }
@@ -18860,6 +18901,9 @@ function toggleEmailAnalyse(){
         } else { rows.push(['warn','Projektordner',(d&&d.error)||'nicht angelegt']); }
       }catch(e){ rows.push(['warn','Projektordner','Server nicht erreichbar: '+e.message]); }
     } else { rows.push(['warn','Projektordner','Server offline — folgt beim Speichern']); }
+    // FALLBACK: Konnte der Server (noch) keinen Ordnerpfad liefern, den Datenpfad clientseitig
+    // nach demselben Schema berechnen — damit der Monday-Datenpfad NIE leer bleibt.
+    if(!pfad){ var _fp=kegComputePfad(); if(_fp){ pfad=_fp; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad; rows.push(['ok','Datenpfad gesetzt (berechnet)',pfad]); } }
     // Monday (Phase Anfrage)
     kegProgSet(66,'Monday wird benachrichtigt …');
     const md=await mondayAnfrage(pfad); rows.push([md.ok?'ok':'warn','Monday-Tracking',md.msg]);
