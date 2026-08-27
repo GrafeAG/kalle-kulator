@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.2';
+const UI_VERSION='V9.3';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.3','Frästeile/Schilder · „Eigene Befestigung": Die frei eingegebene Befestigung (Beschreibung, Preistyp, Preis) ging beim Frästeil verloren, sobald der Befestigungs-Schritt neu aufgebaut wurde (z. B. beim Umschalten von VHB/Bolzen oder beim erneuten Öffnen einer gespeicherten Position) — beim nächsten Öffnen war die Position wieder leer. Die Eingaben bleiben jetzt über alle Neuaufbauten erhalten (wie bei den übrigen Befestigungs-Optionen und beim Schild). Speichern/Laden inklusive.'],
   ['V9.2','Reaktor · Datenpfad in Monday: Der Datenpfad wird jetzt IMMER ins Monday-Item geschrieben — auch dann, wenn der Server den Projektordner (noch) nicht anlegen konnte (z. B. Freigabe für den Dienst-Account kurz nicht erreichbar). In dem Fall wird der Pfad clientseitig nach demselben Schema berechnet (Firmenkunde → …\\Firmenkunden\\<Firma>\\<Nr - Betreff>, Objekt → …\\Objekte\\<Ort>\\<Strasse>\\<Nr - Betreff>) und als Link gesetzt. Damit ist ein via Reaktor erfasster Auftrag in Monday nicht mehr „ohne Pfad / unauffindbar". Server-Pfad hat weiterhin Vorrang.'],
   ['V9.1','Monday-Intake: Das Subelement „Anfrage eingegangen" wird jetzt direkt mit Status „Fertig" angelegt (die Erfassung ist ja bereits erledigt). „Offerte erstellen" bleibt wie bisher offen/terminiert. Wirkt sich auch sauber auf die Terminstatus-Ampel aus.'],
   ['V9.0','Neuer Positionstyp „Freier Artikel" (Gruppe Zusätze): komplett frei — Bezeichnung, freie Beschreibung, Menge, Einheit und Preis pro Stück. Total = Menge × Preis/Stück (Live-Anzeige). Erscheint als normale Positionszeile in der Offerte (Menge · ME · Einzelpreis · Gesamtpreis) und lässt sich normal bearbeiten/duplizieren. Für Sonderanfertigungen, Fremdleistungen, Zubehör usw. ohne eigene Kalkulationslogik.'],
@@ -4489,6 +4490,11 @@ function buildFrBefestigung(){
   const prevSchabPap=$('frSchabPap')?.checked||false;
   const prevSchabFol=$('frSchabFol')?.checked||false;
   const prevSchabKar=$('frSchabKar')?.checked||false;
+  // Eigene Befestigung über Rebuilds erhalten (sonst geht die Eingabe beim Neuaufbau verloren)
+  const prevEigenBefOn=$('frEigenBefAkt')?.checked||false;
+  const prevEigenBefBez=$('frEigenBefBez')?.value||'';
+  const prevEigenBefTyp=$('frEigenBefTyp')?.value||'stueck';
+  const prevEigenBefPreis=parseFloat($('frEigenBefPreis')?.value)||0;
 
   const sc=P.fraes?.schablone||{papier:{preisProMeter:12},klebefolie:{preisProMeter:25},karton:{preisProMeter:18}};
   const schabLaengeM=(vh/1000)*stk;
@@ -4591,7 +4597,7 @@ function buildFrBefestigung(){
 
   const frEigenBefAkt=document.createElement('div');frEigenBefAkt.className='tr';frEigenBefAkt.style.marginBottom='6px';
   frEigenBefAkt.innerHTML=`<div class="tr-l">
-    <label class="tog"><input type="checkbox" id="frEigenBefAkt" onchange="cFr()"><span class="tsl"></span></label>
+    <label class="tog"><input type="checkbox" id="frEigenBefAkt" onchange="cFr()"${prevEigenBefOn?' checked':''}><span class="tsl"></span></label>
     <div><div class="tr-label">Eigene Befestigung</div><div class="tr-sub">Beschreibung + Preis frei eingeben</div></div>
   </div><div class="tr-r"><span class="pbadge" id="pb-frEigenBef">–</span></div>`;
   frEigenSect.appendChild(frEigenBefAkt);
@@ -4601,19 +4607,19 @@ function buildFrBefestigung(){
   frEigenForm.innerHTML=`<div class="g2" style="gap:8px;">
     <div class="field" style="grid-column:1/-1;">
       <label>Beschreibung (erscheint in Offerte)</label>
-      <input type="text" id="frEigenBefBez" placeholder="z.B. Einbetonieren mit Gewindestange M10..." oninput="cFr()" style="width:100%;">
+      <input type="text" id="frEigenBefBez" value="${String(prevEigenBefBez).replace(/&/g,'&amp;').replace(/"/g,'&quot;')}" placeholder="z.B. Einbetonieren mit Gewindestange M10..." oninput="cFr()" style="width:100%;">
     </div>
     <div class="field">
       <label>Preistyp</label>
       <select id="frEigenBefTyp" onchange="cFr()"
         style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
-        <option value="stueck">CHF / Stück</option>
-        <option value="pauschal">CHF pauschal pro Position</option>
+        <option value="stueck"${prevEigenBefTyp==='stueck'?' selected':''}>CHF / Stück</option>
+        <option value="pauschal"${prevEigenBefTyp==='pauschal'?' selected':''}>CHF pauschal pro Position</option>
       </select>
     </div>
     <div class="field">
       <label>Preis (CHF)</label>
-      <input type="number" id="frEigenBefPreis" min="0" step="0.50" placeholder="0.00" oninput="cFr()"
+      <input type="number" id="frEigenBefPreis" value="${prevEigenBefPreis||''}" min="0" step="0.50" placeholder="0.00" oninput="cFr()"
         style="background:var(--surface2);border:2px solid var(--accent);color:var(--accent);font-weight:700;font-size:14px;padding:7px 9px;border-radius:var(--rsm);width:100%;">
     </div>
   </div>`;
