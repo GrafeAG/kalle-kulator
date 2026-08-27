@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.3';
+const UI_VERSION='V9.4';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.4','Kunden: Wird ein geladener Kunde von Hand geändert (Name, Ansprechperson, Adresse, PLZ, Ort, Telefon, E-Mail), fliegt die verknüpfte SL-Kundennummer automatisch raus — es ist dann ja nicht mehr derselbe Stammkunde. Damit „springt" die Offerte nach einer Adressänderung nicht mehr auf den ursprünglichen Kunden zurück und die Stammadresse wird nicht versehentlich überschrieben. Kunde neu wählen oder Offerte laden setzt die Nummer normal wieder.'],
   ['V9.3','Frästeile/Schilder · „Eigene Befestigung": Die frei eingegebene Befestigung (Beschreibung, Preistyp, Preis) ging beim Frästeil verloren, sobald der Befestigungs-Schritt neu aufgebaut wurde (z. B. beim Umschalten von VHB/Bolzen oder beim erneuten Öffnen einer gespeicherten Position) — beim nächsten Öffnen war die Position wieder leer. Die Eingaben bleiben jetzt über alle Neuaufbauten erhalten (wie bei den übrigen Befestigungs-Optionen und beim Schild). Speichern/Laden inklusive.'],
   ['V9.2','Reaktor · Datenpfad in Monday: Der Datenpfad wird jetzt IMMER ins Monday-Item geschrieben — auch dann, wenn der Server den Projektordner (noch) nicht anlegen konnte (z. B. Freigabe für den Dienst-Account kurz nicht erreichbar). In dem Fall wird der Pfad clientseitig nach demselben Schema berechnet (Firmenkunde → …\\Firmenkunden\\<Firma>\\<Nr - Betreff>, Objekt → …\\Objekte\\<Ort>\\<Strasse>\\<Nr - Betreff>) und als Link gesetzt. Damit ist ein via Reaktor erfasster Auftrag in Monday nicht mehr „ohne Pfad / unauffindbar". Server-Pfad hat weiterhin Vorrang.'],
   ['V9.1','Monday-Intake: Das Subelement „Anfrage eingegangen" wird jetzt direkt mit Status „Fertig" angelegt (die Erfassung ist ja bereits erledigt). „Offerte erstellen" bleibt wie bisher offen/terminiert. Wirkt sich auch sauber auf die Terminstatus-Ampel aus.'],
@@ -12907,6 +12908,28 @@ function clearKundenBadge(){
   const slNr = document.getElementById('slKundennummer');
   if(slNr) slNr.value = '';
 }
+
+// Sobald der Nutzer Kundendaten VON HAND ändert, ist es nicht mehr der verknüpfte
+// Stammkunde → SL-Kundennummer + Badge entfernen. Verhindert das „Zurückspringen"
+// auf den ursprünglichen Kunden beim Speichern/Laden und das versehentliche
+// Überschreiben der Stammadresse. Programmatisches Befüllen (Kunde wählen, Offerte
+// laden) setzt die Felder per .value ohne input-Event → wird NICHT ausgelöst.
+function kundeLinkPruefen(){
+  const slNr = document.getElementById('slKundennummer');
+  if(slNr && slNr.value){
+    slNr.value = '';
+    document.getElementById('kundenBadge')?.remove();
+    try{ showToast('Kundendaten geändert – SL-Nummer entfernt (abweichender Kunde)'); }catch(e){}
+  }
+}
+function _initKundenLinkWatch(){
+  ['kundenname','kontaktperson','email','telefon','adresseStrasse','adressePLZ','adresseOrt'].forEach(function(id){
+    const el = document.getElementById(id);
+    if(el && !el._kundenWatch){ el._kundenWatch = true; el.addEventListener('input', kundeLinkPruefen); }
+  });
+}
+if(document.readyState!=='loading') _initKundenLinkWatch();
+else document.addEventListener('DOMContentLoaded', _initKundenLinkWatch);
 
 async function ladeKundenstamm(){
   if(kundenLoaded) return;
