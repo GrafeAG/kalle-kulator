@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.9';
+const UI_VERSION='V9.10';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.10','Reaktor · Bestandskunden-Abgleich — Sicherheitslücke geschlossen: Ist die Absender-Domain aus der E-Mail bekannt, wird ein Namenstreffer im Kundenstamm nur noch übernommen, wenn der Bestandskunde DIESELBE Domain hinterlegt hat. Bisher konnte ein Bestandskunde ganz OHNE hinterlegte E-Mail-Adresse den Domain-Check umgehen und allein über einen zufälligen Namens- oder Teil-Treffer (z. B. „Vorname Nachname" der Ansprechperson) fälschlich als Kunde übernommen werden — Firma, Adresse, Telefon, E-Mail und SL-Kundennummer eines völlig fremden Kunden landeten dann in der Anfrage, obwohl die Absenderdaten korrekt erkannt worden waren. Betroffener Fall: E-Mail von „DKZ Zürich AG" wurde fälschlich einem Basler Bestandskunden ohne E-Mail-Adresse zugeordnet.'],
   ['V9.9','Reaktor · Monday-Kurzbeschrieb: Es stand teils nur der Titel im Kommentar. Ursache war ein Fallback-Fehler — fehlte die KI-Zusammenfassung, wurde fälschlich der Betreff als „Worum geht’s" gesetzt, statt einen echten Inhalts-Auszug beizulegen. Jetzt gilt: Ist eine KI-Zusammenfassung da, wird sie genutzt; fehlt sie, kommt ein gesäuberter Auszug aus der Anfrage (ohne Header/Anrede/Signatur) in den Monday-Kommentar. Der Titel ist nur noch allerletzter Notnagel.'],
   ['V9.8','Monday-Intake: Beim Subelement „Offerte erstellen" wird der Bearbeiter jetzt NICHT mehr gesetzt — das Feld bleibt bewusst leer (Frist +3 Werktage bleibt). „Anfrage eingegangen" behält den Ersteller wie bisher.'],
   ['V9.7','Reaktor · Textanalyse robuster: (1) Umlaut-/Encoding-Fehler werden repariert (z. B. „MÃ¼llerstrasse" → „Müllerstrasse", „&uuml;", „â€“"). (2) Strassen-Erkennung zeilenbasiert — funktioniert jetzt zuverlässig mit Umlauten, Bindestrichen (z. B. „St. Alban-Tal 43") und Länderpräfix („CH – 4053 Basel"). (3) Ansprechperson wird bevorzugt aus der Grussformel gelesen und erkennt auch Doppelnamen und Partikel („Marie-Louise von Aarburg"). Empfänger aus To/CC werden weiterhin ignoriert. Gilt für den Textmodus; die KI-Analyse bekommt denselben reparierten Text.'],
@@ -19136,14 +19137,19 @@ function toggleEmailAnalyse(){
     if(!m&&nm) m=list.find(function(x){
         var xn=(x.name||x.Firma||x.kundenname||''); if(!xn||OWN(xn)) return false;
         if(xn.toLowerCase()!==nm) return false;
-        var xd=dom(x.email); if(senderDom&&xd&&senderDom!==xd) return false;
+        // Domain-Sicherung V9.10: ist die Absender-Domain bekannt, MUSS der Bestandskunde
+        // dieselbe Domain haben. Fehlt die Domain beim Bestandskunden (keine E-Mail hinterlegt),
+        // gilt das als Nicht-Treffer — vorher konnte das versehentlich einen völlig fremden
+        // Namensvetter ohne hinterlegte E-Mail durchlassen (siehe Changelog V9.10).
+        var xd=dom(x.email); if(senderDom&&xd!==senderDom) return false;
         return true;
     });
-    // 3) Teil-Treffer nur für längere Namen und nur bei passender/fehlender Domain
+    // 3) Teil-Treffer nur für längere Namen und nur bei exakt passender Domain
     if(!m&&nm&&nm.length>4) m=list.find(function(x){
         var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); if(!xn||OWN(xn)) return false;
         if(!(xn.indexOf(nm)>=0||nm.indexOf(xn)>=0)) return false;
-        var xd=dom(x.email); if(senderDom&&xd&&senderDom!==xd) return false;
+        // Gleiche Domain-Sicherung wie oben — bei Teil-Treffern (unschärfer als exakt) erst recht wichtig.
+        var xd=dom(x.email); if(senderDom&&xd!==senderDom) return false;
         return true;
     });
     return m?kx(m):null;
