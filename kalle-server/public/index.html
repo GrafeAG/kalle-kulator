@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.8';
+const UI_VERSION='V9.9';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.9','Reaktor · Monday-Kurzbeschrieb: Es stand teils nur der Titel im Kommentar. Ursache war ein Fallback-Fehler — fehlte die KI-Zusammenfassung, wurde fälschlich der Betreff als „Worum geht’s" gesetzt, statt einen echten Inhalts-Auszug beizulegen. Jetzt gilt: Ist eine KI-Zusammenfassung da, wird sie genutzt; fehlt sie, kommt ein gesäuberter Auszug aus der Anfrage (ohne Header/Anrede/Signatur) in den Monday-Kommentar. Der Titel ist nur noch allerletzter Notnagel.'],
   ['V9.8','Monday-Intake: Beim Subelement „Offerte erstellen" wird der Bearbeiter jetzt NICHT mehr gesetzt — das Feld bleibt bewusst leer (Frist +3 Werktage bleibt). „Anfrage eingegangen" behält den Ersteller wie bisher.'],
   ['V9.7','Reaktor · Textanalyse robuster: (1) Umlaut-/Encoding-Fehler werden repariert (z. B. „MÃ¼llerstrasse" → „Müllerstrasse", „&uuml;", „â€“"). (2) Strassen-Erkennung zeilenbasiert — funktioniert jetzt zuverlässig mit Umlauten, Bindestrichen (z. B. „St. Alban-Tal 43") und Länderpräfix („CH – 4053 Basel"). (3) Ansprechperson wird bevorzugt aus der Grussformel gelesen und erkennt auch Doppelnamen und Partikel („Marie-Louise von Aarburg"). Empfänger aus To/CC werden weiterhin ignoriert. Gilt für den Textmodus; die KI-Analyse bekommt denselben reparierten Text.'],
   ['V9.6','Reaktor · Kundenerkennung: Personen/Firmen aus „An/To", „CC" oder „BCC" werden nicht mehr fälschlich als Kunde erkannt — massgeblich ist nur noch der ABSENDER (From) und dessen Signatur. Zusätzlich zieht der Bestandskunden-Abgleich keinen fremden Stammkunden mehr an, wenn dessen E-Mail-Domain der Absender-Domain widerspricht (verhindert Fehltreffer über einen zufällig gleichen Personennamen). Die Firma wird bevorzugt aus der Absender-Domain abgeleitet. KI-Analyse-Regeln entsprechend verschärft.'],
@@ -18833,24 +18834,41 @@ function toggleEmailAnalyse(){
   function titelClean(s){
     return sauberBez(String(s||'').replace(/,\s*\b\d{4}\b\s+[A-ZÄÖÜ][\wäöüÄÖÜß.\-]+(?:\s+[A-ZÄÖÜ][\wäöüÄÖÜß.\-]+)?/g,' '));
   }
+  // Gesäuberter Inhalts-Auszug aus der E-Mail: Header, Anrede und Signatur raus,
+  // damit der Monday-Kommentar echten Inhalt hat (nicht nur den Titel).
+  function _kegMailAuszug(){
+    var t=CUR.emailText||''; if(!t) return '';
+    try{ if(typeof window.sanitizeMailText==='function') t=window.sanitizeMailText(t); }catch(e){}
+    try{ if(typeof window._fixMojibake==='function') t=window._fixMojibake(t); }catch(e){}
+    var lines=t.replace(/\r/g,'').split('\n').map(function(l){return l.trim();});
+    var stop=/^(freundliche gr|mit freundlichen gr|freundlichen gruss|beste gr|herzliche gr|liebe gr|sonnige gr|besten dank und gr|mit besten gr|mfg\b|lg\b|vg\b)/i;
+    var body=[];
+    for(var i=0;i<lines.length;i++){
+      var q=lines[i]; if(!q) continue;
+      if(/^(von|an|to|from|gesendet|sent|cc|bcc|betreff|subject|datum|date|--|__|>)/i.test(q)) continue;   // Header/Quote
+      if(/^(guten tag|guten morgen|hallo|sehr geehrte|grüezi|grüessech|grüss|liebe[rs]?\b|hi\b)/i.test(q)) continue; // Anrede
+      if(stop.test(q)) break;   // ab Grussformel = Signatur → abbrechen
+      body.push(q);
+    }
+    var s=body.join(' ').replace(/\s{2,}/g,' ').trim();
+    if(s.length>320) s=s.slice(0,320)+' …';
+    return s;
+  }
   function kegKurzbeschrieb(){
     var manual=(CUR.notiz||'').trim();
-    // 1. Bevorzugt: KI-Kurzfassung „worum geht's" (aus der Analyse), damit man die E-Mail NICHT lesen muss
-    var summary=(CUR.summary||'').trim() || (CUR.betreff||'').trim();
+    // 1. Bevorzugt: KI-Kurzfassung „worum geht's" — NUR die echte Zusammenfassung, NICHT der Betreff
+    var summary=(CUR.summary||'').trim();
     var parts=[];
     if(summary) parts.push('🔎 Worum geht’s: '+summary);
     if(manual)  parts.push('📝 Notiz (erfasst): '+manual);
-    if(parts.length) return parts.join('\n\n');
-    // 2. Fallback ohne Analyse: knapper, gesäuberter Auszug (kein Roh-Dump)
-    var t=CUR.emailText||'';
-    if(t){
-      try{ if(typeof window.sanitizeMailText==='function') t=window.sanitizeMailText(t); }catch(e){}
-      t=t.replace(/\r/g,'').split('\n')
-        .filter(function(l){var q=l.trim();return q && !/^(von|an|to|from|gesendet|sent|cc|bcc|betreff|subject|--|__|>)/i.test(q);})
-        .join(' ').replace(/\s{2,}/g,' ').trim();
-      if(t.length>240) t=t.slice(0,240)+' …';
+    // 2. Ohne KI-Zusammenfassung: echten E-Mail-Auszug beilegen (statt nur des Titels)
+    if(!summary){
+      var ex=_kegMailAuszug();
+      if(ex) parts.push('✉️ Auszug aus der Anfrage: '+ex);
     }
-    return t;
+    if(parts.length) return parts.join('\n\n');
+    // Allerletzter Fallback: Betreff
+    return (CUR.betreff||'').trim();
   }
   async function _mFetch(CFG,tok,query,variables){
     const r=await fetch(CFG.api,{method:'POST',headers:{'Content-Type':'application/json','Authorization':tok,'API-Version':CFG.ver},body:JSON.stringify({query:query,variables:variables||{}})});
