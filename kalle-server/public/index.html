@@ -2828,9 +2828,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.5';
+const UI_VERSION='V9.7';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.7','Reaktor · Textanalyse robuster: (1) Umlaut-/Encoding-Fehler werden repariert (z. B. „MÃ¼llerstrasse" → „Müllerstrasse", „&uuml;", „â€“"). (2) Strassen-Erkennung zeilenbasiert — funktioniert jetzt zuverlässig mit Umlauten, Bindestrichen (z. B. „St. Alban-Tal 43") und Länderpräfix („CH – 4053 Basel"). (3) Ansprechperson wird bevorzugt aus der Grussformel gelesen und erkennt auch Doppelnamen und Partikel („Marie-Louise von Aarburg"). Empfänger aus To/CC werden weiterhin ignoriert. Gilt für den Textmodus; die KI-Analyse bekommt denselben reparierten Text.'],
+  ['V9.6','Reaktor · Kundenerkennung: Personen/Firmen aus „An/To", „CC" oder „BCC" werden nicht mehr fälschlich als Kunde erkannt — massgeblich ist nur noch der ABSENDER (From) und dessen Signatur. Zusätzlich zieht der Bestandskunden-Abgleich keinen fremden Stammkunden mehr an, wenn dessen E-Mail-Domain der Absender-Domain widerspricht (verhindert Fehltreffer über einen zufällig gleichen Personennamen). Die Firma wird bevorzugt aus der Absender-Domain abgeleitet. KI-Analyse-Regeln entsprechend verschärft.'],
   ['V9.5','Offerte · „Montage separat": Ist bei einem Produkt (Folientechnik, Reliefschrift, Schild) der Haken „Montage separat ausweisen" gesetzt, erscheint im Offert-PDF jetzt automatisch eine eigene Position „Montage vor Ort" mit Preis und allen Angaben (Anfahrt/km, Anzahl Monteure, Montagedauer/-arbeiten, Übernachtung/Spesen). Der Produktpreis wird um genau diesen Betrag reduziert — die Endsumme bleibt gleich, der Kunde sieht die Montage aber klar getrennt ausgewiesen. Zusätzlich behoben: bei Folientechnik fiel die Montage mit gesetztem Haken bisher ganz aus der Offerte; sie wird jetzt korrekt ausgewiesen.'],
   ['V9.4','Kunden: Wird ein geladener Kunde von Hand geändert (Name, Ansprechperson, Adresse, PLZ, Ort, Telefon, E-Mail), fliegt die verknüpfte SL-Kundennummer automatisch raus — es ist dann ja nicht mehr derselbe Stammkunde. Damit „springt" die Offerte nach einer Adressänderung nicht mehr auf den ursprünglichen Kunden zurück und die Stammadresse wird nicht versehentlich überschrieben. Kunde neu wählen oder Offerte laden setzt die Nummer normal wieder.'],
   ['V9.3','Frästeile/Schilder · „Eigene Befestigung": Die frei eingegebene Befestigung (Beschreibung, Preistyp, Preis) ging beim Frästeil verloren, sobald der Befestigungs-Schritt neu aufgebaut wurde (z. B. beim Umschalten von VHB/Bolzen oder beim erneuten Öffnen einer gespeicherten Position) — beim nächsten Öffnen war die Position wieder leer. Die Eingaben bleiben jetzt über alle Neuaufbauten erhalten (wie bei den übrigen Befestigungs-Optionen und beim Schild). Speichern/Laden inklusive.'],
@@ -3522,11 +3524,14 @@ window.sanitizeMailText=sanitizeMailText; window.parseEml=parseEml; window.msgTo
 async function analyseWithClaude(text,apiKey){
   try{
     text = (typeof sanitizeMailText==='function') ? sanitizeMailText(text) : text;
+    if(typeof _fixMojibake==='function') text=_fixMojibake(text);
     const prompt=`Du analysierst eine eingehende Kunden-E-Mail und extrahierst die Daten des ABSENDERS (= Kunde) für unser Schweizer Werbetechnik-Unternehmen „Grafe AG".
 
 WICHTIGE REGELN (unbedingt beachten):
 - „Grafe", „Grafe AG", „grafe.ch" sind UNSER EIGENES Unternehmen (der Empfänger) — NIEMALS der Kunde. Kommt „Grafe" im Text vor, ignoriere es als Kundennamen.
 - Der KUNDE ist der ABSENDER (Von/From). Erkenne ihn an der Absender-E-Mail (die Domain, die NICHT grafe.ch ist) und an der Signatur am Ende der Nachricht (Firmenname, Adresse, Telefon).
+- Personen und Firmen in „An/To", „CC" oder „BCC" sind EMPFÄNGER bzw. Mitlesende — NIEMALS der Kunde. Ignoriere jeden Namen und jede E-Mail-Adresse, die in einer An-/To-/CC-/BCC-Zeile steht, auch wenn dort ein vollständiger Name mit E-Mail steht.
+- Bei mehreren genannten Personen ist der Kunde immer die Person/Firma, die die Nachricht GESCHRIEBEN hat (Absender oben + Signatur unten) — nicht jemand, der nur in Kopie steht.
 - kundenname = Firma/Organisation des Absenders aus Signatur bzw. E-Mail-Domain (z. B. @bhm.ch → „Bernisches Historisches Museum"). Eine im Fliesstext beiläufig genannte Firma ist NICHT der Kunde.
 - kontaktperson = NUR Vor- und Nachname der Absender-Person — niemals ein ganzer Satz.
 - Adresse/Telefon = aus der Absender-Signatur (nicht unsere Adresse).
@@ -3604,8 +3609,60 @@ async function analyseWithServer(text){
   return json;
 }
 
+// Umlaut-/Encoding-Reparatur: häufige UTF-8-als-Latin1-Fehler und HTML-Entities → echte Zeichen.
+// Behebt „MÃ¼llerstrasse" → „Müllerstrasse", „â€“" → „–", „&uuml;" → „ü" usw.
+function _fixMojibake(s){
+  s=String(s||'');
+  if(/[ÃÂâ]/.test(s)){
+    const map={'Ã¤':'ä','Ã¶':'ö','Ã¼':'ü','Ã„':'Ä','Ã–':'Ö','Ãœ':'Ü','ÃŸ':'ß','Ã©':'é','Ã¨':'è','Ã ':'à','Ã¢':'â','Ã´':'ô','Ã®':'î','Ã«':'ë','Ã§':'ç','Ã¹':'ù','Ã¯':'ï','Ã±':'ñ',
+      'â€“':'–','â€”':'—','â€™':'’','â€˜':'‘','â€œ':'“','â€ž':'„','â€¦':'…','â€¢':'•','Â ':' '};
+    Object.keys(map).forEach(k=>{ s=s.split(k).join(map[k]); });
+  }
+  s=s.replace(/&(a|o|u|A|O|U)uml;/g,(m,c)=>({a:'ä',o:'ö',u:'ü',A:'Ä',O:'Ö',U:'Ü'}[c]))
+     .replace(/&szlig;/g,'ß').replace(/&nbsp;/g,' ')
+     .replace(/&#(\d{2,5});/g,(m,n)=>{try{return String.fromCharCode(parseInt(n,10));}catch(e){return m;}});
+  return s;
+}
+try{ window._fixMojibake=_fixMojibake; }catch(e){}
+
+// Strassen-Endungen (CH/DE), inkl. Bindestrich-Namen wie „St. Alban-Tal" via -tal/-vorstadt usw.
+const _STREET_SUF=/(strasse|straße|str\.?|gasse|weg|platz|ring|allee|vorstadt|rain|halde|matte|steig|quai|kai|hof|damm|ufer|promenade|tal|graben|markt|zeile|b(ü|ue)hl|feld|park|h(ö|oe)he|acker|garten|br(ü|ue)cke|boulevard|chemin|route|via|rue|weid|wiese|berg|au)$/i;
+function _isCountryOnly(l){ return /^(ch|d|de|a|at|fl|schweiz|switzerland|suisse|svizzera|deutschland|germany|(ö|oe)sterreich|austria)[\s\-–.]*$/i.test(String(l||'').trim()); }
+// PLZ + Ort aus einer Zeile — erlaubt Länderpräfix „CH-", „CH – ", „D-"
+function _plzOrtLine(l){
+  const m=String(l||'').match(/^(?:(?:CH|D|DE|A|AT|FL)[\s\-–]*)?(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zäöüÄÖÜß.\-\/ ]{1,34})$/);
+  if(m) return {plz:m[1], ort:m[2].trim().replace(/\s{2,}/g,' ')};
+  return null;
+}
+// Strasse + Hausnummer aus einer Zeile — Umlaute, Bindestriche, Punkt, Apostroph erlaubt
+function _streetLine(l){
+  const m=String(l||'').replace(/^(strasse|adresse)\s*:\s*/i,'').match(/^([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß.'’\- ]{1,44}?)\s+(\d{1,4})\s?([a-zA-Z]?)(?:\s*[,;].*)?$/);
+  if(!m) return null;
+  const nm=m[1].trim(); const nr=(m[2]+(m[3]||'')).trim();
+  const lastWord=nm.split(/[\s\-]/).slice(-1)[0]||'';
+  if(_STREET_SUF.test(lastWord) || _STREET_SUF.test(nm) || nm.length>=5) return (nm+' '+nr).trim();
+  return null;
+}
+// Personen-Name plausibel? (2–4 Tokens, Bindestrich-/Partikelnamen wie „Marie-Louise von Aarburg")
+function _looksLikeName(l){
+  l=String(l||'').trim();
+  if(!l||/[<>@\d]/.test(l)||l.length>45) return false;
+  if(/\b(AG|GmbH|SA|Sàrl|KG|OHG|Ltd|Inc|LLC|Holding|Group|Studio|Atelier|Immobilien|Verwaltung|Treuhand|Architekt|Bau|Team)\b/i.test(l)) return false;
+  const parts=l.split(/\s+/);
+  if(parts.length<2||parts.length>4) return false;
+  const particle=/^(von|van|de|del|della|di|da|dos|zu|le|la|der|den|ter|von-der|van-der)$/i;
+  let caps=0;
+  for(const p of parts){
+    if(particle.test(p)) continue;
+    if(!/^[A-ZÄÖÜ][A-Za-zäöüÄÖÜß'’\-]*$/.test(p)) return false;
+    caps++;
+  }
+  return caps>=2;
+}
+
 function analyseWithRegex(text){
   text = (typeof sanitizeMailText==='function') ? sanitizeMailText(text) : text;
+  text = _fixMojibake(text);
   const result={kundenname:'',kontaktperson:'',telefon:'',email:'',adresseStrasse:'',adressePLZ:'',adresseOrt:'',betreff:''};
   const lines=text.split(/\r?\n/).map(l=>l.trim()).filter(l=>l);
 
@@ -3618,26 +3675,35 @@ function analyseWithRegex(text){
   if(!result.telefon){const m=text.match(/(\+41|\+49|\+43)[\s\-\.]?\d{2,3}[\s\-\.]?\d{3}[\s\-\.]?\d{2,4}/);if(m)result.telefon=m[0].trim();}
   if(!result.telefon){const m=text.match(/0[1-9]\d[\s\-\.]?\d{3}[\s\-\.]?\d{2}[\s\-\.]?\d{2}/);if(m)result.telefon=m[0].trim();}
 
-  // Adresse aufteilen in Strasse, PLZ, Ort
-  // Methode 1: Strasse Nummer, PLZ Ort (alles in einer Zeile oder mehrzeilig)
-  const adrPat=/([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß\s\-\.]{2,40})\s+(\d{1,4}[a-zA-Z]?)[,\n\s]+([0-9]{4,5})[\s,]+([A-Za-zäöüÄÖÜ][A-Za-zäöüÄÖÜ\s\-]{2,30})/;
-  const adrMatch=text.match(adrPat);
-  if(adrMatch){
-    result.adresseStrasse = (adrMatch[1].trim()+' '+adrMatch[2]).trim();
-    result.adressePLZ     = adrMatch[3].trim();
-    result.adresseOrt     = adrMatch[4].trim().split(/[\n,]/)[0].trim();
+  // Adresse — zeilenbasiert (robust bei Umlauten, Bindestrichen und Länderpräfix „CH – 4053 …")
+  // 1) PLZ/Ort-Zeile suchen, 2) Strasse in den Zeilen darüber (Länder-Only-Zeilen überspringen)
+  let _plzIdx=-1;
+  for(let i=0;i<lines.length;i++){
+    // (a) einzeilige Volladresse „Strasse Nr, [CH-/D-]PLZ Ort" (kein Zeilensprung → nicht übergreifend)
+    const combo=lines[i].match(/^([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß .\-'’]{1,44}?\s+\d{1,4}\s?[a-zA-Z]?)\s*[,;]\s*(?:(?:CH|D|DE|A|AT|FL)[\s\-–]*)?(\d{4,5})\s+([A-ZÄÖÜ][A-Za-zäöüÄÖÜß.\-\/ ]{1,34})$/);
+    if(combo){ result.adresseStrasse=combo[1].trim().replace(/\s{2,}/g,' '); result.adressePLZ=combo[2]; result.adresseOrt=combo[3].trim(); _plzIdx=i; break; }
+    // (b) reine PLZ/Ort-Zeile
+    const po=_plzOrtLine(lines[i]); if(po){ result.adressePLZ=po.plz; result.adresseOrt=po.ort; _plzIdx=i; break; }
   }
-  // Methode 2: Nur PLZ + Ort finden, Strasse aus Vorkontext
+  // Strasse in den Zeilen über der PLZ/Ort-Zeile (nur wenn noch keine gefunden)
+  if(_plzIdx>=0 && !result.adresseStrasse){
+    for(let j=_plzIdx-1;j>=0 && j>=_plzIdx-4;j--){
+      if(_isCountryOnly(lines[j])) continue;
+      const st=_streetLine(lines[j]); if(st){ result.adresseStrasse=st; break; }
+    }
+  }
+  // Fallback: nur PLZ+Ort irgendwo, Strasse aus der letzten Zeile davor (zeilenweise, nicht übergreifend)
   if(!result.adressePLZ){
-    const plzOrtMatch=text.match(/([0-9]{4,5})[\s]+([A-ZÄÖÜ][A-Za-zäöüÄÖÜ\-]{2,30})/);
+    const plzOrtMatch=text.match(/(?:(?:CH|D|DE|A|FL)[\s\-–]*)?([0-9]{4,5})[ ]+([A-ZÄÖÜ][A-Za-zäöüÄÖÜ\-]{2,30})/);
     if(plzOrtMatch){
       result.adressePLZ=plzOrtMatch[1];
       result.adresseOrt=plzOrtMatch[2];
-      // Strasse aus dem Text vor PLZ suchen
       const idx=text.indexOf(plzOrtMatch[0]);
-      const before=text.substring(Math.max(0,idx-80),idx);
-      const streetMatch=before.match(/([A-Za-zäöüÄÖÜß][A-Za-zäöüÄÖÜß\s\-\.]+\s+\d{1,4}[a-zA-Z]?)\s*[,\n]?\s*$/);
-      if(streetMatch) result.adresseStrasse=streetMatch[1].trim();
+      const beforeLines=text.substring(Math.max(0,idx-140),idx).split(/\n/).map(s=>s.trim()).filter(Boolean);
+      for(let q=beforeLines.length-1;q>=0 && q>=beforeLines.length-3;q--){
+        if(_isCountryOnly(beforeLines[q])) continue;
+        const st=_streetLine(beforeLines[q]); if(st){ result.adresseStrasse=st; break; }
+      }
     }
   }
   // PLZ → Ort Lookup als Fallback
@@ -3652,21 +3718,40 @@ function analyseWithRegex(text){
   const firmaMatch=text.match(/([A-ZÄÖÜ][A-Za-z0-9äöüÄÖÜ\s&\+\-\.'']{2,40})\s+(AG|GmbH|SA|Sàrl|KG|OHG|Ltd|Inc|Co\.|LLC|Holding|Group|GmbH & Co\. KG)/);
   if(firmaMatch)result.kundenname=(firmaMatch[1]+' '+firmaMatch[2]).trim();
 
-  const anredeLine=lines.find(l=>/^(herr|frau|mr\.|mrs\.|ms\.|dr\.|prof\.)\s+[A-ZÄÖÜ]/i.test(l));
-  if(anredeLine){const m=anredeLine.match(/(?:herr|frau|mr\.|mrs\.|ms\.|dr\.|prof\.)\s+([A-ZÄÖÜa-zäöü\-]+(?:\s+[A-ZÄÖÜa-zäöü\-]+)+)/i);if(m)result.kontaktperson=m[1].trim();}
+  // Methode 1: Name direkt NACH der Grussformel (verlässlichste Stelle) — inkl. Doppel-/Partikelnamen
   if(!result.kontaktperson){
-    const skipWords=/^(von|an|to|from|datum|date|betreff|subject|mit|mit freundlichen|freundliche|beste|liebe|hallo|guten|sehr|ihr|vielen|danke|grüss|gruss|gruess)/i;
-    const namePat=/^([A-ZÄÖÜ][a-zäöü\-]+)\s+([A-ZÄÖÜ][a-zäöü\-]+)$/;
-    const nameLine=lines.find(l=>namePat.test(l)&&!skipWords.test(l)&&l.length<40);
+    const gruss=/^(mit freundlichen? gr(ü|ue)ss?en|freundliche gr(ü|ue)sse|freundlichen? gruss|beste gr(ü|ue)sse|mit besten gr(ü|ue)ssen|herzliche gr(ü|ue)sse|liebe gr(ü|ue)sse|sonnige gr(ü|ue)sse|freundlich|besten dank und gr(ü|ue)sse|mfg|lg|vg)\b/i;
+    for(let i=0;i<lines.length;i++){
+      if(gruss.test(lines[i])){
+        for(let k=i+1;k<lines.length && k<=i+3;k++){
+          const cand=lines[k].replace(/\(.*?\)/g,'').trim(); // Pronomen „(sie/ihr)" o. Ä. entfernen
+          if(!cand) continue;
+          if(_looksLikeName(cand)){ result.kontaktperson=cand; break; }
+        }
+        if(result.kontaktperson) break;
+      }
+    }
+  }
+  // Methode 2: Anrede-Zeile („Herr/Frau …")
+  if(!result.kontaktperson){
+    const anredeLine=lines.find(l=>/^(herr|frau|mr\.|mrs\.|ms\.|dr\.|prof\.)\s+[A-ZÄÖÜ]/i.test(l));
+    if(anredeLine){const m=anredeLine.match(/(?:herr|frau|mr\.|mrs\.|ms\.|dr\.|prof\.)\s+((?:von |van |de |della |di |da )?[A-ZÄÖÜ][A-Za-zäöüÄÖÜß'’\-]+(?:\s+(?:von |van |de )?[A-ZÄÖÜ][A-Za-zäöüÄÖÜß'’\-]+)+)/i);if(m)result.kontaktperson=m[1].trim();}
+  }
+  // Methode 3: irgendeine plausible Namenszeile (keine Empfänger-/To/CC-Zeile mit <e-mail>)
+  if(!result.kontaktperson){
+    const skipWords=/^(von|an|to|cc|bcc|from|datum|date|betreff|subject|mit|freundliche|beste|liebe|hallo|guten|sehr|ihr|vielen|danke|gr(ü|u)ss|gruess)/i;
+    const nameLine=lines.find(l=>!skipWords.test(l)&&!/[<>@]/.test(l)&&_looksLikeName(l));
     if(nameLine)result.kontaktperson=nameLine.trim();
   }
-  if(!result.kundenname&&result.kontaktperson)result.kundenname=result.kontaktperson;
+  // Firma bevorzugt aus der Absender-E-Mail-Domain ableiten (verlässlicher als ein evtl. aus CC gegriffener Personenname)
   if(!result.kundenname&&result.email){
-    const domain=result.email.split('@')[1]||'';
+    const domain=(result.email.split('@')[1]||'').toLowerCase();
     const firmFromDomain=domain.split('.')[0];
-    if(firmFromDomain&&firmFromDomain!=='gmail'&&firmFromDomain!=='hotmail'&&firmFromDomain!=='outlook'&&firmFromDomain!=='yahoo'&&firmFromDomain!=='bluewin'&&firmFromDomain!=='sunrise'&&firmFromDomain!=='icloud')
+    const freemail=['gmail','hotmail','outlook','yahoo','bluewin','sunrise','icloud','gmx','web','me','live','msn','protonmail','proton'];
+    if(firmFromDomain&&freemail.indexOf(firmFromDomain)<0)
       result.kundenname=firmFromDomain.charAt(0).toUpperCase()+firmFromDomain.slice(1);
   }
+  if(!result.kundenname&&result.kontaktperson)result.kundenname=result.kontaktperson;
 
   fillFields(result);
   showExtracted(result);
@@ -19020,13 +19105,29 @@ function toggleEmailAnalyse(){
   function matchKunde(kd){
     if(!kd) return null; var list=KUN(); if(!list||!list.length) return null;
     var OWN=function(s){ return /\bgrafe\b/i.test(String(s||'')); }; // eigene Firma
+    var dom=function(e){ e=String(e||'').toLowerCase(); var i=e.indexOf('@'); return i>=0?e.slice(i+1).trim():''; };
     var em=(kd.email||'').toLowerCase(), nm=(kd.name||'').toLowerCase(); var m=null;
     // Eigene Firma (Grafe) ist NIE ein Kunde — nicht als Suchbegriff und nicht als Treffer
     if(OWN(nm)) nm='';
     if(/@grafe\.ch$/i.test(em)) em='';
+    var senderDom=dom(em);
+    // 1) Exakte Absender-E-Mail → eindeutiger Treffer
     if(em) m=list.find(function(x){return (x.email||'').toLowerCase()===em && !OWN(x.name||x.Firma||x.kundenname);});
-    if(!m&&nm) m=list.find(function(x){var xn=(x.name||x.Firma||x.kundenname||''); return xn.toLowerCase()===nm && !OWN(xn);});
-    if(!m&&nm&&nm.length>4) m=list.find(function(x){var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); return xn && !OWN(xn) && (xn.indexOf(nm)>=0||nm.indexOf(xn)>=0);});
+    // 2) Exakter Name — aber NICHT übernehmen, wenn die E-Mail-Domain widerspricht
+    //    (verhindert, dass z. B. ein in CC genannter Namensvetter einen fremden Stammkunden „zieht")
+    if(!m&&nm) m=list.find(function(x){
+        var xn=(x.name||x.Firma||x.kundenname||''); if(!xn||OWN(xn)) return false;
+        if(xn.toLowerCase()!==nm) return false;
+        var xd=dom(x.email); if(senderDom&&xd&&senderDom!==xd) return false;
+        return true;
+    });
+    // 3) Teil-Treffer nur für längere Namen und nur bei passender/fehlender Domain
+    if(!m&&nm&&nm.length>4) m=list.find(function(x){
+        var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); if(!xn||OWN(xn)) return false;
+        if(!(xn.indexOf(nm)>=0||nm.indexOf(xn)>=0)) return false;
+        var xd=dom(x.email); if(senderDom&&xd&&senderDom!==xd) return false;
+        return true;
+    });
     return m?kx(m):null;
   }
 
