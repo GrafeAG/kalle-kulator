@@ -2828,9 +2828,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.7';
+const UI_VERSION='V9.8';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.8','Monday-Intake: Beim Subelement „Offerte erstellen" wird der Bearbeiter jetzt NICHT mehr gesetzt — das Feld bleibt bewusst leer (Frist +3 Werktage bleibt). „Anfrage eingegangen" behält den Ersteller wie bisher.'],
   ['V9.7','Reaktor · Textanalyse robuster: (1) Umlaut-/Encoding-Fehler werden repariert (z. B. „MÃ¼llerstrasse" → „Müllerstrasse", „&uuml;", „â€“"). (2) Strassen-Erkennung zeilenbasiert — funktioniert jetzt zuverlässig mit Umlauten, Bindestrichen (z. B. „St. Alban-Tal 43") und Länderpräfix („CH – 4053 Basel"). (3) Ansprechperson wird bevorzugt aus der Grussformel gelesen und erkennt auch Doppelnamen und Partikel („Marie-Louise von Aarburg"). Empfänger aus To/CC werden weiterhin ignoriert. Gilt für den Textmodus; die KI-Analyse bekommt denselben reparierten Text.'],
   ['V9.6','Reaktor · Kundenerkennung: Personen/Firmen aus „An/To", „CC" oder „BCC" werden nicht mehr fälschlich als Kunde erkannt — massgeblich ist nur noch der ABSENDER (From) und dessen Signatur. Zusätzlich zieht der Bestandskunden-Abgleich keinen fremden Stammkunden mehr an, wenn dessen E-Mail-Domain der Absender-Domain widerspricht (verhindert Fehltreffer über einen zufällig gleichen Personennamen). Die Firma wird bevorzugt aus der Absender-Domain abgeleitet. KI-Analyse-Regeln entsprechend verschärft.'],
   ['V9.5','Offerte · „Montage separat": Ist bei einem Produkt (Folientechnik, Reliefschrift, Schild) der Haken „Montage separat ausweisen" gesetzt, erscheint im Offert-PDF jetzt automatisch eine eigene Position „Montage vor Ort" mit Preis und allen Angaben (Anfahrt/km, Anzahl Monteure, Montagedauer/-arbeiten, Übernachtung/Spesen). Der Produktpreis wird um genau diesen Betrag reduziert — die Endsumme bleibt gleich, der Kunde sieht die Montage aber klar getrennt ausgewiesen. Zusätzlich behoben: bei Folientechnik fiel die Montage mit gesetztem Haken bisher ganz aus der Offerte; sie wird jetzt korrekt ausgewiesen.'],
@@ -17907,10 +17908,9 @@ async function mondayProdAnfrage(data, token){
     const sr=await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Anfrage eingegangen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv)}}, token);
     subId=sr&&sr.create_subitem&&sr.create_subitem.id;
   }catch(e){ console.warn('[Monday] Subelement „Anfrage eingegangen":', e.message); }
-  // Zweites Subelement „Offerte erstellen" mit Frist +3 Werktage (Sa/So ausgenommen), gleicher Bearbeiter
+  // Zweites Subelement „Offerte erstellen" mit Frist +3 Werktage (Sa/So ausgenommen) — OHNE Bearbeiter (bleibt bewusst leer)
   try{
     const scv2={}; scv2[MONDAY_PROD.subCol.datum]={date:_plusWerktage(3)};
-    if(meId && MONDAY_PROD.subCol.bearbeiter) scv2[MONDAY_PROD.subCol.bearbeiter]={ personsAndTeams:[{id:Number(meId), kind:'person'}] };
     await _mondayFetch({query:`mutation($cv:JSON!){ create_subitem(parent_item_id:${itemId}, item_name:"Offerte erstellen", column_values:$cv){ id } }`, variables:{cv:JSON.stringify(scv2)}}, token);
   }catch(e){ console.warn('[Monday] Subelement „Offerte erstellen":', e.message); }
   // Kurzbeschrieb als Kommentar am Item
