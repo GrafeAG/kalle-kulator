@@ -2828,9 +2828,13 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.10';
+const UI_VERSION='V9.14';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.14','Reaktor · SharePoint-Ordnerstruktur korrigiert: Anders als beim lokalen Netzlaufwerk (Firmenkunden/<Firma>/… bzw. Objekte/<Ort>/<Strasse>/…) bekommt SharePoint bewusst KEINE verschachtelte Struktur mehr. Es entsteht nur noch EIN flacher Ordner direkt unter 01_Projekte, benannt „<Projektnummer> - <Betreff>". Voraussetzung dafür sind jetzt nur noch Projektnummer + Betreff (nicht mehr Firma/Ort/Strasse).'],
+  ['V9.13','Reaktor · SharePoint-Ordneranlage ergänzt: Beim Erfassen wird jetzt der lokale UNC-Projektordnerpfad mit an /cloud/ordner geschickt. Der Server legt dort zusätzlich eine Verknüpfung „SharePoint-Ordner.url" ab, die direkt in den zugehörigen SharePoint-Ordner springt — praktisch für Verortungspläne/Konzepte, die der Projektleiter dort ablegt, und weil SharePoint (anders als KALLE/UNC) auch von ausserhalb erreichbar ist. Rückmeldung dazu erscheint im Fortschritts-Log. Fehlschlag beim Schreiben der Verknüpfung blockiert nichts — der SharePoint-Ordner selbst gilt trotzdem als angelegt.'],
+  ['V9.12','Reaktor · Neue Checkbox „☁ Zusätzlich SharePoint-Ordner anlegen" bei Schritt 3 (Ablageort), direkt unter dem Datenablage-Pfad. Standard: AUS — der Netzlaufwerk-Ordner (UNC) wird wie bisher IMMER angelegt, SharePoint kommt nur zusätzlich dazu, wenn explizit angehakt (z. B. nicht nötig bei kleinen Aufträgen). Beim Erfassen wird bei aktivierter Checkbox ein Aufruf an die neue Server-Route POST /cloud/ordner gemacht (Segmente Firmenkunden/<Firma>/<Nr - Betreff> bzw. Objekte/<Ort>/<Strasse>/<Nr - Betreff>, analog zur UNC-Struktur). Ergebnis (webUrl) erscheint im Fortschritts-Log und wird in der Übersicht als „+ SharePoint" angezeigt sowie im Auftrag gespeichert (Felder sharepointBenoetigt/sharepointUrl). Fehler beim SharePoint-Schritt sind best-effort — blockieren die restliche Erfassung nicht, UNC-Ablage und Monday-Tracking laufen unabhängig davon durch. Serverseitige Route /cloud/ordner ist NEU und muss mit dem Backend-Update ausgeliefert werden (siehe eigene Server-Datei).'],
+  ['V9.11','Reaktor · Bestandskunden-Abgleich weiter gehärtet: Der Teil-Treffer (Schritt 3 in matchKunde) verlangt jetzt (a) mindestens 6 Zeichen bei der kürzeren der beiden verglichenen Zeichenketten und (b) eine echte Wortgrenze — die kürzere Zeichenkette darf nicht mitten in einem anderen Wort der längeren stecken. Auslöser: Ein von der KI fehlerhaft gelieferter Firmenname (z. B. „ProcessorSuccessRebranding DKZ Zürich AG" statt „DKZ Zürich AG") enthielt zufällig „Pro" als Teilstring — und „Pro" ist Name eines echten, kurzen Bestandskunden im Kundenstamm. Da bei diesem Fall zusätzlich keine Absender-E-Mail extrahiert wurde, griff auch die V9.10-Domain-Sicherung nicht. Jetzt kann ein derart kurzer/generischer Kundenname nicht mehr per Teilstring matchen, unabhängig von der Domain-Situation. — Separat offen: die Ursache des fehlerhaften „ProcessorSuccessRebranding"-Präfixes liegt server-seitig in der /analyse-Route, nicht in dieser Datei — noch zu untersuchen.'],
   ['V9.10','Reaktor · Bestandskunden-Abgleich — Sicherheitslücke geschlossen: Ist die Absender-Domain aus der E-Mail bekannt, wird ein Namenstreffer im Kundenstamm nur noch übernommen, wenn der Bestandskunde DIESELBE Domain hinterlegt hat. Bisher konnte ein Bestandskunde ganz OHNE hinterlegte E-Mail-Adresse den Domain-Check umgehen und allein über einen zufälligen Namens- oder Teil-Treffer (z. B. „Vorname Nachname" der Ansprechperson) fälschlich als Kunde übernommen werden — Firma, Adresse, Telefon, E-Mail und SL-Kundennummer eines völlig fremden Kunden landeten dann in der Anfrage, obwohl die Absenderdaten korrekt erkannt worden waren. Betroffener Fall: E-Mail von „DKZ Zürich AG" wurde fälschlich einem Basler Bestandskunden ohne E-Mail-Adresse zugeordnet.'],
   ['V9.9','Reaktor · Monday-Kurzbeschrieb: Es stand teils nur der Titel im Kommentar. Ursache war ein Fallback-Fehler — fehlte die KI-Zusammenfassung, wurde fälschlich der Betreff als „Worum geht’s" gesetzt, statt einen echten Inhalts-Auszug beizulegen. Jetzt gilt: Ist eine KI-Zusammenfassung da, wird sie genutzt; fehlt sie, kommt ein gesäuberter Auszug aus der Anfrage (ohne Header/Anrede/Signatur) in den Monday-Kommentar. Der Titel ist nur noch allerletzter Notnagel.'],
   ['V9.8','Monday-Intake: Beim Subelement „Offerte erstellen" wird der Bearbeiter jetzt NICHT mehr gesetzt — das Feld bleibt bewusst leer (Frist +3 Werktage bleibt). „Anfrage eingegangen" behält den Ersteller wie bisher.'],
@@ -3606,6 +3610,7 @@ async function analyseWithServer(text){
     json.adresseStrasse = adrSplit.strasse; json.adressePLZ = adrSplit.plz; json.adresseOrt = adrSplit.ort; delete json.adresse;
   }
   try{ window._kalleSummary=(json.zusammenfassung||'').trim(); }catch(e){}
+  try{ console.log('%c[KALLE-DEBUG] Roh-Antwort vom Server (/analyse):','color:#c8a000;font-weight:bold;', JSON.parse(JSON.stringify(json))); }catch(e){ console.log('[KALLE-DEBUG] Roh-Antwort (unparsed):', json); }
   fillFields(json);
   setAiStatus('done','✓ Claude hat '+Object.values(json).filter(v=>v).length+' Felder erkannt und ausgefüllt.');
   showExtracted(json);
@@ -18062,7 +18067,7 @@ function toggleEmailAnalyse(){
 (function(){
   const G=id=>document.getElementById(id);
   const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
-  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', obZusatz:'', existing:false, mondayItem:'', notiz:'', pfadEdited:false, pfadOverride:'', roche:{active:false,modus:'jahr',bau:'',_loaded:false} };
+  const CUR={ nr:'', kunde:null, betreff:'', leistung:[], ablage:'f', mode:'anfrage', obOrt:'', obStr:'', obZusatz:'', existing:false, mondayItem:'', notiz:'', pfadEdited:false, pfadOverride:'', roche:{active:false,modus:'jahr',bau:'',_loaded:false}, sharepointNeeded:false, sharepointUrl:'' };
 
   // ---- Kunden aus dem echten Stamm normalisieren ----
   function kx(k){
@@ -18356,6 +18361,13 @@ function toggleEmailAnalyse(){
                   </div>
                 </div>
                 <div class="keg-path">${svg('<path d="M3 7a2 2 0 0 1 2-2h5l2 2h7a2 2 0 0 1 2 2v8a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/>',17)}<div style="flex:1;min-width:0;"><div class="lbl" style="display:flex;justify-content:space-between;align-items:center;"><span>Datenablage-Pfad</span><span class="keg-link" id="kegPathReset" style="text-transform:none;letter-spacing:0;font-weight:600;">↺ Auto</span></div><input id="kegPathInput" class="kegpath-in" spellcheck="false" placeholder="\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte\\…"><div style="font-size:9.5px;color:#9aa1ad;margin-top:3px;line-height:1.4;">Automatisch vorgeschlagen — bei einem <b>bereits bestehenden Ordner</b> oder abweichendem Kundennamen hier anpassen. Dann wird genau dieser Pfad verwendet (kein neuer Ordner).</div></div></div>
+                <div style="margin-top:10px;display:flex;align-items:flex-start;gap:9px;padding:10px 12px;border:1.5px solid #d6dade;border-radius:8px;background:#fafbfc;">
+                  <input type="checkbox" id="kegSpNeeded" style="margin-top:2px;width:16px;height:16px;flex-shrink:0;accent-color:var(--accent,#FAE017);">
+                  <label for="kegSpNeeded" style="font-size:11.5px;line-height:1.5;cursor:pointer;">
+                    <span style="font-weight:700;">☁ Zusätzlich SharePoint-Ordner anlegen</span><br>
+                    <span style="color:#9aa1ad;">Der Netzlaufwerk-Ordner wird immer angelegt. SharePoint zusätzlich nur, wenn hier angehakt — für kleine Aufträge meist nicht nötig.</span>
+                  </label>
+                </div>
                 <div id="kegRoche" class="keg-hide" style="margin-top:12px;border:1.5px solid #e6d9a6;background:#fdfbf3;border-radius:10px;padding:12px 14px;">
                   <div style="font-family:'Sora',sans-serif;font-weight:800;font-size:12px;color:#6f5a00;margin-bottom:8px;display:flex;align-items:center;gap:7px;">
                     <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6"><circle cx="12" cy="12" r="1.7"/><ellipse cx="12" cy="12" rx="10" ry="4.2"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(60 12 12)"/><ellipse cx="12" cy="12" rx="10" ry="4.2" transform="rotate(120 12 12)"/></svg>
@@ -18440,6 +18452,7 @@ function toggleEmailAnalyse(){
     G('kegObStr').addEventListener('input',()=>{ CUR.obStr=G('kegObStr').value; refresh(); });
     { const pin=G('kegPathInput'); if(pin) pin.addEventListener('input',()=>{ CUR.pfadEdited=true; CUR.pfadOverride=pin.value; }); }
     { const pr=G('kegPathReset'); if(pr) pr.onclick=()=>{ CUR.pfadEdited=false; CUR.pfadOverride=''; refresh(); }; }
+    { const sp=G('kegSpNeeded'); if(sp) sp.addEventListener('change',()=>{ CUR.sharepointNeeded=!!sp.checked; refresh(); }); }
     // Zweites Drop-Feld (Step 2): weitere E-Mails/Dateien + Ordnerzuordnung
     const md2=G('kegDrop2');
     if(md2){ md2.onclick=()=>pickMailFiles();
@@ -18520,6 +18533,10 @@ function toggleEmailAnalyse(){
   async function kegAnalyse(text){
     if(!text||text.trim().length<5) return;
     kegAnalyseStart();
+    // Neue Erfassung — SharePoint-Auswahl auf Standard (aus) zurücksetzen, damit nichts
+    // aus einer vorherigen Anfrage in derselben Sitzung übernommen wird.
+    CUR.sharepointNeeded=false; CUR.sharepointUrl='';
+    { const sp=G('kegSpNeeded'); if(sp) sp.checked=false; }
     try{
     const apiKey=(document.getElementById('apiKey')&&document.getElementById('apiKey').value||localStorage.getItem('grafe_apikey')||'').trim();
     try{ window._kalleSummary=''; }catch(e){}
@@ -18539,11 +18556,14 @@ function toggleEmailAnalyse(){
     if(bem){ const bz=titelClean(bem); CUR.betreff=bz; G('kegBetreff').value=bz; }
     CUR.emailText=text; // für Monday-Kurzbeschrieb
     try{ CUR.summary=(window._kalleSummary||'').trim(); }catch(e){ CUR.summary=''; }
+    try{ console.log('%c[KALLE-DEBUG] CUR.kunde VOR Bestandskunden-Abgleich:','color:#c8a000;font-weight:bold;', JSON.parse(JSON.stringify(CUR.kunde))); }catch(e){}
     // DB-Abgleich: passenden Bestandskunden vorauswählen
     let existing=false; const m=matchKunde(CUR.kunde);
+    try{ console.log('%c[KALLE-DEBUG] matchKunde() Ergebnis:','color:#c8a000;font-weight:bold;', m?JSON.parse(JSON.stringify(m)):null); }catch(e){}
     if(m){ CUR.kunde={ name:m.name||CUR.kunde.name, kontakt:m.kontakt||CUR.kunde.kontakt, strasse:m.strasse||CUR.kunde.strasse,
         plz:m.plz||CUR.kunde.plz, ort:m.ort||CUR.kunde.ort, tel:m.tel||CUR.kunde.tel, email:m.email||CUR.kunde.email, nr:m.nr||'',
         zusatz1:m.zusatz1||CUR.kunde.zusatz1||'', zusatz2:m.zusatz2||CUR.kunde.zusatz2||'' }; existing=true; }
+    try{ console.log('%c[KALLE-DEBUG] CUR.kunde NACH Bestandskunden-Abgleich (existing='+existing+'):','color:#c8a000;font-weight:bold;', JSON.parse(JSON.stringify(CUR.kunde))); }catch(e){}
     CUR.existing=existing;
     const bd=G('kegDetected');
     if(bd){ bd.textContent=existing?'Bestandskunde aus Datenbank — vorausgewählt':'Aus E-Mail erkannt — bitte kurz prüfen';
@@ -18756,7 +18776,7 @@ function toggleEmailAnalyse(){
     G('kegSumK').textContent=[k.name,k.kontakt].filter(Boolean).join(' · ')||'—';
     G('kegSumP').textContent=((CUR.nr?CUR.nr+' ':'')+(CUR.betreff||''))||'—';
     G('kegSumL').textContent=(CUR.leistung&&CUR.leistung.length)?CUR.leistung.join(', '):'—';
-    G('kegSumA').textContent=CUR.ablage==='o'?'Objekt · Montage vor Ort':'Firmenkunde · Lieferauftrag';
+    G('kegSumA').textContent=(CUR.ablage==='o'?'Objekt · Montage vor Ort':'Firmenkunde · Lieferauftrag')+(CUR.sharepointNeeded?' · + SharePoint':'');
     const cnt=_fileCount(); const su=G('kegSumU'); if(su) su.textContent=cnt+(cnt===1?' Datei':' Dateien');
     const nz=(CUR.notiz||'').trim(); const nzRow=G('kegSumNotizRow'); if(nzRow){ nzRow.classList.toggle('keg-hide',!nz); const nzv=G('kegSumNotiz'); if(nzv) nzv.textContent=nz?(nz.length>120?nz.slice(0,120)+' …':nz):'—'; }
     const zus=((G('kegObZusatz')&&G('kegObZusatz').value)||'').trim(); CUR.obZusatz=zus;
@@ -18821,6 +18841,7 @@ function toggleEmailAnalyse(){
       datum:new Date().toISOString().slice(0,10), bemerkung:CUR.betreff||'', status:'entwurf',
       projektPfad:pfad||'', leistungsart:(CUR.leistung||[]), ablageart:CUR.ablage==='o'?'Objekt':'Firmenkunde',
       objektOrt:CUR.obOrt||'', objektStrasse:CUR.obStr||'',
+      sharepointBenoetigt:!!CUR.sharepointNeeded, sharepointUrl:CUR.sharepointUrl||'',
       mondayItemId:CUR.mondayItem||'', positions:[], total:0, _version:2 };
   }
   // Projektbezeichnung säubern: keine Windows-verbotenen Zeichen und keine „:" / „-" (Bindestriche)
@@ -19028,6 +19049,15 @@ function toggleEmailAnalyse(){
     var firma=_saneWin(k.name||''); if(!firma) return '';
     return base+'\\Firmenkunden\\'+firma+'\\'+leaf;
   }
+  // SharePoint bekommt bewusst KEINE verschachtelte Firmenkunden-/Objekte-Struktur
+  // wie das lokale Netzlaufwerk — dort soll direkt unter CLOUD_ROOT (01_Projekte)
+  // nur EIN flacher Ordner "<Nr> - <Betreff>" entstehen. Gibt null zurück, wenn
+  // Projektnummer/Betreff (noch) fehlen.
+  function kegComputeCloudSegmente(){
+    var leaf=_saneWin(((CUR.nr?CUR.nr+' - ':'')+(CUR.betreff||'')).trim());
+    if(!leaf) return null;
+    return [leaf];
+  }
 
   async function kegErfassen(){
     const k=CUR.kunde||{};
@@ -19081,6 +19111,29 @@ function toggleEmailAnalyse(){
     // FALLBACK: Konnte der Server (noch) keinen Ordnerpfad liefern, den Datenpfad clientseitig
     // nach demselben Schema berechnen — damit der Monday-Datenpfad NIE leer bleibt.
     if(!pfad){ var _fp=kegComputePfad(); if(_fp){ pfad=_fp; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad; rows.push(['ok','Datenpfad gesetzt (berechnet)',pfad]); } }
+    // SharePoint-Ablage — nur wenn im Reaktor angehakt (Standard: aus). Best-effort:
+    // ein Fehler hier blockiert den restlichen Ablauf nicht, die UNC-Ablage ist so oder so da.
+    if(CUR.sharepointNeeded && srvOn){
+      kegProgSet(58,'SharePoint-Ordner wird angelegt …');
+      try{
+        const segs=kegComputeCloudSegmente();
+        if(segs){
+          // unicPfad mitschicken: der Server legt dort zusätzlich eine .url-Verknüpfung
+          // zum SharePoint-Ordner ab, damit man aus dem lokalen Projektordner direkt
+          // in die Cloud-Ablage springen kann (z. B. für Verortungspläne/Konzepte,
+          // die der Projektleiter dort ablegt).
+          const r=await fetch(_srv()+'/cloud/ordner',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({segmente:segs, projektnr:CUR.nr, unicPfad:pfad||''})});
+          const d=await r.json();
+          if(d&&d.ok&&d.webUrl){
+            CUR.sharepointUrl=d.webUrl;
+            rows.push(['ok','SharePoint-Ordner angelegt',d.webUrl]);
+            if(d.linkGeschrieben) rows.push(['ok','Verknüpfung im Projektordner','SharePoint-Ordner.url']);
+            else if(pfad) rows.push(['warn','Verknüpfung im Projektordner','nicht geschrieben — '+(d.linkFehler||'unbekannter Grund')]);
+          }
+          else { rows.push(['warn','SharePoint-Ordner',(d&&d.error)||'nicht angelegt (Status '+r.status+')']); }
+        } else { rows.push(['warn','SharePoint-Ordner','Projektnummer/Betreff fehlen — übersprungen']); }
+      }catch(e){ rows.push(['warn','SharePoint-Ordner','Server nicht erreichbar: '+e.message]); }
+    }
     // Monday (Phase Anfrage)
     kegProgSet(66,'Monday wird benachrichtigt …');
     const md=await mondayAnfrage(pfad); rows.push([md.ok?'ok':'warn','Monday-Tracking',md.msg]);
@@ -19144,10 +19197,20 @@ function toggleEmailAnalyse(){
         var xd=dom(x.email); if(senderDom&&xd!==senderDom) return false;
         return true;
     });
-    // 3) Teil-Treffer nur für längere Namen und nur bei exakt passender Domain
+    // 3) Teil-Treffer nur für längere Namen UND mit doppelter Absicherung (V9.11):
+    //    (a) die KÜRZERE der beiden Zeichenketten muss mind. 6 Zeichen haben —
+    //        verhindert, dass kurze/generische Kundennamen wie "Pro" zufällig
+    //        matchen, egal ob sie im KI-Text oder im Kundenstamm stehen;
+    //    (b) Wortgrenzen-Check — die kürzere Zeichenkette darf nicht mitten in
+    //        einem anderen Wort der längeren stecken (verhindert genau den Fall
+    //        "Pro" versteckt in "ProcessorSuccessRebranding").
     if(!m&&nm&&nm.length>4) m=list.find(function(x){
         var xn=(x.name||x.Firma||x.kundenname||'').toLowerCase(); if(!xn||OWN(xn)) return false;
-        if(!(xn.indexOf(nm)>=0||nm.indexOf(xn)>=0)) return false;
+        var kurz=xn.length<=nm.length?xn:nm, lang=xn.length<=nm.length?nm:xn;
+        if(kurz.length<6) return false;
+        var idx=lang.indexOf(kurz); if(idx<0) return false;
+        var vor=idx>0?lang[idx-1]:' ', nach=idx+kurz.length<lang.length?lang[idx+kurz.length]:' ';
+        if(/[a-zäöüß0-9]/i.test(vor)||/[a-zäöüß0-9]/i.test(nach)) return false;
         // Gleiche Domain-Sicherung wie oben — bei Teil-Treffern (unschärfer als exakt) erst recht wichtig.
         var xd=dom(x.email); if(senderDom&&xd!==senderDom) return false;
         return true;
