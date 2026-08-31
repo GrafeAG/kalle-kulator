@@ -2855,9 +2855,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.16';
+const UI_VERSION='V9.18';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.18','Vorgangsnummer · Bug behoben: Meldung einer Nummer "257898" (ausserhalb des gültigen 26xxxx-Schemas). Ursache: Der Client-Fallback (greift nur, wenn /nummern/reservieren auf dem Server kurz nicht erreichbar ist) hat das Jahres-Präfix bisher aus der Systemuhr des jeweiligen PCs berechnet (new Date().getFullYear()) — eine falsch gehende Uhr (z.B. noch auf 2025) hätte genau eine Nummer wie "257898" erzeugen können. Präfix ist jetzt ein fest gepflegter Wert (NUMMERN_JAHRESPRAEFIX=26, synchron zum ohnehin jährlich manuell zu pflegenden Server-Pool in migrate_nummern.js) statt aus der Client-Uhr abgeleitet. Zusätzlich neues Sicherheitsnetz: taucht trotzdem eine Nummer ausserhalb des erwarteten Schemas auf (egal ob vom Server oder Fallback), erscheint jetzt eine sichtbare gelbe Warnung im Reaktor, statt dass es unbemerkt durchrutscht.'],
+  ['V9.17','Reaktor · Wird beim Erfassen ein SharePoint-Ordner angelegt (Checkbox aktiv), wird dessen Link jetzt automatisch in die Monday-Spalte „Montage CLOUD" (link_mkswadkr, Produktionsboard) geschrieben — direkt nachdem das Monday-Item entsteht. Vorher landete der Link nirgends in Monday, man musste ihn manuell übertragen.'],
   ['V9.16','Reaktor · .msg-Texterkennung grundlegend erneuert: Der bisherige, selbstgebaute Text-Scanner für Outlook-.msg-Dateien wurde durch die echte Bibliothek @kenjiuno/msgreader ersetzt (fest ins File eingebunden, keine CDN-Abhängigkeit — bleibt offline-fähig). Grund: der alte Scanner las die komplette Binärdatei nach lesbar aussehenden Zeichenfolgen ab und filterte nur eine kurze, unvollständige Liste bekannter interner Feldnamen heraus — dabei rutschten immer wieder interne Exchange/MAPI-Eigenschaftsnamen durch (z.B. "ExchangeApplicationFlags", "ImageNaturalHeight", "x-ms-exchange-organization-...", zuvor auch schon Bruchstücke wie "ProcessorSuccessRebranding"), die dann als Datenmüll mit in den Text wanderten, den die KI zu lesen bekam. Die neue Bibliothek liest die .msg-Datei strukturiert (echtes OLE/CFBF-Format) und liefert Betreff, Absender, Empfänger/CC und den reinen Body sauber getrennt — verifiziert am realen Fehlerfall (DKZ-Zürich-Mail): korrekte Firma, Person, E-Mail und CC-Empfänger, kein Datenmüll mehr im Text. Die alte Heuristik bleibt als Sicherheitsnetz (msgToTextAltHeuristik) erhalten, falls die Bibliothek an einer exotischen .msg-Datei scheitern sollte.'],
   ['V9.15','Reaktor · Versions-Badge jetzt auch auf der REACTOR-Startseite sichtbar (neben dem Wortmark, oben links) — vorher stand die Version nur im Hauptrechner ("Nur kalkulieren"), man musste extra dorthin wechseln, um sie zu sehen.'],
   ['V9.14','Reaktor · SharePoint-Ordnerstruktur korrigiert: Anders als beim lokalen Netzlaufwerk (Firmenkunden/<Firma>/… bzw. Objekte/<Ort>/<Strasse>/…) bekommt SharePoint bewusst KEINE verschachtelte Struktur mehr. Es entsteht nur noch EIN flacher Ordner direkt unter 01_Projekte, benannt „<Projektnummer> - <Betreff>". Voraussetzung dafür sind jetzt nur noch Projektnummer + Betreff (nicht mehr Firma/Ort/Strasse).'],
@@ -10702,9 +10704,14 @@ function resetProjektState(){
 let NUM_STATE = { nr:'', committed:false };
 let _numLocalReserved = [];
 const _numSession = 's'+Date.now()+Math.random().toString(36).slice(2,8);
+// V9.18: Präfix bewusst NICHT mehr aus der Client-Systemuhr (new Date()) abgeleitet —
+// eine falsch gehende PC-Uhr (z.B. noch auf 2025) hätte sonst beim Fallback (siehe unten)
+// eine Nummer ausserhalb 26xxxx erzeugen können (Fall "257898" beobachtet). Stattdessen fest
+// gepflegter Wert, analog zum ohnehin manuellen Jahreswechsel-Schritt in migrate_nummern.js
+// (dort START/ENDE jährlich von Hand anpassen — hier synchron mitziehen).
+const NUMMERN_JAHRESPRAEFIX = 26; // ← bei Jahreswechsel hier UND in migrate_nummern.js anpassen
 function _numPrefixInfo(){
-  const yr=new Date().getFullYear();
-  const pre=yr%100;                       // 2026 → 26
+  const pre=NUMMERN_JAHRESPRAEFIX;
   const min=(pre===26)?260513:(pre*10000+1); // 260001–260512 sind Historie
   const max=pre*10000+9999;
   return {pre,min,max};
@@ -10724,14 +10731,29 @@ async function _numFallback(){
 async function reserveVorgangsnummer(){
   const inp=$('auftragsnr');
   await freigebeVorgangsnummer();          // vorherige unbestätigte Nummer zurückgeben
-  let nr='';
+  let nr='', vonFallback=false;
   if(serverVerfuegbar){
     try{
       const r=await fetch(KALLE_SERVER+'/nummern/reservieren',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({session:_numSession})});
       if(r.ok){ const d=await r.json(); if(d&&d.nummer) nr=String(d.nummer); }
     }catch(e){}
   }
-  if(!nr) nr=await _numFallback();
+  if(!nr){ nr=await _numFallback(); vonFallback=true; }
+  // V9.18 Sicherheitsnetz: eine Nummer ausserhalb des gültigen Schemas (26xxxx) NIE
+  // unbemerkt durchlassen — egal ob vom Server oder Fallback. Statt einer im Alltag
+  // leicht übersehenen Nummer lieber sichtbar warnen.
+  const {pre}=_numPrefixInfo();
+  const erwarteteVorsilbe=String(pre);
+  if(nr && !nr.startsWith(erwarteteVorsilbe)){
+    console.warn('[KALLE] Vorgangsnummer ausserhalb Schema erkannt:', nr, '(erwartet Präfix '+erwarteteVorsilbe+'xxxx, Quelle: '+(vonFallback?'Fallback':'Server')+')');
+    try{
+      const w=document.createElement('div');
+      w.style.cssText='position:fixed;top:12px;left:50%;transform:translateX(-50%);z-index:99999;background:#fff3cd;border:1.5px solid #e0a800;color:#7a5c00;padding:10px 16px;border-radius:8px;font-size:12.5px;font-weight:600;box-shadow:0 4px 16px rgba(0,0,0,.15);max-width:90vw;';
+      w.textContent='⚠ Ungewöhnliche Vorgangsnummer erkannt: '+nr+' (erwartet: '+erwarteteVorsilbe+'xxxx). Bitte prüfen, bevor gespeichert wird — evtl. Server kurz nicht erreichbar oder PC-Uhr falsch.';
+      document.body.appendChild(w);
+      setTimeout(()=>w.remove(),12000);
+    }catch(e){}
+  }
   NUM_STATE={nr,committed:false};
   if(inp){ inp.value=nr; inp.dataset.autoGen='1'; inp.readOnly=true; }
   return nr;
@@ -17907,7 +17929,7 @@ const MONDAY_PROD = {
   board:'1012481465',
   group:'group_mm5hq91f',            // Gruppe „Projekt und Offertanfragen"
   statusCol:'status', statusAnfrage:'Unbearbeitet',
-  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w' },
+  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w', montageCloud:'link_mkswadkr' },
   labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
   subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e', bearbeiter:'person', status:'status' }
@@ -17998,6 +18020,18 @@ async function mondaySetDatenpfadIfEmpty(itemId, pfad, token){
   }catch(e){ return {set:false, err:e.message}; }
 }
 window.mondaySetDatenpfadIfEmpty = mondaySetDatenpfadIfEmpty;
+
+// SharePoint-Ordner-Link in Spalte „Montage CLOUD" schreiben (Link-Spalte, immer überschrieben —
+// spiegelt so stets den aktuellen Ordner, falls er später nochmal neu ermittelt wird).
+async function mondaySetCloudLink(itemId, url, token){
+  if(!itemId || !url) return {set:false};
+  try{
+    const cv={}; cv[MONDAY_PROD.col.montageCloud]={ url:String(url), text:'SharePoint-Ordner' };
+    await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify(cv)}}, token);
+    return {set:true};
+  }catch(e){ return {set:false, err:e.message}; }
+}
+window.mondaySetCloudLink = mondaySetCloudLink;
 
 // Offerte gespeichert: Subelement „Offerte verschickt" (Offertsumme) am bestehenden Item
 // (dedupliziert: aktualisiert ein bestehendes Subelement statt Doppel anzulegen)
@@ -19197,6 +19231,18 @@ function toggleEmailAnalyse(){
     // Monday (Phase Anfrage)
     kegProgSet(66,'Monday wird benachrichtigt …');
     const md=await mondayAnfrage(pfad); rows.push([md.ok?'ok':'warn','Monday-Tracking',md.msg]);
+    // SharePoint-Link nachtragen in Spalte „Montage CLOUD" — erst jetzt möglich, da das
+    // Monday-Item (CUR.mondayItem) ja gerade erst durch mondayAnfrage() entstanden ist.
+    if(CUR.sharepointNeeded && CUR.sharepointUrl && CUR.mondayItem){
+      try{
+        let tok=''; try{ if(typeof window.mondayToken==='function') tok=window.mondayToken(); }catch(e){}
+        if(!tok){ try{ tok=localStorage.getItem('kalle_monday_token')||''; }catch(e){} }
+        if(tok && typeof window.mondaySetCloudLink==='function'){
+          const cl=await window.mondaySetCloudLink(CUR.mondayItem, CUR.sharepointUrl, tok);
+          rows.push([cl.set?'ok':'warn','Montage CLOUD (Monday)',cl.set?'Link gesetzt':('nicht gesetzt — '+(cl.err||'unbekannter Grund'))]);
+        } else { rows.push(['warn','Montage CLOUD (Monday)','übersprungen — kein Monday-Token']); }
+      }catch(e){ rows.push(['warn','Montage CLOUD (Monday)','Fehler: '+e.message]); }
+    }
     // DB (Aufträge, unbearbeitet)
     kegProgSet(84,'In Aufträgen wird gespeichert …');
     let dbmsg='Server offline — folgt beim Speichern', dbok=false;
