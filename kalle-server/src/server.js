@@ -98,6 +98,18 @@ async function start() {
     } catch (e) {
       console.warn('⚠ Terminstatus-Job NICHT gestartet — fehlt scripts/terminstatus.js oder MONDAY_TOKEN? (' + e.message + ')');
     }
+
+    // ── NEU: E-Mail→Monday-Kommentar-Job direkt im Server (alle 2 Min) ────
+    // Ersetzt die frühere externe Windows-Aufgabe (ging bei einem Server-Umbau
+    // verloren, siehe scripts/email_updates.js Kopfkommentar). Läuft jetzt wie
+    // die Terminstatus-Ampel als Teil des KALLE-Servers selbst — start() prüft
+    // intern MONDAY_TOKEN + @kenjiuno/msgreader und meldet sich nur mit einer
+    // Warnung statt den Server zu stoppen, falls Voraussetzungen fehlen.
+    try {
+      require('../scripts/email_updates').start();
+    } catch (e) {
+      console.warn('⚠ E-Mail-Updates-Job NICHT gestartet — fehlt scripts/email_updates.js? (' + e.message + ')');
+    }
   });
 }
 
