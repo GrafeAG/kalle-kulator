@@ -56,6 +56,14 @@ try {
   console.warn('⚠ Route /cloud NICHT geladen — fehlt src/routes/cloud.js? (' + e.message + ')');
 }
 
+// ── NEU: Montage-Rückmeldung — KI-Zerlegung in Monday-Subelemente + SharePoint-Fotos ──
+try {
+  app.use(require('./routes/montage'));
+  console.log('✓ Route /montage/melden aktiv');
+} catch (e) {
+  console.warn('⚠ Route /montage NICHT geladen — fehlt src/routes/montage.js? (' + e.message + ')');
+}
+
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
   // API-Routen: JSON

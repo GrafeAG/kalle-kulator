@@ -21,22 +21,26 @@
 //   Body: { segmente: ["Firmenkunden","<Firma>","<Nr - Betreff>"], projektnr?: "266351", unicPfad?: "\\\\...\\..." }
 //   → legt CLOUD_ROOT/<segmente...> idempotent an (bereits vorhandene Ordner
 //     werden übersprungen, keine Duplikate) und gibt bei Erfolg
-//     { ok:true, id, name, webUrl, linkGeschrieben?, linkFehler? } zurück.
+//     { ok:true, id, name, webUrl, unterordnerAngelegt, linkGeschrieben?, linkFehler? } zurück.
 //   → Wird "unicPfad" mitgeschickt (lokaler UNC-Projektordner), legt der Server dort
 //     zusätzlich eine Verknüpfung "SharePoint-Ordner.url" ab, die direkt in den
 //     SharePoint-Ordner springt. Nur innerhalb des konfigurierten Netzlaufwerks erlaubt.
+//   → Legt ausserdem IMMER die feste Unterordner-Struktur an (siehe
+//     STANDARD_UNTERORDNER weiter unten): 01 Kontaktdaten vor Ort,
+//     02 Verortungspläne, 03 Konzept - Ausführungszeichnungen, 04 Fotos.
 //
 //   GET /cloud/ordner/fuer-projekt?nr=<Projektnummer>
-//   → findet/legt den SharePoint-Ordner zu einer Projektnummer an (Name aus der
-//     offerten-Tabelle: "<auftragsnr> - <bemerkung>", gleiches Schema wie lokal).
-//     Für externe Systeme (z.B. Power Automate), die nur die Projektnummer kennen.
-//     Antwort: { ok:true, driveId, itemId, name, webUrl }
+//   → findet/legt den SharePoint-Ordner (inkl. Unterordner-Struktur) zu einer
+//     Projektnummer an (Name aus der offerten-Tabelle: "<auftragsnr> - <bemerkung>",
+//     gleiches Schema wie lokal). Für externe Systeme (z.B. Power Automate), die
+//     nur die Projektnummer kennen. Antwort: { ok:true, driveId, itemId, name, webUrl }
 //
 //   POST /cloud/foto?nr=<Projektnummer>   (multipart/form-data, Feld "files")
-//   → lädt Foto(s) direkt in den SharePoint-Projektordner hoch (Graph Simple
-//     Upload, max. 4 MB/Datei). Für die Monteur-Rückmeldung (Power Automate):
-//     dort die Foto-Bytes einfach an diese Route weiterreichen, statt selbst
-//     Graph-Zugangsdaten zu verwalten. Antwort: { ok, ordnerUrl, ergebnisse:[...] }
+//   → lädt Foto(s) direkt in den Unterordner "04 Fotos" des SharePoint-
+//     Projektordners hoch (Graph Simple Upload, max. 4 MB/Datei). Für die
+//     Monteur-Rückmeldung (Power Automate): dort die Foto-Bytes einfach an
+//     diese Route weiterreichen, statt selbst Graph-Zugangsdaten zu verwalten.
+//     Antwort: { ok, ordnerUrl, ergebnisse:[...] }
 //
 // Wichtig (siehe Infrastruktur-Übergabe Punkt 14):
 //   - Site/Drive/Root werden dynamisch über Graph aufgelöst, NICHT hardcodiert.
@@ -231,6 +235,17 @@ async function ensureFolderPath(driveId, segments, token) {
 // ── Gemeinsame Logik: Ordner unter CLOUD_ROOT idempotent sicherstellen ─────
 // segmenteOhneRoot = z.B. ["266351 - Rebranding DKZ Zürich AG"] — CLOUD_ROOT wird
 // hier automatisch vorangestellt, NICHT nochmal selbst mitgeben.
+//
+// Feste Unterordner-Struktur (Vorgabe): wird bei JEDER Ordner-Anlage/-Prüfung
+// automatisch mit sichergestellt, egal ob über den Reaktor (Checkbox) oder
+// On-Demand (z.B. erster Foto-Upload eines Auftrags ohne Checkbox).
+const STANDARD_UNTERORDNER = [
+  '01 Kontaktdaten vor Ort',
+  '02 Verortungspläne',
+  '03 Konzept - Ausführungszeichnungen',
+  '04 Fotos',
+];
+
 async function ordnerSicherstellen(segmenteOhneRoot) {
   const token = await getGraphToken();
   const siteId = await resolveSiteId(token);
@@ -239,7 +254,20 @@ async function ordnerSicherstellen(segmenteOhneRoot) {
   const segments = [cloudRoot, ...segmenteOhneRoot];
   const item = await ensureFolderPath(driveId, segments, token);
   if (!item) throw new Error('Ordner konnte nicht ermittelt werden (unerwarteter Zustand).');
-  return { driveId, item };
+
+  // Unterordner einzeln sicherstellen — ein Fehlschlag bei einem einzelnen
+  // Unterordner (z.B. kurzer Graph-Aussetzer) blockiert die anderen nicht und
+  // lässt den Hauptordner trotzdem als erfolgreich angelegt gelten.
+  const subfolders = {};
+  for (const name of STANDARD_UNTERORDNER) {
+    try {
+      subfolders[name] = await ensureFolderPath(driveId, [...segments, name], token);
+    } catch (e) {
+      console.warn(`[cloud] Unterordner "${name}" konnte nicht angelegt werden:`, e.message);
+    }
+  }
+
+  return { driveId, item, subfolders };
 }
 
 // Projektnummer → Projektordner-Name, EXAKT nach demselben Schema wie die lokale
@@ -270,9 +298,9 @@ router.post('/cloud/ordner', async (req, res) => {
       return res.status(400).json({ ok: false, error: 'Segmente enthalten nach Bereinigung keinen gültigen Namen.' });
     }
 
-    const { item } = await ordnerSicherstellen(segmenteOhneRoot);
+    const { item, subfolders } = await ordnerSicherstellen(segmenteOhneRoot);
 
-    const antwort = { ok: true, id: item.id, name: item.name, webUrl: item.webUrl };
+    const antwort = { ok: true, id: item.id, name: item.name, webUrl: item.webUrl, unterordnerAngelegt: Object.keys(subfolders).length };
 
     // Optional: Verknüpfung im lokalen UNC-Projektordner ablegen (best-effort —
     // ein Fehlschlag hier ändert nichts daran, dass der SharePoint-Ordner erfolgreich angelegt wurde).
@@ -313,13 +341,65 @@ router.get('/cloud/ordner/fuer-projekt', async (req, res) => {
   }
 });
 
+// Gemeinsame Kernlogik: ein oder mehrere Fotos ({buffer,name,mimetype}) für ein
+// Projekt nach SharePoint "04 Fotos" hochladen. Wird von beiden Eingabewegen genutzt.
+async function ladeFotosHoch(nr, fotos) {
+  const leaf = await projektZuLeaf(nr);
+  if (!leaf) throw Object.assign(new Error('Projekt mit dieser Nummer nicht gefunden'), { status: 404 });
+
+  const { driveId, item, subfolders } = await ordnerSicherstellen([leaf]);
+  const zielOrdner = subfolders['04 Fotos'] || item;
+  const token = await getGraphToken();
+
+  const ergebnisse = [];
+  for (const f of fotos) {
+    try {
+      const dateiname = saneSP(f.name || 'foto.jpg');
+      const uploadUrl = `/drives/${driveId}/items/${zielOrdner.id}:/${encodeURIComponent(dateiname)}:/content`;
+      const r = await fetch(GRAPH + uploadUrl, {
+        method: 'PUT',
+        headers: { Authorization: 'Bearer ' + token, 'Content-Type': f.mimetype || 'application/octet-stream' },
+        body: f.buffer,
+      });
+      if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(`HTTP ${r.status}: ${t.slice(0, 150)}`); }
+      const d = await r.json();
+      ergebnisse.push({ ok: true, name: d.name, webUrl: d.webUrl });
+    } catch (e) {
+      ergebnisse.push({ ok: false, name: f.name, error: e.message });
+    }
+  }
+  return { ordnerUrl: item.webUrl, ergebnisse };
+}
+
 // ── Route: Foto(s) direkt in den SharePoint-Projektordner hochladen ────────
-// POST /cloud/foto?nr=266351   (multipart/form-data, Feld "files", 1..n Dateien)
-// Für die Monteur-Rückmeldung (Power Automate): lädt die Foto-Bytes serverseitig
-// per Graph "Simple Upload" hoch (bis 4 MB je Datei — Grenze der Simple-Upload-API;
-// grössere Dateien bräuchten eine Upload-Session, aktuell nicht implementiert,
-// da Formular-Fotos i.d.R. deutlich kleiner sind). Der Graph-Client-Secret bleibt
-// dabei komplett auf dem Server — Power Automate schickt nur die rohen Foto-Bytes.
+// POST /cloud/foto?nr=266351
+//   Weg A) application/json (empfohlen, z.B. Power Automate — ein Aufruf pro Foto
+//          innerhalb einer Schleife, kein Array/multipart nötig):
+//          { name, contentBase64 }
+//   Weg B) multipart/form-data, Feld "files", 1..n Dateien (Fallback)
+// Lädt die Foto-Bytes serverseitig per Graph "Simple Upload" hoch (bis 4 MB je
+// Datei). Der Graph-Client-Secret bleibt komplett auf dem Server.
+router.post('/cloud/foto', express.json({ limit: '10mb' }), (req, res, next) => {
+  const ct = (req.headers['content-type'] || '');
+  if (!ct.includes('application/json')) return next(); // → multipart-Handler unten
+  (async () => {
+    try {
+      const nr = String(req.query.nr || (req.body && req.body.nr) || '').trim();
+      if (!nr) return res.status(400).json({ ok: false, error: 'nr (Projektnummer) fehlt' });
+      if (!req.body || !req.body.contentBase64) return res.status(400).json({ ok: false, error: 'contentBase64 fehlt' });
+
+      const foto = { buffer: Buffer.from(req.body.contentBase64, 'base64'), name: req.body.name || 'foto.jpg', mimetype: req.body.mimetype };
+      const { ordnerUrl, ergebnisse } = await ladeFotosHoch(nr, [foto]);
+      const ok = ergebnisse.some(x => x.ok);
+      console.log(`[cloud/foto] Projekt ${nr} · ${ergebnisse.filter(x => x.ok).length}/1 Foto hochgeladen (JSON)`);
+      return res.json({ ok, ordnerUrl, ergebnisse });
+    } catch (e) {
+      console.error('[cloud/foto] Fehler (JSON):', e.message);
+      return res.status(e.status || 500).json({ ok: false, error: e.message });
+    }
+  })();
+});
+
 router.post('/cloud/foto', (req, res) => {
   if (!multer) return res.status(503).json({ ok: false, error: 'multer nicht installiert (npm i multer)' });
 
@@ -336,41 +416,22 @@ router.post('/cloud/foto', (req, res) => {
       const files = req.files || [];
       if (!files.length) return res.status(400).json({ ok: false, error: 'keine Dateien (Feld "files")' });
 
-      const leaf = await projektZuLeaf(nr);
-      if (!leaf) return res.status(404).json({ ok: false, error: 'Projekt mit dieser Nummer nicht gefunden' });
-
-      const { driveId, item } = await ordnerSicherstellen([leaf]);
-      const token = await getGraphToken();
-
-      const ergebnisse = [];
-      // Sequentiell hochladen, um Graph-Rate-Limits nicht zu reizen (analog monday.js).
-      for (const f of files) {
-        try {
-          const dateiname = saneSP(f.originalname || 'foto.jpg');
-          const uploadUrl = `/drives/${driveId}/items/${item.id}:/${encodeURIComponent(dateiname)}:/content`;
-          const r = await fetch(GRAPH + uploadUrl, {
-            method: 'PUT',
-            headers: { Authorization: 'Bearer ' + token, 'Content-Type': f.mimetype || 'application/octet-stream' },
-            body: f.buffer,
-          });
-          if (!r.ok) { const t = await r.text().catch(() => ''); throw new Error(`HTTP ${r.status}: ${t.slice(0, 150)}`); }
-          const d = await r.json();
-          ergebnisse.push({ ok: true, name: d.name, webUrl: d.webUrl });
-        } catch (e) {
-          ergebnisse.push({ ok: false, name: f.originalname, error: e.message });
-        }
-      }
-
+      const fotos = files.map(f => ({ buffer: f.buffer, name: f.originalname, mimetype: f.mimetype }));
+      const { ordnerUrl, ergebnisse } = await ladeFotosHoch(nr, fotos);
       const ok = ergebnisse.some(x => x.ok);
-      console.log(`[cloud/foto] Projekt ${nr} · ${ergebnisse.filter(x => x.ok).length}/${files.length} Foto(s) hochgeladen`);
-      return res.json({ ok, ordnerUrl: item.webUrl, ergebnisse });
+      console.log(`[cloud/foto] Projekt ${nr} · ${ergebnisse.filter(x => x.ok).length}/${files.length} Foto(s) hochgeladen (multipart)`);
+      return res.json({ ok, ordnerUrl, ergebnisse });
     } catch (e) {
-      console.error('[cloud/foto] Fehler:', e.message);
-      return res.status(500).json({ ok: false, error: e.message });
+      console.error('[cloud/foto] Fehler (multipart):', e.message);
+      return res.status(e.status || 500).json({ ok: false, error: e.message });
     }
   });
 });
 
 module.exports = router;
+// Interne Bausteine für Wiederverwendung durch andere Routen (z.B. montage.js) —
+// verändert das Verhalten dieser Datei nicht, bestehendes app.use(require('./routes/cloud'))
+// bleibt exakt wie bisher funktionsfähig.
+router._internal = { ordnerSicherstellen, getGraphToken, projektZuLeaf, saneSP, ladeFotosHoch };
 // (server.js liegt bereits fertig angepasst bei den Chat-Outputs — die Route ist
 //  dort schon eingebunden, keine manuelle Anpassung mehr nötig.)
