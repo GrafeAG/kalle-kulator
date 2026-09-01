@@ -56,6 +56,16 @@ try {
   console.warn('⚠ Route /cloud NICHT geladen — fehlt src/routes/cloud.js? (' + e.message + ')');
 }
 
+// ── Montage-Laufzettel-Generator (QR-Label, Live-Daten aus Monday) ────────
+// Wieder ergänzt — war beim letzten server.js-Ersatz versehentlich verloren
+// gegangen. Voraussetzung: src/routes/label.js vorhanden + MONDAY_TOKEN in .env.
+try {
+  app.use('/label', require('./routes/label'));
+  console.log('✓ Route /label aktiv');
+} catch (e) {
+  console.warn('⚠ Route /label NICHT geladen — fehlt src/routes/label.js? (' + e.message + ')');
+}
+
 // ── NEU: Montage-Rückmeldung — KI-Zerlegung in Monday-Subelemente + SharePoint-Fotos ──
 try {
   app.use(require('./routes/montage'));
