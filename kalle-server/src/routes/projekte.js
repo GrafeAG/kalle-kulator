@@ -262,6 +262,12 @@ router.get('/open', (req, res) => {
 });
 
 // ── POST /projekte/ablegen — Offerte in 02 Offertphase ────────────────────
+// Legt die Offerte als ECHTES PDF ab (nicht mehr HTML) — Rendering über
+// src/pdf.js (Puppeteer, A4, respektiert die @page-Regeln der Offerten-HTML).
+// War früher schon mal angeschlossen (siehe PDF-Ablage_Installation.md /
+// Entwicklungsstand Abschnitt 8, „✅ 2026-07-20"), ist aber bei einem
+// späteren Ersatz dieser Datei offenbar verloren gegangen — pdf.js selbst
+// lag unverändert korrekt auf dem Server, nur der Aufruf hier fehlte.
 router.post('/ablegen', express.json({ limit: '10mb' }), async (req, res) => {
   const { projektPfad, auftragsnr, html } = req.body;
   if (!projektPfad) return res.status(400).json({ error: 'projektPfad fehlt' });
@@ -271,13 +277,26 @@ router.post('/ablegen', express.json({ limit: '10mb' }), async (req, res) => {
   const lokal    = zuLokal(projektPfad);                 // fs-Operationen lokal
   const ordner   = path.join(lokal, '02 Offertphase');
   const anrClean = sane(auftragsnr || 'Offerte', 60);
-  const dateiname = `Offerte_${anrClean}.html`;
+  const dateiname = `Offerte_${anrClean}.pdf`;
   const zielDatei = path.join(ordner, dateiname);
+
+  let pdfBuffer;
+  try {
+    const { htmlToPdf } = require('../pdf'); // lazy: klare 503-Meldung statt Crash, falls Puppeteer fehlt
+    pdfBuffer = await htmlToPdf(html);
+  } catch (e) {
+    console.error('[Ablegen] PDF-Rendering fehlgeschlagen:', e.message);
+    return res.status(503).json({
+      ok: false,
+      error: 'PDF-Engine nicht installiert · npm install puppeteer',
+      hinweis: e.message,
+    });
+  }
 
   try {
     fs.mkdirSync(ordner, { recursive: true });
-    fs.writeFileSync(zielDatei, html, 'utf-8');
-    console.log(`[Ablegen] ✓ ${dateiname} → ${ordner}`);
+    fs.writeFileSync(zielDatei, pdfBuffer);
+    console.log(`[Ablegen] ✓ ${dateiname} (${(pdfBuffer.length/1024).toFixed(0)} KB) → ${ordner}`);
     if (auftragsnr) {
       try { await query('UPDATE offerten SET projekt_pfad=$1 WHERE auftragsnr=$2', [zurFreigabe(lokal), auftragsnr]); }
       catch { /* optional */ }
