@@ -2868,9 +2868,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.24';
+const UI_VERSION='V9.25';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.25','Fahrzeugbeschriftung · Bug behoben: „Fahrzeugtyp-Auswahl wirkt nicht" und „Bausteine-Liste ist leer/nicht anwählbar". Ursache: Die in V9.22 eingebaute Fahrzeug-Reparatur (prüft P.fahrzeug auf altes/beschädigtes Schema und setzt bei Bedarf zurück) lief bisher NUR beim Laden aus localStorage (loadP). Der separate, automatische Sync mit dem zentralen Server-Preisstand (ladePricesFromServer, läuft ~800ms nach jedem Seitenaufruf, sofern Server erreichbar) ersetzt P davon unabhängig komplett — lag auf dem Server noch ein Preisstand von VOR dem Bausteine-Umbau (V9.23), wurde P.fahrzeug bei JEDEM Seitenaufruf wieder mit der alten Struktur überschrieben, bevor das Formular überhaupt geöffnet wurde. Ohne das neue bausteine-Array lieferte fzB(id) für jeden Baustein "undefined" — die komplette Konfigurations-Liste rendert dann leer (kein Bausteine sichtbar/anwählbar); ohne das neue typen[].faktor-Feld verhielt sich die Fahrzeugtyp-Auswahl fehlerhaft. Die Reparaturlogik ist jetzt in eine gemeinsame Funktion (fzRepairIfNeeded) ausgelagert und läuft an BEIDEN Stellen — loadP UND ladePricesFromServer. Mit Playwright verifiziert: alten Server-Preisstand (Schema von vor V9.23) simuliert, geladen, geprüft dass Reparatur greift, Formular geöffnet, Typ-Auswahl und alle 7 Bausteine-Checkboxen funktionieren wieder korrekt.'],
   ['V9.24','Reaktor · Firmenname-Dublettenprüfung neu. Ursache geklärt: Das Firmenname-Feld war zwar bereits editierbar, aber der Server legt einen bestehenden Ordner nur bei EXAKTER (klein/gross-unabhängiger) Übereinstimmung wieder ab — erkennt die E-Mail-Auslesung z. B. „Firmenkunden AG" statt des bereits bestehenden Ordners „Firmenkunden", entstand bisher unbemerkt ein zweiter, praktisch identischer Ordner. Jetzt prüft das Firmenname-Feld (Reaktor Schritt „Ablageort" UND der Ablage-Dialog beim Offerte-Speichern) live und rechtsform-unabhängig (AG/GmbH/SA/… werden beim Vergleich ignoriert) gegen die bereits bestehenden Firmenkunden-Ordner: bei exaktem Treffer erscheint „✓ Bestehender Ordner wird verwendet", bei blosser Ähnlichkeit ein Hinweis mit Vorschlag und Ein-Klick-Übernehmen-Button. Neue Server-Route GET /projekte/firmen liefert dafür die bestehenden Ordnernamen (muss mit dem Backend-Update ausgeliefert werden). Mit Playwright getestet: AG/GmbH-Varianten, exakte Treffer, Firmennamen mit Apostroph (dabei ein Escaping-Bug im ersten Wurf gefunden und behoben — JSON.stringify kollidierte mit dem doppelt gequoteten onclick-Attribut), sowie der Negativfall (echt unterschiedliche Firmen lösen zu Recht keinen Hinweis aus).'],
   ['V9.23','Fahrzeugbeschriftung komplett neu: statt fester Pakete ("2-farbig"/"Digitaldruck" je Fahrzeugtyp) jetzt ein Bausteine-System — Technik (Folienplot/Digitaldruck) wählen, dann in 4 Bereichen (Türen, Motorhaube, Heck, Seiten) einzeln ankreuzen, was beschriftet wird (Logo, Adresse/Text, Digitaldruck „Design", Teilfolierung/halbe Vollfolierung). Der Preis ergibt sich direkt aus der Auswahl, keine vorgegebene Stufe mehr nötig. Jeder Baustein hat einen Grundpreis (Basis Kleinwagen) und wird bei skalierten Bausteinen automatisch mit dem Grössenfaktor des gewählten Fahrzeugtyps multipliziert (Kleinwagen 1.0 … Grosser Kastenwagen 2.87, aus den bisherigen Richtpreisen hergeleitet). Die Fahrzeug-Vorschau zeigt jetzt live rote Markierungen genau für die angehakten Bausteine (Logo/Text als Punkte, Design/Teilfolierung als unterschiedlich grosse Flächen) — direkte visuelle Bestätigung der Auswahl. Admin → Fahrzeug entsprechend neu aufgebaut: eigene Tabelle für Grössenfaktoren, eigene Tabelle für Bausteine-Grundpreise (inkl. Bereich, Anzahl, skaliert Ja/Nein, Plot-/Digital-Preis separat). Positionsliste und Offert-PDF zeigen neu eine Kurz-Zusammenfassung der gewählten Bausteine je Bereich statt nur "2-farbig"/"Digitaldruck".'],
   ['V9.22','Fahrzeugbeschriftung · Ursache für „Preise werden nicht angezeigt, Visualisierung funktioniert nicht" gefunden und behoben. Der Code selbst (SVG-Konturen, Preise, Berechnung) war korrekt — das Problem lag am Laden gespeicherter Preisdaten aus dem Browser: Die Merge-Funktion beim Start (loadP) ersetzt Listen wie P.fahrzeug.typen beim Zusammenführen komplett statt sie feldweise abzugleichen. War diese Liste im Browser aus einem älteren Zwischenstand unvollständig oder mit Preis 0 gespeichert (z. B. vor Einführung der Fahrzeugbeschriftung in V3.8), blieb das dauerhaft hängen — sichtbar als leere Preise und fehlende Fahrzeug-Silhouette. Jetzt wird beim Laden gezielt geprüft, ob alle 5 Fahrzeugtypen mit gültigen Preisen vorhanden sind; falls nicht, werden ausschliesslich die Fahrzeug-Preisdaten auf die geprüften Defaults zurückgesetzt — alle anderen im Admin angepassten Preise (Schildmaterial, Veredelungen usw.) bleiben unangetastet. Mit einem Playwright-Testlauf verifiziert: beschädigte Daten simuliert → automatische Reparatur ausgelöst → korrekte Preise (CHF 470/550/670/1150/1370) und Silhouetten wieder sichtbar, andere Anpassungen unverändert erhalten.'],
@@ -3368,6 +3369,41 @@ const DEF={
 };
 
 let P=loadP(); window.P=P; // Test-Zugriff
+
+// ── Fahrzeugbeschriftung-Reparatur (wiederverwendbar) ───────────────────────
+// Prüft, ob P.fahrzeug.typen/bausteine dem aktuellen Schema entsprechen
+// (typen brauchen "faktor", bausteine müssen die 7 bekannten Bausteine mit
+// gültigem Preis enthalten). Greift NICHT nur beim Laden aus localStorage
+// (loadP), sondern MUSS auch beim Sync mit dem zentralen Server-Preisstand
+// (ladePricesFromServer) laufen — sonst überschreibt ein alter, vor dem
+// Bausteine-Umbau auf den Server gespeicherter Preisstand bei jedem
+// Seitenaufruf (ladePricesFromServer läuft automatisch ~800ms nach dem
+// Start) die frischen Defaults wieder mit der alten Struktur, OHNE dass der
+// localStorage-Reparaturpfad das je zu sehen bekommt. Genau das führte dazu,
+// dass die Fahrzeugtyp-Auswahl nicht mehr korrekt wirkte (t.faktor fehlte)
+// und die Bausteine-Liste komplett leer blieb (P.fahrzeug.bausteine fehlte
+// ganz, fzB(id) lieferte für jeden Baustein undefined).
+const FZ_TYP_IDS = ['klein','mittel','kkasten','transp','gkasten'];
+const FZ_BAUSTEIN_IDS = ['tuerLogo','tuerText','haubeLogo','heckLogo','heckText','design','teilfolierung'];
+function fzRepairIfNeeded(obj, freshFahrzeug){
+  const fzTypenOk = Array.isArray(obj.fahrzeug&&obj.fahrzeug.typen)
+    && FZ_TYP_IDS.every(id=>{
+        const t=obj.fahrzeug.typen.find(x=>x.id===id);
+        return t && t.faktor>0;
+      });
+  const fzBausteineOk = Array.isArray(obj.fahrzeug&&obj.fahrzeug.bausteine)
+    && FZ_BAUSTEIN_IDS.every(id=>{
+        const b=obj.fahrzeug.bausteine.find(x=>x.id===id);
+        return b && ((b.plot>0) || (b.digital>0));
+      });
+  if(!fzTypenOk || !fzBausteineOk){
+    console.log('KALKULATOR: Fahrzeug-Preisdaten unvollständig/beschädigt oder altes Schema gefunden — auf geprüfte Defaults zurückgesetzt.');
+    obj.fahrzeug=JSON.parse(JSON.stringify(freshFahrzeug));
+    return true;
+  }
+  return false;
+}
+
 function loadP(){
   const fresh=JSON.parse(JSON.stringify(DEF));
   try{
@@ -3417,22 +3453,7 @@ function loadP(){
       // alle anderen Admin-Anpassungen mit zurücksetzen). Deshalb hier
       // gezielt NUR die Fahrzeug-Preisdaten prüfen und bei Bedarf reparieren,
       // ohne andere gespeicherte Preislisten anzutasten.
-      const FZ_IDS = ['klein','mittel','kkasten','transp','gkasten'];
-      const FZ_BAUSTEIN_IDS = ['tuerLogo','tuerText','haubeLogo','heckLogo','heckText','design','teilfolierung'];
-      const fzTypenOk = Array.isArray(merged.fahrzeug&&merged.fahrzeug.typen)
-        && FZ_IDS.every(id=>{
-            const t=merged.fahrzeug.typen.find(x=>x.id===id);
-            return t && t.faktor>0;
-          });
-      const fzBausteineOk = Array.isArray(merged.fahrzeug&&merged.fahrzeug.bausteine)
-        && FZ_BAUSTEIN_IDS.every(id=>{
-            const b=merged.fahrzeug.bausteine.find(x=>x.id===id);
-            return b && ((b.plot>0) || (b.digital>0));
-          });
-      if(!fzTypenOk || !fzBausteineOk){
-        console.log('KALKULATOR: Fahrzeug-Preisdaten unvollständig/beschädigt oder altes Schema im localStorage gefunden — auf geprüfte Defaults zurückgesetzt.');
-        merged.fahrzeug=JSON.parse(JSON.stringify(fresh.fahrzeug));
-      }
+      fzRepairIfNeeded(merged, fresh.fahrzeug);
     return merged;
     }
   }catch(e){}
@@ -11755,6 +11776,13 @@ async function ladePricesFromServer(){
     const centralP = await r.json();
     const keepLocal = {bearbeiter: P.bearbeiter, integrations: P.integrations};
     P = Object.assign({}, centralP, keepLocal);
+    // Fahrzeugbeschriftung-Reparatur auch hier nötig (siehe fzRepairIfNeeded-
+    // Kommentar bei loadP): ein zentral gespeicherter Preisstand von VOR dem
+    // Bausteine-Umbau würde sonst bei jedem Seitenaufruf die frischen
+    // Defaults wieder mit der alten Struktur überschreiben.
+    const freshDef = JSON.parse(JSON.stringify(DEF));
+    fzRepairIfNeeded(P, freshDef.fahrzeug);
+    window.P=P;
     saveP(); reBuild && reBuild();
     return true;
   }catch(e){ return false; }
