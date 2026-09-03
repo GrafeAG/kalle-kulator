@@ -2856,9 +2856,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.19';
+const UI_VERSION='V9.21';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.21','Weitere Bugs im Zuge von V9.20 gefunden und mitbehoben (gleiche Baustelle, gleiche Ursache: manuelle Preise bei Oberflächen unvollständig verdrahtet). (1) Reliefschriften: Eloxieren UND Brünieren wurden beim erneuten Öffnen einer gespeicherten Position bisher gar nicht wiederhergestellt (nur Nasslack funktionierte) — beide jetzt korrekt restauriert, inkl. der neuen manuellen Preise aus V9.20. (2) Schild: Pulver Spezial/IGP hatte bereits ein Eingabefeld für einen manuellen Preis — das floss aber nie in die Berechnung ein (totes UI-Element, Badge blieb immer beim Listenpreis). Jetzt korrekt wirksam. (3) Schild: Pulver RAL und Pulver NCS hatten noch gar keinen manuellen Preis — analog zu Reliefschriften (V9.20) ergänzt, hier über das bereits vorhandene generische System (buildManualEKSection/applyManualEK), das für Schild schon an anderer Stelle im Einsatz war.'],
+  ['V9.20','Reliefschriften · Bei „4 Oberfläche" gibt es jetzt bei JEDER Variante (Brünieren, Pulver RAL, Pulver NCS, Pulver Spezial/IGP) denselben „Manueller Preis (optional)"-Block wie bisher schon bei Nasslack und Eloxieren — EK eingeben, Marge +40% wird automatisch aufgeschlagen, überschreibt den berechneten/gewählten Preis. Speichern/Laden inklusive. Brünieren ist eine gemeinsame Funktion mit dem Schild-Modul — profitiert dort automatisch mit; Pulver RAL/NCS/IGP ist bei Reliefschriften und Schild separat aufgebaut, hier vorerst nur bei Reliefschriften ergänzt (Schild auf Wunsch analog nachziehbar).'],
   ['V9.19','(1) Bug behoben: Offerten-Ablage legte entgegen der Anzeige „als PDF erstellt" tatsächlich eine HTML-Datei im Projektordner ab (02 Offertphase) — die serverseitige PDF-Konvertierung (src/pdf.js, Puppeteer) war zwar vorhanden, aber in der Ablage-Route (routes/projekte.js) nie tatsächlich angeschlossen, seit die Datei bei einer späteren Änderung ersetzt wurde. Jetzt korrekt verdrahtet: es entsteht wieder ein echtes Offerte_<Nr>.pdf. (2) Frästeile/Fräsbuchstaben · Schritt 2 „Kalkulation & Zuschnitt": der „Weiter: Befestigung"-Button stand links statt wie überall sonst rechts (fehlender Layout-Platzhalter bei nur einem Button in der Navigationsleiste). (3) Kopfzeile · Der Button „Senden & Export" hat jetzt wie „Offerte PDF" und „Offerte drucken" einen erklärenden Tooltip beim Draufhalten.'],
   ['V9.18','Vorgangsnummer · Bug behoben: Meldung einer Nummer "257898" (ausserhalb des gültigen 26xxxx-Schemas). Ursache: Der Client-Fallback (greift nur, wenn /nummern/reservieren auf dem Server kurz nicht erreichbar ist) hat das Jahres-Präfix bisher aus der Systemuhr des jeweiligen PCs berechnet (new Date().getFullYear()) — eine falsch gehende Uhr (z.B. noch auf 2025) hätte genau eine Nummer wie "257898" erzeugen können. Präfix ist jetzt ein fest gepflegter Wert (NUMMERN_JAHRESPRAEFIX=26, synchron zum ohnehin jährlich manuell zu pflegenden Server-Pool in migrate_nummern.js) statt aus der Client-Uhr abgeleitet. Zusätzlich neues Sicherheitsnetz: taucht trotzdem eine Nummer ausserhalb des erwarteten Schemas auf (egal ob vom Server oder Fallback), erscheint jetzt eine sichtbare gelbe Warnung im Reaktor, statt dass es unbemerkt durchrutscht.'],
   ['V9.17','Reaktor · Wird beim Erfassen ein SharePoint-Ordner angelegt (Checkbox aktiv), wird dessen Link jetzt automatisch in die Monday-Spalte „Montage CLOUD" (link_mkswadkr, Produktionsboard) geschrieben — direkt nachdem das Monday-Item entsteht. Vorher landete der Link nirgends in Monday, man musste ihn manuell übertragen.'],
@@ -5153,7 +5155,8 @@ function frInitPulver(){
       </div>
       <div style="display:flex;gap:6px;align-items:center;"><span style="font-size:10px;color:var(--muted);">Preisklasse:</span>
         <select id="frPulverRalPreis" onchange="cFr()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:10px;"></select>
-      </div>`;
+      </div>
+      ${manPreisBlockHtml('frPulverRALMan','cFr',false,'stueck','')}`;
     const rSel=$('frPulverRalPreis');
     P.veredelungen.filter(v=>v.gruppe==='pulver_ral').forEach((v,i)=>{
       const o=document.createElement('option');o.value=i;
@@ -5177,7 +5180,8 @@ function frInitPulver(){
       </div>
       <div style="display:flex;gap:6px;align-items:center;"><span style="font-size:10px;color:var(--muted);">Preisklasse:</span>
         <select id="frPulverNcsPreis" onchange="cFr()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:10px;"></select>
-      </div>`;
+      </div>
+      ${manPreisBlockHtml('frPulverNCSMan','cFr',false,'stueck','')}`;
     const nSel=$('frPulverNcsPreis');
     P.veredelungen.filter(v=>v.gruppe==='pulver_ncs').forEach((v,i)=>{
       const o=document.createElement('option');o.value=i;
@@ -5196,7 +5200,8 @@ function frInitPulver(){
         <input id="frPulverIgpFarbe" type="text" placeholder="IGP-HWF..." oninput="cFr()"
           style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:5px 8px;border-radius:5px;font-size:11px;">
         <select id="frPulverIgpPreis" onchange="cFr()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:10px;"></select>
-      </div>`;
+      </div>
+      ${manPreisBlockHtml('frPulverIGPMan','cFr',false,'stueck','')}`;
     const iSel=$('frPulverIgpPreis');
     P.veredelungen.filter(v=>v.gruppe==='pulver_igp').forEach((v,i)=>{
       const o=document.createElement('option');o.value=i;
@@ -5406,19 +5411,25 @@ function cFr(){
   const frchfLack=$('frchf-ob-lack');if(frchfLack)frchfLack.textContent=lackTotal>0?' CHF '+lackTotal.toFixed(0):'';
 
   let frPulverTotal=0;
-  function frPulverBadge(aktId,badgeId,selId,gruppe){
+  function frPulverBadge(aktId,badgeId,selId,gruppe,manIdBase){
     if(!gC(aktId)){const b=$(badgeId);if(b)b.textContent='–';$(aktId)?.closest('.tr')?.classList.remove('on');return 0;}
-    const sel2=$(selId);const idx=sel2?parseInt(sel2.value):0;
-    const arr=P.veredelungen.filter(v=>v.gruppe===gruppe);
-    const ek=(isNaN(idx)||!arr[idx])?arr[0]?.preis||0:arr[idx].preis;
-    const vk=ek*1.40;
+    const manVK=manIdBase?calcManVK(manIdBase,anzGes):0;
+    let vk;
+    if(manVK>0){
+      vk=manVK;
+    } else {
+      const sel2=$(selId);const idx=sel2?parseInt(sel2.value):0;
+      const arr=P.veredelungen.filter(v=>v.gruppe===gruppe);
+      const ek=(isNaN(idx)||!arr[idx])?arr[0]?.preis||0:arr[idx].preis;
+      vk=ek*1.40;
+    }
     const b=$(badgeId);if(b)b.textContent='CHF '+vk.toFixed(2);
     $(aktId)?.closest('.tr')?.classList.add('on');
     return vk;
   }
-  frPulverTotal+=frPulverBadge('frAktPulverRAL','pb-frPulverRAL','frPulverRalPreis','pulver_ral');
-  frPulverTotal+=frPulverBadge('frAktPulverNCS','pb-frPulverNCS','frPulverNcsPreis','pulver_ncs');
-  frPulverTotal+=frPulverBadge('frAktPulverIGP','pb-frPulverIGP','frPulverIgpPreis','pulver_igp');
+  frPulverTotal+=frPulverBadge('frAktPulverRAL','pb-frPulverRAL','frPulverRalPreis','pulver_ral','frPulverRALMan');
+  frPulverTotal+=frPulverBadge('frAktPulverNCS','pb-frPulverNCS','frPulverNcsPreis','pulver_ncs','frPulverNCSMan');
+  frPulverTotal+=frPulverBadge('frAktPulverIGP','pb-frPulverIGP','frPulverIgpPreis','pulver_igp','frPulverIGPMan');
 
   const flaechenF=P.fraes?.flaechenFaktoren||{};
   const avgF=Object.values(flaechenF).length>0
@@ -5709,12 +5720,13 @@ function saveFraes(){
     lackManPreis:parseFloat(document.getElementById('frLackManPreis')?.value)||0,
     lackZusatzFarben:getLackZusatzData('fr',r.anzGes||1),
     lackFarbe:$('frLackFarbe')?.value||'',
-    pulverRAL:gC('frAktPulverRAL')?{farbe:$('frPulverRalFarbe')?.value||'',finish:$('frPulverRalFinish')?.value||'',preisIdx:$('frPulverRalPreis')?.value||0}:null,
-    pulverNCS:gC('frAktPulverNCS')?{farbe:$('frPulverNcsFarbe')?.value||'',finish:$('frPulverNcsFinish')?.value||'',preisIdx:$('frPulverNcsPreis')?.value||0}:null,
-    pulverIGP:gC('frAktPulverIGP')?{farbe:$('frPulverIgpFarbe')?.value||'',preisIdx:$('frPulverIgpPreis')?.value||0}:null,
+    pulverRAL:gC('frAktPulverRAL')?{farbe:$('frPulverRalFarbe')?.value||'',finish:$('frPulverRalFinish')?.value||'',preisIdx:$('frPulverRalPreis')?.value||0,manAkt:gC('frPulverRALManAkt'),manTyp:$('frPulverRALManTyp')?.value||'stueck',manPreis:parseFloat($('frPulverRALManPreis')?.value)||0}:null,
+    pulverNCS:gC('frAktPulverNCS')?{farbe:$('frPulverNcsFarbe')?.value||'',finish:$('frPulverNcsFinish')?.value||'',preisIdx:$('frPulverNcsPreis')?.value||0,manAkt:gC('frPulverNCSManAkt'),manTyp:$('frPulverNCSManTyp')?.value||'stueck',manPreis:parseFloat($('frPulverNCSManPreis')?.value)||0}:null,
+    pulverIGP:gC('frAktPulverIGP')?{farbe:$('frPulverIgpFarbe')?.value||'',preisIdx:$('frPulverIgpPreis')?.value||0,manAkt:gC('frPulverIGPManAkt'),manTyp:$('frPulverIGPManTyp')?.value||'stueck',manPreis:parseFloat($('frPulverIGPManPreis')?.value)||0}:null,
     frPulverTotal:r.frPulverTotal,
     eloxAkt:gC('frEloxAkt'),frEloxVK:r.frEloxVK||0,
     bruenAkt:gC('frBruenAkt'),bruenMin:parseFloat($('frBruen-minuten')?.value)||0,frBruenVK:r.frBruenVK||0,
+    bruenManAkt:gC('frBruenManAkt'),bruenManTyp:$('frBruenManTyp')?.value||'stueck',bruenManPreis:parseFloat($('frBruenManPreis')?.value)||0,
     bruenStufe:(()=>{const w=$('frBruenWrap');return w?.querySelector('[data-stufe][style*="accent"]')?.dataset.stufe||'dunkel';})(),
     bruenSchliff:(()=>{const w=$('frBruenWrap');return w?.querySelector('[data-schliff][style*="accent"]')?.dataset.schliff||'wirbelschliff';})(),
     bruenKlarlack:gC('frBruen-klarlack'),
@@ -7289,7 +7301,8 @@ function slInitPulver(){
         <div style="display:flex;gap:6px;align-items:center;"><span style="font-size:10px;color:var(--muted);">Preisklasse:</span>
           <select id="slPulverRalPreis" onchange="cSl()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:10px;"></select>
         </div>
-      </div>`;
+      </div>
+      ${buildManualEKSection('slPulverRAL','cSl','Manueller Preis Pulver RAL')}`;
     const sg=$('slRalSwatches');
     SL_RAL.forEach(c=>{
       const sw=document.createElement('div');
@@ -7326,7 +7339,8 @@ function slInitPulver(){
       </div>
       <div style="display:flex;gap:6px;align-items:center;"><span style="font-size:10px;color:var(--muted);">Preisklasse:</span>
         <select id="slPulverNcsPreis" onchange="cSl()" style="flex:1;background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:10px;"></select>
-      </div>`;
+      </div>
+      ${buildManualEKSection('slPulverNCS','cSl','Manueller Preis Pulver NCS')}`;
     const nSel=$('slPulverNcsPreis');
     P.veredelungen.filter(v=>v.gruppe==='pulver_ncs').forEach((v,i)=>{
       const o=document.createElement('option');o.value=i;
@@ -8324,6 +8338,9 @@ function buildBruenUI(wrapId, cbIdBase, onChangeFn, showKlarlack){
   const prevKlarlack   = $(cbIdBase+'-klarlack')?.checked||false;
   const prevKlarlackEK = parseFloat($(cbIdBase+'-klarlackEK')?.value)||0;
   const prevGlanz      = wrap.querySelector('[data-glanz].sel')?.dataset.glanz||'G50';
+  const prevManOn      = $(cbIdBase+'ManAkt')?.checked||false;
+  const prevManTyp     = $(cbIdBase+'ManTyp')?.value||'stueck';
+  const prevManPreis   = $(cbIdBase+'ManPreis')?.value||'';
 
   const calcVK = (min) => {
     const ek = Math.max((min/60)*sa, mindest);
@@ -8426,7 +8443,8 @@ function buildBruenUI(wrapId, cbIdBase, onChangeFn, showKlarlack){
     <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:6px;">Schliffart</div>
     <div style="display:grid;grid-template-columns:1fr 1fr;gap:5px;margin-bottom:12px;">${schliffHTML}</div>
 
-    ${klarlackSection}`;
+    ${klarlackSection}
+    ${manPreisBlockHtml(cbIdBase+'Man', onChangeFn, prevManOn, prevManTyp, prevManPreis)}`;
 }
 
 function bruenUpdateCalc(cbIdBase, onChangeFn){
@@ -8473,11 +8491,18 @@ function calcBruenVK(cbIdBase, stk, onChangeFn){
   }
 
   const min = parseFloat($(cbIdBase+'-minuten')?.value)||15;
-  const ek = Math.max((min/60)*sa, mindestEK);
-  const vk = ek*marge;
-
-  const lv=$(cbIdBase+'-preisLive');
-  if(lv) lv.textContent='VK CHF '+vk.toFixed(2);
+  const manVK = calcManVK(cbIdBase+'Man', stk);
+  let vk;
+  if(manVK>0){
+    vk = manVK;
+    const lv=$(cbIdBase+'-preisLive');
+    if(lv) lv.textContent='VK CHF '+vk.toFixed(2)+' (manuell)';
+  } else {
+    const ek = Math.max((min/60)*sa, mindestEK);
+    vk = ek*marge;
+    const lv=$(cbIdBase+'-preisLive');
+    if(lv) lv.textContent='VK CHF '+vk.toFixed(2);
+  }
 
   const pb=$(cbIdBase+'Akt-pb');if(pb)pb.textContent='CHF '+vk.toFixed(2);
   $(cbIdBase+'Akt')?.closest('.tr')?.classList.add('on');
@@ -8737,6 +8762,69 @@ function calcLackManVK(pfx, stk){
   return vk;
 }
 
+// Generischer manueller-Preis-Helfer für Oberflächen-Varianten ohne eigenes
+// Lack-Schema (Brünieren, Pulver RAL/NCS/IGP, ...). idBase liefert die
+// Feld-IDs: <idBase>Akt (Checkbox), <idBase>Typ (Stück/Pauschal), <idBase>Preis
+// (EK-Eingabe), <idBase>Hint (Live-Hinweis), pb-<idBase> (Badge).
+// Rückgabe: VK falls aktiv+befüllt, sonst 0 (Aufrufer nutzt dann den regulären
+// berechneten/gewählten Preis weiter).
+function calcManVK(idBase, stk){
+  if(!document.getElementById(idBase+'Akt')?.checked) return 0;
+  const ek=parseFloat(document.getElementById(idBase+'Preis')?.value)||0;
+  if(!ek) return 0;
+  const typ=document.getElementById(idBase+'Typ')?.value||'stueck';
+  const ekTotal=typ==='stueck'?ek*(stk||1):ek;
+  const vk=ekTotal*1.40;
+  const hint=document.getElementById(idBase+'Hint');
+  if(hint)hint.textContent='EK CHF '+ekTotal.toFixed(2)+' + 40% = VK CHF '+vk.toFixed(2);
+  const pb=document.getElementById('pb-'+idBase);
+  if(pb)pb.textContent='VK CHF '+vk.toFixed(2);
+  document.getElementById(idBase+'Akt')?.closest('.tr')?.classList.toggle('on',vk>0);
+  return vk;
+}
+
+// Baut denselben "Manueller Preis (optional)"-Block wie bei Nasslack, generisch
+// für jede Oberflächen-Variante. idBase siehe calcManVK. prevOn/prevTyp/prevPreis
+// zum Erhalten der Eingabe über Neuaufbauten hinweg (Aufrufer liest sie vor dem
+// Neuaufbau aus dem DOM aus, wie bei den übrigen "prev*"-Werten üblich).
+function manPreisBlockHtml(idBase, onChangeFn, prevOn, prevTyp, prevPreis){
+  return `
+    <div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
+      <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;font-weight:600;margin-bottom:7px;">
+        Manueller Preis (optional)
+      </div>
+      <div class="hint hy" style="margin-bottom:8px;font-size:10px;">
+        Überschreibt den berechneten Preis. EK eingeben → Marge +40% wird automatisch aufgeschlagen.
+      </div>
+      <div class="tr" style="margin-bottom:6px;">
+        <div class="tr-l">
+          <label class="tog"><input type="checkbox" id="${idBase}Akt" onchange="${onChangeFn}()"${prevOn?' checked':''}><span class="tsl"></span></label>
+          <div><div class="tr-label">Manueller EK-Preis</div><div class="tr-sub">Überschreibt berechneten Preis</div></div>
+        </div>
+        <div class="tr-r"><span class="pbadge" id="pb-${idBase}">–</span></div>
+      </div>
+      <div style="background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;">
+        <div class="g2" style="gap:8px;margin-bottom:0;">
+          <div class="field">
+            <label>Preistyp</label>
+            <select id="${idBase}Typ" onchange="${onChangeFn}()"
+              style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:7px 9px;border-radius:var(--rsm);font-size:12px;width:100%;">
+              <option value="stueck"${prevTyp==='stueck'?' selected':''}>EK / Stück</option>
+              <option value="pauschal"${prevTyp==='pauschal'?' selected':''}>EK pauschal (Total)</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>EK (CHF)</label>
+            <input type="number" id="${idBase}Preis" value="${prevPreis||''}" min="0" step="1" placeholder="0.00"
+              oninput="${onChangeFn}()"
+              style="background:var(--surface2);border:2px solid var(--amber);color:var(--amber);font-weight:700;font-size:14px;padding:7px 9px;border-radius:var(--rsm);width:100%;">
+          </div>
+        </div>
+        <div id="${idBase}Hint" style="font-size:11px;color:var(--teal);margin-top:6px;"></div>
+      </div>
+    </div>`;
+}
+
 function slSpezMatToggle(){
   const akt=gC('slSpezMatAkt');
   const det=$('slSpezMatDetail');
@@ -8900,19 +8988,20 @@ function cSl(){
   const setupVK=gC('slAktSetup')?setupP:0;
   const plottSetupVK=gC('slAktPlottSetup')?25:0;
 
-  function slPulverBadge(aktId,badgeId,selId,gruppe){
+  function slPulverBadge(aktId,badgeId,selId,gruppe,manPfx){
     if(!gC(aktId)){const bEl=$(badgeId);if(bEl)bEl.textContent='–';const row=$(aktId)?.closest('.tr');if(row)row.classList.remove('on');return 0;}
     const sel=$(selId);const idx=sel?parseInt(sel.value):0;
     const arr=P.veredelungen.filter(v=>v.gruppe===gruppe);
     const ek=(isNaN(idx)||!arr[idx])?arr[0]?.preis||0:arr[idx].preis;
-    const vk=ek*1.40;
+    const listVK=ek*1.40;
+    const vk=manPfx?applyManualEK(manPfx,stk,listVK):listVK;
     const bEl=$(badgeId);if(bEl)bEl.textContent='CHF '+vk.toFixed(2);
     const row=$(aktId)?.closest('.tr');if(row)row.classList.add('on');
     return vk;
   }
-  const pulverVK=slPulverBadge('slAktPulverRAL','pb-slPulverRAL','slPulverRalPreis','pulver_ral')
-    +slPulverBadge('slAktPulverNCS','pb-slPulverNCS','slPulverNcsPreis','pulver_ncs')
-    +slPulverBadge('slAktPulverIGP','pb-slPulverIGP','slPulverIgpPreis','pulver_igp');
+  const pulverVK=slPulverBadge('slAktPulverRAL','pb-slPulverRAL','slPulverRalPreis','pulver_ral','slPulverRAL')
+    +slPulverBadge('slAktPulverNCS','pb-slPulverNCS','slPulverNcsPreis','pulver_ncs','slPulverNCS')
+    +slPulverBadge('slAktPulverIGP','pb-slPulverIGP','slPulverIgpPreis','pulver_igp','slPulverIGP');
 
   let lackVK=0;
   if(gC('slLackAkt')){
@@ -9981,9 +10070,9 @@ function saveSchild(){
     lackManTyp:document.getElementById('slLackManTyp')?.value||'stueck',
     lackManPreis:parseFloat(document.getElementById('slLackManPreis')?.value)||0,
     lackZusatzFarben:getLackZusatzData('sl',parseInt($('slStk')?.value)||1),
-    pulverRAL:gC('slAktPulverRAL')?{farbe:$('slPulverRalFarbe')?.value||'',finish:$('slPulverRalFinish')?.value||'',preisIdx:$('slPulverRalPreis')?.value||0}:null,
-    pulverNCS:gC('slAktPulverNCS')?{farbe:$('slPulverNcsFarbe')?.value||'',finish:$('slPulverNcsFinish')?.value||'',preisIdx:$('slPulverNcsPreis')?.value||0}:null,
-    pulverIGP:gC('slAktPulverIGP')?{farbe:$('slPulverIgpFarbe')?.value||'',preisIdx:$('slPulverIgpPreis')?.value||0}:null,
+    pulverRAL:gC('slAktPulverRAL')?{farbe:$('slPulverRalFarbe')?.value||'',finish:$('slPulverRalFinish')?.value||'',preisIdx:$('slPulverRalPreis')?.value||0,man:saveManualEK('slPulverRAL')}:null,
+    pulverNCS:gC('slAktPulverNCS')?{farbe:$('slPulverNcsFarbe')?.value||'',finish:$('slPulverNcsFinish')?.value||'',preisIdx:$('slPulverNcsPreis')?.value||0,man:saveManualEK('slPulverNCS')}:null,
+    pulverIGP:gC('slAktPulverIGP')?{farbe:$('slPulverIgpFarbe')?.value||'',preisIdx:$('slPulverIgpPreis')?.value||0,man:saveManualEK('slPulverIGP')}:null,
     gravurAkt:r.gravurAkt,gvText:r.gvText,gvVH:r.gvVH,gvZeichen:r.gvZeichen,
     slGvModus:window._slGvModus||'text',
     slGvLogoName:$('slGvLogoName')?.value||'',
@@ -14716,11 +14805,18 @@ function editPos(i){
           if($('slPulverRalFarbe'))$('slPulverRalFarbe').value=p.pulverRAL.farbe||'';
           if($('slPulverRalFinish'))$('slPulverRalFinish').value=p.pulverRAL.finish||'seidenmatt';
           if($('slPulverRalPreis'))$('slPulverRalPreis').value=p.pulverRAL.preisIdx||0;
+          restoreManualEK('slPulverRAL',p.pulverRAL.man);
         }
         const pna=$('slAktPulverNCS');if(pna)pna.checked=!!p.pulverNCS;
-        if(p.pulverNCS&&$('slPulverNcsFarbe'))$('slPulverNcsFarbe').value=p.pulverNCS.farbe||'';
+        if(p.pulverNCS){
+          if($('slPulverNcsFarbe'))$('slPulverNcsFarbe').value=p.pulverNCS.farbe||'';
+          restoreManualEK('slPulverNCS',p.pulverNCS.man);
+        }
         const pia=$('slAktPulverIGP');if(pia)pia.checked=!!p.pulverIGP;
-        if(p.pulverIGP&&$('slPulverIgpFarbe'))$('slPulverIgpFarbe').value=p.pulverIGP.farbe||'';
+        if(p.pulverIGP){
+          if($('slPulverIgpFarbe'))$('slPulverIgpFarbe').value=p.pulverIGP.farbe||'';
+          restoreManualEK('slPulverIGP',p.pulverIGP.man);
+        }
 
         // Schritt 4 — Elox
         if(p.eloxAkt){
@@ -14859,17 +14955,77 @@ function editPos(i){
         if(p.lackSel&&$('frLackSel'))$('frLackSel').value=p.lackSel;
         if(p.lackFarbe&&$('frLackFarbe'))$('frLackFarbe').value=p.lackFarbe;
       }
+
+      // ── Eloxieren (bisher fehlend — wurde beim erneuten Öffnen nie restauriert) ──
+      if(p.eloxAkt){
+        const ea=$('frEloxAkt');if(ea)ea.checked=true;
+        if(p.eloxLief){
+          const liefBtn=document.querySelector(`#frEloxWrap [data-lief="${p.eloxLief}"]`);
+          if(liefBtn){
+            const vh2=parseInt($('frVH')?.value)||100;
+            const fz2=P.fraes?.flaechenFaktoren||{};
+            const avg2=Object.values(fz2).length>0?Object.values(fz2).reduce((a,v)=>a+v,0)/Object.keys(fz2).length:0.9;
+            const cm2=(vh2/10)*(vh2/10)*avg2;
+            const saetze2=parseInt($('frSaetze')?.value)||1;
+            const text2=($('frText')?.value||'').replace(/ /g,'');
+            const stk2=Math.max(1,text2.length||1)*saetze2;
+            eloxPickLief(liefBtn,'frEloxWrap','frElox',cm2,stk2,'cFr',false);
+          }
+        }
+        if(p.eloxManAkt){const m=$('frElox-manuelAkt');if(m)m.checked=true;}
+        if(p.eloxManPreis&&$('frElox-manuelEK'))$('frElox-manuelEK').value=p.eloxManPreis;
+      }
+
+      // ── Brünieren (bisher fehlend — wurde beim erneuten Öffnen nie restauriert) ──
+      if(p.bruenAkt){
+        const ba=$('frBruenAkt');if(ba)ba.checked=true;
+        if(p.bruenMin&&$('frBruen-minuten'))$('frBruen-minuten').value=p.bruenMin;
+        if(p.bruenKlarlack){const bk=$('frBruen-klarlack');if(bk){bk.checked=true;bruenToggleKlarlack('frBruen');}}
+        if(p.bruenKlarlackEK&&$('frBruen-klarlackEK'))$('frBruen-klarlackEK').value=p.bruenKlarlackEK;
+        if(p.bruenManAkt){
+          setTimeout(()=>{
+            const m=$('frBruenManAkt');if(m)m.checked=true;
+            if($('frBruenManTyp'))$('frBruenManTyp').value=p.bruenManTyp||'stueck';
+            if($('frBruenManPreis'))$('frBruenManPreis').value=p.bruenManPreis||'';
+          },60);
+        }
+      }
       const pra=p.pulverRAL||p.frPulverRAL;
       if(pra){
         const c2=$('frAktPulverRAL');if(c2)c2.checked=true;
         if($('frPulverRalFarbe'))$('frPulverRalFarbe').value=pra.farbe||'';
         if($('frPulverRalFinish'))$('frPulverRalFinish').value=pra.finish||'seidenmatt';
         if($('frPulverRalPreis'))$('frPulverRalPreis').value=pra.preisIdx||0;
+        if(pra.manAkt){
+          setTimeout(()=>{
+            const m=$('frPulverRALManAkt');if(m)m.checked=true;
+            if($('frPulverRALManTyp'))$('frPulverRALManTyp').value=pra.manTyp||'stueck';
+            if($('frPulverRALManPreis'))$('frPulverRALManPreis').value=pra.manPreis||'';
+          },60);
+        }
       }
       const pna=p.pulverNCS||p.frPulverNCS;
-      if(pna){const c2=$('frAktPulverNCS');if(c2)c2.checked=true;if($('frPulverNcsFarbe'))$('frPulverNcsFarbe').value=pna.farbe||'';}
+      if(pna){
+        const c2=$('frAktPulverNCS');if(c2)c2.checked=true;if($('frPulverNcsFarbe'))$('frPulverNcsFarbe').value=pna.farbe||'';
+        if(pna.manAkt){
+          setTimeout(()=>{
+            const m=$('frPulverNCSManAkt');if(m)m.checked=true;
+            if($('frPulverNCSManTyp'))$('frPulverNCSManTyp').value=pna.manTyp||'stueck';
+            if($('frPulverNCSManPreis'))$('frPulverNCSManPreis').value=pna.manPreis||'';
+          },60);
+        }
+      }
       const pia=p.pulverIGP||p.frPulverIGP;
-      if(pia){const c2=$('frAktPulverIGP');if(c2)c2.checked=true;if($('frPulverIgpFarbe'))$('frPulverIgpFarbe').value=pia.farbe||'';}
+      if(pia){
+        const c2=$('frAktPulverIGP');if(c2)c2.checked=true;if($('frPulverIgpFarbe'))$('frPulverIgpFarbe').value=pia.farbe||'';
+        if(pia.manAkt){
+          setTimeout(()=>{
+            const m=$('frPulverIGPManAkt');if(m)m.checked=true;
+            if($('frPulverIGPManTyp'))$('frPulverIGPManTyp').value=pia.manTyp||'stueck';
+            if($('frPulverIGPManPreis'))$('frPulverIGPManPreis').value=pia.manPreis||'';
+          },60);
+        }
+      }
 
       setTimeout(()=>{
         buildFrBefestigung();
