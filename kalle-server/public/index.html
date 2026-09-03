@@ -609,10 +609,11 @@ a, button, input, select, textarea, label,
           </label>
           <div style="display:flex;gap:6px;align-items:center;">
             <input type="text" id="projFirmaName" placeholder="Muster AG" style="flex:1;"
-              oninput="$('projFirmaAutoHint').textContent=''">
+              oninput="$('projFirmaAutoHint').textContent='';projFirmaDupeDebounced('projFirmaName','projFirmaDupeHint');">
             <button type="button" class="btn btn-gh" onclick="projSyncFromAuftrag()"
               style="font-size:10px;padding:4px 8px;flex-shrink:0;" title="Aus Auftragsdaten übernehmen">↺ Sync</button>
           </div>
+          <div id="projFirmaDupeHint" style="font-size:10.5px;margin-top:5px;line-height:1.6;"></div>
         </div>
       </div>
 
@@ -2867,9 +2868,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.23';
+const UI_VERSION='V9.24';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.24','Reaktor · Firmenname-Dublettenprüfung neu. Ursache geklärt: Das Firmenname-Feld war zwar bereits editierbar, aber der Server legt einen bestehenden Ordner nur bei EXAKTER (klein/gross-unabhängiger) Übereinstimmung wieder ab — erkennt die E-Mail-Auslesung z. B. „Firmenkunden AG" statt des bereits bestehenden Ordners „Firmenkunden", entstand bisher unbemerkt ein zweiter, praktisch identischer Ordner. Jetzt prüft das Firmenname-Feld (Reaktor Schritt „Ablageort" UND der Ablage-Dialog beim Offerte-Speichern) live und rechtsform-unabhängig (AG/GmbH/SA/… werden beim Vergleich ignoriert) gegen die bereits bestehenden Firmenkunden-Ordner: bei exaktem Treffer erscheint „✓ Bestehender Ordner wird verwendet", bei blosser Ähnlichkeit ein Hinweis mit Vorschlag und Ein-Klick-Übernehmen-Button. Neue Server-Route GET /projekte/firmen liefert dafür die bestehenden Ordnernamen (muss mit dem Backend-Update ausgeliefert werden). Mit Playwright getestet: AG/GmbH-Varianten, exakte Treffer, Firmennamen mit Apostroph (dabei ein Escaping-Bug im ersten Wurf gefunden und behoben — JSON.stringify kollidierte mit dem doppelt gequoteten onclick-Attribut), sowie der Negativfall (echt unterschiedliche Firmen lösen zu Recht keinen Hinweis aus).'],
   ['V9.23','Fahrzeugbeschriftung komplett neu: statt fester Pakete ("2-farbig"/"Digitaldruck" je Fahrzeugtyp) jetzt ein Bausteine-System — Technik (Folienplot/Digitaldruck) wählen, dann in 4 Bereichen (Türen, Motorhaube, Heck, Seiten) einzeln ankreuzen, was beschriftet wird (Logo, Adresse/Text, Digitaldruck „Design", Teilfolierung/halbe Vollfolierung). Der Preis ergibt sich direkt aus der Auswahl, keine vorgegebene Stufe mehr nötig. Jeder Baustein hat einen Grundpreis (Basis Kleinwagen) und wird bei skalierten Bausteinen automatisch mit dem Grössenfaktor des gewählten Fahrzeugtyps multipliziert (Kleinwagen 1.0 … Grosser Kastenwagen 2.87, aus den bisherigen Richtpreisen hergeleitet). Die Fahrzeug-Vorschau zeigt jetzt live rote Markierungen genau für die angehakten Bausteine (Logo/Text als Punkte, Design/Teilfolierung als unterschiedlich grosse Flächen) — direkte visuelle Bestätigung der Auswahl. Admin → Fahrzeug entsprechend neu aufgebaut: eigene Tabelle für Grössenfaktoren, eigene Tabelle für Bausteine-Grundpreise (inkl. Bereich, Anzahl, skaliert Ja/Nein, Plot-/Digital-Preis separat). Positionsliste und Offert-PDF zeigen neu eine Kurz-Zusammenfassung der gewählten Bausteine je Bereich statt nur "2-farbig"/"Digitaldruck".'],
   ['V9.22','Fahrzeugbeschriftung · Ursache für „Preise werden nicht angezeigt, Visualisierung funktioniert nicht" gefunden und behoben. Der Code selbst (SVG-Konturen, Preise, Berechnung) war korrekt — das Problem lag am Laden gespeicherter Preisdaten aus dem Browser: Die Merge-Funktion beim Start (loadP) ersetzt Listen wie P.fahrzeug.typen beim Zusammenführen komplett statt sie feldweise abzugleichen. War diese Liste im Browser aus einem älteren Zwischenstand unvollständig oder mit Preis 0 gespeichert (z. B. vor Einführung der Fahrzeugbeschriftung in V3.8), blieb das dauerhaft hängen — sichtbar als leere Preise und fehlende Fahrzeug-Silhouette. Jetzt wird beim Laden gezielt geprüft, ob alle 5 Fahrzeugtypen mit gültigen Preisen vorhanden sind; falls nicht, werden ausschliesslich die Fahrzeug-Preisdaten auf die geprüften Defaults zurückgesetzt — alle anderen im Admin angepassten Preise (Schildmaterial, Veredelungen usw.) bleiben unangetastet. Mit einem Playwright-Testlauf verifiziert: beschädigte Daten simuliert → automatische Reparatur ausgelöst → korrekte Preise (CHF 470/550/670/1150/1370) und Silhouetten wieder sichtbar, andere Anpassungen unverändert erhalten.'],
   ['V9.21','Weitere Bugs im Zuge von V9.20 gefunden und mitbehoben (gleiche Baustelle, gleiche Ursache: manuelle Preise bei Oberflächen unvollständig verdrahtet). (1) Reliefschriften: Eloxieren UND Brünieren wurden beim erneuten Öffnen einer gespeicherten Position bisher gar nicht wiederhergestellt (nur Nasslack funktionierte) — beide jetzt korrekt restauriert, inkl. der neuen manuellen Preise aus V9.20. (2) Schild: Pulver Spezial/IGP hatte bereits ein Eingabefeld für einen manuellen Preis — das floss aber nie in die Berechnung ein (totes UI-Element, Badge blieb immer beim Listenpreis). Jetzt korrekt wirksam. (3) Schild: Pulver RAL und Pulver NCS hatten noch gar keinen manuellen Preis — analog zu Reliefschriften (V9.20) ergänzt, hier über das bereits vorhandene generische System (buildManualEKSection/applyManualEK), das für Schild schon an anderer Stelle im Einsatz war.'],
@@ -14193,6 +14195,64 @@ function updateProjPfadVorschau(){
   }, 500);
 });
 
+// ── Firmenname-Dublettenprüfung ─────────────────────────────────────────────
+// Der Server legt einen bestehenden Ordner nur bei EXAKTER (klein/gross-
+// unabhängiger) Namensübereinstimmung wieder ab (findExisting in projekte.js).
+// Kommt aus der E-Mail-Erkennung z. B. "Firmenkunden AG" statt "Firmenkunden",
+// entsteht sonst unbemerkt ein zweiter Ordner für dieselbe Firma. Diese
+// Prüfung vergleicht deshalb zusätzlich rechtsform-unabhängig (AG/GmbH/SA/…
+// werden beim Vergleich ignoriert) gegen die bereits bestehenden Firmenkunden-
+// Ordner und schlägt bei Ähnlichkeit den exakten bestehenden Namen vor.
+const PROJ_FIRMA_SUFFIXE=/\b(ag|gmbh|sa|sàrl|kg|ev|inc|ltd|llc|co|genossenschaft|einzelfirma)\b\.?/gi;
+function projNormFirma(s){
+  return String(s||'').toLowerCase()
+    .replace(PROJ_FIRMA_SUFFIXE,' ')
+    .replace(/[.,&_-]/g,' ')
+    .replace(/\s+/g,' ')
+    .trim();
+}
+let _projFirmenListeCache=null;
+async function projLadeFirmenListe(){
+  if(_projFirmenListeCache) return _projFirmenListeCache;
+  try{
+    const r=await fetch(KALLE_SERVER+'/projekte/firmen');
+    const d=await r.json();
+    _projFirmenListeCache=(d&&d.namen)||[];
+  }catch(e){ _projFirmenListeCache=[]; }
+  return _projFirmenListeCache;
+}
+let _projFirmaDupeTimer=null;
+function projFirmaDupeDebounced(inputId,hintId){
+  clearTimeout(_projFirmaDupeTimer);
+  _projFirmaDupeTimer=setTimeout(()=>projFirmaCheckDupe(inputId,hintId),350);
+}
+async function projFirmaCheckDupe(inputId,hintId){
+  const el=$(inputId); const hintEl=$(hintId);
+  if(!el||!hintEl) return;
+  const val=el.value.trim();
+  if(!val || !serverVerfuegbar){ hintEl.innerHTML=''; return; }
+  const liste=await projLadeFirmenListe();
+  if(!liste.length){ hintEl.innerHTML=''; return; }
+  // exakter Treffer (case-insensitiv) — genau das, was der Server sowieso wiederverwendet
+  if(liste.some(n=>n.toLowerCase()===val.toLowerCase())){
+    hintEl.innerHTML='<span style="color:var(--green);">✓ Bestehender Ordner wird verwendet</span>';
+    return;
+  }
+  const nv=projNormFirma(val);
+  const aehnlich=nv?liste.find(n=>projNormFirma(n)===nv):null;
+  if(aehnlich){
+    // Für das inline onclick (in doppelten Anführungszeichen) muss der Firmenname
+    // selbst mit EINFACHEN Anführungszeichen escaped werden — JSON.stringify()
+    // liefert doppelte und würde das umschliessende Attribut zerreissen.
+    const escVal=String(aehnlich).replace(/\\/g,'\\\\').replace(/'/g,"\\'");
+    const escHtml=String(aehnlich).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+    hintEl.innerHTML='⚠ Ähnlicher Ordner bereits vorhanden: <b>'+escHtml+'</b> '
+      +'<button type="button" class="btn btn-gh" style="font-size:9px;padding:2px 7px;margin-left:4px;" '
+      +'onclick="$(\''+inputId+'\').value=\''+escVal+'\';projFirmaCheckDupe(\''+inputId+'\',\''+hintId+'\');">Übernehmen</button>';
+  } else {
+    hintEl.innerHTML='';
+  }
+}
 async function erstelleProjektordner(){
   if(!serverVerfuegbar){
     showToast('Server nicht erreichbar','error'); return;
@@ -14354,7 +14414,7 @@ function restoreProjektMeta(auftrag){
   }
   const m = window._projektMeta;
   if(m?.typ)    setProjTyp(m.typ);
-  if(m?.firma)  { const e=$('projFirmaName'); if(e) e.value=m.firma; }
+  if(m?.firma)  { const e=$('projFirmaName'); if(e){ e.value=m.firma; projFirmaCheckDupe('projFirmaName','projFirmaDupeHint'); } }
   if(m?.ort)    { const e=$('projOrt');       if(e) e.value=m.ort; }
   if(m?.strasse){ const e=$('projStrasse');   if(e) e.value=m.strasse; }
   if(m?.nr)     { const e=$('projNr');        if(e) e.value=m.nr; }
@@ -14612,6 +14672,7 @@ function projSyncFromAuftrag(){
       if(fn) fn.value = kundenname;
       const hint = $('projFirmaAutoHint');
       if(hint) hint.textContent = '✓ aus Auftragsdaten';
+      projFirmaCheckDupe('projFirmaName','projFirmaDupeHint');
     } else {
       showToast('Kein Kundenname in Auftragsdaten','error');
     }
@@ -16319,8 +16380,10 @@ function zeigeAblageDialog(onConfirm, onSkip){
         <div style="margin-bottom:10px;">
           <div style="font-size:10px;color:var(--accent);text-transform:uppercase;letter-spacing:.5px;margin-bottom:3px;">Firmenname</div>
           <input id="ablFirmaName" type="text" value="${firma}"
+            oninput="projFirmaDupeDebounced('ablFirmaName','ablFirmaDupeHint');"
             style="width:100%;background:var(--surface2);border:1px solid var(--border);color:var(--text);
               padding:8px 10px;border-radius:6px;font-size:13px;" placeholder="z.B. Richnerstutz AG">
+          <div id="ablFirmaDupeHint" style="font-size:10.5px;margin-top:5px;line-height:1.6;"></div>
         </div>
       </div>
 
