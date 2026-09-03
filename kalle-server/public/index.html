@@ -2454,12 +2454,17 @@ a, button, input, select, textarea, label,
       #fahrzeugForm .fz-tag-plot{color:#4a6b3a;background:#e9f2e3;}
       #fahrzeugForm .fz-bopt-digi{border-style:dashed;}
       #fahrzeugForm .fz-bopt-digi.on{border-style:solid;}
-      #fahrzeugForm .fz-groessen{display:grid;grid-template-columns:1fr 1fr 1fr;gap:6px;margin:-2px 0 8px 26px;}
+      #fahrzeugForm .fz-groessen{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:6px;margin:-2px 0 8px 26px;}
       #fahrzeugForm .fz-gopt{border:1.5px solid #e7e4dc;border-radius:7px;padding:6px 4px;text-align:center;cursor:pointer;background:#fff;transition:.12s;}
       #fahrzeugForm .fz-gopt:hover{border-color:#E8B800;}
       #fahrzeugForm .fz-gopt.on{border-color:#E8B800;background:#fffdf4;box-shadow:0 0 0 2px rgba(232,184,0,.2);}
       #fahrzeugForm .fz-gopt-nm{font-size:11px;font-weight:700;color:#1a1a1a;}
       #fahrzeugForm .fz-gopt-pr{font-size:10px;color:#8a6d00;font-weight:600;font-family:ui-monospace,monospace;margin-top:1px;}
+      #fahrzeugForm .fz-gopt-frei{border-style:dashed;}
+      #fahrzeugForm .fz-gopt-frei.on{border-style:solid;}
+      #fahrzeugForm .fz-frei{display:grid;grid-template-columns:1fr auto;gap:8px 10px;margin:0 0 8px 26px;padding:9px 10px;background:#faf9f6;border:1px solid #e7e4dc;border-radius:8px;}
+      #fahrzeugForm .fz-frei .field label{font-size:9.5px;}
+      #fahrzeugForm .fz-frei .field input{width:100%;}
       #fahrzeugForm .fz-opt{display:flex;align-items:center;gap:9px;font-size:12.5px;color:#33312b;padding:5px 0;}
       #fahrzeugForm .fz-opt input[type=checkbox]{width:16px;height:16px;accent-color:#E8B800;}
       #fahrzeugForm .fz-op{margin-left:auto;font-size:11px;color:#8a8577;font-family:ui-monospace,monospace;}
@@ -2503,6 +2508,10 @@ a, button, input, select, textarea, label,
           <div class="fz-g2">
             <div><label class="fz-fl">Marke</label><select id="fzMarke"></select></div>
             <div><label class="fz-fl">Modell</label><select id="fzModell"></select></div>
+          </div>
+          <div style="margin-top:10px;">
+            <label class="fz-fl">Variante <span style="font-weight:500;text-transform:none;letter-spacing:0;color:#a09a8c;">(optional — z. B. L2H2, Kompakt, Lang, 4-türig)</span></label>
+            <input type="text" id="fzVariante" placeholder="z. B. L2H2" style="width:100%;">
           </div>
         </div>
         <div class="fz-card">
@@ -2876,9 +2885,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.26';
+const UI_VERSION='V9.28';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.28','Fahrzeugbeschriftung · Marke/Modell-Liste stark erweitert: von 10 auf 22 Marken, aktuelle Generationen (≤10 Jahre) inkl. Elektrofahrzeuge — neu u. a. Tesla (Model 3/Y/S/X), Audi, BMW, Hyundai, Kia, Volvo, Mini, Dacia, Nissan, Mazda, SEAT/Cupra, sowie bei bestehenden Marken zahlreiche E-Modelle ergänzt (VW ID.3/ID.4/ID. Buzz, Mercedes EQA/EQB/EQC/eVito/eSprinter, Renault Zoe/Mégane E-Tech/Kangoo E-Tech, Peugeot e-208/e-2008, Citroën ë-C3/ë-C4, Opel Corsa-e/Astra Electric, Ford Mustang Mach-E, Toyota bZ4X u.a.). Neues Feld „Variante" (optional) bei Schritt 1 — Freitext für genauere Modellvariante wie L2H2, Kompakt, Lang etc., erscheint automatisch in Positionsbezeichnung, Vorschau-Beschriftung, Positionsliste und Offert-PDF. Mit Playwright getestet: Markenliste, Tesla-Zuordnung, Variante-Feld behält beim Tippen den Fokus, Speichern/Bearbeiten mit Variante (z. B. „Sprinter L2H2") funktioniert vollständig.'],
+  ['V9.27','Fahrzeugbeschriftung · Drei Anpassungen nach Rückmeldung: (1) Digitaldruck-Grössenauswahl (Klein/Mittel/Gross) hat jetzt eine 4. Option „Frei" — Freitext-Beschreibung + frei eintragbarer Preis, verfügbar in JEDEM Bereich inkl. Designfolierung. Preis wird 1:1 übernommen (nicht mit Grössenfaktor skaliert), erscheint korrekt in Zusammenfassung, Positionsliste, Offert-PDF sowie beim Bearbeiten einer gespeicherten Position. (2) Bereich „Seiten" umbenannt in „Designfolierung". (3) MwSt. komplett aus der Fahrzeug-Zusammenfassung entfernt — zeigt jetzt nur noch „Richtpreis (exkl. MwSt.)", analog zu allen anderen Positionstypen im Tool (Schild, Reliefschriften etc. zeigen ebenfalls nur exkl. MwSt., die Steuer wird ausschliesslich einmalig in der Gesamt-Offerte aufgerechnet — die Fahrzeugbeschriftung war hier bisher inkonsistent). Nebenbei behoben: Positions-Kurzbeschrieb zeigte bei Motorhaube fälschlich „Logo/Adresse" statt „Logo" (generischer Text statt des tatsächlichen Basis-Elements). Mit Playwright getestet: Freitext-Feld behält beim Tippen den Fokus (kein voller Re-Render bei jedem Tastenanschlag), korrekte Preisberechnung, Speichern/Bearbeiten mit Frei-Auswahl.'],
   ['V9.26','Fahrzeugbeschriftung · Grundlegend überarbeitet nach Rückmeldung, näher an der Praxis: (1) BUG behoben — Tür-Preise wurden fälschlich ×2 gerechnet, obwohl die hinterlegten Preise bereits für beide Türen zusammen galten (Kleinwagen-Beispiel: bisher CHF 430 Basis, korrekt CHF 330). (2) Logo und Text/Adresse sind auf Türen und Heck jetzt als EIN gebündeltes Basis-Element zusammengefasst (nicht mehr einzeln an/abwählbar), da beides in der Praxis immer zusammen vorkommt. Standardmässig aktiv, immer Folienplot. (3) Der globale Umschalter „Folienplot / Digitaldruck" ist komplett entfernt — ergab in der Praxis keinen Sinn. Stattdessen kann jeder Bereich (Türen/Motorhaube/Heck/Seiten) unabhängig um einen Digitaldruck ERGÄNZT werden, mit eigener Grössenwahl Klein/Mittel/Gross — Preis richtet sich nach der Grösse, nicht nach dem Bereich. (4) Bezeichnung und Notiz stehen jetzt ganz oben vor „1 Fahrzeug" statt am Ende. (5) Vorschau-Marker entsprechend angepasst — Logo/Adresse als Punkt, Digitaldruck-Ergänzung als Fläche, deren Grösse sich sichtbar mit der Klein/Mittel/Gross-Wahl ändert. (6) Admin → Fahrzeug neu strukturiert: Basis-Elemente-Tabelle (Folienplot, je Bereich) + separate Grössen-Tabelle für die Digitaldruck-Ergänzung. Reparatur-Erkennung (V9.22/V9.25) auf das neue Schema umgestellt. Mit Playwright vollständig getestet: Feldreihenfolge, korrigierte Preise (keine Verdopplung mehr), Digitaldruck-Ergänzung + Grössenwahl je Bereich, Speichern/Bearbeiten einer Position, Admin-Panel.'],
   ['V9.25','Fahrzeugbeschriftung · Bug behoben: „Fahrzeugtyp-Auswahl wirkt nicht" und „Bausteine-Liste ist leer/nicht anwählbar". Ursache: Die in V9.22 eingebaute Fahrzeug-Reparatur (prüft P.fahrzeug auf altes/beschädigtes Schema und setzt bei Bedarf zurück) lief bisher NUR beim Laden aus localStorage (loadP). Der separate, automatische Sync mit dem zentralen Server-Preisstand (ladePricesFromServer, läuft ~800ms nach jedem Seitenaufruf, sofern Server erreichbar) ersetzt P davon unabhängig komplett — lag auf dem Server noch ein Preisstand von VOR dem Bausteine-Umbau (V9.23), wurde P.fahrzeug bei JEDEM Seitenaufruf wieder mit der alten Struktur überschrieben, bevor das Formular überhaupt geöffnet wurde. Ohne das neue bausteine-Array lieferte fzB(id) für jeden Baustein "undefined" — die komplette Konfigurations-Liste rendert dann leer (kein Bausteine sichtbar/anwählbar); ohne das neue typen[].faktor-Feld verhielt sich die Fahrzeugtyp-Auswahl fehlerhaft. Die Reparaturlogik ist jetzt in eine gemeinsame Funktion (fzRepairIfNeeded) ausgelagert und läuft an BEIDEN Stellen — loadP UND ladePricesFromServer. Mit Playwright verifiziert: alten Server-Preisstand (Schema von vor V9.23) simuliert, geladen, geprüft dass Reparatur greift, Formular geöffnet, Typ-Auswahl und alle 7 Bausteine-Checkboxen funktionieren wieder korrekt.'],
   ['V9.24','Reaktor · Firmenname-Dublettenprüfung neu. Ursache geklärt: Das Firmenname-Feld war zwar bereits editierbar, aber der Server legt einen bestehenden Ordner nur bei EXAKTER (klein/gross-unabhängiger) Übereinstimmung wieder ab — erkennt die E-Mail-Auslesung z. B. „Firmenkunden AG" statt des bereits bestehenden Ordners „Firmenkunden", entstand bisher unbemerkt ein zweiter, praktisch identischer Ordner. Jetzt prüft das Firmenname-Feld (Reaktor Schritt „Ablageort" UND der Ablage-Dialog beim Offerte-Speichern) live und rechtsform-unabhängig (AG/GmbH/SA/… werden beim Vergleich ignoriert) gegen die bereits bestehenden Firmenkunden-Ordner: bei exaktem Treffer erscheint „✓ Bestehender Ordner wird verwendet", bei blosser Ähnlichkeit ein Hinweis mit Vorschlag und Ein-Klick-Übernehmen-Button. Neue Server-Route GET /projekte/firmen liefert dafür die bestehenden Ordnernamen (muss mit dem Backend-Update ausgeliefert werden). Mit Playwright getestet: AG/GmbH-Varianten, exakte Treffer, Firmennamen mit Apostroph (dabei ein Escaping-Bug im ersten Wurf gefunden und behoben — JSON.stringify kollidierte mit dem doppelt gequoteten onclick-Attribut), sowie der Negativfall (echt unterschiedliche Firmen lösen zu Recht keinen Hinweis aus).'],
@@ -12531,17 +12542,120 @@ var FZ_MK = {
     win:     {x:16, y:28, d:17},
   },
 };
+// Marke → Modell-Liste: aktuelle Generationen (≤10 Jahre), inkl. Elektrofahrzeuge.
+// "Andere / manuell" bleibt als Fallback für alles Nicht-Gelistete.
 var FZ_MARKE = {
- 'VW':[['Polo','klein'],['Golf','klein'],['Passat','mittel'],['Caddy','kkasten'],['Transporter T6','transp'],['Crafter','gkasten']],
- 'Mercedes':[['A-Klasse','klein'],['C-Klasse','mittel'],['Citan','kkasten'],['Vito','transp'],['Sprinter','gkasten']],
- 'Renault':[['Clio','klein'],['Mégane','mittel'],['Kangoo','kkasten'],['Trafic','transp'],['Master','gkasten']],
- 'Peugeot':[['208','klein'],['508','mittel'],['Rifter / Partner','kkasten'],['Expert','transp'],['Boxer','gkasten']],
- 'Citroën':[['C3','klein'],['Berlingo','kkasten'],['Jumpy','transp'],['Jumper','gkasten']],
- 'Fiat':[['500','klein'],['Doblò','kkasten'],['Talento','transp'],['Ducato','gkasten']],
- 'Opel':[['Corsa','klein'],['Insignia','mittel'],['Combo','kkasten'],['Vivaro','transp'],['Movano','gkasten']],
- 'Ford':[['Fiesta','klein'],['Mondeo','mittel'],['Transit Connect','kkasten'],['Transit Custom','transp'],['Transit','gkasten']],
- 'Toyota':[['Yaris','klein'],['Corolla','mittel'],['Proace City','kkasten'],['Proace','transp']],
- 'Škoda':[['Fabia','klein'],['Octavia','mittel']],
+ 'VW':[
+   ['Polo','klein'],['up! / e-up!','klein'],['T-Cross','klein'],
+   ['Golf','mittel'],['ID.3','mittel'],['ID.4','mittel'],['ID.5','mittel'],['ID.7','mittel'],['Passat','mittel'],['Tiguan','mittel'],['T-Roc','mittel'],['Arteon','mittel'],
+   ['Caddy','kkasten'],
+   ['Transporter T6.1 / T7','transp'],['Multivan','transp'],['ID. Buzz','transp'],
+   ['Crafter','gkasten'],
+ ],
+ 'Mercedes':[
+   ['A-Klasse','klein'],['B-Klasse','klein'],
+   ['EQA','mittel'],['C-Klasse','mittel'],['EQB','mittel'],['E-Klasse','mittel'],['EQC','mittel'],['GLA','mittel'],['GLB','mittel'],['GLC','mittel'],
+   ['Citan','kkasten'],
+   ['Vito','transp'],['eVito','transp'],
+   ['Sprinter','gkasten'],['eSprinter','gkasten'],
+ ],
+ 'Audi':[
+   ['A1','klein'],['Q2','klein'],
+   ['A3','mittel'],['Q3','mittel'],['A4','mittel'],['Q4 e-tron','mittel'],['A6','mittel'],['Q5','mittel'],['Q8 e-tron','mittel'],
+ ],
+ 'BMW':[
+   ['1er','klein'],['i3','klein'],['2er Active Tourer','klein'],
+   ['3er','mittel'],['X1','mittel'],['iX1','mittel'],['5er','mittel'],['X3','mittel'],['i4','mittel'],['iX','mittel'],
+ ],
+ 'Tesla':[
+   ['Model 3','mittel'],['Model Y','mittel'],['Model S','mittel'],['Model X','mittel'],
+ ],
+ 'Renault':[
+   ['Twingo','klein'],['Clio','klein'],['Zoe','klein'],['Captur','klein'],
+   ['Mégane','mittel'],['Mégane E-Tech','mittel'],['Austral','mittel'],['Scenic E-Tech','mittel'],
+   ['Kangoo','kkasten'],['Kangoo E-Tech','kkasten'],
+   ['Trafic','transp'],
+   ['Master','gkasten'],
+ ],
+ 'Peugeot':[
+   ['108','klein'],['208','klein'],['e-208','klein'],
+   ['2008','mittel'],['e-2008','mittel'],['308','mittel'],['3008','mittel'],['508','mittel'],
+   ['Rifter / Partner','kkasten'],
+   ['Expert','transp'],
+   ['Boxer','gkasten'],
+ ],
+ 'Citroën':[
+   ['C1','klein'],['C3','klein'],['ë-C3','klein'],['C3 Aircross','klein'],
+   ['C4','mittel'],['ë-C4','mittel'],['C5 Aircross','mittel'],
+   ['Berlingo','kkasten'],
+   ['Jumpy','transp'],
+   ['Jumper','gkasten'],
+ ],
+ 'Fiat':[
+   ['500','klein'],['500e','klein'],['Panda','klein'],['Tipo','klein'],
+   ['Doblò','kkasten'],
+   ['Talento','transp'],['Scudo','transp'],
+   ['Ducato','gkasten'],
+ ],
+ 'Opel':[
+   ['Corsa','klein'],['Corsa-e','klein'],['Crossland','klein'],
+   ['Astra','mittel'],['Astra Electric','mittel'],['Grandland','mittel'],['Insignia','mittel'],
+   ['Combo','kkasten'],
+   ['Vivaro','transp'],
+   ['Movano','gkasten'],
+ ],
+ 'Ford':[
+   ['Fiesta','klein'],['Puma','klein'],
+   ['Focus','mittel'],['Kuga','mittel'],['Mustang Mach-E','mittel'],['Explorer','mittel'],
+   ['Transit Connect','kkasten'],
+   ['Transit Custom','transp'],
+   ['Transit','gkasten'],
+ ],
+ 'Toyota':[
+   ['Aygo X','klein'],['Yaris','klein'],['Yaris Cross','klein'],
+   ['Corolla','mittel'],['C-HR','mittel'],['RAV4','mittel'],['bZ4X','mittel'],
+   ['Proace City','kkasten'],
+   ['Proace','transp'],
+ ],
+ 'Škoda':[
+   ['Fabia','klein'],['Scala','klein'],['Kamiq','klein'],
+   ['Octavia','mittel'],['Enyaq','mittel'],['Karoq','mittel'],['Superb','mittel'],
+ ],
+ 'SEAT / Cupra':[
+   ['Ibiza','klein'],['Arona','klein'],
+   ['Leon','mittel'],['Cupra Born','mittel'],['Ateca','mittel'],['Cupra Formentor','mittel'],
+ ],
+ 'Hyundai':[
+   ['i10','klein'],['i20','klein'],
+   ['Kona','mittel'],['Kona Electric','mittel'],['i30','mittel'],['Ioniq 5','mittel'],['Ioniq 6','mittel'],['Tucson','mittel'],
+ ],
+ 'Kia':[
+   ['Picanto','klein'],['Rio','klein'],['Stonic','klein'],
+   ['Ceed','mittel'],['Niro','mittel'],['EV6','mittel'],['Sportage','mittel'],
+ ],
+ 'Volvo':[
+   ['EX30','klein'],
+   ['S60','mittel'],['V60','mittel'],['XC40','mittel'],['C40 Recharge','mittel'],['XC60','mittel'],
+ ],
+ 'Mini':[
+   ['Cooper','klein'],['Cooper SE','klein'],
+   ['Countryman','mittel'],
+ ],
+ 'Dacia':[
+   ['Sandero','klein'],['Spring','klein'],['Duster','klein'],
+   ['Jogger','mittel'],
+ ],
+ 'Nissan':[
+   ['Micra','klein'],['Juke','klein'],
+   ['Leaf','mittel'],['Qashqai','mittel'],['Ariya','mittel'],
+   ['NV200 / Townstar','kkasten'],
+   ['Primastar','transp'],
+   ['Interstar','gkasten'],
+ ],
+ 'Mazda':[
+   ['2','klein'],['CX-3','klein'],
+   ['3','mittel'],['CX-30','mittel'],['MX-30','mittel'],['CX-5','mittel'],
+ ],
  'Andere / manuell':[['Kleinwagen','klein'],['Limousine','mittel'],['Kleiner Kastenwagen','kkasten'],['Transporter','transp'],['Grosser Kastenwagen','gkasten']]
 };
 // _fzSel.bausteine: welche Bausteine sind angehakt (Checkbox-Zustand je Bereich)
@@ -12549,7 +12663,7 @@ var FZ_MARKE = {
 // _fzSel.digital: je Bereich optionale Digitaldruck-Ergänzung mit Grösse.
 var _fzSel = {marke:'VW',modell:0,typ:'klein',
   basis:{tueren:true,haube:true,heck:true},
-  digital:{tueren:{on:false,groesse:'klein'},haube:{on:false,groesse:'klein'},heck:{on:false,groesse:'klein'},seiten:{on:false,groesse:'mittel'}}};
+  digital:{tueren:{on:false,groesse:'klein',frei:{text:'',preis:0}},haube:{on:false,groesse:'klein',frei:{text:'',preis:0}},heck:{on:false,groesse:'klein',frei:{text:'',preis:0}},seiten:{on:false,groesse:'mittel',frei:{text:'',preis:0}}}};
 function fzTypen(){ return (P.fahrzeug&&P.fahrzeug.typen)||[]; }
 function fzBasisArr(){ return (P.fahrzeug&&P.fahrzeug.basis)||[]; }
 function fzGroessenArr(){ return (P.fahrzeug&&P.fahrzeug.digitalGroessen)||[]; }
@@ -12603,7 +12717,7 @@ var FZ_BEREICHE=[
   {id:'tueren', nm:'① Türen',      hasBasis:true},
   {id:'haube',  nm:'② Motorhaube', hasBasis:true},
   {id:'heck',   nm:'③ Heck',       hasBasis:true},
-  {id:'seiten', nm:'④ Seiten',     hasBasis:false},
+  {id:'seiten', nm:'④ Designfolierung', hasBasis:false},
 ];
 // Groblatzhalter-Preis fürs Typ-Kärtchen: Standardauswahl (alle Basis-
 // Elemente an, keine Digitaldruck-Ergänzung), zur groben Orientierung.
@@ -12627,9 +12741,10 @@ function fzRenderKonfig(){ const el=$('fzKonfig'); if(!el)return; const t=fzT(_f
         +'<span class="fz-bopt-pr">'+fzMoney(preis)+'</span>'
         +'</label>';
     }
-    const d=_fzSel.digital[ber.id]||{on:false,groesse:(groessen[0]?groessen[0].id:'klein')};
-    const gEl=fzGroesseEl(d.groesse)||groessen[0];
-    const gPreis=gEl?(gEl.skaliert?gEl.preis*t.faktor:gEl.preis):0;
+    const d=_fzSel.digital[ber.id]||{on:false,groesse:(groessen[0]?groessen[0].id:'klein'),frei:{text:'',preis:0}};
+    const istFrei=d.groesse==='frei';
+    const gEl=istFrei?null:(fzGroesseEl(d.groesse)||groessen[0]);
+    const gPreis=istFrei?((d.frei&&d.frei.preis)||0):(gEl?(gEl.skaliert?gEl.preis*t.faktor:gEl.preis):0);
     html+='<label class="fz-bopt fz-bopt-digi'+(d.on?' on':'')+'">'
       +'<input type="checkbox" data-digi="'+ber.id+'"'+(d.on?' checked':'')+'>'
       +'<span class="fz-bopt-nm">+ Digitaldruck ergänzen</span>'
@@ -12640,7 +12755,19 @@ function fzRenderKonfig(){ const el=$('fzKonfig'); if(!el)return; const t=fzT(_f
         const gp=g.skaliert?g.preis*t.faktor:g.preis;
         return '<div class="fz-gopt'+(g.id===d.groesse?' on':'')+'" data-groesse-ber="'+ber.id+'" data-groesse-val="'+g.id+'">'
           +'<div class="fz-gopt-nm">'+g.nm+'</div><div class="fz-gopt-pr">'+fzMoney(gp)+'</div></div>';
-      }).join('')+'</div>';
+      }).join('')
+      +'<div class="fz-gopt fz-gopt-frei'+(istFrei?' on':'')+'" data-groesse-ber="'+ber.id+'" data-groesse-val="frei">'
+      +'<div class="fz-gopt-nm">Frei</div><div class="fz-gopt-pr">'+(istFrei?fzMoney(gPreis):'…')+'</div></div>'
+      +'</div>';
+      if(istFrei){
+        const freiText=(d.frei&&d.frei.text)||'';
+        const freiPreis=(d.frei&&d.frei.preis)||'';
+        html+='<div class="fz-frei">'
+          +'<div class="field"><label>Beschreibung</label><input type="text" data-frei-text-ber="'+ber.id+'" value="'+freiText.replace(/"/g,'&quot;')+'" placeholder="z. B. Sonderformat Heckscheibe"></div>'
+          +'<div class="field" style="max-width:120px;"><label>Preis CHF</label><input type="number" data-frei-preis-ber="'+ber.id+'" value="'+freiPreis+'" min="0" step="10" placeholder="0"></div>'
+          +'<div class="fz-mut" style="grid-column:1/-1;">Preis wird 1:1 übernommen, nicht mit dem Grössenfaktor skaliert.</div>'
+          +'</div>';
+      }
     }
     html+='</div>';
     return html;
@@ -12650,17 +12777,49 @@ function fzRenderKonfig(){ const el=$('fzKonfig'); if(!el)return; const t=fzT(_f
   Array.prototype.forEach.call(el.querySelectorAll('input[data-digi]'),function(c){
     c.onchange=function(){
       const ber=c.getAttribute('data-digi');
-      if(!_fzSel.digital[ber]) _fzSel.digital[ber]={on:false,groesse:'klein'};
+      if(!_fzSel.digital[ber]) _fzSel.digital[ber]={on:false,groesse:'klein',frei:{text:'',preis:0}};
       _fzSel.digital[ber].on=c.checked;
       fzRender();
     }; });
   Array.prototype.forEach.call(el.querySelectorAll('[data-groesse-ber]'),function(c){
     c.onclick=function(){
       const ber=c.getAttribute('data-groesse-ber'), val=c.getAttribute('data-groesse-val');
-      if(!_fzSel.digital[ber]) _fzSel.digital[ber]={on:true,groesse:val};
+      if(!_fzSel.digital[ber]) _fzSel.digital[ber]={on:true,groesse:val,frei:{text:'',preis:0}};
+      if(!_fzSel.digital[ber].frei) _fzSel.digital[ber].frei={text:'',preis:0};
       _fzSel.digital[ber].groesse=val;
       fzRender();
+    }; });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-frei-text-ber]'),function(c){
+    c.oninput=function(){
+      const ber=c.getAttribute('data-frei-text-ber');
+      if(!_fzSel.digital[ber].frei) _fzSel.digital[ber].frei={text:'',preis:0};
+      _fzSel.digital[ber].frei.text=c.value;
+      fzCalc(); // Preis/Vorschau aktualisieren ohne die Eingabe zu verlieren (kein voller fzRender)
+      const row=c.closest('.fz-bereich').querySelector('.fz-bopt-digi .fz-bopt-pr');
+      if(row) row.textContent=fzMoney((_fzSel.digital[ber].frei.preis)||0);
+    }; });
+  Array.prototype.forEach.call(el.querySelectorAll('[data-frei-preis-ber]'),function(c){
+    c.oninput=function(){
+      const ber=c.getAttribute('data-frei-preis-ber');
+      if(!_fzSel.digital[ber].frei) _fzSel.digital[ber].frei={text:'',preis:0};
+      _fzSel.digital[ber].frei.preis=parseFloat(c.value)||0;
+      fzUpdateSumOnly();
+      const row=c.closest('.fz-bereich').querySelector('.fz-bopt-digi .fz-bopt-pr');
+      if(row) row.textContent=fzMoney(_fzSel.digital[ber].frei.preis);
+      const gopt=c.closest('.fz-bereich').querySelector('.fz-gopt-frei .fz-gopt-pr');
+      if(gopt) gopt.textContent=fzMoney(_fzSel.digital[ber].frei.preis);
     }; }); }
+// Aktualisiert nur die Preis-Zusammenfassung/Vorschau, ohne die Konfig-Liste
+// (und damit die Text-Eingabefelder) neu zu rendern — sonst verliert das
+// Freitext-Feld bei jedem Tastenanschlag den Fokus.
+function fzUpdateSumOnly(){
+  const t=fzT(_fzSel.typ); const cfg=fzCfg();
+  const r=fzCalc();
+  $('fzOpFen').textContent='+ CHF '+(r.isVan?cfg.fensterVan:cfg.fensterCar);
+  let html=r.lines.length?r.lines.map(x=>'<div class="fz-sr"><span class="l">'+x[0]+'</span><span class="v">'+fzMoney(x[1])+'</span></div>').join(''):'<div class="fz-sr"><span class="l fz-mut">Noch nichts ausgewählt</span></div>';
+  html+='<div class="fz-sr tot"><span class="l">Richtpreis (exkl. MwSt.)'+(r.manual?' · manuell (auto '+fzMoney(r.auto)+')':'')+'</span><span class="v">'+fzMoney(r.total)+'</span></div>';
+  $('fzSum').innerHTML=html;
+}
 function fzSyncModellToTyp(){ const list=FZ_MARKE[_fzSel.marke]||[]; const idx=list.findIndex(x=>x[1]===_fzSel.typ);
   if(idx<0){ _fzSel.marke='Andere / manuell'; const l2=FZ_MARKE[_fzSel.marke]; _fzSel.modell=Math.max(0,l2.findIndex(x=>x[1]===_fzSel.typ)); fzFillMarke(); }
   else { _fzSel.modell=idx; fzFillModell(); } }
@@ -12670,9 +12829,12 @@ function fzBausteineSummary(p){
   const basis=p&&p.fzBasis||{}; const digital=p&&p.fzDigital||{}; const parts=[];
   FZ_BEREICHE.forEach(function(ber){
     const bits=[];
-    if(ber.hasBasis && basis[ber.id]) bits.push('Logo/Adresse');
+    if(ber.hasBasis && basis[ber.id]){ const b=fzBasisEl(ber.id); bits.push(b?b.nm:'Logo'); }
     const d=digital[ber.id];
-    if(d&&d.on){ const g=fzGroesseEl(d.groesse); bits.push('Digitaldruck '+(g?g.nm:d.groesse)); }
+    if(d&&d.on){
+      if(d.groesse==='frei'){ bits.push('Digitaldruck '+((d.frei&&d.frei.text)||'frei')); }
+      else { const g=fzGroesseEl(d.groesse); bits.push('Digitaldruck '+(g?g.nm:d.groesse)); }
+    }
     if(bits.length) parts.push(ber.nm.replace(/^[①②③④]\s*/,'')+' ('+bits.join('+')+')');
   });
   return parts.join(' · ')||'–';
@@ -12693,11 +12855,22 @@ function fzCalc(){ const t=fzT(_fzSel.typ); const cfg=fzCfg();
     }
     const d=_fzSel.digital[ber.id];
     if(d&&d.on){
-      const g=fzGroesseEl(d.groesse);
-      if(g){
-        const preis=g.skaliert?g.preis*t.faktor:g.preis;
-        sumStk+=preis;
-        lines.push(['Digitaldruck '+g.nm+' ('+ber.nm.replace(/^[①②③④]\s*/,'')+')', preis]);
+      if(d.groesse==='frei'){
+        // Freitext-Preis wird 1:1 übernommen, NICHT mit dem Grössenfaktor skaliert
+        // (Nutzer hat den Preis bereits konkret für dieses Fahrzeug festgelegt).
+        const preis=(d.frei&&d.frei.preis)||0;
+        if(preis>0){
+          sumStk+=preis;
+          const bez=(d.frei&&d.frei.text)?(d.frei.text+' '):'';
+          lines.push(['Digitaldruck '+bez+'('+ber.nm.replace(/^[①②③④]\s*/,'')+')', preis]);
+        }
+      } else {
+        const g=fzGroesseEl(d.groesse);
+        if(g){
+          const preis=g.skaliert?g.preis*t.faktor:g.preis;
+          sumStk+=preis;
+          lines.push(['Digitaldruck '+g.nm+' ('+ber.nm.replace(/^[①②③④]\s*/,'')+')', preis]);
+        }
       }
     }
   });
@@ -12715,35 +12888,33 @@ function fzRender(){ const f=$('fahrzeugForm'); if(!f||f.style.display==='none')
   $('fzGrafHint').textContent='Richtwert '+t.gest+' h inkl. · mehr = × CHF '+cfg.grafikSatz;
   const r=fzCalc();
   $('fzOpFen').textContent='+ CHF '+(r.isVan?cfg.fensterVan:cfg.fensterCar);
-  $('fzPvCap').textContent=t.nm;
+  $('fzPvCap').textContent=t.nm+(($('fzVariante')&&$('fzVariante').value.trim())?' '+$('fzVariante').value.trim():'');
   $('fzPvPic').innerHTML=fzTypeSvg(t)+'<div class="fz-digband"></div>'+fzMarkerHtml(t);
   $('fzLeg').innerHTML=fzLegHtml(t);
   const hasDigitalOn=['tueren','haube','heck','seiten'].some(b=>_fzSel.digital[b]&&_fzSel.digital[b].on);
   $('fzPreview').className='fz-preview'+(hasDigitalOn?' dig':'');
   let html=r.lines.length?r.lines.map(x=>'<div class="fz-sr"><span class="l">'+x[0]+'</span><span class="v">'+fzMoney(x[1])+'</span></div>').join(''):'<div class="fz-sr"><span class="l fz-mut">Noch nichts ausgewählt</span></div>';
-  const mwst=r.total*0.081;
-  html+='<div class="fz-sr"><span class="l">Zwischensumme (exkl.)'+(r.manual?' · manuell (auto '+fzMoney(r.auto)+')':'')+'</span><span class="v">'+fzMoney(r.total)+'</span></div>';
-  html+='<div class="fz-sr"><span class="l">MwSt 8.1 %</span><span class="v">'+fzMoney(mwst)+'</span></div>';
-  html+='<div class="fz-sr tot"><span class="l">Richtpreis inkl. MwSt</span><span class="v">'+fzMoney(r.total+mwst)+'</span></div>';
+  html+='<div class="fz-sr tot"><span class="l">Richtpreis (exkl. MwSt.)'+(r.manual?' · manuell (auto '+fzMoney(r.auto)+')':'')+'</span><span class="v">'+fzMoney(r.total)+'</span></div>';
   $('fzSum').innerHTML=html;
-  $('fzIncl').innerHTML='<b>Enthalten:</b> die oben aktiven Bereiche · langlebige Folien/Materialien · Gestaltung '+t.gest+' h (Richtwert). Rote Flächen = Andeutung, wo die Beschriftung sitzt. <b>Richtpreis frei editierbar.</b>'; }
+  $('fzIncl').innerHTML='<b>Enthalten:</b> die oben aktiven Bereiche · langlebige Folien/Materialien · Gestaltung '+t.gest+' h (Richtwert). Rote Flächen = Andeutung, wo die Beschriftung sitzt. <b>Richtpreis frei editierbar.</b> MwSt. wird erst in der Gesamt-Offerte aufgerechnet.'; }
 function openFahrzeugForm(){ hidePosForms(false); $('typeDialog').style.display='none'; $('fahrzeugForm').style.display='block';
   if(editIdx<0){ _fzSel={marke:'VW',modell:0,typ:'klein',
       basis:{tueren:true,haube:true,heck:true},
-      digital:{tueren:{on:false,groesse:'klein'},haube:{on:false,groesse:'klein'},heck:{on:false,groesse:'klein'},seiten:{on:false,groesse:'mittel'}}};
+      digital:{tueren:{on:false,groesse:'klein',frei:{text:'',preis:0}},haube:{on:false,groesse:'klein',frei:{text:'',preis:0}},heck:{on:false,groesse:'klein',frei:{text:'',preis:0}},seiten:{on:false,groesse:'mittel',frei:{text:'',preis:0}}}};
     $('fzFen').checked=false; $('fzVor').checked=false; $('fzVorBtr').value=fzCfg().montageDefault;
-    $('fzMenge').value=1; $('fzGraf').value=fzT('klein').gest; $('fzOvr').value=''; $('fzLabel').value=''; $('fzNotiz').value=''; }
+    $('fzMenge').value=1; $('fzGraf').value=fzT('klein').gest; $('fzOvr').value=''; $('fzLabel').value=''; $('fzNotiz').value=''; $('fzVariante').value=''; }
   fzFillMarke(); fzRender(); $('fahrzeugForm').scrollIntoView({behavior:'smooth'}); }
 function closeFahrzeugForm(){ $('fahrzeugForm').style.display='none'; $('typeDialog').style.display='block'; editIdx=-1; }
 function saveFahrzeugPos(){ const r=fzCalc(); const t=r.t; const cfg=fzCfg();
   const kurz=fzBausteineSummary({fzBasis:_fzSel.basis,fzDigital:_fzSel.digital});
-  const autoLabel=t.nm+' · '+kurz+(r.menge>1?(' · '+r.menge+'Stk'):'');
+  const variante=($('fzVariante').value||'').trim();
+  const autoLabel=t.nm+(variante?' '+variante:'')+' · '+kurz+(r.menge>1?(' · '+r.menge+'Stk'):'');
   const label=($('fzLabel').value||'').trim()||autoLabel;
   const marge=cfg.marge||0.5;
   const modName=(FZ_MARKE[_fzSel.marke]&&FZ_MARKE[_fzSel.marke][_fzSel.modell])?FZ_MARKE[_fzSel.marke][_fzSel.modell][0]:'';
   const data={
     type:'fahrzeug', label:label, notiz:($('fzNotiz').value||'').trim(),
-    fzTyp:_fzSel.typ, fzTypNm:t.nm, fzMarke:_fzSel.marke, fzModell:modName,
+    fzTyp:_fzSel.typ, fzTypNm:t.nm, fzMarke:_fzSel.marke, fzModell:modName, fzVariante:variante,
     fzBasis:Object.assign({},_fzSel.basis),
     fzDigital:JSON.parse(JSON.stringify(_fzSel.digital)),
     fzFen:fzFenOn(), fzVor:$('fzVor').checked, fzVorBtr:parseFloat($('fzVorBtr').value)||0,
@@ -12759,7 +12930,7 @@ function saveFahrzeugPos(){ const r=fzCalc(); const t=r.t; const cfg=fzCfg();
   showToast(wasEdit?'Fahrzeug-Position aktualisiert ✓':'Fahrzeug-Position gespeichert ✓'); }
 // Live-Update + Marke/Modell (Delegation, da Selects dynamisch befüllt werden)
 document.addEventListener('input',function(e){ const id=e.target&&e.target.id;
-  if(id==='fzFen'||id==='fzVor'||id==='fzVorBtr'||id==='fzGraf'||id==='fzMenge'||id==='fzOvr') fzRender(); });
+  if(id==='fzFen'||id==='fzVor'||id==='fzVorBtr'||id==='fzGraf'||id==='fzMenge'||id==='fzOvr'||id==='fzVariante') fzRender(); });
 document.addEventListener('change',function(e){ const id=e.target&&e.target.id; if(!id)return;
   if(id==='fzMarke'){ _fzSel.marke=e.target.value; _fzSel.modell=0; const l=FZ_MARKE[_fzSel.marke]; if(l&&l[0])_fzSel.typ=l[0][1]; fzRender(); }
   else if(id==='fzModell'){ _fzSel.modell=parseInt(e.target.value)||0; const l2=FZ_MARKE[_fzSel.marke]; if(l2&&l2[_fzSel.modell])_fzSel.typ=l2[_fzSel.modell][1]; fzRender(); }
@@ -14879,7 +15050,7 @@ function renderPos(){
       sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²·${p.matName}${mods.length?' | '+mods.join('+'):''}`;
     }else if(p.type==='fahrzeug'){
       badge='Fahrzeug';
-      sub=`${p.fzModell?p.fzModell+' · ':''}${p.fzTypNm||''} · ${fzBausteineSummary(p)} · ${p.stk||1}Stk${p.fzFen?' · Window Graphic':''}${p.fzVor?' · Montage':''}`;
+      sub=`${p.fzModell?p.fzModell+(p.fzVariante?' '+p.fzVariante:'')+' · ':''}${p.fzTypNm||''} · ${fzBausteineSummary(p)} · ${p.stk||1}Stk${p.fzFen?' · Window Graphic':''}${p.fzVor?' · Montage':''}`;
     }else if(p.type==='versand'){
       badge='Versand';
       const vp=[];
@@ -15614,10 +15785,10 @@ function editPos(i){
     _fzSel={marke:p.fzMarke||'VW',modell:0,typ:p.fzTyp||'klein',
       basis:Object.assign({tueren:false,haube:false,heck:false}, p.fzBasis||{}),
       digital:{
-        tueren:Object.assign({on:false,groesse:'klein'}, (p.fzDigital&&p.fzDigital.tueren)||{}),
-        haube:Object.assign({on:false,groesse:'klein'}, (p.fzDigital&&p.fzDigital.haube)||{}),
-        heck:Object.assign({on:false,groesse:'klein'}, (p.fzDigital&&p.fzDigital.heck)||{}),
-        seiten:Object.assign({on:false,groesse:'mittel'}, (p.fzDigital&&p.fzDigital.seiten)||{}),
+        tueren:Object.assign({on:false,groesse:'klein',frei:{text:'',preis:0}}, (p.fzDigital&&p.fzDigital.tueren)||{}),
+        haube:Object.assign({on:false,groesse:'klein',frei:{text:'',preis:0}}, (p.fzDigital&&p.fzDigital.haube)||{}),
+        heck:Object.assign({on:false,groesse:'klein',frei:{text:'',preis:0}}, (p.fzDigital&&p.fzDigital.heck)||{}),
+        seiten:Object.assign({on:false,groesse:'mittel',frei:{text:'',preis:0}}, (p.fzDigital&&p.fzDigital.seiten)||{}),
       }};
     const _fl=FZ_MARKE[_fzSel.marke]||[]; const _mi=_fl.findIndex(x=>x[0]===p.fzModell); if(_mi>=0)_fzSel.modell=_mi;
     $('fzFen').checked=!!p.fzFen; $('fzVor').checked=!!p.fzVor;
@@ -15625,7 +15796,7 @@ function editPos(i){
     $('fzMenge').value=p.fzMenge||1;
     $('fzGraf').value=(p.fzGraf!=null?p.fzGraf:fzT(_fzSel.typ).gest);
     $('fzOvr').value=(p.fzOverride!==''&&p.fzOverride!=null?p.fzOverride:'');
-    $('fzLabel').value=p.label||''; $('fzNotiz').value=p.notiz||'';
+    $('fzLabel').value=p.label||''; $('fzNotiz').value=p.notiz||''; $('fzVariante').value=p.fzVariante||'';
     fzFillMarke(); fzRender();
     $('fahrzeugForm').scrollIntoView({behavior:'smooth'});
   }else if(p.type==='sbb'){
@@ -16119,7 +16290,7 @@ function printOfferte(id){
     } else if(p.type==='fahrzeug'){
       const _ex=[p.fzFen?'Window Graphic / Lochfolie':'',p.fzVor?'Montage vor Ort':''].filter(Boolean).join(', ');
       detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
-        ${p.fzMarke||''}${p.fzModell?' '+p.fzModell:''} · ${p.fzTypNm||''} · ${p.stk||1} Stk
+        ${p.fzMarke||''}${p.fzModell?' '+p.fzModell:''}${p.fzVariante?' '+p.fzVariante:''} · ${p.fzTypNm||''} · ${p.stk||1} Stk
         <br>${fzBausteineSummary(p)}
         ${_ex?'<br>Zusätze: '+_ex:''}
       </div>`;
