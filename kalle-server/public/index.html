@@ -962,6 +962,10 @@ a, button, input, select, textarea, label,
           &nbsp;·&nbsp; Mindest-Druckbahn: <span id="ftM2Bahn" style="font-weight:600;">–</span>
         </div>
         <div id="ftExtraRowsWrap" style="margin-bottom:10px;">
+          <div id="ftLabel1Wrap" style="margin-bottom:8px;display:none;">
+            <div class="field"><label>Bezeichnung Grösse 1 <span style="font-size:9px;color:var(--muted);font-weight:400;">(optional — Kurzbezeichnung wie „Seite 4", erscheint bei mehreren Grössen in der Offerte statt des Positionstitels)</span></label>
+              <input id="ftLabel1" type="text" placeholder="optional, z.B. Seite 4"></div>
+          </div>
           <div id="ftExtraRowsTable"></div>
           <button type="button" class="btn btn-gh" onclick="ftAddExtraRow()" style="font-size:11px;padding:5px 10px;margin-top:4px;">+ weitere Grösse</button>
           <div id="ftExtraRowsHint" class="hint ht" style="margin-top:5px;display:none;">
@@ -1805,6 +1809,10 @@ a, button, input, select, textarea, label,
         </div>
         <div id="slM2" style="font-size:10px;color:var(--muted);"></div>
         <div id="slExtraRowsWrap" style="margin-top:8px;">
+          <div id="slLabel1Wrap" style="margin-bottom:8px;display:none;">
+            <div class="field"><label>Bezeichnung Grösse 1 <span style="font-size:9px;color:var(--muted);font-weight:400;">(optional — Kurzbezeichnung wie „Seite 4", erscheint bei mehreren Grössen in der Offerte statt des Positionstitels)</span></label>
+              <input id="slLabel1" type="text" placeholder="optional, z.B. Seite 4"></div>
+          </div>
           <div id="slExtraRowsTable"></div>
           <button type="button" class="btn btn-gh" onclick="slAddExtraRow()" style="font-size:11px;padding:5px 10px;margin-top:4px;">+ weitere Grösse</button>
           <div id="slExtraRowsHint" class="hint ht" style="margin-top:5px;display:none;">
@@ -2906,9 +2914,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.34';
+const UI_VERSION='V9.36';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.36','Schild &amp; Folientechnik · Mehrgrössen-Positionen (V9.29): Bezeichnung von Grösse 1 war bisher fest an das Feld „Positionsbezeichnung\" (ftLabel/slLabel) gekoppelt — Zeile 1 wiederholte in der Offerte deshalb immer den vollen Positionstitel (z. B. „Digitaldruck ,Willkommen im Gretherpark\'\"), während weitere Grössen ein eigenes, kurzes „Bezeichnung\"-Feld hatten (z. B. „Seite 5\"). Root Cause: `ftAllRows()`/`slAllRows()` lasen für Zeile 1 direkt aus dem Titel-Feld statt aus einem eigenen Label. Fix: neues, eigenständiges Feld „Bezeichnung Grösse 1\" (optional, erscheint erst sobald mindestens eine weitere Grösse erfasst ist) — Zeile 1 kann jetzt genauso kurz beschrieben werden wie alle weiteren Grössen (z. B. „Seite 4\"), unabhängig vom Positionstitel. Beim Bearbeiten älterer, vor V9.36 gespeicherter Mehrgrössen-Positionen wird das alte, fälschlich titel-duplizierte Label automatisch geleert statt übernommen.'],
+  ['V9.35','Offert-PDF · Schild-Positionen: Beschriftungsart jetzt explizit ausgewiesen. Bisher stand bei Digitaldruck- oder Plottfolie nur der reine Materialname („Digitaldruckfolie: 3551\", „Plottfolie: 751\") — für den Kunden nicht erkennbar, dass genau das die Beschriftung des Schilds ist (bei Gravur stand bereits klar „Beschriftung: Gravur · …\"). Neu: „Beschriftungsart: Digitaldruck · Folie: 3551 · Druckart: Solvent\" bzw. „Beschriftungsart: Plot-/Schneidefolie · Folie: 751\". Folientechnik-Positionen waren davon nicht betroffen (haben bereits seit V8.4 „Ausführung: Folientechnik · Digitaldruck\" als erste Zeile).'],
   ['V9.34','Bugfix: Bearbeiter wurde beim Wiederöffnen eines gespeicherten Auftrags (über „Aufträge\" → „↑ Öffnen\") nicht mehr angezeigt/wiederhergestellt — Dropdown blieb leer, obwohl der Auftrag ursprünglich mit Bearbeiter gespeichert wurde. Root Cause: Der primäre Ladeweg `GET /offerten/:id/payload` liefert camelCase (`bearbeiterKuerzel`), der Backend-Fallback `GET /offerten/:id` liefert dagegen die rohe DB-Zeile mit snake_case (`bearbeiter_kuerzel`) — die Restore-Logik im Frontend prüfte bisher ausschliesslich die camelCase-Variante. Landete ein Auftrag im Fallback-Pfad, blieb der Bearbeiter dadurch stumm leer. Fix: Restore akzeptiert jetzt beide Schreibweisen, zusätzlich ein letzter Fallback über den Namen (`a.bearbeiter`), falls gar kein Kürzel vorliegt. Betrifft nur das Anzeigen/Wiederherstellen beim Laden — das Speichern selbst war nie betroffen.'],
   ['V9.33','Offert-PDF · Montageart-Beschreibung bei 3M VHB Klebeband präzisiert (Schild + Reliefschriften/Fräs). Bisher stand in der Offerte nur der rohe Wert, z. B. „3M VHB 4941\" — ohne Angabe der Montageart oder der Bandstärke. Neu: „Montageart: direkt aufgeklebt mit doppelseitigem Klebeband 3M 4941 (1.1mm)\". Dickenzuordnung deckt alle drei wählbaren Varianten ab (4936P/0.64mm, 4941/1.1mm, 4991/2.3mm). Konsistent an beiden Stellen (Schild-mods und Reliefschrift/Fräs-befParts) umgesetzt.'],
   ['V9.32','Offert-PDF · Mehrgrössen-Positionen (Schild + Folientechnik, V9.29) korrigiert. Zwei echte Bugs behoben: (1) Die Hauptspalte „Einzelpreis" zeigte bisher Gesamtpreis ÷ Stückzahl — eine rein lineare Aufteilung ohne Bezug zur Fläche. Bei unterschiedlich grossen Positionen (z. B. 1× 300×400mm + 1× 500×800mm) kostete dadurch ein kleiner Druck auf dem Papier gleich viel wie ein grosser, obwohl die m²-gewichtete Verteilung pro Zeile (aus V9.29) korrekt vorlag. Fix: Bei mehreren Grössen zeigt „Einzelpreis" jetzt bewusst „–" statt einer irreführenden Durchschnittszahl — die echten, unterschiedlichen Preise je Grösse stehen direkt in der Detailzeile darunter. Der Schild-Offert-Block hatte bisher gar keine Mehrgrössen-Anzeige (zeigte immer nur die erste Grösse) — jetzt analog zu Folientechnik mit Aufschlüsselung je Zeile ergänzt. (2) Zusätzlich alle drei Stellen, die den Zeilenpreis ausgeben, robuster gegen fehlende Werte gemacht (Fallback statt Absturz/Leeranzeige), falls eine Position mit einem älteren Zwischenstand gespeichert wurde. Mit Playwright verifiziert: Folientechnik mit 2 Grössen (1000×500 + 500×800) zeigt korrekt CHF 17.50/Stk bzw. CHF 14.00/Stk in der Detailzeile, Gesamtpreis CHF 31.50, Einzelpreis-Spalte zeigt „–" statt falscher CHF 15.75.'],
@@ -6517,6 +6527,7 @@ function ftUpdateExtraRow(i,field,val){
 function ftRenderExtraRows(){
   const el=$('ftExtraRowsTable'); if(!el)return;
   const rows=window._ftExtraRows;
+  const l1wrap=$('ftLabel1Wrap'); if(l1wrap) l1wrap.style.display=rows.length?'block':'none';
   el.innerHTML=rows.map((r,i)=>
     '<div class="slxr-row">'
     +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.l+'" oninput="ftUpdateExtraRow('+i+',\'l\',this.value)"></div>'
@@ -6529,7 +6540,7 @@ function ftRenderExtraRows(){
   const hint=$('ftExtraRowsHint'); if(hint) hint.style.display=rows.length?'block':'none';
 }
 function ftAllRows(){
-  const r1={l:gN('ftLen')||1000, b:gN('ftBr')||500, stk:gN('ftStk')||1, label:$('ftLabel')?.value||''};
+  const r1={l:gN('ftLen')||1000, b:gN('ftBr')||500, stk:gN('ftStk')||1, label:$('ftLabel1')?.value||''};
   return [r1, ...(window._ftExtraRows||[])];
 }
 
@@ -9151,6 +9162,7 @@ function slUpdateExtraRow(i,field,val){
 function slRenderExtraRows(){
   const el=$('slExtraRowsTable'); if(!el)return;
   const rows=window._slExtraRows;
+  const l1wrap=$('slLabel1Wrap'); if(l1wrap) l1wrap.style.display=rows.length?'block':'none';
   el.innerHTML=rows.map((r,i)=>
     '<div class="slxr-row">'
     +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.l+'" oninput="slUpdateExtraRow('+i+',\'l\',this.value)"></div>'
@@ -9164,7 +9176,7 @@ function slRenderExtraRows(){
 }
 // Alle Grössen-Zeilen der aktuellen Position (Zeile 1 aus den Hauptfeldern + weitere).
 function slAllRows(){
-  const r1={l:gN('slLen')||200, b:gN('slBr')||100, stk:gN('slStk')||1, label:$('slLabel')?.value||''};
+  const r1={l:gN('slLen')||200, b:gN('slBr')||100, stk:gN('slStk')||1, label:$('slLabel1')?.value||''};
   return [r1, ...(window._slExtraRows||[])];
 }
 
@@ -10693,6 +10705,8 @@ function startPos(type){
     sessionStorage.removeItem('sl_pf_farben');sessionStorage.removeItem('sl_gv_farben');
     window._slFormfaktor = 0.5; // default Rechteck
     window._slExtraRows = []; // weitere Grössen zurücksetzen
+    if($('slLabel1'))$('slLabel1').value='';
+    const _slL1w=$('slLabel1Wrap');if(_slL1w)_slL1w.style.display='none';
     window._slEditPos = null; // clear edit state
     // Persistenten Oberflächen-State zurücksetzen (sauberer Start)
     window._slObState = {
@@ -10782,6 +10796,8 @@ function startPos(type){
     $('folientechnikTitle').textContent='Neue Position – Folientechnik';
     $('folientechnikForm').style.display='block';
     if($('ftLabel'))$('ftLabel').value='';
+    if($('ftLabel1'))$('ftLabel1').value='';
+    const _ftL1w=$('ftLabel1Wrap');if(_ftL1w)_ftL1w.style.display='none';
     if($('ftNotiz'))$('ftNotiz').value='';
     if($('ftLen'))$('ftLen').value=1000;
     ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktTape','ftAktSetupDD','ftAktSetupPS',
@@ -15310,6 +15326,12 @@ function editPos(i){
     if($('slLen'))$('slLen').value=p.l||200;
     if($('slBr'))$('slBr').value=p.b||100;
     if($('slStk'))$('slStk').value=(p.rows&&p.rows[0]?p.rows[0].stk:p.stk)||1;
+    // Bezeichnung Grösse 1: nur übernehmen, wenn sie sich vom Positionstitel unterscheidet
+    // (bei älteren, vor V9.35 gespeicherten Positionen war hier fälschlich der Titel dupliziert)
+    if($('slLabel1')){
+      const r1lbl=(p.rows&&p.rows[0])?(p.rows[0].label||''):'';
+      $('slLabel1').value=(r1lbl&&r1lbl!==p.label)?r1lbl:'';
+    }
     // Weitere Grössen (ab Zeile 2) wiederherstellen — Zeile 1 steckt in den Feldern oben
     window._slExtraRows=(p.rows&&p.rows.length>1)?p.rows.slice(1).map(r=>({l:r.l,b:r.b,stk:r.stk,label:r.label||''})):[];
     slRenderExtraRows();
@@ -15815,6 +15837,12 @@ function editPos(i){
     if($('ftLen'))$('ftLen').value=p.l||1000;if($('ftBr'))$('ftBr').value=p.b||500;
     if($('ftStk'))$('ftStk').value=(p.rows&&p.rows[0]?p.rows[0].stk:p.stk)||1;
     if($('ftMarge'))$('ftMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.4;
+    // Bezeichnung Grösse 1: nur übernehmen, wenn sie sich vom Positionstitel unterscheidet
+    // (bei älteren, vor V9.35 gespeicherten Positionen war hier fälschlich der Titel dupliziert)
+    if($('ftLabel1')){
+      const r1lbl=(p.rows&&p.rows[0])?(p.rows[0].label||''):'';
+      $('ftLabel1').value=(r1lbl&&r1lbl!==p.label)?r1lbl:'';
+    }
     // Weitere Grössen (ab Zeile 2) wiederherstellen — Zeile 1 steckt in den Feldern oben
     window._ftExtraRows=(p.rows&&p.rows.length>1)?p.rows.slice(1).map(r=>({l:r.l,b:r.b,stk:r.stk,label:r.label||''})):[];
     ftRenderExtraRows();
@@ -17184,10 +17212,13 @@ function printDoc(mode){
     }
     if(p.type==='schild'){
       const mods=[];
-      if(p.druck) mods.push('Druckart: '+sp(p.druck));
-      if(p.folie) mods.push('Digitaldruckfolie: '+sp(p.folie));
+      if(p.folie){
+        mods.push(`Beschriftungsart: Digitaldruck · Folie: ${sp(p.folie)}${p.druck?' · Druckart: '+sp(p.druck):''}`);
+      } else if(p.druck){
+        mods.push('Druckart: '+sp(p.druck));
+      }
       if(p.laminat) mods.push('Laminat: '+sp(p.laminat));
-      const _plott=slPlottListe(p); if(_plott.length)mods.push('Plottfolie: '+_plott.map(sp).join(' / '));
+      const _plott=slPlottListe(p); if(_plott.length)mods.push(`Beschriftungsart: Plot-/Schneidefolie · Folie: ${_plott.map(sp).join(' / ')}`);
       if(p.gravurAkt){
         const _isLogo=(p.slGvModus==='logo');
         const _gravDesc=_isLogo
