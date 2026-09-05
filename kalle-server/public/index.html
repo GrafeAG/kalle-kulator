@@ -2906,9 +2906,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.32';
+const UI_VERSION='V9.34';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.34','Bugfix: Bearbeiter wurde beim Wiederöffnen eines gespeicherten Auftrags (über „Aufträge\" → „↑ Öffnen\") nicht mehr angezeigt/wiederhergestellt — Dropdown blieb leer, obwohl der Auftrag ursprünglich mit Bearbeiter gespeichert wurde. Root Cause: Der primäre Ladeweg `GET /offerten/:id/payload` liefert camelCase (`bearbeiterKuerzel`), der Backend-Fallback `GET /offerten/:id` liefert dagegen die rohe DB-Zeile mit snake_case (`bearbeiter_kuerzel`) — die Restore-Logik im Frontend prüfte bisher ausschliesslich die camelCase-Variante. Landete ein Auftrag im Fallback-Pfad, blieb der Bearbeiter dadurch stumm leer. Fix: Restore akzeptiert jetzt beide Schreibweisen, zusätzlich ein letzter Fallback über den Namen (`a.bearbeiter`), falls gar kein Kürzel vorliegt. Betrifft nur das Anzeigen/Wiederherstellen beim Laden — das Speichern selbst war nie betroffen.'],
+  ['V9.33','Offert-PDF · Montageart-Beschreibung bei 3M VHB Klebeband präzisiert (Schild + Reliefschriften/Fräs). Bisher stand in der Offerte nur der rohe Wert, z. B. „3M VHB 4941\" — ohne Angabe der Montageart oder der Bandstärke. Neu: „Montageart: direkt aufgeklebt mit doppelseitigem Klebeband 3M 4941 (1.1mm)\". Dickenzuordnung deckt alle drei wählbaren Varianten ab (4936P/0.64mm, 4941/1.1mm, 4991/2.3mm). Konsistent an beiden Stellen (Schild-mods und Reliefschrift/Fräs-befParts) umgesetzt.'],
   ['V9.32','Offert-PDF · Mehrgrössen-Positionen (Schild + Folientechnik, V9.29) korrigiert. Zwei echte Bugs behoben: (1) Die Hauptspalte „Einzelpreis" zeigte bisher Gesamtpreis ÷ Stückzahl — eine rein lineare Aufteilung ohne Bezug zur Fläche. Bei unterschiedlich grossen Positionen (z. B. 1× 300×400mm + 1× 500×800mm) kostete dadurch ein kleiner Druck auf dem Papier gleich viel wie ein grosser, obwohl die m²-gewichtete Verteilung pro Zeile (aus V9.29) korrekt vorlag. Fix: Bei mehreren Grössen zeigt „Einzelpreis" jetzt bewusst „–" statt einer irreführenden Durchschnittszahl — die echten, unterschiedlichen Preise je Grösse stehen direkt in der Detailzeile darunter. Der Schild-Offert-Block hatte bisher gar keine Mehrgrössen-Anzeige (zeigte immer nur die erste Grösse) — jetzt analog zu Folientechnik mit Aufschlüsselung je Zeile ergänzt. (2) Zusätzlich alle drei Stellen, die den Zeilenpreis ausgeben, robuster gegen fehlende Werte gemacht (Fallback statt Absturz/Leeranzeige), falls eine Position mit einem älteren Zwischenstand gespeichert wurde. Mit Playwright verifiziert: Folientechnik mit 2 Grössen (1000×500 + 500×800) zeigt korrekt CHF 17.50/Stk bzw. CHF 14.00/Stk in der Detailzeile, Gesamtpreis CHF 31.50, Einzelpreis-Spalte zeigt „–" statt falscher CHF 15.75.'],
   ['V9.31','Schild · Zwei Fixes. (1) Bug behoben: In „5 Beschriftung" zeigte das Preis-Badge „Setup-Pauschale Folienplott" nach Aktivierung des Toggels weiterhin „–" an, obwohl die CHF 25.– korrekt in die Live-Kalkulation einflossen. Ursache: ID-Tippfehler — der Update-Aufruf zielte auf "pb-slPlottSetup", das echte Badge-Element hiess aber "pb-slPSSetup". Element wurde nie gefunden, Update lief ins Leere. Einzeiliger Fix (ID korrigiert), mit Playwright verifiziert: Badge zeigt jetzt korrekt „CHF 25.00" nach Aktivierung. (2) Feldbezeichnungen für Grösseneingaben im gesamten Dokument auf „Breite (mm)" / „Höhe (mm)" vereinheitlicht — betraf Fräsbuchstaben, Gravur, Schild sowie die neuen Mehrgrössen-Zeilen (Schild/Folientechnik aus V9.29), die bisher uneinheitlich "Länge"/"Breite" nannten. Bewusst NICHT angetastet: SBB-Provisorien-Modul (nutzt "Höhe"/"Länge" nach FIS-Bahnhofsnorm, eigene Fachterminologie) und Admin-Materiallager (Rohplatten-Formate, andere Bedeutung als Kundenauftrag-Masse).'],
   ['V9.30','Schild · Echter Bug behoben (der in V9.29 als „vorbestehend, separat zu untersuchen" gemeldet wurde): Preis änderte sich nach dem Bearbeiten/erneuten Öffnen einer Schild-Position, auch ganz ohne die neue Mehrgrössen-Funktion. Ursache gefunden: die Hilfsfunktion restoreSelIdx() (stellt beim Bearbeiten Folie/Laminat/Druck wieder her) setzte die Checkbox in der allerersten Zeile unconditional auf "checked=true" — unabhängig davon, ob die Position dieses Merkmal überhaupt je hatte. Nach jedem Öffnen zum Bearbeiten wurden dadurch Folie-, Laminat- und Druckkosten neu dazugerechnet, selbst wenn ursprünglich nichts davon aktiviert war. Fix: Guard ergänzt (chk.checked=false + return, wenn kein gespeicherter Wert vorhanden) — betrifft nur diese eine Funktion, restoreSel2() (Tape) hatte den Guard bereits korrekt. Mit Playwright verifiziert: Preis vor/nach Bearbeiten jetzt exakt identisch (Differenz 0.00) — sowohl ohne Folie (Normalfall) als auch mit bewusst aktivierter Folie (Checkbox bleibt korrekt an) als auch mit mehreren Grössen (V9.29-Feature).'],
@@ -12018,13 +12020,28 @@ function loadAuftragData(a){
     if(a.kundenname)showKundenBadge({nr:a.slKundennummer,name:a.kundenname,ort:a.adresseOrt||''});
   }
   // Set Bearbeiter
-  if(a.bearbeiterKuerzel){
+  // Robust gegen beide Quellen: /payload liefert camelCase (bearbeiterKuerzel),
+  // der Fallback GET /offerten/:id liefert die rohe DB-Zeile mit snake_case
+  // (bearbeiter_kuerzel) — beide werden hier akzeptiert, damit der Bearbeiter
+  // in jedem Fall wiederhergestellt wird.
+  const _bKuerzel = a.bearbeiterKuerzel || a.bearbeiter_kuerzel || '';
+  if(_bKuerzel){
     // Suche Bearbeiter nach Kürzel
-    const bIdx=(P.bearbeiter||[]).findIndex(b=>b.kuerzel===a.bearbeiterKuerzel);
+    const bIdx=(P.bearbeiter||[]).findIndex(b=>b.kuerzel===_bKuerzel);
     if(bIdx>=0&&$('bearbeiterSel')){
       $('bearbeiterSel').value=bIdx;
-      localStorage.setItem('grafe_bearbeiter_kuerzel',a.bearbeiterKuerzel);
+      localStorage.setItem('grafe_bearbeiter_kuerzel',_bKuerzel);
       localStorage.setItem('grafe_bearbeiter',String(bIdx));
+    } else {
+      console.warn('[KALLE] Bearbeiter-Kürzel aus Auftrag nicht in P.bearbeiter gefunden:', _bKuerzel);
+    }
+  } else if(a.bearbeiter && $('bearbeiterSel')){
+    // Letzter Fallback: kein Kürzel vorhanden, aber ein Name — nach Name suchen
+    const bIdxByName=(P.bearbeiter||[]).findIndex(b=>b.name===a.bearbeiter);
+    if(bIdxByName>=0){
+      $('bearbeiterSel').value=bIdxByName;
+      localStorage.setItem('grafe_bearbeiter_kuerzel',P.bearbeiter[bIdxByName].kuerzel);
+      localStorage.setItem('grafe_bearbeiter',String(bIdxByName));
     }
   }
   // Load positions
@@ -17199,7 +17216,11 @@ function printDoc(mode){
       };
       if(p.zuschnittVK>0||p.zuschnittMethode==='fraes'||p.zuschnittMethode==='saegen')mods.push(isInt?`Zuschnitt CHF ${(p.zuschnittVK||0).toFixed(2)}`:{fraes:'CNC Fräsen Zuschnitt',saegen:'Sägen/Hacken Zuschnitt',kein:''}[p.zuschnittMethode]||'Zuschnitt');
       if(p.bolzenAkt)mods.push(`Montagebolzen ${p.bolzenAnz||4}Stk`);
-      if(p.vhbAkt)mods.push(`3M VHB ${p.vhbVariant||''}`);
+      if(p.vhbAkt){
+        const VHB_DICKE={'4936P':'0.64mm','4941':'1.1mm','4991':'2.3mm'};
+        const vhbDicke=VHB_DICKE[p.vhbVariant]||'';
+        mods.push(`Montageart: direkt aufgeklebt mit doppelseitigem Klebeband 3M ${p.vhbVariant||''}${vhbDicke?' ('+vhbDicke+')':''}`);
+      }
       if(p.kleberAkt)mods.push('2K-Kleber');
       if(p.eigenBefAkt&&p.eigenBefBez){
         const eigenStr=isInt
@@ -17358,7 +17379,11 @@ function printDoc(mode){
       // ── Befestigung ───────────────────────────────────────────────────
       const befParts=[];
       if(p.bolzenAkt)befParts.push(isInt?`Montagebolzen ${p.bolzenAnz||4} Stk. × CHF ${p.bolzenPreis||2}.–`:`Montagebolzen ${p.bolzenAnz||4} Stk.`);
-      if(p.vhbAkt)befParts.push(`3M VHB ${p.vhbVariant||''}`);
+      if(p.vhbAkt){
+        const VHB_DICKE={'4936P':'0.64mm','4941':'1.1mm','4991':'2.3mm'};
+        const vhbDicke=VHB_DICKE[p.vhbVariant]||'';
+        befParts.push(`Montageart: direkt aufgeklebt mit doppelseitigem Klebeband 3M ${p.vhbVariant||''}${vhbDicke?' ('+vhbDicke+')':''}`);
+      }
       if(p.schabPap)befParts.push(`Papier-Bohrschablone`);
       if(p.schabFol)befParts.push(`Schablonenklebefolie`);
       if(p.schabKar)befParts.push(`Kartonschablone`);
