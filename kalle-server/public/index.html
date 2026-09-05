@@ -2914,9 +2914,12 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.36';
+const UI_VERSION='V9.39';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.39','Offert-PDF · V9.38-Fix (Schlussblock) griff in der echten PDF-Erzeugung nicht — per Screenshot bestätigt: Summen blieben auf Seite 1, Konditionen/AGB/Bank rutschten allein auf Seite 2, und der Footer erschien zusammengequetscht direkt unter dem Gesamttotal statt am Seitenrand ("Grafe AGRheinfelderstrasse 12" ohne Abstand). Root Cause gefunden: `.footer{position:fixed;bottom:8mm}` funktioniert in der Puppeteer-PDF-Erzeugung nicht zuverlässig — der Footer rutschte dadurch mitten in den normalen Textfluss (statt an den echten Seitenrand), riss den Schlussblock auseinander, und weil ein `position:fixed`-Element ohne definierte Breite schrumpft, hatte `justify-content:space-between` keinen Platz mehr zum Verteilen — die drei Footer-Teile klebten aneinander. Fix: `position:fixed` entfernt, Footer ist jetzt normaler Fluss-Inhalt am Ende des Schlussblocks (bekommt dadurch automatisch die volle Seitenbreite zurück, Abstände funktionieren wieder). Zusätzlich das widersprüchliche `page-break-inside:avoid` auf dem gesamten `.page`-Container entfernt (bei mehrseitigem Inhalt ohnehin unwirksam und möglicherweise Ursache dafür, dass die verschachtelte Schlussblock-Regel ignoriert wurde).'],
+  ['V9.38','Offert-PDF · Seitenumbruch bei vielen Positionen korrigiert. Bisher lagen Summen, Konditionen, AGB-Kurzhinweis, Bankverbindung und Footer ungeschützt im normalen Textfluss direkt nach der Positionstabelle — bei einer langen Positionsliste konnte dieser Block dadurch mitten durchgeschnitten und am Seitenende zusammengequetscht werden, statt sauber auf die nächste Seite zu rutschen. Root Cause: einzige Schutzregel war `page-break-inside:avoid` auf dem GANZEN `.page`-Container — wirkungslos, sobald der Inhalt (wie bei vielen Positionen) ohnehin länger als eine A4-Seite ist. Fix: Summen + Konditionen + AGB-Hinweis + Bank + Footer sind jetzt in einem eigenen `.schlussblock` mit `page-break-inside:avoid` zusammengefasst — passt der ganze Block nicht mehr auf die aktuelle Seite, rutscht er als Ganzes auf die nächste, es bleibt sauberer Weissraum am Seitenende statt Anquetschen. Zusätzlich: einzelne Positionszeilen (`table.pos tr`) dürfen jetzt ebenfalls nicht mehr mitten durchgetrennt werden — verhindert, dass eine Position mit mehrzeiliger Detailbeschreibung über zwei Seiten auseinandergerissen wird.'],
+  ['V9.37','Schild · Befestigung „Klebeverbindung\": Preis bei 3M VHB Klebeband und 2K-Kleber jetzt manuell überschreibbar, wahlweise CHF pro Stk. oder als Gesamtpauschalpreis — analog zum bestehenden „Eigene Befestigung\"-Muster. Neue Checkbox „Preis manuell überschreiben\" direkt unter jeder der beiden Zeilen; ist sie aktiv, ersetzt der eingegebene Preis die automatische Grössen-/Pauschal-Berechnung vollständig. Betrifft ausschliesslich Schild (Reliefschriften/Fräs unverändert). Intern (isInt-Ansicht) wird der individuelle Preis zusätzlich in der Offert-Detailzeile ausgewiesen.'],
   ['V9.36','Schild &amp; Folientechnik · Mehrgrössen-Positionen (V9.29): Bezeichnung von Grösse 1 war bisher fest an das Feld „Positionsbezeichnung\" (ftLabel/slLabel) gekoppelt — Zeile 1 wiederholte in der Offerte deshalb immer den vollen Positionstitel (z. B. „Digitaldruck ,Willkommen im Gretherpark\'\"), während weitere Grössen ein eigenes, kurzes „Bezeichnung\"-Feld hatten (z. B. „Seite 5\"). Root Cause: `ftAllRows()`/`slAllRows()` lasen für Zeile 1 direkt aus dem Titel-Feld statt aus einem eigenen Label. Fix: neues, eigenständiges Feld „Bezeichnung Grösse 1\" (optional, erscheint erst sobald mindestens eine weitere Grösse erfasst ist) — Zeile 1 kann jetzt genauso kurz beschrieben werden wie alle weiteren Grössen (z. B. „Seite 4\"), unabhängig vom Positionstitel. Beim Bearbeiten älterer, vor V9.36 gespeicherter Mehrgrössen-Positionen wird das alte, fälschlich titel-duplizierte Label automatisch geleert statt übernommen.'],
   ['V9.35','Offert-PDF · Schild-Positionen: Beschriftungsart jetzt explizit ausgewiesen. Bisher stand bei Digitaldruck- oder Plottfolie nur der reine Materialname („Digitaldruckfolie: 3551\", „Plottfolie: 751\") — für den Kunden nicht erkennbar, dass genau das die Beschriftung des Schilds ist (bei Gravur stand bereits klar „Beschriftung: Gravur · …\"). Neu: „Beschriftungsart: Digitaldruck · Folie: 3551 · Druckart: Solvent\" bzw. „Beschriftungsart: Plot-/Schneidefolie · Folie: 751\". Folientechnik-Positionen waren davon nicht betroffen (haben bereits seit V8.4 „Ausführung: Folientechnik · Digitaldruck\" als erste Zeile).'],
   ['V9.34','Bugfix: Bearbeiter wurde beim Wiederöffnen eines gespeicherten Auftrags (über „Aufträge\" → „↑ Öffnen\") nicht mehr angezeigt/wiederhergestellt — Dropdown blieb leer, obwohl der Auftrag ursprünglich mit Bearbeiter gespeichert wurde. Root Cause: Der primäre Ladeweg `GET /offerten/:id/payload` liefert camelCase (`bearbeiterKuerzel`), der Backend-Fallback `GET /offerten/:id` liefert dagegen die rohe DB-Zeile mit snake_case (`bearbeiter_kuerzel`) — die Restore-Logik im Frontend prüfte bisher ausschliesslich die camelCase-Variante. Landete ein Auftrag im Fallback-Pfad, blieb der Bearbeiter dadurch stumm leer. Fix: Restore akzeptiert jetzt beide Schreibweisen, zusätzlich ein letzter Fallback über den Namen (`a.bearbeiter`), falls gar kein Kürzel vorliegt. Betrifft nur das Anzeigen/Wiederherstellen beim Laden — das Speichern selbst war nie betroffen.'],
@@ -7743,7 +7746,7 @@ function buildSlBefestigung(){
     // Snapshot vor Wipe
   if(!window.__buildSlBefestigungState) window.__buildSlBefestigungState={};
   const _uiob = window.__buildSlBefestigungState;
-  ['slBolzenAkt', 'slKlebeVHB', 'slAnfahrtAkt'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
+  ['slBolzenAkt', 'slKlebeVHB', 'slKlebeKleber', 'slAnfahrtAkt', 'slVhbManAkt', 'slKleberManAkt'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
   const ac=$('tgSlBefestigung');if(!ac)return;ac.innerHTML='';
   const l=parseInt($('slLen')?.value)||0;
   const b=parseInt($('slBr')?.value)||0;
@@ -7797,6 +7800,9 @@ function buildSlBefestigung(){
 
   const prevVhbOn      = $('slKlebeVHB')?.checked||false;
   const prevVhbVariant = $('slVhbVariant')?.value||'4936P';
+  const prevVhbManAkt  = $('slVhbManAkt')?.checked||false;
+  const prevVhbManTyp  = $('slVhbManTyp')?.value||'stueck';
+  const prevVhbManPreis= $('slVhbManPreis')?.value||'';
 
   const vhbHint=document.createElement('div');
   vhbHint.id='slBefHint';
@@ -7821,13 +7827,22 @@ function buildSlBefestigung(){
       <span class="pbadge" id="pb-slKlebeVHB">–</span>
     </div>`;
   ac.appendChild(vhbRow);
+  const vhbManDiv=document.createElement('div');
+  vhbManDiv.innerHTML=mkManPreisBlock('slVhb','cSl',prevVhbManAkt,prevVhbManTyp,prevVhbManPreis);
+  ac.appendChild(vhbManDiv.firstElementChild);
 
   const prevKleberOn=$('slKlebeKleber')?.checked||false;
+  const prevKleberManAkt  = $('slKleberManAkt')?.checked||false;
+  const prevKleberManTyp  = $('slKleberManTyp')?.value||'stueck';
+  const prevKleberManPreis= $('slKleberManPreis')?.value||'';
   const kleberRow=document.createElement('div');kleberRow.className='tr';kleberRow.style.marginBottom='4px';
   kleberRow.innerHTML=`<div class="tr-l"><label class="tog"><input type="checkbox" id="slKlebeKleber" onchange="cSl()"${prevKleberOn?' checked':''}><span class="tsl"></span></label>
     <div><div class="tr-label">2K-Kleber</div><div class="tr-sub">CHF 5.00 pauschal</div></div></div>
     <div class="tr-r"><span class="pbadge" id="pb-slKlebeKleber">–</span></div>`;
   ac.appendChild(kleberRow);
+  const kleberManDiv=document.createElement('div');
+  kleberManDiv.innerHTML=mkManPreisBlock('slKleber','cSl',prevKleberManAkt,prevKleberManTyp,prevKleberManPreis);
+  ac.appendChild(kleberManDiv.firstElementChild);
 
   // ── Eigene Befestigung ───────────────────────────────────────────────
   addSecHead&&addSecHead(ac,'Eigene Befestigung / Spezial','t');
@@ -7846,7 +7861,7 @@ function buildSlBefestigung(){
   ac.appendChild(eigenRow);
 
   // Synchroner Restore
-  (()=>{const ob=window.__buildSlBefestigungState||{};['slBolzenAkt', 'slKlebeVHB', 'slAnfahrtAkt'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
+  (()=>{const ob=window.__buildSlBefestigungState||{};['slBolzenAkt', 'slKlebeVHB', 'slKlebeKleber', 'slAnfahrtAkt', 'slVhbManAkt', 'slKleberManAkt'].forEach(id=>{const el=$(id);if(el&&ob[id+'_chk']!==undefined)el.checked=ob[id+'_chk'];});})();
   const eigenDetail=document.createElement('div');
   eigenDetail.id='slEigenBefDetail';
   eigenDetail.style.cssText='background:var(--surface3);border:1px solid var(--border);border-radius:6px;padding:10px 12px;margin-bottom:6px;';
@@ -7942,12 +7957,26 @@ function calcSlBefestigungVK(){
   const vhbSub=$('slKlebeVHB')?.closest('.tr')?.querySelector('.tr-sub');
   if(vhbSub) vhbSub.textContent=`CHF ${vhbPreis.toFixed(2)}/Schild · ${vhbLabel}`;
   if(gC('slKlebeVHB')){
-    const val=vhbPreis*stk;
+    let val;
+    if(gC('slVhbManAkt')){
+      const manPreis=parseFloat($('slVhbManPreis')?.value)||0;
+      const manTyp=$('slVhbManTyp')?.value||'stueck';
+      val=manTyp==='pauschal'?manPreis:manPreis*stk;
+    } else {
+      val=vhbPreis*stk;
+    }
     total+=val; updB('pb-slKlebeVHB',val); togOn('slKlebeVHB',true);
   } else {updB('pb-slKlebeVHB',0); togOn('slKlebeVHB',false);}
 
   if(gC('slKlebeKleber')){
-    const val=5*stk;
+    let val;
+    if(gC('slKleberManAkt')){
+      const manPreis=parseFloat($('slKleberManPreis')?.value)||0;
+      const manTyp=$('slKleberManTyp')?.value||'stueck';
+      val=manTyp==='pauschal'?manPreis:manPreis*stk;
+    } else {
+      val=5*stk;
+    }
     total+=val; updB('pb-slKlebeKleber',val); togOn('slKlebeKleber',true);
   } else {updB('pb-slKlebeKleber',0); togOn('slKlebeKleber',false);}
 
@@ -10357,7 +10386,9 @@ function saveSchild(){
     bolzenAkt:gC('slBolzenAkt'),bolzenAnz:parseFloat($('slBolzenAnz')?.value)||4,
     bolzenPreis:parseFloat($('slBolzenPreis')?.value)||11,
     vhbAkt:gC('slKlebeVHB'),vhbVariant:$('slVhbVariant')?.value||'',
+    vhbManAkt:gC('slVhbManAkt'),vhbManTyp:$('slVhbManTyp')?.value||'stueck',vhbManPreis:parseFloat($('slVhbManPreis')?.value)||0,
     kleberAkt:gC('slKlebeKleber'),
+    kleberManAkt:gC('slKleberManAkt'),kleberManTyp:$('slKleberManTyp')?.value||'stueck',kleberManPreis:parseFloat($('slKleberManPreis')?.value)||0,
     eigenBefAkt:gC('slEigenBefAkt'),
     versandDpdAkt:document.getElementById('slDpdAkt')?.checked||false,
     versandDpdKlasse:document.getElementById('slDpdKlasse')?.value||'0',
@@ -10719,10 +10750,10 @@ function startPos(type){
     // Reset alle Checkboxen für sauberen Start
     ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup',
      'slLackAkt','slOutdoor2kAkt','slLackManAkt','slAktPulverRAL','slAktPulverNCS','slAktPulverIGP',
-     'slBolzenAkt','slKlebeVHB','slKlebeKleber','slAnfahrtAkt','slMontageSeparat',
+     'slBolzenAkt','slKlebeVHB','slKlebeKleber','slVhbManAkt','slKleberManAkt','slAnfahrtAkt','slMontageSeparat',
      'slAktElox','slAktBruen','slGravurSetup','slAktWtPlott','slAktWtLam','slAktGlasdekorf','slSpezMatAkt'
     ].forEach(id=>{const e=$(id);if(e)e.checked=false;});
-    ['slLabel','slGvText','slGvPaste'].forEach(id=>{const e=$(id);if(e)e.value='';});
+    ['slLabel','slGvText','slGvPaste','slVhbManPreis','slKleberManPreis'].forEach(id=>{const e=$(id);if(e)e.value='';});
     if($('slLen'))$('slLen').value=200;if($('slBr'))$('slBr').value=100;if($('slStk'))$('slStk').value=1;
     if($('slGvZManual')){$('slGvZManual').value=0;$('slGvZManual').style.borderColor='var(--green)';}
     $('liveHint').textContent='💡 Schild: Format + Material einmal, Beschriftungsart im Tab wählen.';
@@ -11798,6 +11829,26 @@ function restoreLackZusatz(pfx, calcFn, farben){
 // (Elox, Brünieren, Pulver use this via buildManualEKSection)
 // ═══════════════════════════════════════════════════════
 
+function mkManPreisBlock(pfx, calcFn, prevChecked, prevTyp, prevPreis){
+  const disp = prevChecked ? 'flex' : 'none';
+  return `<div style="margin:2px 0 8px 26px;">
+    <label class="tog" style="display:inline-flex;align-items:center;gap:5px;font-size:10.5px;color:var(--muted);cursor:pointer;">
+      <input type="checkbox" id="${pfx}ManAkt" ${prevChecked?'checked':''}
+        onchange="${calcFn}();const w=document.getElementById('${pfx}ManWrap');if(w)w.style.display=this.checked?'flex':'none';"
+        style="width:14px;height:14px;">
+      Preis manuell überschreiben (statt Berechnung)
+    </label>
+    <div id="${pfx}ManWrap" style="display:${disp};margin-top:5px;gap:6px;align-items:center;flex-wrap:wrap;">
+      <select id="${pfx}ManTyp" onchange="${calcFn}()"
+        style="background:var(--surface2);border:1px solid var(--border);color:var(--text);padding:4px 7px;border-radius:4px;font-size:11px;">
+        <option value="stueck"${prevTyp!=='pauschal'?' selected':''}>CHF pro Stk.</option>
+        <option value="pauschal"${prevTyp==='pauschal'?' selected':''}>CHF pauschal (Total)</option>
+      </select>
+      <input type="number" id="${pfx}ManPreis" min="0" step="0.05" value="${prevPreis||''}" placeholder="0.00" oninput="${calcFn}()"
+        style="width:90px;background:var(--surface2);border:1.5px solid var(--amber);color:var(--amber);font-weight:700;padding:4px 7px;border-radius:4px;font-size:12px;">
+    </div>
+  </div>`;
+}
 function buildManualEKSection(pfx, calcFn, label){
   // Returns HTML string for manual EK input section
   return `<div style="border-top:1px solid var(--border);margin-top:10px;padding-top:10px;">
@@ -15376,7 +15427,7 @@ function editPos(i){
     // Reset alle Oberflächen-Checkboxen vor Restore (verhindert DOM-State-Pollution)
     ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup',
      'slLackAkt','slOutdoor2kAkt','slLackManAkt','slAktPulverRAL','slAktPulverNCS','slAktPulverIGP',
-     'slBolzenAkt','slKlebeVHB','slKlebeKleber','slAnfahrtAkt','slMontageSeparat',
+     'slBolzenAkt','slKlebeVHB','slKlebeKleber','slVhbManAkt','slKleberManAkt','slAnfahrtAkt','slMontageSeparat',
      'slAktElox','slAktBruen','slGravurSetup','slAktWtPlott','slAktWtLam','slAktGlasdekorf',
      'slSpezMatAkt'].forEach(id=>{const e=$(id);if(e)e.checked=false;});
     setTimeout(()=>{
@@ -15539,7 +15590,13 @@ function editPos(i){
         if(p.bolzenPreis&&$('slBolzenPreis'))$('slBolzenPreis').value=p.bolzenPreis;
         if(p.vhbAkt){const e=$('slKlebeVHB');if(e)e.checked=true;}
         if(p.vhbVariant&&$('slVhbVariant'))$('slVhbVariant').value=p.vhbVariant;
+        if(p.vhbManAkt){const e=$('slVhbManAkt');if(e)e.checked=true;const w=$('slVhbManWrap');if(w)w.style.display='flex';}
+        if($('slVhbManTyp'))$('slVhbManTyp').value=p.vhbManTyp||'stueck';
+        if($('slVhbManPreis'))$('slVhbManPreis').value=p.vhbManPreis||'';
         if(p.kleberAkt){const e=$('slKlebeKleber');if(e)e.checked=true;}
+        if(p.kleberManAkt){const e=$('slKleberManAkt');if(e)e.checked=true;const w=$('slKleberManWrap');if(w)w.style.display='flex';}
+        if($('slKleberManTyp'))$('slKleberManTyp').value=p.kleberManTyp||'stueck';
+        if($('slKleberManPreis'))$('slKleberManPreis').value=p.kleberManPreis||'';
         if(p.eigenBefAkt){
           const c2=$('slEigenBefAkt');if(c2)c2.checked=true;
           if($('slEigenBefBez'))$('slEigenBefBez').value=p.eigenBefBez||'';
@@ -17250,9 +17307,10 @@ function printDoc(mode){
       if(p.vhbAkt){
         const VHB_DICKE={'4936P':'0.64mm','4941':'1.1mm','4991':'2.3mm'};
         const vhbDicke=VHB_DICKE[p.vhbVariant]||'';
-        mods.push(`Montageart: direkt aufgeklebt mit doppelseitigem Klebeband 3M ${p.vhbVariant||''}${vhbDicke?' ('+vhbDicke+')':''}`);
+        const vhbManStr=isInt&&p.vhbManAkt?` (individueller Preis: CHF ${(p.vhbManPreis||0).toFixed(2)}${p.vhbManTyp==='pauschal'?' pauschal':'/Stk.'})`:'';
+        mods.push(`Montageart: direkt aufgeklebt mit doppelseitigem Klebeband 3M ${p.vhbVariant||''}${vhbDicke?' ('+vhbDicke+')':''}${vhbManStr}`);
       }
-      if(p.kleberAkt)mods.push('2K-Kleber');
+      if(p.kleberAkt)mods.push(isInt&&p.kleberManAkt?`2K-Kleber (individueller Preis: CHF ${(p.kleberManPreis||0).toFixed(2)}${p.kleberManTyp==='pauschal'?' pauschal':'/Stk.'})`:'2K-Kleber');
       if(p.eigenBefAkt&&p.eigenBefBez){
         const eigenStr=isInt
           ?(p.eigenBefTyp==='stueck'?`${p.eigenBefBez} (CHF ${p.eigenBefPreis?.toFixed(2)}/Stk.)`:`${p.eigenBefBez} (CHF ${p.eigenBefPreis?.toFixed(2)} pauschal)`)
@@ -17653,13 +17711,24 @@ function printDoc(mode){
     .page{
       padding:10mm 16mm 22mm 16mm;
       page-break-after:always;
-      page-break-inside:avoid;
       width:210mm;
       min-height:297mm;
       box-sizing:border-box;
     }
     .page:last-child{page-break-after:auto;}
-    .footer{position:fixed;bottom:8mm;}
+    /* V9.39: position:fixed entfernt — funktioniert in der Puppeteer-PDF-Erzeugung
+       nicht zuverlässig (Footer rutschte mitten in den Textfluss statt an den
+       echten Seitenrand, riss dabei den Schlussblock auseinander und liess die
+       Flex-Abstände kollabieren, da ein fixierter Container ohne definierte
+       Breite hat). Footer bleibt jetzt normaler Fluss-Inhalt am Ende des
+       Schlussblocks — dadurch bekommt er automatisch die volle Seitenbreite
+       und "justify-content:space-between" funktioniert wieder korrekt. */
+    /* Bei vielen Positionen: einzelne Zeilen nie mitten durchtrennen */
+    table.pos tr{page-break-inside:avoid;break-inside:avoid;}
+    /* Konditionen + AGB-Kurzhinweis + Bankverbindung + Footer gehören zusammen —
+       passen sie nicht mehr vollständig auf die aktuelle Seite, rutscht der ganze
+       Block auf die nächste Seite statt am Seitenende angequetscht zu werden. */
+    .schlussblock{page-break-inside:avoid;break-inside:avoid;}
   }
 @keyframes pulse {
   0%, 100% { box-shadow: 0 0 0 2px var(--green); }
@@ -17751,6 +17820,10 @@ function printDoc(mode){
       ${gNotiz?`<tr><td colspan="6" style="padding:1mm 2mm;color:#888;font-style:italic;font-size:9px;">${gNotiz}</td></tr>`:''}
     </table></div>`;
   })():''}
+  <!-- SCHLUSSBLOCK: Summen + Konditionen + AGB-Hinweis + Bank + Footer bleiben zusammen —
+       passt der ganze Block nicht mehr auf die aktuelle Seite, rutscht er komplett auf
+       die nächste, statt am Seitenende angequetscht zu werden. -->
+  <div class="schlussblock">
   <!-- SUMMEN -->
   <div class="sum-block">
     <table class="sums">
@@ -17791,6 +17864,7 @@ function printDoc(mode){
     <span>Rheinfelderstrasse 12 · 4127 Birsfelden · Tel. +41 61 421 23 23 · info@grafe.ch · www.grafe.ch</span>
     <span>${datum}</span>
   </div>
+  </div><!-- /schlussblock -->
 
 </div><!-- /page -->
 
