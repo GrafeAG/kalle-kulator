@@ -279,21 +279,49 @@ router.get('/open', (req, res) => {
 });
 
 // ── POST /projekte/ablegen — Offerte in 02 Offertphase ────────────────────
+// Rendert das übergebene HTML per Puppeteer zu einem echten PDF und legt
+// DAS ab (nicht das rohe HTML). Ist Puppeteer nicht installiert/startbar,
+// gibt es einen klaren 503-Fehler zurück (kein stiller HTML-Fallback mehr —
+// genau das führte bisher dazu, dass unbemerkt "Offerte_X.html" statt PDF
+// abgelegt wurde, obwohl der Client "als PDF erstellt" meldete).
 router.post('/ablegen', express.json({ limit: '10mb' }), async (req, res) => {
   const { projektPfad, auftragsnr, html } = req.body;
   if (!projektPfad) return res.status(400).json({ error: 'projektPfad fehlt' });
   if (!html)        return res.status(400).json({ error: 'html fehlt' });
   if (!pfadErlaubt(projektPfad)) return res.status(403).json({ error: 'Pfad nicht erlaubt' });
 
+  let puppeteer;
+  try { puppeteer = require('puppeteer'); }
+  catch (e) {
+    console.error('[Ablegen] Puppeteer nicht installiert:', e.message);
+    return res.status(503).json({
+      ok: false,
+      error: 'Puppeteer nicht installiert — PDF-Erzeugung nicht möglich',
+      hinweis: 'Auf dem Server ausführen: npm install puppeteer',
+    });
+  }
+
   const lokal    = zuLokal(projektPfad);                 // fs-Operationen lokal
   const ordner   = path.join(lokal, '02 Offertphase');
   const anrClean = sane(auftragsnr || 'Offerte', 60);
-  const dateiname = `Offerte_${anrClean}.html`;
+  const dateiname = `Offerte_${anrClean}.pdf`;
   const zielDatei = path.join(ordner, dateiname);
 
+  let browser;
   try {
     fs.mkdirSync(ordner, { recursive: true });
-    fs.writeFileSync(zielDatei, html, 'utf-8');
+
+    browser = await puppeteer.launch({ headless: 'new', args: ['--no-sandbox', '--disable-setuid-sandbox'] });
+    const page = await browser.newPage();
+    await page.setContent(html, { waitUntil: 'networkidle0' });
+    const pdfBuffer = await page.pdf({
+      format: 'A4',
+      printBackground: true,
+      margin: { top: '0mm', bottom: '0mm', left: '0mm', right: '0mm' },
+    });
+    await browser.close();
+
+    fs.writeFileSync(zielDatei, pdfBuffer);
     console.log(`[Ablegen] ✓ ${dateiname} → ${ordner}`);
     if (auftragsnr) {
       try { await query('UPDATE offerten SET projekt_pfad=$1 WHERE auftragsnr=$2', [zurFreigabe(lokal), auftragsnr]); }
@@ -301,6 +329,7 @@ router.post('/ablegen', express.json({ limit: '10mb' }), async (req, res) => {
     }
     return res.json({ ok: true, datei: zurFreigabe(zielDatei), dateiname });
   } catch (e) {
+    if (browser) { try { await browser.close(); } catch {} }
     console.error('[Ablegen] Fehler:', e.message);
     return res.status(500).json({ ok: false, error: e.message });
   }
