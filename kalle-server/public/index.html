@@ -818,8 +818,8 @@ a, button, input, select, textarea, label,
       <div class="st y" id="folieTitle">Neue Position – Folientechnik</div>
       <div class="g4" style="margin-bottom:8px;">
         <div class="field"><label>Bezeichnung</label><input id="fL" type="text" placeholder="Fensterfolie..."></div>
-        <div class="field"><label>Länge (mm)</label><input id="fLen" type="number" value="500" min="1" oninput="cF()"></div>
-        <div class="field"><label>Breite (mm)</label><input id="fBr" type="number" value="300" min="1" oninput="cF()"></div>
+        <div class="field"><label>Breite (mm)</label><input id="fLen" type="number" value="500" min="1" oninput="cF()"></div>
+        <div class="field"><label>Höhe (mm)</label><input id="fBr" type="number" value="300" min="1" oninput="cF()"></div>
         <div class="field"><label>Stückzahl</label><input id="fStk" type="number" value="1" min="1" oninput="cF()"></div>
       </div>
       <div id="fCopyHint" style="display:none;margin-bottom:8px;"></div>
@@ -1524,8 +1524,8 @@ a, button, input, select, textarea, label,
         <div class="field"><label>Bezeichnung</label><input id="gvLabel" type="text" placeholder="Türschilder Gravur..."></div>
         <div class="field" style="grid-column:1/-1;"><label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);font-weight:400;">(erscheint in Offerte)</span></label>
           <input id="gvNotiz" type="text" placeholder="z.B. Acryl weiss, Vertiefung schwarz eingefärbt..."></div>
-        <div class="field"><label>Länge (mm)</label><input id="gvLen" type="number" value="200" min="1" oninput="cGv()"></div>
-        <div class="field"><label>Breite (mm)</label><input id="gvBr" type="number" value="100" min="1" oninput="cGv()"></div>
+        <div class="field"><label>Breite (mm)</label><input id="gvLen" type="number" value="200" min="1" oninput="cGv()"></div>
+        <div class="field"><label>Höhe (mm)</label><input id="gvBr" type="number" value="100" min="1" oninput="cGv()"></div>
         <div class="field"><label>Stückzahl</label><input id="gvStk" type="number" value="1" min="1" oninput="cGv()"></div>
       </div>
       <div id="gvCopyHint" style="display:none;margin-bottom:8px;"></div>
@@ -1799,8 +1799,8 @@ a, button, input, select, textarea, label,
           <div class="field"><label>Bezeichnung</label><input id="slLabel" type="text" placeholder="Türschild 3.OG..."></div>
         <div class="field" style="grid-column:1/-1;"><label>Notiz / Zusatzinfo <span style="font-size:9px;color:var(--muted);font-weight:400;">(erscheint in Offerte, kein Einfluss auf Kalkulation)</span></label>
           <input id="slNotiz" type="text" placeholder="z.B. matt schwarz pulverbeschichtet, Montage mit Klebung..."></div>
-          <div class="field"><label>Länge (mm)</label><input id="slLen" type="number" value="200" min="1" oninput="cSl()"></div>
-          <div class="field"><label>Breite (mm)</label><input id="slBr" type="number" value="100" min="1" oninput="cSl()"></div>
+          <div class="field"><label>Breite (mm)</label><input id="slLen" type="number" value="200" min="1" oninput="cSl()"></div>
+          <div class="field"><label>Höhe (mm)</label><input id="slBr" type="number" value="100" min="1" oninput="cSl()"></div>
           <div class="field"><label>Stückzahl</label><input id="slStk" type="number" value="1" min="1" oninput="cSl()"></div>
         </div>
         <div id="slM2" style="font-size:10px;color:var(--muted);"></div>
@@ -2906,9 +2906,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.30';
+const UI_VERSION='V9.32';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.32','Offert-PDF · Mehrgrössen-Positionen (Schild + Folientechnik, V9.29) korrigiert. Zwei echte Bugs behoben: (1) Die Hauptspalte „Einzelpreis" zeigte bisher Gesamtpreis ÷ Stückzahl — eine rein lineare Aufteilung ohne Bezug zur Fläche. Bei unterschiedlich grossen Positionen (z. B. 1× 300×400mm + 1× 500×800mm) kostete dadurch ein kleiner Druck auf dem Papier gleich viel wie ein grosser, obwohl die m²-gewichtete Verteilung pro Zeile (aus V9.29) korrekt vorlag. Fix: Bei mehreren Grössen zeigt „Einzelpreis" jetzt bewusst „–" statt einer irreführenden Durchschnittszahl — die echten, unterschiedlichen Preise je Grösse stehen direkt in der Detailzeile darunter. Der Schild-Offert-Block hatte bisher gar keine Mehrgrössen-Anzeige (zeigte immer nur die erste Grösse) — jetzt analog zu Folientechnik mit Aufschlüsselung je Zeile ergänzt. (2) Zusätzlich alle drei Stellen, die den Zeilenpreis ausgeben, robuster gegen fehlende Werte gemacht (Fallback statt Absturz/Leeranzeige), falls eine Position mit einem älteren Zwischenstand gespeichert wurde. Mit Playwright verifiziert: Folientechnik mit 2 Grössen (1000×500 + 500×800) zeigt korrekt CHF 17.50/Stk bzw. CHF 14.00/Stk in der Detailzeile, Gesamtpreis CHF 31.50, Einzelpreis-Spalte zeigt „–" statt falscher CHF 15.75.'],
+  ['V9.31','Schild · Zwei Fixes. (1) Bug behoben: In „5 Beschriftung" zeigte das Preis-Badge „Setup-Pauschale Folienplott" nach Aktivierung des Toggels weiterhin „–" an, obwohl die CHF 25.– korrekt in die Live-Kalkulation einflossen. Ursache: ID-Tippfehler — der Update-Aufruf zielte auf "pb-slPlottSetup", das echte Badge-Element hiess aber "pb-slPSSetup". Element wurde nie gefunden, Update lief ins Leere. Einzeiliger Fix (ID korrigiert), mit Playwright verifiziert: Badge zeigt jetzt korrekt „CHF 25.00" nach Aktivierung. (2) Feldbezeichnungen für Grösseneingaben im gesamten Dokument auf „Breite (mm)" / „Höhe (mm)" vereinheitlicht — betraf Fräsbuchstaben, Gravur, Schild sowie die neuen Mehrgrössen-Zeilen (Schild/Folientechnik aus V9.29), die bisher uneinheitlich "Länge"/"Breite" nannten. Bewusst NICHT angetastet: SBB-Provisorien-Modul (nutzt "Höhe"/"Länge" nach FIS-Bahnhofsnorm, eigene Fachterminologie) und Admin-Materiallager (Rohplatten-Formate, andere Bedeutung als Kundenauftrag-Masse).'],
   ['V9.30','Schild · Echter Bug behoben (der in V9.29 als „vorbestehend, separat zu untersuchen" gemeldet wurde): Preis änderte sich nach dem Bearbeiten/erneuten Öffnen einer Schild-Position, auch ganz ohne die neue Mehrgrössen-Funktion. Ursache gefunden: die Hilfsfunktion restoreSelIdx() (stellt beim Bearbeiten Folie/Laminat/Druck wieder her) setzte die Checkbox in der allerersten Zeile unconditional auf "checked=true" — unabhängig davon, ob die Position dieses Merkmal überhaupt je hatte. Nach jedem Öffnen zum Bearbeiten wurden dadurch Folie-, Laminat- und Druckkosten neu dazugerechnet, selbst wenn ursprünglich nichts davon aktiviert war. Fix: Guard ergänzt (chk.checked=false + return, wenn kein gespeicherter Wert vorhanden) — betrifft nur diese eine Funktion, restoreSel2() (Tape) hatte den Guard bereits korrekt. Mit Playwright verifiziert: Preis vor/nach Bearbeiten jetzt exakt identisch (Differenz 0.00) — sowohl ohne Folie (Normalfall) als auch mit bewusst aktivierter Folie (Checkbox bleibt korrekt an) als auch mit mehreren Grössen (V9.29-Feature).'],
   ['V9.29','Schild & Folientechnik · Mehrere Grössen in EINER Position. Bisher musste für jede Grösse eine eigene Position angelegt werden — das verfälschte Vorkosten (mehrfach statt einmal berechnet) und Verschnitt (jede Grösse einzeln statt als Sammelbestellung). Neu: „+ weitere Grösse"-Button in beiden Formularen, beliebig viele Zeilen (Länge/Breite/Stückzahl/Bezeichnung) pro Position. Material und alle Vorkosten werden auf der GESAMT-Fläche der Position berechnet (nicht pro Zeile einzeln), der Gesamtpreis wird danach proportional nach m²-Anteil auf die Zeilen zurückverteilt — jede Grösse bekommt ihren korrekten Stückpreis für die Offerte, exakt wie bei einer echten Sammelbestellung. Bewusst sicher umgesetzt: die komplexe bestehende Logik (Oberflächen, Montage, Anfahrt etc.) wurde NICHT angetastet — nur die Massen-Eingabe wurde von einem einzelnen Feld auf eine Zeilen-Summe umgestellt. Bei nur einer Grösse (der bisherige Normalfall) verhält sich alles exakt wie zuvor, keine Regression. Positionsliste, Offert-PDF und SelectLine-CSV-Export zeigen bei mehreren Grössen eine Aufschlüsselung je Zeile mit Einzelpreis. Zusätzlich: Materialmarge für alle Folien-Kategorien (Digitaldruckfolie, Laminat, Plottfolie, Tape, Glasdekorfolie) von 50–75% auf durchgängig 80% angehoben, inkl. sicherer einmaliger Migration bestehender gespeicherter Daten (nur falls nachweislich nie manuell verändert) und neuer 80%-Option im Marge-Dropdown. Mit Playwright vollständig getestet: Rückwärtskompatibilität bei 1 Grösse (beide Formulare), korrekte m²/Preis-Verteilung bei mehreren Grössen (Summe der Einzelpreise = Gesamtpreis, exakt nachgerechnet), Speichern/Bearbeiten mit korrekter Wiederherstellung aller Zeilen, 80%-Marge in echter Berechnung verifiziert. Dabei einen VORBESTEHENDEN, nicht von dieser Änderung verursachten Bug entdeckt: Der Preis einer Schild-Position weicht nach dem Bearbeiten/erneuten Speichern ab (auch bei nur einer Grösse) — vermutlich ein Toggle/Checkbox-Default, der beim Wiederherstellen anders gesetzt wird als bei der Ersterfassung. Separat zu untersuchen.'],
   ['V9.28','Fahrzeugbeschriftung · Marke/Modell-Liste stark erweitert: von 10 auf 22 Marken, aktuelle Generationen (≤10 Jahre) inkl. Elektrofahrzeuge — neu u. a. Tesla (Model 3/Y/S/X), Audi, BMW, Hyundai, Kia, Volvo, Mini, Dacia, Nissan, Mazda, SEAT/Cupra, sowie bei bestehenden Marken zahlreiche E-Modelle ergänzt (VW ID.3/ID.4/ID. Buzz, Mercedes EQA/EQB/EQC/eVito/eSprinter, Renault Zoe/Mégane E-Tech/Kangoo E-Tech, Peugeot e-208/e-2008, Citroën ë-C3/ë-C4, Opel Corsa-e/Astra Electric, Ford Mustang Mach-E, Toyota bZ4X u.a.). Neues Feld „Variante" (optional) bei Schritt 1 — Freitext für genauere Modellvariante wie L2H2, Kompakt, Lang etc., erscheint automatisch in Positionsbezeichnung, Vorschau-Beschriftung, Positionsliste und Offert-PDF. Mit Playwright getestet: Markenliste, Tesla-Zuordnung, Variante-Feld behält beim Tippen den Fokus, Speichern/Bearbeiten mit Variante (z. B. „Sprinter L2H2") funktioniert vollständig.'],
@@ -6515,8 +6517,8 @@ function ftRenderExtraRows(){
   const rows=window._ftExtraRows;
   el.innerHTML=rows.map((r,i)=>
     '<div class="slxr-row">'
-    +'<div><span class="slxr-lbl">Länge mm</span><input type="number" min="1" value="'+r.l+'" oninput="ftUpdateExtraRow('+i+',\'l\',this.value)"></div>'
-    +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.b+'" oninput="ftUpdateExtraRow('+i+',\'b\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.l+'" oninput="ftUpdateExtraRow('+i+',\'l\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Höhe mm</span><input type="number" min="1" value="'+r.b+'" oninput="ftUpdateExtraRow('+i+',\'b\',this.value)"></div>'
     +'<div><span class="slxr-lbl">Stk</span><input type="number" min="1" value="'+r.stk+'" oninput="ftUpdateExtraRow('+i+',\'stk\',this.value)"></div>'
     +'<div><span class="slxr-lbl">Bezeichnung</span><input type="text" value="'+(r.label||'').replace(/"/g,'&quot;')+'" placeholder="optional" oninput="ftUpdateExtraRow('+i+',\'label\',this.value)"></div>'
     +'<button type="button" class="slxr-del" onclick="ftRemoveExtraRow('+i+')" title="Grösse entfernen">✕</button>'
@@ -9149,8 +9151,8 @@ function slRenderExtraRows(){
   const rows=window._slExtraRows;
   el.innerHTML=rows.map((r,i)=>
     '<div class="slxr-row">'
-    +'<div><span class="slxr-lbl">Länge mm</span><input type="number" min="1" value="'+r.l+'" oninput="slUpdateExtraRow('+i+',\'l\',this.value)"></div>'
-    +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.b+'" oninput="slUpdateExtraRow('+i+',\'b\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.l+'" oninput="slUpdateExtraRow('+i+',\'l\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Höhe mm</span><input type="number" min="1" value="'+r.b+'" oninput="slUpdateExtraRow('+i+',\'b\',this.value)"></div>'
     +'<div><span class="slxr-lbl">Stk</span><input type="number" min="1" value="'+r.stk+'" oninput="slUpdateExtraRow('+i+',\'stk\',this.value)"></div>'
     +'<div><span class="slxr-lbl">Bezeichnung</span><input type="text" value="'+(r.label||'').replace(/"/g,'&quot;')+'" placeholder="optional" oninput="slUpdateExtraRow('+i+',\'label\',this.value)"></div>'
     +'<button type="button" class="slxr-del" onclick="slRemoveExtraRow('+i+')" title="Grösse entfernen">✕</button>'
@@ -9447,7 +9449,7 @@ function cSl(){
   }
   badge('pb-slFolie','slAktFolie',fEK,false);badge('pb-slLaminat','slAktLaminat',lEK,false);
   badge('pb-slTape','slAktTape',tEK,false);badge('pb-slDruck','slAktDruck',druckVK,false);
-  badge('pb-slSetup','slAktSetup',setupVK,false);badge('pb-slPlottSetup','slAktPlottSetup',plottSetupVK,false);
+  badge('pb-slSetup','slAktSetup',setupVK,false);badge('pb-slPSSetup','slAktPlottSetup',plottSetupVK,false);
   try{
     slGetPlottFarben().forEach((f2,fi)=>{
       const cid='slAktPlott'+(fi===0?'':'_f'+fi);
@@ -16456,7 +16458,7 @@ function printOfferte(id){
         const rowsHtml=p.rows.map(r=>
           `<div style="display:flex;justify-content:space-between;padding:2px 0;">`
           +`<span>${r.stk} × ${r.l}×${r.b}mm${r.label?' — '+r.label:''}</span>`
-          +`<span style="white-space:nowrap;margin-left:12px;">CHF ${r.vkStk.toFixed(2)} /Stk</span>`
+          +`<span style="white-space:nowrap;margin-left:12px;">CHF ${(r.vkStk||0).toFixed(2)} /Stk</span>`
           +`</div>`
         ).join('');
         detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
@@ -17241,13 +17243,15 @@ function printDoc(mode){
           <strong>${p.label}</strong>${variantBadge}
           ${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}
           <span class="sub">
-            <span style="display:block;">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m²${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+sp(p.matName||'')}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}</span>
+            ${(p.rows&&p.rows.length>1)?`<span style="display:block;">${p.rows.length} Grössen · ${p.m2n?.toFixed(4)||'?'} m² gesamt${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+sp(p.matName||'')}</span>
+              ${p.rows.map(r=>`<span style="display:block;">&nbsp;&nbsp;· ${r.stk} × ${r.l}×${r.b}mm${r.label?' — '+r.label:''} — ${fmtVar(p,r.vkStk)}/Stk</span>`).join('')}`
+            :`<span style="display:block;">Format: ${p.l}×${p.b}mm · ${p.m2n?.toFixed(4)||'?'} m²${p.zuschnittMethode==='kein'?' · Material angeliefert'+(p.angeliefertBez?' · '+p.angeliefertBez:''):' · Schildmaterial: '+sp(p.matName||'')}${isInt?slSpezStr:(!p.spezMatAkt?'':' · Spezialmaterial: '+(p.spezMatBez||'–'))}</span>`}
             ${mods.filter(Boolean).map(m=>'<span style="display:block;">'+m+'</span>').join('')}
             ${isInt?`<span style="display:block;margin-top:1mm;color:#999;">Mat.EK CHF ${p.matEK?.toFixed(2)} · VK CHF ${p.matVK?.toFixed(2)} · Folie EK CHF ${p.folieMatEK?.toFixed(2)}</span>`:''}
           </span>
           ${rabattInline}
         </td>
-        <td class="c-ep">${fmtVar(p,p.totalVK/(p.stk||1))}</td>
+        <td class="c-ep">${(p.rows&&p.rows.length>1)?'–':fmtVar(p,p.totalVK/(p.stk||1))}</td>
         <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
       </tr>`;
     }
@@ -17317,7 +17321,7 @@ function printDoc(mode){
       const m2n=(p.m2n!=null?p.m2n:((p.l||0)/1000*(p.b||0)/1000*(p.stk||1)));
       L.push(`<span style="color:#555;">Ausführung:</span> <strong>Folientechnik${p.druck?' · Digitaldruck':''}</strong>`);
       if(p.rows&&p.rows.length>1){
-        const rowsHtml=p.rows.map(r=>`&nbsp;&nbsp;· ${r.stk} × ${r.l}×${r.b}mm${r.label?' — '+r.label:''} — CHF ${r.vkStk.toFixed(2)}/Stk`).join('<br>');
+        const rowsHtml=p.rows.map(r=>`&nbsp;&nbsp;· ${r.stk} × ${r.l}×${r.b}mm${r.label?' — '+r.label:''} — ${fmtVar(p,r.vkStk||0)}/Stk`).join('<br>');
         L.push(`<b>${p.rows.length} Grössen</b> &nbsp;·&nbsp; <b>Fläche gesamt:</b> ${m2n.toFixed(2)} m²<br>${rowsHtml}`);
       } else {
         L.push(`<b>Format:</b> ${p.l||'?'} × ${p.b||'?'} mm &nbsp;·&nbsp; <b>Menge:</b> ${p.stk||1} Stk.${m2n>0?` &nbsp;·&nbsp; <b>Fläche:</b> ${m2n.toFixed(2)} m²`:''}`);
@@ -17468,7 +17472,7 @@ function printDoc(mode){
       <td class="c-menge">${p.stk||1}</td>
       <td class="c-me">Stk.</td>
       <td class="c-bez">${desc}${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${isInt?detail:cleanKunde(detail)}</span>${rabattInline}</td>
-      <td class="c-ep">${fmtVar(p,p.totalVK/(p.stk||1))}</td>
+      <td class="c-ep">${(p.rows&&p.rows.length>1)?'–':fmtVar(p,p.totalVK/(p.stk||1))}</td>
       <td class="c-gp">${p.totalVK.toFixed(2)}<sup>2</sup></td>
     </tr>`;
   };
