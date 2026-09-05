@@ -946,19 +946,27 @@ a, button, input, select, textarea, label,
           </div>
           <div class="field"><label>Materialmarge</label>
             <select id="ftMarge" onchange="cFt()" title="Überschreibt alle Kategorie-Margen">
-              <option value="">– Kategorie-Margen (Standard) –</option>
+              <option value="">– Kategorie-Margen (Standard, jetzt 80%) –</option>
               <option value="0.2">20% (Ausnahme)</option>
               <option value="0.3">30%</option>
               <option value="0.4">40%</option>
               <option value="0.5">50%</option>
               <option value="0.6">60%</option>
               <option value="0.7">70%</option>
+              <option value="0.8">80%</option>
             </select>
           </div>
         </div>
         <div style="font-size:10px;color:var(--muted);margin-bottom:6px;background:var(--surface3);border-radius:4px;padding:4px 8px;">
           m² netto: <span id="ftM2" style="font-weight:600;">–</span>
           &nbsp;·&nbsp; Mindest-Druckbahn: <span id="ftM2Bahn" style="font-weight:600;">–</span>
+        </div>
+        <div id="ftExtraRowsWrap" style="margin-bottom:10px;">
+          <div id="ftExtraRowsTable"></div>
+          <button type="button" class="btn btn-gh" onclick="ftAddExtraRow()" style="font-size:11px;padding:5px 10px;margin-top:4px;">+ weitere Grösse</button>
+          <div id="ftExtraRowsHint" class="hint ht" style="margin-top:5px;display:none;">
+            Mehrere Grössen in einer Position: Material/Vorkosten werden auf der Gesamtfläche berechnet, der Preis unten je Grösse anteilig nach m² ausgewiesen.
+          </div>
         </div>
         <div id="tgFtMat"></div>
         <div class="sl-nr">
@@ -1796,6 +1804,13 @@ a, button, input, select, textarea, label,
           <div class="field"><label>Stückzahl</label><input id="slStk" type="number" value="1" min="1" oninput="cSl()"></div>
         </div>
         <div id="slM2" style="font-size:10px;color:var(--muted);"></div>
+        <div id="slExtraRowsWrap" style="margin-top:8px;">
+          <div id="slExtraRowsTable"></div>
+          <button type="button" class="btn btn-gh" onclick="slAddExtraRow()" style="font-size:11px;padding:5px 10px;margin-top:4px;">+ weitere Grösse</button>
+          <div id="slExtraRowsHint" class="hint ht" style="margin-top:5px;display:none;">
+            Mehrere Grössen in einer Position: Material/Vorkosten werden auf der Gesamtfläche berechnet, der Preis unten je Grösse anteilig nach m² ausgewiesen — wie bei einer echten Sammelbestellung.
+          </div>
+        </div>
       </div>
 
       <div style="display:flex;align-items:center;gap:8px;background:var(--surface3);border:1px solid var(--border);border-radius:5px;padding:5px 10px;margin-bottom:8px;flex-wrap:wrap;font-size:11px;">
@@ -2469,6 +2484,12 @@ a, button, input, select, textarea, label,
       #fahrzeugForm .fz-opt input[type=checkbox]{width:16px;height:16px;accent-color:#E8B800;}
       #fahrzeugForm .fz-op{margin-left:auto;font-size:11px;color:#8a8577;font-family:ui-monospace,monospace;}
       #fahrzeugForm .fz-op input{width:56px;background:#faf9f6;border:1px solid #e0ddd4;color:#1a1a1a;border-radius:5px;padding:2px 5px;font-size:11px;}
+      /* Mehrere Grössen pro Position (Schild, Folientechnik) */
+      .slxr-row{display:grid;grid-template-columns:1fr 1fr 70px 1.4fr 26px;gap:6px;align-items:center;margin-bottom:5px;padding:6px 8px;background:var(--surface2);border:1px solid var(--border);border-radius:7px;}
+      .slxr-row input{width:100%;background:var(--surface3);border:1px solid var(--border);color:var(--text);padding:5px 7px;border-radius:5px;font-size:12px;}
+      .slxr-lbl{font-size:8.5px;color:var(--muted);text-transform:uppercase;letter-spacing:.3px;display:block;margin-bottom:2px;}
+      .slxr-del{background:none;border:none;color:var(--muted);cursor:pointer;font-size:14px;line-height:1;padding:4px;}
+      .slxr-del:hover{color:#c0392b;}
       #fahrzeugForm .fz-fld{display:flex;align-items:center;gap:10px;margin-top:9px;font-size:12.5px;color:#33312b;}
       #fahrzeugForm .fz-fld input{width:74px;}
       #fahrzeugForm .fz-lb{min-width:170px;}
@@ -2885,9 +2906,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.28';
+const UI_VERSION='V9.30';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.30','Schild · Echter Bug behoben (der in V9.29 als „vorbestehend, separat zu untersuchen" gemeldet wurde): Preis änderte sich nach dem Bearbeiten/erneuten Öffnen einer Schild-Position, auch ganz ohne die neue Mehrgrössen-Funktion. Ursache gefunden: die Hilfsfunktion restoreSelIdx() (stellt beim Bearbeiten Folie/Laminat/Druck wieder her) setzte die Checkbox in der allerersten Zeile unconditional auf "checked=true" — unabhängig davon, ob die Position dieses Merkmal überhaupt je hatte. Nach jedem Öffnen zum Bearbeiten wurden dadurch Folie-, Laminat- und Druckkosten neu dazugerechnet, selbst wenn ursprünglich nichts davon aktiviert war. Fix: Guard ergänzt (chk.checked=false + return, wenn kein gespeicherter Wert vorhanden) — betrifft nur diese eine Funktion, restoreSel2() (Tape) hatte den Guard bereits korrekt. Mit Playwright verifiziert: Preis vor/nach Bearbeiten jetzt exakt identisch (Differenz 0.00) — sowohl ohne Folie (Normalfall) als auch mit bewusst aktivierter Folie (Checkbox bleibt korrekt an) als auch mit mehreren Grössen (V9.29-Feature).'],
+  ['V9.29','Schild & Folientechnik · Mehrere Grössen in EINER Position. Bisher musste für jede Grösse eine eigene Position angelegt werden — das verfälschte Vorkosten (mehrfach statt einmal berechnet) und Verschnitt (jede Grösse einzeln statt als Sammelbestellung). Neu: „+ weitere Grösse"-Button in beiden Formularen, beliebig viele Zeilen (Länge/Breite/Stückzahl/Bezeichnung) pro Position. Material und alle Vorkosten werden auf der GESAMT-Fläche der Position berechnet (nicht pro Zeile einzeln), der Gesamtpreis wird danach proportional nach m²-Anteil auf die Zeilen zurückverteilt — jede Grösse bekommt ihren korrekten Stückpreis für die Offerte, exakt wie bei einer echten Sammelbestellung. Bewusst sicher umgesetzt: die komplexe bestehende Logik (Oberflächen, Montage, Anfahrt etc.) wurde NICHT angetastet — nur die Massen-Eingabe wurde von einem einzelnen Feld auf eine Zeilen-Summe umgestellt. Bei nur einer Grösse (der bisherige Normalfall) verhält sich alles exakt wie zuvor, keine Regression. Positionsliste, Offert-PDF und SelectLine-CSV-Export zeigen bei mehreren Grössen eine Aufschlüsselung je Zeile mit Einzelpreis. Zusätzlich: Materialmarge für alle Folien-Kategorien (Digitaldruckfolie, Laminat, Plottfolie, Tape, Glasdekorfolie) von 50–75% auf durchgängig 80% angehoben, inkl. sicherer einmaliger Migration bestehender gespeicherter Daten (nur falls nachweislich nie manuell verändert) und neuer 80%-Option im Marge-Dropdown. Mit Playwright vollständig getestet: Rückwärtskompatibilität bei 1 Grösse (beide Formulare), korrekte m²/Preis-Verteilung bei mehreren Grössen (Summe der Einzelpreise = Gesamtpreis, exakt nachgerechnet), Speichern/Bearbeiten mit korrekter Wiederherstellung aller Zeilen, 80%-Marge in echter Berechnung verifiziert. Dabei einen VORBESTEHENDEN, nicht von dieser Änderung verursachten Bug entdeckt: Der Preis einer Schild-Position weicht nach dem Bearbeiten/erneuten Speichern ab (auch bei nur einer Grösse) — vermutlich ein Toggle/Checkbox-Default, der beim Wiederherstellen anders gesetzt wird als bei der Ersterfassung. Separat zu untersuchen.'],
   ['V9.28','Fahrzeugbeschriftung · Marke/Modell-Liste stark erweitert: von 10 auf 22 Marken, aktuelle Generationen (≤10 Jahre) inkl. Elektrofahrzeuge — neu u. a. Tesla (Model 3/Y/S/X), Audi, BMW, Hyundai, Kia, Volvo, Mini, Dacia, Nissan, Mazda, SEAT/Cupra, sowie bei bestehenden Marken zahlreiche E-Modelle ergänzt (VW ID.3/ID.4/ID. Buzz, Mercedes EQA/EQB/EQC/eVito/eSprinter, Renault Zoe/Mégane E-Tech/Kangoo E-Tech, Peugeot e-208/e-2008, Citroën ë-C3/ë-C4, Opel Corsa-e/Astra Electric, Ford Mustang Mach-E, Toyota bZ4X u.a.). Neues Feld „Variante" (optional) bei Schritt 1 — Freitext für genauere Modellvariante wie L2H2, Kompakt, Lang etc., erscheint automatisch in Positionsbezeichnung, Vorschau-Beschriftung, Positionsliste und Offert-PDF. Mit Playwright getestet: Markenliste, Tesla-Zuordnung, Variante-Feld behält beim Tippen den Fokus, Speichern/Bearbeiten mit Variante (z. B. „Sprinter L2H2") funktioniert vollständig.'],
   ['V9.27','Fahrzeugbeschriftung · Drei Anpassungen nach Rückmeldung: (1) Digitaldruck-Grössenauswahl (Klein/Mittel/Gross) hat jetzt eine 4. Option „Frei" — Freitext-Beschreibung + frei eintragbarer Preis, verfügbar in JEDEM Bereich inkl. Designfolierung. Preis wird 1:1 übernommen (nicht mit Grössenfaktor skaliert), erscheint korrekt in Zusammenfassung, Positionsliste, Offert-PDF sowie beim Bearbeiten einer gespeicherten Position. (2) Bereich „Seiten" umbenannt in „Designfolierung". (3) MwSt. komplett aus der Fahrzeug-Zusammenfassung entfernt — zeigt jetzt nur noch „Richtpreis (exkl. MwSt.)", analog zu allen anderen Positionstypen im Tool (Schild, Reliefschriften etc. zeigen ebenfalls nur exkl. MwSt., die Steuer wird ausschliesslich einmalig in der Gesamt-Offerte aufgerechnet — die Fahrzeugbeschriftung war hier bisher inkonsistent). Nebenbei behoben: Positions-Kurzbeschrieb zeigte bei Motorhaube fälschlich „Logo/Adresse" statt „Logo" (generischer Text statt des tatsächlichen Basis-Elements). Mit Playwright getestet: Freitext-Feld behält beim Tippen den Fokus (kein voller Re-Render bei jedem Tastenanschlag), korrekte Preisberechnung, Speichern/Bearbeiten mit Frei-Auswahl.'],
   ['V9.26','Fahrzeugbeschriftung · Grundlegend überarbeitet nach Rückmeldung, näher an der Praxis: (1) BUG behoben — Tür-Preise wurden fälschlich ×2 gerechnet, obwohl die hinterlegten Preise bereits für beide Türen zusammen galten (Kleinwagen-Beispiel: bisher CHF 430 Basis, korrekt CHF 330). (2) Logo und Text/Adresse sind auf Türen und Heck jetzt als EIN gebündeltes Basis-Element zusammengefasst (nicht mehr einzeln an/abwählbar), da beides in der Praxis immer zusammen vorkommt. Standardmässig aktiv, immer Folienplot. (3) Der globale Umschalter „Folienplot / Digitaldruck" ist komplett entfernt — ergab in der Praxis keinen Sinn. Stattdessen kann jeder Bereich (Türen/Motorhaube/Heck/Seiten) unabhängig um einen Digitaldruck ERGÄNZT werden, mit eigener Grössenwahl Klein/Mittel/Gross — Preis richtet sich nach der Grösse, nicht nach dem Bereich. (4) Bezeichnung und Notiz stehen jetzt ganz oben vor „1 Fahrzeug" statt am Ende. (5) Vorschau-Marker entsprechend angepasst — Logo/Adresse als Punkt, Digitaldruck-Ergänzung als Fläche, deren Grösse sich sichtbar mit der Klein/Mittel/Gross-Wahl ändert. (6) Admin → Fahrzeug neu strukturiert: Basis-Elemente-Tabelle (Folienplot, je Bereich) + separate Grössen-Tabelle für die Digitaldruck-Ergänzung. Reparatur-Erkennung (V9.22/V9.25) auf das neue Schema umgestellt. Mit Playwright vollständig getestet: Feldreihenfolge, korrigierte Preise (keine Verdopplung mehr), Digitaldruck-Ergänzung + Grössenwahl je Bereich, Speichern/Bearbeiten einer Position, Admin-Panel.'],
@@ -2984,11 +3007,11 @@ const DEF={
   druckbreite:1300,plottbreite:1200,
   // Margen pro Folienkategorie (Aufschlag auf EK-Listenpreis)
   margen:{
-    digitaldruckfolie: 0.50,  // 50% → VK = EK × 1.50
-    laminat:           0.50,  // 50%
-    plottfolie:        0.65,  // 65% → Kleinmengen, Verschnitt
-    tape:              0.50,  // 50%
-    glasdekorfolie:    0.75,  // 75% → Spezialprodukt
+    digitaldruckfolie: 0.80,  // 80% → VK = EK × 1.80 (Grundeinstellung Folien)
+    laminat:           0.80,  // 80%
+    plottfolie:        0.80,  // 80%
+    tape:              0.80,  // 80%
+    glasdekorfolie:    0.80,  // 80%
     druck:             0.00,  // 0%  → Druckkosten sind bereits VK-Preis
   },
   digitaldruckfolien:[
@@ -3484,6 +3507,20 @@ function loadP(){
       // gezielt NUR die Fahrzeug-Preisdaten prüfen und bei Bedarf reparieren,
       // ohne andere gespeicherte Preislisten anzutasten.
       fzRepairIfNeeded(merged, fresh.fahrzeug);
+      // Folien-Materialmarge: einmalige, sichere Anhebung auf 80% (V9.29) —
+      // NUR wenn alle 5 Werte noch exakt den alten Defaults entsprechen
+      // (starkes Indiz, dass hier nie manuell etwas angepasst wurde). Wurde
+      // auch nur einer verändert, bleibt alles unangetastet — kein Risiko,
+      // eine bewusste manuelle Anpassung zu überschreiben.
+      (function migrateFolienMarge(){
+        const m=merged.margen; if(!m) return;
+        const altDefaults={digitaldruckfolie:0.50,laminat:0.50,plottfolie:0.65,tape:0.50,glasdekorfolie:0.75};
+        const unverändert=Object.keys(altDefaults).every(k=>Math.abs((m[k]??-1)-altDefaults[k])<0.001);
+        if(unverändert){
+          Object.keys(altDefaults).forEach(k=>m[k]=0.80);
+          console.log('KALKULATOR: Folien-Materialmarge einmalig auf 80% angehoben (V9.29 Default).');
+        }
+      })();
     return merged;
     }
   }catch(e){}
@@ -6451,9 +6488,52 @@ function ftSetOrtspauschale(){
   showToast(`Ortspauschale Basel: CHF ${preis} (${nMA} Monteur${nMA>1?'e':''})`);
 }
 
+// ── Mehrere Grössen pro Folientechnik-Position ("+ weitere Grösse") ─────────
+// Gleiches Muster wie bei Schild (slAllRows/slAddExtraRow): Zeile 1 bleibt in
+// den bestehenden Feldern ftLen/ftBr/ftStk, weitere Zeilen kommen additiv
+// dazu. cFt() summiert m²/Stk über alle Zeilen (Material/Vorkosten gelten
+// für die ganze Position), Verteilung auf die Zeilen erfolgt am Ende
+// proportional nach m²-Anteil.
+window._ftExtraRows = window._ftExtraRows || [];
+function ftAddExtraRow(){
+  window._ftExtraRows.push({l:1000,b:500,stk:1,label:''});
+  ftRenderExtraRows();
+  cFt();
+}
+function ftRemoveExtraRow(i){
+  window._ftExtraRows.splice(i,1);
+  ftRenderExtraRows();
+  cFt();
+}
+function ftUpdateExtraRow(i,field,val){
+  if(!window._ftExtraRows[i])return;
+  window._ftExtraRows[i][field]=(field==='label')?val:(parseFloat(val)||0);
+  cFt();
+}
+function ftRenderExtraRows(){
+  const el=$('ftExtraRowsTable'); if(!el)return;
+  const rows=window._ftExtraRows;
+  el.innerHTML=rows.map((r,i)=>
+    '<div class="slxr-row">'
+    +'<div><span class="slxr-lbl">Länge mm</span><input type="number" min="1" value="'+r.l+'" oninput="ftUpdateExtraRow('+i+',\'l\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.b+'" oninput="ftUpdateExtraRow('+i+',\'b\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Stk</span><input type="number" min="1" value="'+r.stk+'" oninput="ftUpdateExtraRow('+i+',\'stk\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Bezeichnung</span><input type="text" value="'+(r.label||'').replace(/"/g,'&quot;')+'" placeholder="optional" oninput="ftUpdateExtraRow('+i+',\'label\',this.value)"></div>'
+    +'<button type="button" class="slxr-del" onclick="ftRemoveExtraRow('+i+')" title="Grösse entfernen">✕</button>'
+    +'</div>'
+  ).join('');
+  const hint=$('ftExtraRowsHint'); if(hint) hint.style.display=rows.length?'block':'none';
+}
+function ftAllRows(){
+  const r1={l:gN('ftLen')||1000, b:gN('ftBr')||500, stk:gN('ftStk')||1, label:$('ftLabel')?.value||''};
+  return [r1, ...(window._ftExtraRows||[])];
+}
+
 function cFt(){
   if($('folientechnikForm')?.style.display==='none'){updateTotals();return null;}
-  const l=gN('ftLen')||1000, h=gN('ftBr')||500, stk=gN('ftStk')||1;
+  const _ftRows=ftAllRows();
+  const l=_ftRows[0].l, h=_ftRows[0].b;
+  const stk=_ftRows.reduce((s,r)=>s+(r.stk||0),0);
   // Margins: manual override first, then per-category from DEF
   const margen=P.margen||{};
   const ftMargeVal=$('ftMarge')?.value||'';
@@ -6464,12 +6544,12 @@ function cFt(){
   const mPlot = manMarge!==null ? manMarge : (margen.plottfolie        ?? 0.65);
   const mTape = manMarge!==null ? manMarge : (margen.tape              ?? 0.50);
   const mGd   = manMarge!==null ? manMarge : (margen.glasdekorfolie    ?? 0.75);
-  const m2n=(l/1000)*(h/1000)*stk;
+  const m2n=_ftRows.reduce((s,r)=>s+(r.l/1000)*(r.b/1000)*(r.stk||0),0);
   const druckMin=(P.druckbreite||1300)/1000*0.5;
   const m2e=Math.max(m2n,druckMin);
   const plottMin=(P.plottbreite||1200)/1000*0.5;
   const m2pEff=Math.max(m2n,plottMin);
-  const m2El=$('ftM2');if(m2El)m2El.textContent=m2n.toFixed(3)+' m²';
+  const m2El=$('ftM2');if(m2El)m2El.textContent=m2n.toFixed(3)+' m²'+(_ftRows.length>1?' · '+_ftRows.length+' Grössen · '+stk+' Stk gesamt':'');
   const m2bEl=$('ftM2Bahn');if(m2bEl)m2bEl.textContent=m2e.toFixed(3)+' m²';
 
   const setupP=getSetupPreis()||35;
@@ -6688,7 +6768,15 @@ function cFt(){
     </div>`;
 
   updateTotals();
-  return{l,h,stk,m2n,m2e,m2pEff,marge,matEK,matVK,veredVK,arbVK,ftWtVK,ftVersandVK,montVK,ftAnfahrtVK,ftMontVK,ftZusatzVK,ftMontageSepVK,totalVK,proStk,
+  // ── Verteilung des Gesamtpreises auf die Grössen-Zeilen (anteilig nach m²) ──
+  const _ftGewSum=_ftRows.reduce((s,r)=>s+(r.l/1000)*(r.b/1000)*(r.stk||0),0)||1;
+  const ftRowsOut=_ftRows.map(r=>{
+    const rm2=(r.l/1000)*(r.b/1000)*(r.stk||0);
+    const anteil=rm2/_ftGewSum;
+    const vkSum=totalVK*anteil;
+    return {l:r.l,b:r.b,stk:r.stk,label:r.label||'',m2:rm2,anteil,vkSum,vkStk:r.stk>0?vkSum/r.stk:0};
+  });
+  return{l,h,stk,m2n,m2e,m2pEff,marge,matEK,matVK,veredVK,arbVK,ftWtVK,ftVersandVK,montVK,ftAnfahrtVK,ftMontVK,ftZusatzVK,ftMontageSepVK,totalVK,proStk,rows:ftRowsOut,
     setupDDVK,setupPSVK,pEK,tEK,fEK,lEK,gdEK,druckVK,ftUenVK,ftUen};
 }
 
@@ -6729,7 +6817,7 @@ function saveFolientechnik(){
     })(),
     ftWtVK:r.ftWtVK||0,
     notiz:$('ftNotiz')?.value||'',
-    l:r.l, b:r.h, stk:r.stk, m2n:r.m2n, m2e:r.m2e, marge:r.marge,
+    l:r.l, b:r.h, stk:r.stk, m2n:r.m2n, m2e:r.m2e, marge:r.marge, rows:r.rows,
     matEK:r.matEK, matVK:r.matVK, veredVK:r.veredVK,
     arbVK:r.arbVK, montVK:r.montVK,
     anfahrtKm:parseFloat($('ftAnfahrtKm')?.value)||0,
@@ -9032,13 +9120,59 @@ function slGvCalcLogoMin(mat, stk){
   return minProSchild * anzProSchild * stk;
 }
 
+// ── Mehrere Grössen pro Schild-Position ("+ weitere Grösse") ────────────────
+// window._slExtraRows hält Zeilen ÜBER die erste hinaus (die erste Grösse
+// bleibt bewusst in den bestehenden Feldern slLen/slBr/slStk/slLabel, damit
+// der bisherige Single-Size-Pfad byte-identisch erhalten bleibt, wenn keine
+// weitere Grösse hinzugefügt wird — keine Regression für den Normalfall).
+// cSl() summiert m²/Stk über ALLE Zeilen (Material & Vorkosten gelten für
+// die ganze Position), der Gesamtpreis wird danach proportional nach
+// m²-Anteil auf die Zeilen zurückverteilt — analog zum bewährten SBB-Muster.
+window._slExtraRows = window._slExtraRows || [];
+function slAddExtraRow(){
+  window._slExtraRows.push({l:200,b:100,stk:1,label:''});
+  slRenderExtraRows();
+  cSl();
+}
+function slRemoveExtraRow(i){
+  window._slExtraRows.splice(i,1);
+  slRenderExtraRows();
+  cSl();
+}
+function slUpdateExtraRow(i,field,val){
+  if(!window._slExtraRows[i])return;
+  window._slExtraRows[i][field]=(field==='label')?val:(parseFloat(val)||0);
+  cSl();
+}
+function slRenderExtraRows(){
+  const el=$('slExtraRowsTable'); if(!el)return;
+  const rows=window._slExtraRows;
+  el.innerHTML=rows.map((r,i)=>
+    '<div class="slxr-row">'
+    +'<div><span class="slxr-lbl">Länge mm</span><input type="number" min="1" value="'+r.l+'" oninput="slUpdateExtraRow('+i+',\'l\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Breite mm</span><input type="number" min="1" value="'+r.b+'" oninput="slUpdateExtraRow('+i+',\'b\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Stk</span><input type="number" min="1" value="'+r.stk+'" oninput="slUpdateExtraRow('+i+',\'stk\',this.value)"></div>'
+    +'<div><span class="slxr-lbl">Bezeichnung</span><input type="text" value="'+(r.label||'').replace(/"/g,'&quot;')+'" placeholder="optional" oninput="slUpdateExtraRow('+i+',\'label\',this.value)"></div>'
+    +'<button type="button" class="slxr-del" onclick="slRemoveExtraRow('+i+')" title="Grösse entfernen">✕</button>'
+    +'</div>'
+  ).join('');
+  const hint=$('slExtraRowsHint'); if(hint) hint.style.display=rows.length?'block':'none';
+}
+// Alle Grössen-Zeilen der aktuellen Position (Zeile 1 aus den Hauptfeldern + weitere).
+function slAllRows(){
+  const r1={l:gN('slLen')||200, b:gN('slBr')||100, stk:gN('slStk')||1, label:$('slLabel')?.value||''};
+  return [r1, ...(window._slExtraRows||[])];
+}
+
 function cSl(){
   if($('schildForm')?.style.display==='none'){updateTotals();return null;}
 
-  const l=gN('slLen')||200, b=gN('slBr')||100, stk=gN('slStk')||1;
-  const m2n=(l/1000)*(b/1000)*stk;
+  const _rows=slAllRows();
+  const l=_rows[0].l, b=_rows[0].b;
+  const stk=_rows.reduce((s,r)=>s+(r.stk||0),0);
+  const m2n=_rows.reduce((s,r)=>s+(r.l/1000)*(r.b/1000)*(r.stk||0),0);
   const marge=parseFloat($('slMarge')?.value)||0.5;
-  const m2El=$('slM2');if(m2El)m2El.value=m2n.toFixed(4)+' m²';
+  const m2El=$('slM2');if(m2El)m2El.value=m2n.toFixed(4)+' m²'+(_rows.length>1?' · '+_rows.length+' Grössen · '+stk+' Stk gesamt':'');
 
 
 
@@ -9389,7 +9523,16 @@ function cSl(){
   const slsb=$('slstrip-folie');if(slsb)slsb.textContent=(folieMatVK+gravurVK)>0?'Beschr. CHF '+(folieMatVK+gravurVK).toFixed(0):'Beschr. –';
 
   updateTotals();
-  return{l,b,stk,m2n,m2e,marge,matEK,matVK,matName:getMatLabel(mat),
+  // ── Verteilung des Gesamtpreises auf die Grössen-Zeilen (anteilig nach m²) ──
+  // Bei nur 1 Zeile ist r.vkStk == proStk (kein Unterschied zum bisherigen Verhalten).
+  const _gewSum=_rows.reduce((s,r)=>s+(r.l/1000)*(r.b/1000)*(r.stk||0),0)||1;
+  const rowsOut=_rows.map(r=>{
+    const rm2=(r.l/1000)*(r.b/1000)*(r.stk||0);
+    const anteil=rm2/_gewSum;
+    const vkSum=totalVK*anteil;
+    return {l:r.l,b:r.b,stk:r.stk,label:r.label||'',m2:rm2,anteil,vkSum,vkStk:r.stk>0?vkSum/r.stk:0};
+  });
+  return{l,b,stk,m2n,m2e,marge,matEK,matVK,matName:getMatLabel(mat),rows:rowsOut,
     folieMatEK,folieMatVK,veredVK,gravurVK,wtVK,arbVK,spezMatVK,montVK,slVersandVK,totalVK,proStk,
     slUenVK,slUen,anfahrtVK,
     gravurAkt,gvText:$('slGvText')?.value||'',gvVH:gN('slGvVH')||5,
@@ -10141,7 +10284,7 @@ function saveSchild(){
   });
   const data={
     type:'schild',notiz:$('slNotiz')?.value||'',label:$('slLabel').value||`Schild ${r.l}×${r.b}mm`,
-    l:r.l,b:r.b,stk:r.stk,m2n:r.m2n,marge:r.marge,
+    l:r.l,b:r.b,stk:r.stk,m2n:r.m2n,marge:r.marge,rows:r.rows,
     matName:r.matName,matEK:r.matEK,matVK:r.matVK,
     matIdx:parseInt($('slMat')?.value)||0,
     spezMatAkt:gC('slSpezMatAkt'),
@@ -10545,6 +10688,7 @@ function startPos(type){
     $('schildForm').style.display='block';
     sessionStorage.removeItem('sl_pf_farben');sessionStorage.removeItem('sl_gv_farben');
     window._slFormfaktor = 0.5; // default Rechteck
+    window._slExtraRows = []; // weitere Grössen zurücksetzen
     window._slEditPos = null; // clear edit state
     // Persistenten Oberflächen-State zurücksetzen (sauberer Start)
     window._slObState = {
@@ -10565,7 +10709,7 @@ function startPos(type){
     if($('slGvZManual')){$('slGvZManual').value=0;$('slGvZManual').style.borderColor='var(--green)';}
     $('liveHint').textContent='💡 Schild: Format + Material einmal, Beschriftungsart im Tab wählen.';
     reBuild();
-    setTimeout(()=>{initSchildForm();cSl();},30);
+    setTimeout(()=>{initSchildForm();slRenderExtraRows();cSl();},30);
     $('schildForm').scrollIntoView({behavior:'smooth'});
   }else if(type==='fraes'){
     $('fraesTitle').textContent='Neue Position – Fräsbuchstaben';
@@ -10643,11 +10787,12 @@ function startPos(type){
     window._ftObState={};
     if($('ftBr'))$('ftBr').value=500;
     if($('ftStk'))$('ftStk').value=1;
-    if($('ftMarge'))$('ftMarge').value='0.5';
+    if($('ftMarge'))$('ftMarge').value='';
+    window._ftExtraRows=[]; // weitere Grössen zurücksetzen
     $('liveHint').textContent='💡 Folientechnik: Digitaldruck, Plottfolie, Glasdekor.';
     sessionStorage.removeItem('ft_pf_farben');
     swFtStep(1);
-    setTimeout(()=>{ftReBuild();},30);
+    setTimeout(()=>{ftReBuild();ftRenderExtraRows();},30);
     $('folientechnikForm').scrollIntoView({behavior:'smooth'});
     // Restore Werbetechnikerarbeit (nur beim Bearbeiten)
     if(typeof p!=='undefined'&&p&&p.wtArbeiten&&p.wtArbeiten.length){
@@ -13204,12 +13349,18 @@ function exportSelectLineCSV(){
         pos.bolzenAkt ? (pos.bolzenAnz||'')+'Stk Bolzen' : '',
         pos.vhbAkt ? 'VHB' : '',
       ].filter(Boolean).join(', ');
-      _freiText1 = [`${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`, pos.matName, _obfl, _bef].filter(Boolean).join(' · ').substring(0,80);
+      const _formatStr = (pos.rows&&pos.rows.length>1)
+        ? pos.rows.map(r=>r.stk+'x '+r.l+'×'+r.b).join(', ')
+        : `${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`;
+      _freiText1 = [_formatStr, pos.matName, _obfl, _bef].filter(Boolean).join(' · ').substring(0,80);
     } else if(pos.type==='fraes'){
       const _obfl = [pos.lackAkt?'Lack':'', pos.pulverRAL?'RAL '+pos.pulverRAL.farbe:'', pos.vhbAkt?'VHB':''].filter(Boolean).join(', ');
       _freiText1 = [`"${_s(pos.text||'').substring(0,25)}" VH ${pos.vh||'?'}mm`, pos.matName, _obfl].filter(Boolean).join(' · ').substring(0,80);
     } else if(pos.type==='folientechnik'){
-      _freiText1 = [`${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`, pos.folie, pos.laminat?'laminiert':''].filter(Boolean).join(' · ').substring(0,80);
+      const _ftFormatStr = (pos.rows&&pos.rows.length>1)
+        ? pos.rows.map(r=>r.stk+'x '+r.l+'×'+r.b).join(', ')
+        : `${pos.l||'?'}×${pos.b||'?'}mm · ${pos.stk||1}Stk`;
+      _freiText1 = [_ftFormatStr, pos.folie, pos.laminat?'laminiert':''].filter(Boolean).join(' · ').substring(0,80);
     } else if(pos.type==='sbb'){
       const _AUF={uv_dibond:'Druck/Dibond',folie_dibond:'Folie/Dibond',folie_pur:'Folie pur'};
       _freiText1 = (pos.rowsData||[]).map(r=>r.menge+'x '+r.l+'×'+r.h+' '+(_AUF[r.aufbau]||'')).join(' · ').substring(0,80);
@@ -15047,7 +15198,12 @@ function renderPos(){
       if(p.folie||slPlottListe(p).length)mods.push('Folie');
       if(p.gravurAkt)mods.push('Gravur');
       if(p.pulverRAL||p.pulverNCS||p.pulverIGP)mods.push('Pulver');
-      sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²·${p.matName}${mods.length?' | '+mods.join('+'):''}`;
+      if(p.rows&&p.rows.length>1){
+        const rowsTxt=p.rows.map(r=>`${r.stk}×${r.l}×${r.b}mm`+(r.label?` (${r.label})`:'')).join(' · ');
+        sub=`${p.rows.length} Grössen: ${rowsTxt} · ${p.m2n?.toFixed(3)}m² gesamt·${p.matName}${mods.length?' | '+mods.join('+'):''}`;
+      } else {
+        sub=`${p.l}×${p.b}mm·${p.stk}Stk·${p.m2n?.toFixed(3)}m²·${p.matName}${mods.length?' | '+mods.join('+'):''}`;
+      }
     }else if(p.type==='fahrzeug'){
       badge='Fahrzeug';
       sub=`${p.fzModell?p.fzModell+(p.fzVariante?' '+p.fzVariante:'')+' · ':''}${p.fzTypNm||''} · ${fzBausteineSummary(p)} · ${p.stk||1}Stk${p.fzFen?' · Window Graphic':''}${p.fzVor?' · Montage':''}`;
@@ -15134,7 +15290,10 @@ function editPos(i){
     if($('slNotiz'))$('slNotiz').value=p.notiz||'';
     if($('slLen'))$('slLen').value=p.l||200;
     if($('slBr'))$('slBr').value=p.b||100;
-    if($('slStk'))$('slStk').value=p.stk||1;
+    if($('slStk'))$('slStk').value=(p.rows&&p.rows[0]?p.rows[0].stk:p.stk)||1;
+    // Weitere Grössen (ab Zeile 2) wiederherstellen — Zeile 1 steckt in den Feldern oben
+    window._slExtraRows=(p.rows&&p.rows.length>1)?p.rows.slice(1).map(r=>({l:r.l,b:r.b,stk:r.stk,label:r.label||''})):[];
+    slRenderExtraRows();
     // Zuschnittsart wiederherstellen
     setTimeout(()=>{
       const zm = p.zuschnittMethode||'saegen';
@@ -15223,6 +15382,12 @@ function editPos(i){
           const chk=$(id); if(!chk) return;
           const row=chk.closest('.tr');
           const sel=row?.querySelector('select'); if(!sel) return;
+          // BUGFIX (V9.30): chk.checked wurde bisher IMMER auf true gesetzt,
+          // auch wenn die Position dieses Feature (Folie/Laminat/Druck) nie
+          // hatte (txt leer/null) — dadurch wurden nach jedem Bearbeiten einer
+          // Schild-Position unabhängig vom Originalzustand Kosten für Folie,
+          // Laminat und Druck neu dazugerechnet, obwohl nie aktiviert.
+          if(!txt){ chk.checked=false; return; }
           chk.checked=true;
           // 1. Text suchen
           if(txt){
@@ -15628,8 +15793,12 @@ function editPos(i){
     $('folientechnikForm').style.display='block';
     if($('ftLabel'))$('ftLabel').value=p.label||'';
     if($('ftNotiz'))$('ftNotiz').value=p.notiz||'';
-    if($('ftLen'))$('ftLen').value=p.l||1000;if($('ftBr'))$('ftBr').value=p.b||500;if($('ftStk'))$('ftStk').value=p.stk||1;
+    if($('ftLen'))$('ftLen').value=p.l||1000;if($('ftBr'))$('ftBr').value=p.b||500;
+    if($('ftStk'))$('ftStk').value=(p.rows&&p.rows[0]?p.rows[0].stk:p.stk)||1;
     if($('ftMarge'))$('ftMarge').value=p.marge<=1?p.marge:(p.marge/100)||0.4;
+    // Weitere Grössen (ab Zeile 2) wiederherstellen — Zeile 1 steckt in den Feldern oben
+    window._ftExtraRows=(p.rows&&p.rows.length>1)?p.rows.slice(1).map(r=>({l:r.l,b:r.b,stk:r.stk,label:r.label||''})):[];
+    ftRenderExtraRows();
     // Reset folientechnik Checkboxen und _ftObState aus Position befüllen
     ['ftAktFolie','ftAktLaminat','ftAktDruck','ftAktTape','ftAktSetupDD','ftAktSetupPS','ftAktGlasdekorf',
      'ftAktWtPlott','ftAktWtLam','ftAnfahrtAkt'].forEach(id=>{const e=$(id);if(e)e.checked=false;});
@@ -16283,10 +16452,23 @@ function printOfferte(id){
       const obfl=[p.lack?'Lack: '+p.lack:'',
         p.pulverRAL?'RAL '+p.pulverRAL.farbe:'',
         p.pulverNCS?'NCS '+p.pulverNCS.farbe:''].filter(Boolean).join(', ');
-      detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
-        ${p.l}×${p.b}mm · ${p.stk} Stk · ${p.matName||''}
-        ${obfl?'<br>Oberfläche: '+obfl:''}
-      </div>`;
+      if(p.rows&&p.rows.length>1){
+        const rowsHtml=p.rows.map(r=>
+          `<div style="display:flex;justify-content:space-between;padding:2px 0;">`
+          +`<span>${r.stk} × ${r.l}×${r.b}mm${r.label?' — '+r.label:''}</span>`
+          +`<span style="white-space:nowrap;margin-left:12px;">CHF ${r.vkStk.toFixed(2)} /Stk</span>`
+          +`</div>`
+        ).join('');
+        detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
+          ${p.matName||''} · ${p.m2n?.toFixed(3)}m² gesamt${obfl?' · Oberfläche: '+obfl:''}
+          <div style="margin-top:4px;border-top:1px dotted #ccc;padding-top:4px;">${rowsHtml}</div>
+        </div>`;
+      } else {
+        detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
+          ${p.l}×${p.b}mm · ${p.stk} Stk · ${p.matName||''}
+          ${obfl?'<br>Oberfläche: '+obfl:''}
+        </div>`;
+      }
     } else if(p.type==='fahrzeug'){
       const _ex=[p.fzFen?'Window Graphic / Lochfolie':'',p.fzVor?'Montage vor Ort':''].filter(Boolean).join(', ');
       detail=`<div style="font-size:11px;color:#666;margin-top:2px;">
@@ -17134,7 +17316,12 @@ function printDoc(mode){
       const L=[];
       const m2n=(p.m2n!=null?p.m2n:((p.l||0)/1000*(p.b||0)/1000*(p.stk||1)));
       L.push(`<span style="color:#555;">Ausführung:</span> <strong>Folientechnik${p.druck?' · Digitaldruck':''}</strong>`);
-      L.push(`<b>Format:</b> ${p.l||'?'} × ${p.b||'?'} mm &nbsp;·&nbsp; <b>Menge:</b> ${p.stk||1} Stk.${m2n>0?` &nbsp;·&nbsp; <b>Fläche:</b> ${m2n.toFixed(2)} m²`:''}`);
+      if(p.rows&&p.rows.length>1){
+        const rowsHtml=p.rows.map(r=>`&nbsp;&nbsp;· ${r.stk} × ${r.l}×${r.b}mm${r.label?' — '+r.label:''} — CHF ${r.vkStk.toFixed(2)}/Stk`).join('<br>');
+        L.push(`<b>${p.rows.length} Grössen</b> &nbsp;·&nbsp; <b>Fläche gesamt:</b> ${m2n.toFixed(2)} m²<br>${rowsHtml}`);
+      } else {
+        L.push(`<b>Format:</b> ${p.l||'?'} × ${p.b||'?'} mm &nbsp;·&nbsp; <b>Menge:</b> ${p.stk||1} Stk.${m2n>0?` &nbsp;·&nbsp; <b>Fläche:</b> ${m2n.toFixed(2)} m²`:''}`);
+      }
       if(p.druck)     L.push(`<b>Druckart:</b> ${sp(p.druck)}`);
       if(p.folie)     L.push(`<b>Folie:</b> ${sp(p.folie)}`);
       if(p.laminat)   L.push(`<b>Laminat:</b> ${sp(p.laminat)}`);
