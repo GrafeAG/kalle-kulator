@@ -46,6 +46,25 @@ const BASIS = normBase(process.env.NETZLAUFWERK) || 'C:\\kalle-server\\projekte-
 //      warnen laut, damit es auffällt)
 const BASIS_UNC = normBase(process.env.NETZLAUFWERK_UNC) || (istUNC(BASIS) ? BASIS : BASIS);
 
+// ── V9.42: Legacy-Hosts (alte IP-Adressen/Servernamen von vor einer UNC- ──
+//   Migration) — Projekte, die VOR einer .env-Umstellung angelegt wurden,
+//   haben ihren Pfad noch mit dem ALTEN Host in der DB stehen (z.B. IP statt
+//   FQDN). Ohne diese Liste lehnt pfadErlaubt() solche alten Pfade zu Recht,
+//   aber unerwünscht ab ("Pfad nicht erlaubt" bei an sich gültigen, nur
+//   historisch benannten Projekten). Kommagetrennt in .env erweiterbar,
+//   192.168.10.253 ist als bekannter Alt-Host bereits eingetragen.
+function buildLegacyBasen() {
+  const hosts = (process.env.NETZLAUFWERK_LEGACY_HOSTS || '192.168.10.253')
+    .split(',').map(h => h.trim()).filter(Boolean);
+  const m = BASIS_UNC.match(/^\\\\[^\\]+(\\.*)$/); // \\host\rest → rest ab erstem \
+  if (!m) return [];
+  return hosts.map(host => normBase('\\\\' + host + m[1])).filter(Boolean);
+}
+const LEGACY_BASEN = buildLegacyBasen();
+if (LEGACY_BASEN.length) {
+  console.log('[Projekte] Akzeptiere zusätzlich Alt-Pfade (Legacy-Hosts):', LEGACY_BASEN.join(' | '));
+}
+
 const FIRMA_DIR = path.join(BASIS, 'Firmenkunden');
 const OBJ_DIR   = path.join(BASIS, 'Objekte');
 
@@ -61,7 +80,15 @@ if (!istUNC(BASIS_UNC)) {
 function zurFreigabe(absLokal) {
   if (!absLokal) return absLokal;
   const p = path.normalize(absLokal);
-  // Schon UNC? unverändert.
+  // V9.42: Alt-Host (z.B. alte IP-Adresse)? Auf den aktuellen UNC-Basispfad
+  // heilen — dadurch aktualisiert sich ein historischer Pfad automatisch,
+  // sobald das Projekt das nächste Mal angefasst wird (z.B. beim Ablegen).
+  for (const lb of LEGACY_BASEN) {
+    if (p.toLowerCase().startsWith(lb.toLowerCase())) {
+      return path.normalize(BASIS_UNC + p.slice(lb.length));
+    }
+  }
+  // Schon UNC (aktueller Host)? unverändert.
   if (istUNC(p)) return p;
   // Beginnt mit dem lokalen BASIS? Basis gegen UNC tauschen.
   if (p.toLowerCase().startsWith(BASIS.toLowerCase()) && BASIS_UNC && BASIS_UNC.toLowerCase() !== BASIS.toLowerCase()) {
@@ -69,12 +96,20 @@ function zurFreigabe(absLokal) {
   }
   return p;
 }
-// Für Datei-Operationen: eingehenden (evtl. UNC-)Pfad → lokalen Pfad zurück.
+// Für Datei-Operationen: eingehenden (evtl. UNC-/Alt-Host-)Pfad → lokalen Pfad zurück.
 function zuLokal(absPfad) {
   if (!absPfad) return absPfad;
   const p = path.normalize(absPfad);
   if (BASIS_UNC && p.toLowerCase().startsWith(BASIS_UNC.toLowerCase()) && BASIS_UNC.toLowerCase() !== BASIS.toLowerCase()) {
     return path.normalize(BASIS + p.slice(BASIS_UNC.length));
+  }
+  // V9.42: Alt-Host-Pfad (z.B. alte IP-Adresse) auf den lokalen BASIS ummünzen,
+  // damit fs-Operationen (Ordner anlegen, Datei schreiben) trotz historischem
+  // Pfad in der DB funktionieren.
+  for (const lb of LEGACY_BASEN) {
+    if (p.toLowerCase().startsWith(lb.toLowerCase())) {
+      return path.normalize(BASIS + p.slice(lb.length));
+    }
   }
   return p;
 }
@@ -104,7 +139,11 @@ function pfadErlaubt(absZiel) {
   const z = path.normalize(absZiel).toLowerCase();
   const b1 = path.normalize(BASIS).toLowerCase();
   const b2 = path.normalize(BASIS_UNC).toLowerCase();
-  return z.startsWith(b1) || z.startsWith(b2);
+  if (z.startsWith(b1) || z.startsWith(b2)) return true;
+  // V9.42: auch Alt-Host-Pfade akzeptieren (siehe LEGACY_BASEN oben) —
+  // betrifft Projekte, die vor einer .env-Umstellung (z.B. IP -> FQDN) mit
+  // dem damals gültigen Pfad in der DB gespeichert wurden.
+  return LEGACY_BASEN.some(lb => z.startsWith(lb.toLowerCase()));
 }
 
 // Ordner case-insensitiv suchen
