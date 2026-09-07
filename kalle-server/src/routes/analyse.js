@@ -57,7 +57,16 @@ router.post('/', async (req, res) => {
     const r = await fetch(ANTHROPIC_API, {
       method:'POST',
       headers:{ 'Content-Type':'application/json', 'x-api-key':key, 'anthropic-version':'2023-06-01' },
-      body: JSON.stringify({ model:MODEL, max_tokens:400, messages:[{ role:'user', content: buildPrompt(text) }] }),
+      // max_tokens war bisher 400 — zu knapp für 9 Felder inkl. "zusammenfassung"
+      // (bewusst als LETZTES Feld im JSON-Schema). Bei längeren/komplexeren
+      // E-Mails wurde die Antwort dadurch mitten in "zusammenfassung" abgeschnitten
+      // → ungültiges JSON → Route lieferte 502 → Frontend fiel im Hintergrund auf
+      // die reine Regex-Erkennung zurück, die zwar Name/Telefon/E-Mail/Adresse
+      // per Mustererkennung noch füllen konnte, aber naturgemäss NIE eine
+      // Zusammenfassung erzeugen kann. Dadurch wirkte es so, als würde "alles
+      // ausser der Zusammenfassung" funktionieren — tatsächlich schlug bei
+      // längeren Mails die komplette KI-Analyse fehl, nicht nur dieses eine Feld.
+      body: JSON.stringify({ model:MODEL, max_tokens:800, messages:[{ role:'user', content: buildPrompt(text) }] }),
     });
     const data = await r.json();
     if(!r.ok){
@@ -66,9 +75,19 @@ router.post('/', async (req, res) => {
       return res.status(502).json({ ok:false, error: msg });
     }
     const raw = (data.content || []).map(b => b.text || '').join('');
+    // Robuster gegen Streutext vor/nach dem eigentlichen JSON-Objekt (z. B. falls
+    // das Modell trotz Anweisung eine kurze Einleitung voranstellt): statt den
+    // gesamten Rohtext zu parsen, wird nur der Bereich zwischen der ersten "{"
+    // und der letzten "}" verwendet.
+    const jStart = raw.indexOf('{');
+    const jEnd   = raw.lastIndexOf('}');
+    const jsonSlice = (jStart>=0 && jEnd>jStart) ? raw.slice(jStart, jEnd+1) : raw;
     let fields;
-    try{ fields = JSON.parse(raw.replace(/```json?|```/g, '').trim()); }
-    catch(e){ return res.status(502).json({ ok:false, error:'Antwort nicht als JSON lesbar', raw }); }
+    try{ fields = JSON.parse(jsonSlice.replace(/```json?|```/g, '').trim()); }
+    catch(e){
+      console.error('[Analyse] JSON-Parse-Fehler — vermutlich Antwort abgeschnitten (finish_reason:', data.stop_reason, '):', raw);
+      return res.status(502).json({ ok:false, error:'Antwort nicht als JSON lesbar', raw, stopReason:data.stop_reason });
+    }
 
     res.json({ ok:true, fields, model:MODEL });
   }catch(e){
