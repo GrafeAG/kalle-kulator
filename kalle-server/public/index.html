@@ -2914,9 +2914,12 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.39';
+const UI_VERSION='V9.42';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.42','Offert-PDF · „Ihre Kd. Nr.\" im Dokumentkopf zeigte bei JEDER Offerte immer nur ein fest verdrahtetes „–\" — das Feld-Label war schon lange vorhanden, aber nie mit der tatsächlichen SL-Kundennummer verknüpft worden. **Generelles Problem, nicht auf einen bestimmten Erfassungsweg beschränkt** (Stichprobe: 0 Treffer für "Kundennummer" in der gesamten PDF-Vorlage vor diesem Fix). Jetzt wird `$(\'slKundennummer\').value` korrekt eingesetzt. Die gemeldete fehlende Projektbezeichnung nach nachträglichem Kunde-Laden konnte auf Code-Ebene nicht bestätigt werden — `fuelleKundendaten()` (Kundensuche/-Übernahme) berührt das Bemerkungs-/Projektbezeichnungsfeld nicht; Rückfrage an Sven, ob „Kunde über KALLE laden\" die Kundensuche meint oder das Laden eines kompletten gespeicherten Auftrags über „Aufträge\" — das wäre ein anderer, noch zu prüfender Codepfad.'],
+  ['V9.41','Schild · Schritt 6 „Arbeit\": Auswahl von „Auftragshandling & Faktura\" und „Layout, Reinzeichnung, GzA\" erscheint jetzt in der Offert-PDF — bisher flossen diese nur als anonymer Betrag in die Summe „Arbeit\" ein, ohne dass der Kunde sah, was damit abgedeckt ist. Neu: „Auftragshandling und Faktura inklusive\" (ohne Zeitangabe) bzw. „Layout und Reinzeichnung inklusive (X Min.)\" (mit Zeitangabe, wie gewünscht). Root Cause dabei entdeckt und mitbehoben: die Checkbox-Auswahl in Schritt 6 wurde bisher beim Speichern gar nicht persistiert und ging beim Wiederöffnen einer Position komplett verloren (nur die Summe blieb über den gespeicherten `arbVK`-Betrag erhalten, nicht welche Posten das waren) — jetzt wird die Auswahl namensbasiert mitgespeichert und beim Wiederöffnen korrekt zurückgesetzt.'],
+  ['V9.40','Diagnose: Schild · „Eigene Befestigung\" wird nach dem Speichern/Wiederöffnen als deaktiviert gemeldet (Häkchen leer). Formular-Aufbau, Live-Rebuild-Schutz (prevEigenBefAkt-Muster, identisch zum bereits korrekten V9.3-Fix bei Fräs), Speicher-Objekt und die Restore-`setTimeout`-Verschachtelung (buildSlBefestigung läuft bei 30ms, Restore-Block bei 40ms — korrekte Reihenfolge) wurden vollständig geprüft, ohne einen eindeutigen Bug zu finden. Zwei gezielte Debug-Logs ergänzt — `[KALLE-DEBUG] eigenBefAkt-Speichern` beim Klick auf „Schild speichern\" und `[KALLE-DEBUG] eigenBefAkt-Restore\" beim Wiederöffnen — zeigen beim nächsten Reproduzieren in der Browser-Konsole (F12) sofort, ob der Wert schon beim Speichern fehlt oder erst beim Wiederherstellen verloren geht. Sobald das vorliegt, folgt der eigentliche Fix. Noch kein funktionaler Codeänderung an der Logik selbst.'],
   ['V9.39','Offert-PDF · V9.38-Fix (Schlussblock) griff in der echten PDF-Erzeugung nicht — per Screenshot bestätigt: Summen blieben auf Seite 1, Konditionen/AGB/Bank rutschten allein auf Seite 2, und der Footer erschien zusammengequetscht direkt unter dem Gesamttotal statt am Seitenrand ("Grafe AGRheinfelderstrasse 12" ohne Abstand). Root Cause gefunden: `.footer{position:fixed;bottom:8mm}` funktioniert in der Puppeteer-PDF-Erzeugung nicht zuverlässig — der Footer rutschte dadurch mitten in den normalen Textfluss (statt an den echten Seitenrand), riss den Schlussblock auseinander, und weil ein `position:fixed`-Element ohne definierte Breite schrumpft, hatte `justify-content:space-between` keinen Platz mehr zum Verteilen — die drei Footer-Teile klebten aneinander. Fix: `position:fixed` entfernt, Footer ist jetzt normaler Fluss-Inhalt am Ende des Schlussblocks (bekommt dadurch automatisch die volle Seitenbreite zurück, Abstände funktionieren wieder). Zusätzlich das widersprüchliche `page-break-inside:avoid` auf dem gesamten `.page`-Container entfernt (bei mehrseitigem Inhalt ohnehin unwirksam und möglicherweise Ursache dafür, dass die verschachtelte Schlussblock-Regel ignoriert wurde).'],
   ['V9.38','Offert-PDF · Seitenumbruch bei vielen Positionen korrigiert. Bisher lagen Summen, Konditionen, AGB-Kurzhinweis, Bankverbindung und Footer ungeschützt im normalen Textfluss direkt nach der Positionstabelle — bei einer langen Positionsliste konnte dieser Block dadurch mitten durchgeschnitten und am Seitenende zusammengequetscht werden, statt sauber auf die nächste Seite zu rutschen. Root Cause: einzige Schutzregel war `page-break-inside:avoid` auf dem GANZEN `.page`-Container — wirkungslos, sobald der Inhalt (wie bei vielen Positionen) ohnehin länger als eine A4-Seite ist. Fix: Summen + Konditionen + AGB-Hinweis + Bank + Footer sind jetzt in einem eigenen `.schlussblock` mit `page-break-inside:avoid` zusammengefasst — passt der ganze Block nicht mehr auf die aktuelle Seite, rutscht er als Ganzes auf die nächste, es bleibt sauberer Weissraum am Seitenende statt Anquetschen. Zusätzlich: einzelne Positionszeilen (`table.pos tr`) dürfen jetzt ebenfalls nicht mehr mitten durchgetrennt werden — verhindert, dass eine Position mit mehrzeiliger Detailbeschreibung über zwei Seiten auseinandergerissen wird.'],
   ['V9.37','Schild · Befestigung „Klebeverbindung\": Preis bei 3M VHB Klebeband und 2K-Kleber jetzt manuell überschreibbar, wahlweise CHF pro Stk. oder als Gesamtpauschalpreis — analog zum bestehenden „Eigene Befestigung\"-Muster. Neue Checkbox „Preis manuell überschreiben\" direkt unter jeder der beiden Zeilen; ist sie aktiv, ersetzt der eingegebene Preis die automatische Grössen-/Pauschal-Berechnung vollständig. Betrifft ausschliesslich Schild (Reliefschriften/Fräs unverändert). Intern (isInt-Ansicht) wird der individuelle Preis zusätzlich in der Offert-Detailzeile ausgewiesen.'],
@@ -10383,6 +10386,12 @@ function saveSchild(){
     wtLam:gC('slAktWtLam')?parseFloat($('min-slWtLam')?.value)||0:null,
     arbeit,montage:montD.items,
     montVK:montD.total,wtVK:r.wtVK,arbVK:r.arbVK,
+    // Aktive Arbeitsschritte (Schritt 6 "Arbeit") namensbasiert sichern — nicht
+    // indexbasiert, damit eine spätere Umsortierung von P.arbeitswerte nichts
+    // zerstört. Wird u.a. für "Auftragshandling & Faktura" und "Layout,
+    // Reinzeichnung, GzA" in der Offert-PDF-Ausgabe verwendet (V9.41).
+    arbSelected:(P.arbeitswerte||[]).map((item,i)=>({name:item.name,min:parseFloat($('min-sl-arb'+i)?.value)||0}))
+      .filter((_,i)=>gC('sl-arb'+i)),
     bolzenAkt:gC('slBolzenAkt'),bolzenAnz:parseFloat($('slBolzenAnz')?.value)||4,
     bolzenPreis:parseFloat($('slBolzenPreis')?.value)||11,
     vhbAkt:gC('slKlebeVHB'),vhbVariant:$('slVhbVariant')?.value||'',
@@ -10436,6 +10445,9 @@ function saveSchild(){
     slFormfaktor:window._slFormfaktor||0.5,
     zuschnittMethode:document.querySelector('#slZuschnittMethode .zopt.sel')?.dataset?.val||'saegen',
   };
+  console.log('%c[KALLE-DEBUG] eigenBefAkt-Speichern:','color:#c8a000;font-weight:bold;',
+    {checkboxChecked:gC('slEigenBefAkt'), data_eigenBefAkt:data.eigenBefAkt, data_eigenBefBez:data.eigenBefBez,
+     data_eigenBefTyp:data.eigenBefTyp, data_eigenBefPreis:data.eigenBefPreis});
   const wasEdit2=editIdx>=0;
   if(editIdx>=0)positions[editIdx]=data;else positions.push(data);
   $('schildForm').style.display='none';editIdx=-1;renderPos();updateTotals();
@@ -15597,11 +15609,26 @@ function editPos(i){
         if(p.kleberManAkt){const e=$('slKleberManAkt');if(e)e.checked=true;const w=$('slKleberManWrap');if(w)w.style.display='flex';}
         if($('slKleberManTyp'))$('slKleberManTyp').value=p.kleberManTyp||'stueck';
         if($('slKleberManPreis'))$('slKleberManPreis').value=p.kleberManPreis||'';
+        console.log('%c[KALLE-DEBUG] eigenBefAkt-Restore:','color:#c8a000;font-weight:bold;',
+          {p_eigenBefAkt:p.eigenBefAkt, p_eigenBefBez:p.eigenBefBez, p_eigenBefTyp:p.eigenBefTyp, p_eigenBefPreis:p.eigenBefPreis,
+           checkboxGefunden:!!$('slEigenBefAkt')});
         if(p.eigenBefAkt){
           const c2=$('slEigenBefAkt');if(c2)c2.checked=true;
           if($('slEigenBefBez'))$('slEigenBefBez').value=p.eigenBefBez||'';
           if($('slEigenBefTyp'))$('slEigenBefTyp').value=p.eigenBefTyp||'stueck';
           if($('slEigenBefPreis'))$('slEigenBefPreis').value=p.eigenBefPreis||0;
+        }
+
+        // Schritt 6 — Arbeit (Auftragshandling, Layout/Reinzeichnung, etc.)
+        // namensbasiert restaurieren (slReBuildArb() ist bereits im ersten
+        // setTimeout oben gelaufen, die Checkboxen existieren also schon).
+        if(p.arbSelected&&p.arbSelected.length){
+          p.arbSelected.forEach(function(sel){
+            var idx=(P.arbeitswerte||[]).findIndex(function(a){return a.name===sel.name;});
+            if(idx<0)return;
+            var chk=$('sl-arb'+idx);if(chk)chk.checked=true;
+            var min=$('min-sl-arb'+idx);if(min&&sel.min)min.value=sel.min;
+          });
         }
 
         // Schritt 7 — Montage
@@ -17139,6 +17166,7 @@ function printDoc(mode){
   const sp = isInt ? s=>s : cleanKunde;
   const kunde=$('kundenname').value||'–';
   const kperson=$('kontaktperson').value||'';
+  const kdnr=$('slKundennummer')?.value||'';
   const aufnr=$('auftragsnr').value||'–';
   const rawD=$('datum').value;
   const datum=rawD?new Date(rawD).toLocaleDateString('de-CH'):new Date().toLocaleDateString('de-CH');
@@ -17317,6 +17345,13 @@ function printDoc(mode){
           :p.eigenBefBez;
         mods.push(eigenStr);
       }
+      // Schritt 6 "Arbeit": Auftragshandling & Faktura ohne Zeitangabe,
+      // Layout/Reinzeichnung MIT Zeitangabe (V9.41, auf Wunsch so unterschieden).
+      if((p.arbSelected||[]).some(a=>a.name==='Auftragshandling & Faktura')){
+        mods.push('Auftragshandling und Faktura inklusive');
+      }
+      { const lr=(p.arbSelected||[]).find(a=>a.name==='Layout, Reinzeichnung, GzA');
+        if(lr) mods.push(`Layout und Reinzeichnung inklusive (${lr.min||0} Min.)`); }
       const slVStr=versandZeile(p,isInt);if(slVStr)mods.push(slVStr);
       if(p.uebergabe?.typ==='abholung')mods.push('Übergabe: Abholung durch Kunde');
       else if(p.uebergabe?.typ==='anlieferung'){
@@ -17774,7 +17809,7 @@ function printDoc(mode){
       </div>
       <div class="col">
         <span class="lbl">Datum:</span><span class="val">${datum}</span>
-        <span class="lbl">Ihre Kd. Nr.:</span><span class="val">–</span>
+        <span class="lbl">Ihre Kd. Nr.:</span><span class="val">${kdnr||'–'}</span>
         <span class="lbl">Ihre Ref.:</span><span class="val">${kperson||'–'}</span>
         <span class="lbl">${tel?'Telefon:':mail?'Mail:':''}</span><span class="val">${tel||mail||''}</span>
       </div>
