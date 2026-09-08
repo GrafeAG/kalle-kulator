@@ -569,7 +569,7 @@ a, button, input, select, textarea, label,
           <input id="adresseOrt" type="text" placeholder="Birsfelden">
         </div>
       </div>
-      <div class="field"><label>Betreff / Anfrage</label><input id="bemerkung" type="text" placeholder="Fassadenbeschriftung..."></div>
+      <div class="field"><label>Betreff / Anfrage <span style="font-size:9px;color:var(--muted);font-weight:400;">(erscheint als „Projekt:" im Offert-PDF)</span></label><input id="bemerkung" type="text" placeholder="Fassadenbeschriftung..."></div>
     </div>
   </div>
 
@@ -2914,9 +2914,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.42';
+const UI_VERSION='V9.43';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.43','Offert-PDF · Fehlende Projektbezeichnung nach manueller Erfassung gefunden und behoben. Root Cause: Es gibt zwei getrennte Bezeichnungs-Felder — „Betreff / Anfrage\" (`#bemerkung`, erscheint als „Projekt:\" im PDF) und die Ordner-Bezeichnung im Ablage-Dialog (`#ablBez`). Der Ablage-Dialog übernimmt `#bemerkung` zwar als Vorschlag beim Öffnen — war dieses aber zu dem Zeitpunkt noch leer (typischer Fall bei rein manueller „Kalkulieren\"-Erfassung ohne REAKTOR-Anfrage) und wird die Bezeichnung direkt im Ablage-Dialog eingegeben, floss dieser Wert bisher nie zurück ins PDF-Titelfeld. Ordner hiess dann korrekt „2612345 - Beschriftung Haus\", die Offerte zeigte aber nur „2612345\" ohne Text. Fix: Beim Bestätigen des Ablage-Dialogs wird die Bezeichnung jetzt ins PDF-Titelfeld übernommen, falls dieses noch leer ist. Zusätzlich Feld-Label um Hinweis „(erscheint als „Projekt:\" im Offert-PDF)\" ergänzt, damit das beim manuellen Start gar nicht erst übersehen wird.'],
   ['V9.42','Offert-PDF · „Ihre Kd. Nr.\" im Dokumentkopf zeigte bei JEDER Offerte immer nur ein fest verdrahtetes „–\" — das Feld-Label war schon lange vorhanden, aber nie mit der tatsächlichen SL-Kundennummer verknüpft worden. **Generelles Problem, nicht auf einen bestimmten Erfassungsweg beschränkt** (Stichprobe: 0 Treffer für "Kundennummer" in der gesamten PDF-Vorlage vor diesem Fix). Jetzt wird `$(\'slKundennummer\').value` korrekt eingesetzt. Die gemeldete fehlende Projektbezeichnung nach nachträglichem Kunde-Laden konnte auf Code-Ebene nicht bestätigt werden — `fuelleKundendaten()` (Kundensuche/-Übernahme) berührt das Bemerkungs-/Projektbezeichnungsfeld nicht; Rückfrage an Sven, ob „Kunde über KALLE laden\" die Kundensuche meint oder das Laden eines kompletten gespeicherten Auftrags über „Aufträge\" — das wäre ein anderer, noch zu prüfender Codepfad.'],
   ['V9.41','Schild · Schritt 6 „Arbeit\": Auswahl von „Auftragshandling & Faktura\" und „Layout, Reinzeichnung, GzA\" erscheint jetzt in der Offert-PDF — bisher flossen diese nur als anonymer Betrag in die Summe „Arbeit\" ein, ohne dass der Kunde sah, was damit abgedeckt ist. Neu: „Auftragshandling und Faktura inklusive\" (ohne Zeitangabe) bzw. „Layout und Reinzeichnung inklusive (X Min.)\" (mit Zeitangabe, wie gewünscht). Root Cause dabei entdeckt und mitbehoben: die Checkbox-Auswahl in Schritt 6 wurde bisher beim Speichern gar nicht persistiert und ging beim Wiederöffnen einer Position komplett verloren (nur die Summe blieb über den gespeicherten `arbVK`-Betrag erhalten, nicht welche Posten das waren) — jetzt wird die Auswahl namensbasiert mitgespeichert und beim Wiederöffnen korrekt zurückgesetzt.'],
   ['V9.40','Diagnose: Schild · „Eigene Befestigung\" wird nach dem Speichern/Wiederöffnen als deaktiviert gemeldet (Häkchen leer). Formular-Aufbau, Live-Rebuild-Schutz (prevEigenBefAkt-Muster, identisch zum bereits korrekten V9.3-Fix bei Fräs), Speicher-Objekt und die Restore-`setTimeout`-Verschachtelung (buildSlBefestigung läuft bei 30ms, Restore-Block bei 40ms — korrekte Reihenfolge) wurden vollständig geprüft, ohne einen eindeutigen Bug zu finden. Zwei gezielte Debug-Logs ergänzt — `[KALLE-DEBUG] eigenBefAkt-Speichern` beim Klick auf „Schild speichern\" und `[KALLE-DEBUG] eigenBefAkt-Restore\" beim Wiederöffnen — zeigen beim nächsten Reproduzieren in der Browser-Konsole (F12) sofort, ob der Wert schon beim Speichern fehlt oder erst beim Wiederherstellen verloren geht. Sobald das vorliegt, folgt der eigentliche Fix. Noch kein funktionaler Codeänderung an der Logik selbst.'],
@@ -17033,6 +17034,11 @@ function zeigeAblageDialog(onConfirm, onSkip){
     if(!nr || !bez){
       showToast('Projektnr. und Bezeichnung sind Pflicht','error'); return;
     }
+    // V9.43: Bezeichnung zurück ins PDF-Titelfeld übernehmen, falls dort noch
+    // nichts steht — sonst bleibt "Projekt:" in der Offerte leer, wenn die
+    // Bezeichnung erst hier im Ablage-Dialog eingegeben wurde statt schon
+    // vorher unter "Betreff / Anfrage".
+    if(!$('bemerkung')?.value?.trim() && $('bemerkung')){ $('bemerkung').value = bez; }
 
     // Projektordner via Server erstellen
     try{
