@@ -2914,9 +2914,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.43';
+const UI_VERSION='V9.44';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.44','REAKTOR · Monday-Spalte „Montageadresse\" (`location_mksw41wx`) wird jetzt automatisch beim Erfassen einer Anfrage befüllt — bisher existierte die Spalte zwar (wird von anderen Automationen wie dem Outlook-Kalender-Sync gelesen), wurde vom Reaktor selbst aber nie geschrieben. Neu: bei **Objekt-Ablage** wird die Adresse aus Strasse + optionalem Adresszusatz + Ort zusammengesetzt (identisch zur Ordnerablage-Adresse) und als klickbare Monday-Location gesetzt. Bei **Firmenkunden bewusst leer** (dort gibt es keine separate Montageadresse). Existiert das Monday-Item schon (Dublettencheck über Projektnummer), wird die Montageadresse nur nachgetragen, wenn sie dort noch leer ist — eine manuell gepflegte Adresse wird nie überschrieben (gleiches Muster wie beim bestehenden Datenpfad-Nachtrag).'],
   ['V9.43','Offert-PDF · Fehlende Projektbezeichnung nach manueller Erfassung gefunden und behoben. Root Cause: Es gibt zwei getrennte Bezeichnungs-Felder — „Betreff / Anfrage\" (`#bemerkung`, erscheint als „Projekt:\" im PDF) und die Ordner-Bezeichnung im Ablage-Dialog (`#ablBez`). Der Ablage-Dialog übernimmt `#bemerkung` zwar als Vorschlag beim Öffnen — war dieses aber zu dem Zeitpunkt noch leer (typischer Fall bei rein manueller „Kalkulieren\"-Erfassung ohne REAKTOR-Anfrage) und wird die Bezeichnung direkt im Ablage-Dialog eingegeben, floss dieser Wert bisher nie zurück ins PDF-Titelfeld. Ordner hiess dann korrekt „2612345 - Beschriftung Haus\", die Offerte zeigte aber nur „2612345\" ohne Text. Fix: Beim Bestätigen des Ablage-Dialogs wird die Bezeichnung jetzt ins PDF-Titelfeld übernommen, falls dieses noch leer ist. Zusätzlich Feld-Label um Hinweis „(erscheint als „Projekt:\" im Offert-PDF)\" ergänzt, damit das beim manuellen Start gar nicht erst übersehen wird.'],
   ['V9.42','Offert-PDF · „Ihre Kd. Nr.\" im Dokumentkopf zeigte bei JEDER Offerte immer nur ein fest verdrahtetes „–\" — das Feld-Label war schon lange vorhanden, aber nie mit der tatsächlichen SL-Kundennummer verknüpft worden. **Generelles Problem, nicht auf einen bestimmten Erfassungsweg beschränkt** (Stichprobe: 0 Treffer für "Kundennummer" in der gesamten PDF-Vorlage vor diesem Fix). Jetzt wird `$(\'slKundennummer\').value` korrekt eingesetzt. Die gemeldete fehlende Projektbezeichnung nach nachträglichem Kunde-Laden konnte auf Code-Ebene nicht bestätigt werden — `fuelleKundendaten()` (Kundensuche/-Übernahme) berührt das Bemerkungs-/Projektbezeichnungsfeld nicht; Rückfrage an Sven, ob „Kunde über KALLE laden\" die Kundensuche meint oder das Laden eines kompletten gespeicherten Auftrags über „Aufträge\" — das wäre ein anderer, noch zu prüfender Codepfad.'],
   ['V9.41','Schild · Schritt 6 „Arbeit\": Auswahl von „Auftragshandling & Faktura\" und „Layout, Reinzeichnung, GzA\" erscheint jetzt in der Offert-PDF — bisher flossen diese nur als anonymer Betrag in die Summe „Arbeit\" ein, ohne dass der Kunde sah, was damit abgedeckt ist. Neu: „Auftragshandling und Faktura inklusive\" (ohne Zeitangabe) bzw. „Layout und Reinzeichnung inklusive (X Min.)\" (mit Zeitangabe, wie gewünscht). Root Cause dabei entdeckt und mitbehoben: die Checkbox-Auswahl in Schritt 6 wurde bisher beim Speichern gar nicht persistiert und ging beim Wiederöffnen einer Position komplett verloren (nur die Summe blieb über den gespeicherten `arbVK`-Betrag erhalten, nicht welche Posten das waren) — jetzt wird die Auswahl namensbasiert mitgespeichert und beim Wiederöffnen korrekt zurückgesetzt.'],
@@ -18988,7 +18989,7 @@ const MONDAY_PROD = {
   board:'1012481465',
   group:'group_mm5hq91f',            // Gruppe „Projekt und Offertanfragen"
   statusCol:'status', statusAnfrage:'Unbearbeitet',
-  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w', montageCloud:'link_mkswadkr' },
+  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w', montageCloud:'link_mkswadkr', montageadresse:'location_mksw41wx' },
   labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
   subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e', bearbeiter:'person', status:'status' }
@@ -19034,6 +19035,9 @@ async function mondayProdAnfrage(data, token){
   if(kunde) cv[MONDAY_PROD.col.kunde]=kunde;
   if(data.datenpfad) cv[MONDAY_PROD.col.datenpfad]=String(data.datenpfad);
   if(data.email) cv[MONDAY_PROD.col.email]={email:String(data.email), text:String(data.email)};
+  // Montageadresse (nur bei Objekt-Ablage vorhanden — Firmenkunden haben keine
+  // separate Montageadresse, dort bleibt die Spalte bewusst leer).
+  if(data.montageadresse) cv[MONDAY_PROD.col.montageadresse]={address:String(data.montageadresse)};
   // Kisten-Label-Link (öffnet den Laufzettel-Generator im Kalle-Intranet mit vorausgefüllter Projektnummer)
   if(nr) cv[MONDAY_PROD.col.label]={ url: MONDAY_PROD.labelBase+'?pnr='+encodeURIComponent(nr), text:'Label drucken' };
   const cr=await _mondayFetch({query:`mutation($nm:String!,$cv:JSON!){ create_item(board_id:${MONDAY_PROD.board}, group_id:"${MONDAY_PROD.group}", item_name:$nm, column_values:$cv){ id } }`, variables:{nm:name, cv:JSON.stringify(cv)}}, token);
@@ -19079,6 +19083,21 @@ async function mondaySetDatenpfadIfEmpty(itemId, pfad, token){
   }catch(e){ return {set:false, err:e.message}; }
 }
 window.mondaySetDatenpfadIfEmpty = mondaySetDatenpfadIfEmpty;
+
+// Montageadresse an einem bestehenden Item nur setzen, wenn sie noch leer ist
+// (kein Überschreiben einer evtl. bereits manuell gepflegten Adresse).
+async function mondaySetMontageadresseIfEmpty(itemId, adresse, token){
+  if(!itemId || !adresse) return {set:false};
+  try{
+    const q=await _mondayFetch({query:`query($ids:[ID!]){ items(ids:$ids){ column_values(ids:["${MONDAY_PROD.col.montageadresse}"]){ text } } }`, variables:{ids:[String(itemId)]}}, token);
+    const cur=q&&q.items&&q.items[0]&&q.items[0].column_values&&q.items[0].column_values[0]&&q.items[0].column_values[0].text;
+    if(cur && String(cur).trim()) return {set:false}; // schon gesetzt → nicht anfassen
+    const cv={}; cv[MONDAY_PROD.col.montageadresse]={address:String(adresse)};
+    await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify(cv)}}, token);
+    return {set:true};
+  }catch(e){ return {set:false, err:e.message}; }
+}
+window.mondaySetMontageadresseIfEmpty = mondaySetMontageadresseIfEmpty;
 
 // SharePoint-Ordner-Link in Spalte „Montage CLOUD" schreiben (Link-Spalte, immer überschrieben —
 // spiegelt so stets den aktuellen Ordner, falls er später nochmal neu ermittelt wird).
@@ -20059,12 +20078,18 @@ function toggleEmailAnalyse(){
     const k=CUR.kunde||{};
     if(typeof window.mondayProdAnfrage!=='function') return {ok:false,msg:'Monday-Prod-Funktion fehlt (Datei neu laden)'};
     try{
-      const res=await window.mondayProdAnfrage({ nr:CUR.nr, kunde:k.name||'', betreff:CUR.betreff||'', datenpfad:pfad||'', email:k.email||'', kurzbeschrieb:kegKurzbeschrieb() }, tok);
+      // Montageadresse: nur bei Objekt-Ablage vorhanden (Firmenkunden haben keine
+      // separate Montageadresse — dort bleibt die Monday-Spalte bewusst leer).
+      const montageadresse = (CUR.ablage==='o')
+        ? [CUR.obStr, CUR.obZusatz?('('+CUR.obZusatz+')'):'', CUR.obOrt].filter(Boolean).join(' ').replace(/\s+/g,' ').trim()
+        : '';
+      const res=await window.mondayProdAnfrage({ nr:CUR.nr, kunde:k.name||'', betreff:CUR.betreff||'', datenpfad:pfad||'', email:k.email||'', kurzbeschrieb:kegKurzbeschrieb(), montageadresse }, tok);
       CUR.mondayItem=res.itemId; try{ window._currentMondayItem=res.itemId; }catch(e){}
       if(res.existing){
-        // Item existiert schon — fehlenden Datenpfad nachtragen, damit er nie leer bleibt.
+        // Item existiert schon — fehlenden Datenpfad UND fehlende Montageadresse nachtragen, damit sie nie leer bleiben.
         let pfMsg='';
         if(pfad){ try{ if(typeof window.mondaySetDatenpfadIfEmpty==='function'){ const up=await window.mondaySetDatenpfadIfEmpty(res.itemId, pfad, tok); pfMsg=up&&up.set?' · Datenpfad ergänzt':''; } }catch(e){} }
+        if(montageadresse){ try{ if(typeof window.mondaySetMontageadresseIfEmpty==='function'){ const ua=await window.mondaySetMontageadresseIfEmpty(res.itemId, montageadresse, tok); pfMsg+=ua&&ua.set?' · Montageadresse ergänzt':''; } }catch(e){} }
         return {ok:true,msg:'Bereits im Produktionsboard vorhanden (Projektnummer '+CUR.nr+') — kein Doppel'+pfMsg};
       }
       // E-Mail + Ablage-Dateien an Subelement „Anfrage eingegangen" hängen (serverseitig)
