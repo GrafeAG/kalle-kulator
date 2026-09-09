@@ -74,6 +74,18 @@ try {
   console.warn('⚠ Route /montage NICHT geladen — fehlt src/routes/montage.js? (' + e.message + ')');
 }
 
+// ── NEU: KI-Kurzzusammenfassung fürs Cockpit (analyse_zusammenfassung.js) ──
+// Eigene Route, unabhängig von einer eventuell separat gemounteten /analyse-
+// Route für die Mail-Analyse — Express probiert beide GET-Pfade der Reihe
+// nach durch, kein Konflikt. Voraussetzung: ANTHROPIC_API_KEY + MONDAY_TOKEN
+// in der .env (beide bereits für Mail-Analyse bzw. Monday-Anbindung vorhanden).
+try {
+  app.use('/analyse', require('./routes/analyse_zusammenfassung'));
+  console.log('✓ Route /analyse/zusammenfassung aktiv');
+} catch (e) {
+  console.warn('⚠ Route /analyse/zusammenfassung NICHT geladen — fehlt src/routes/analyse_zusammenfassung.js? (' + e.message + ')');
+}
+
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
   // API-Routen: JSON
