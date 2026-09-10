@@ -86,6 +86,22 @@ try {
   console.warn('⚠ Route /analyse/zusammenfassung NICHT geladen — fehlt src/routes/analyse_zusammenfassung.js? (' + e.message + ')');
 }
 
+// ── NEU: Mail-Entwurf-Abruf für den grafemail:-Helfer + Bestätigung nach Versand ──
+try {
+  app.use('/reply', require('./routes/reply'));
+  console.log('✓ Route /reply aktiv');
+} catch (e) {
+  console.warn('⚠ Route /reply NICHT geladen — fehlt src/routes/reply.js oder src/lib/replyStore.js? (' + e.message + ')');
+}
+
+// ── NEU: Offerte nachfassen — generiert einen spezifischen Mailentwurf per KI ──
+try {
+  app.use('/nachfassen', require('./routes/nachfassen'));
+  console.log('✓ Route /nachfassen aktiv');
+} catch (e) {
+  console.warn('⚠ Route /nachfassen NICHT geladen — fehlt src/routes/nachfassen.js? (' + e.message + ')');
+}
+
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
   // API-Routen: JSON
