@@ -125,6 +125,14 @@ const UNTERORDNER = [
   '07 Projektabschluss',
 ];
 
+// V9.53: Verschachtelte Unterordner, die zusätzlich UNTER "03 Ausführung" angelegt
+// werden (Sven, 10.09.2026) — u.a. Ablageziel für die LIEFERATOR-Lieferscheine.
+const AUSFUEHRUNG_UNTERORDNER = [
+  '01 Materialbeschaffung',
+  '02 Roh Daten angeliefert',
+  '03 Ausführungen',
+];
+
 // Ungültige Windows-Zeichen bereinigen
 function sane(s, maxLen = 80) {
   return (s || '')
@@ -256,7 +264,16 @@ router.post('/', express.json({ limit: '5mb' }), async (req, res) => {
 
     // Unterordner
     for (const sub of UNTERORDNER) {
-      try { mkDir(path.join(projektPfad, sub)); erstellteOrdner.push(sub); }
+      try {
+        const subPfad = mkDir(path.join(projektPfad, sub));
+        erstellteOrdner.push(sub);
+        if (sub === '03 Ausführung') {
+          for (const sub2 of AUSFUEHRUNG_UNTERORDNER) {
+            try { mkDir(path.join(subPfad, sub2)); erstellteOrdner.push(`03 Ausführung/${sub2}`); }
+            catch (e) { warnungen.push(`03 Ausführung/${sub2}: ${e.message}`); }
+          }
+        }
+      }
       catch (e) { warnungen.push(`${sub}: ${e.message}`); }
     }
 
