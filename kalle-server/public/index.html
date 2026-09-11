@@ -2920,9 +2920,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.56';
+const UI_VERSION='V9.58';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.58','Reaktor · Auto-Upload beim Reinziehen einer Datei komplett entfernt (nicht nur gebuendelt wie in V9.57). Dateien werden nur noch in der Warteschlange gesammelt und erst hochgeladen, wenn das Projekt tatsaechlich ausgeloest wird - die "Anfrage erfassen"-Kette ruft projUploadFiles() dafuer bereits an der richtigen Stelle auf (Schritt "Unterlagen werden abgelegt"). Fuer bestehende Projekte bleibt der manuelle Upload-Button unveraendert.'],
+  ['V9.57','Reaktor · Bugfix: hineingezogene Dateien schienen sich gegenseitig zu ersetzen statt sich zu sammeln. Root Cause: sobald der Projektordner-Pfad schon bekannt war, loeste JEDE einzelne gezogene Datei fuer sich einen Auto-Upload aus (300ms Verzoegerung) und leerte die Warteschlange danach komplett (2s) - eine kurz danach gezogene zweite Datei traf auf eine bereits geleerte Liste. Fix: Auto-Upload jetzt gebuendelt (900ms Ruhepause nach der letzten gezogenen Datei, davor wird bei jeder neuen Datei zurueckgesetzt) - mehrere kurz nacheinander gezogene Dateien werden jetzt gesammelt und in einem Rutsch hochgeladen statt einzeln nacheinander mit Zwischen-Leerung.'],
   ['V9.56','Reaktor · Bugfix Monday-Uebergabe: bei Objekt-Ablage (Montageadresse gesetzt) schlug die komplette Anfrage-Erfassung fehl („nicht gesendet: invalid value...“). Root Cause per Live-Abgleich echter Monday-Daten gefunden: die Location-Spalte „Montageadresse“ verlangt ein vollstaendiges, geokodiertes Objekt (lat/lng/city/street/country) - der Code schickte nur {address:„...“}, wurde von Monday abgelehnt, und weil das im selben create_item-Aufruf wie Projektnummer/Kunde/Datenpfad stand, scheiterte die GANZE Item-Anlage, nicht nur die Adresse. Fix: Montageadresse laeuft jetzt NACH der Item-Anlage als eigener, abgesicherter Schritt (wie schon beim Status) - ein Fehler dort blockiert die restliche Erfassung nie mehr. Zusaetzlich echte Geokodierung ergaenzt (Nominatim/OpenStreetMap, kein API-Key) - die Adresse wird jetzt im von Monday tatsaechlich erwarteten Format gesetzt statt gar nicht. Ausserdem: der pauschale „(evtl. CORS)“-Hinweis im Fehlertext erscheint nur noch bei echten Netzwerkfehlern, nicht mehr bei jeder Fehlermeldung - kam eine echte Monday-Antwort zurueck (wie hier), ist es kein CORS-Thema.'],
   ['V9.55','Zweite, unabhaengige Kontrollraum-Seite „Kontrollraum (Beta)“ ergaenzt fuer das anstehende Redesign mit Claude Design: eigene Seite, eigenes iframe (ckFrameBeta), eigener Cockpit-Inhalt (ckB64Beta) - eine reine 1:1-Kopie des aktuellen stabilen Kontrollraums als Startpunkt, komplett getrennt vom bestehenden. Entwicklung findet ab jetzt am Beta-Duplikat statt, das stabile Cockpit bleibt unberuehrt nutzbar. Umschalten spaeter: Inhalt von #ckB64Beta nach #ckB64 kopieren, Beta-Seite/Pill entfernen. Ausserhalb dieser Ergaenzung nichts veraendert.'],
   ['V9.54','Kontrollraum (Cockpit) · Bugfix: Lieferschein-Button erschien nicht, weil die extern-Erkennung nur exakt den Status-Text „extern“ akzeptierte - in echten Projekten heisst der Status aber oft „Bestellt“. Erkennung jetzt ueber die Lieferanten-Spalte selbst (ist ein Lieferant hinterlegt, ist der Schritt extern) statt ueber einen einzelnen Status-Text - robuster, betrifft auch die Lieferschein-/AB-Zuordnung im Dokumente-Bereich. Ausserhalb des Cockpit-Bereichs (#ckB64) nichts veraendert.'],
@@ -15010,13 +15012,11 @@ function projFilesAdded(files){
   });
   projRenderFileList();
 
-  // Auto-Upload wenn Projektordner bereits existiert
-  if(_projektPfad && _projDropFiles.length > 0){
-    // Kurz warten damit UI gerendert ist, dann async upload
-    setTimeout(async () => {
-      await projUploadFiles(_projektPfad);
-    }, 300);
-  }
+  // KEIN Auto-Upload mehr beim Reinziehen (V9.58): Dateien werden nur noch
+  // gesammelt und erst hochgeladen, wenn das Projekt tatsächlich ausgelöst wird
+  // ("Anfrage erfassen" ruft projUploadFiles() bereits selbst an der richtigen
+  // Stelle auf — s. u. "Unterlagen werden abgelegt"). Für bestehende Projekte
+  // (Projektordner-Ablage-Dialog) gibt es weiterhin den manuellen Upload-Button.
 }
 
 function projRenderFileList(){
