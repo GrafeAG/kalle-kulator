@@ -963,6 +963,7 @@
 <body>
 <div id="tokenOverlay" hidden style="position:fixed;inset:0;z-index:900;background:rgba(58,58,54,.94);display:flex;align-items:center;justify-content:center"></div>
 <div class="rk-scope theme-light" id="app">
+<button type="button" onclick="szExitFullscreen()" title="Zurück zu KALLE-KULATOR" style="position:fixed;top:10px;right:10px;z-index:9999;width:30px;height:30px;border-radius:50%;background:#171714;color:#fff;border:none;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3)">✕</button>
 
 <div class="screen rk-screen" id="scrListe">
 
@@ -1054,7 +1055,7 @@
       <button class="rk-navpill" type="button" onclick="zeigeListe()">Alle Projekte</button>
       <button class="rk-navpill">Ressourcen</button>
       <span class="rk-header__rule" style="margin:0 4px"></span>
-      <button class="rk-navpill">KALLE-KULATOR ↗</button>
+      <button class="rk-navpill" type="button" onclick="szExitFullscreen()">KALLE-KULATOR ↗</button>
     </nav>
     <span class="rk-spacer"></span>
     <span class="rk-live"><span class="rk-live__dot"></span>Monday · Ordner · bereit</span>
@@ -2165,6 +2166,15 @@ function oeffneProjekt(id){
   openDrawer(id);
   refreshItem(id).then(function(){ if(szCurId===id) openDrawer(id); }).catch(function(){});
 }
+function szExitFullscreen(){
+  try{
+    if(window.parent && window.parent!==window && typeof window.parent.showPage==='function'){
+      var pills=window.parent.document.querySelectorAll('.nav-pill');
+      var kalkPill=Array.prototype.find.call(pills, function(p){ return /Kalkulation/i.test(p.textContent); });
+      window.parent.showPage('kalk', kalkPill);
+    }
+  }catch(e){ console.warn('[Fullscreen-Exit]', e.message); }
+}
 function zeigeListe(){
   document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
   document.getElementById('scrListe').hidden = false;
@@ -2178,6 +2188,171 @@ function openDrawer(id){ szCurId = id; curId = id; szRenderShell(); }
 
 function szAmpelBadge(l){
   return esc(l.phase)+' · '+esc(l.nowStepLabel||l.status||'');
+}
+
+// Erkennung 7a vs. 9a vs. generisch: Monday hat dafür keine eigene, verlässliche
+// Status-Spalte, die wir schon nutzen -- deshalb dasselbe Signal wie beim
+// bestehenden Nachfassen-Button: liegt eine Offerte an (Datei/Offertdokument),
+// ist die Anfrage nicht mehr "frisch", sondern wartet auf Kundenantwort.
+function szHatOfferte(l){
+  return (l.unterlagen||[]).some(function(f){return /offerte/i.test(f.name);}) || (l.offertdokumente||[]).length>0;
+}
+function szNowBandHTML(l){
+  if(l.phase==='Anfragen' && !szHatOfferte(l) && (!l.status || /unbearbeitet/i.test(l.status))) return szNowAnfrage(l);
+  if(l.phase==='Anfragen' && !szHatOfferte(l)) return szNowOfferteErstellen(l);
+  if(l.phase==='Anfragen' && szHatOfferte(l)) return szNowOffertpruefung(l);
+  return szNowGenerisch(l);
+}
+// 19a — Anfrage übernommen, Offerte wird gerade erstellt (im Rechner oder extern)
+function szNowOfferteErstellen(l){
+  return '<div class="rk-col" style="gap:6px">'+
+      '<span class="sz-badge">'+esc(l.status||'in Bearbeitung')+'</span>'+
+      '<span class="t-small t-muted">Offerte erstellen</span>'+
+    '</div>'+
+    '<div style="min-width:0">'+
+      '<div class="t-label" style="margin-bottom:6px">Zwei Wege, ein Ergebnis</div>'+
+      '<p style="margin:0;font:400 13.5px/1.45 var(--font-ui);text-wrap:pretty">Im KALLE-KULATOR rechnen (schreibt PDF, Summe und Status automatisch zurück) — oder extern kalkuliert die Offerte manuell unter „Offertdokumente" ablegen.</p>'+
+    '</div>'+
+    '<div class="rk-col" style="gap:8px;align-items:stretch">'+
+      '<button class="rk-btn rk-btn--primary" onclick="openInKalle(\''+esc(l.nr)+'\')" style="justify-content:center;padding:10px 16px;font:700 13px/1 var(--font-ui)">Rechner öffnen</button>'+
+    '</div>';
+}
+function szNowGenerisch(l){
+  var vb = l.phase==='Vorbereitung' ? szVorbereitungChecklist(l) : '';
+  var ab = l.phase==='Abschluss' ? szAbrechnungBox(l) : '';
+  return '<span class="sz-badge">'+szAmpelBadge(l)+'</span>'+
+    '<p id="szKi">wird geladen … <span class="t-faint" style="font-size:12px">KI-Stand</span></p>'+
+    '<div class="rk-row" style="gap:8px">'+
+      (szHatOfferte(l) ? '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szNachfassen()">Angebot nachfassen</button>' : '')+
+      (l.phase==='Vorbereitung' ? '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szNachProduktionsplanung(\''+l.id+'\')">→ Produktionsplanung</button>' : '')+
+      (l.phase==='Abschluss' ? '<button class="rk-btn rk-btn--sm" onclick="szFuerSelectLine(\''+l.id+'\')">Für SelectLine kopieren</button><button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szProjektAbschliessen(\''+l.id+'\')">Projekt abschliessen</button>' : '')+
+      (l.tel?('<a class="rk-btn rk-btn--sm" href="tel:'+esc(l.tel.replace(/\s/g,''))+'">Anrufen</a>'):'')+
+      '<button class="rk-btn rk-btn--sm" onclick="openFolder(\''+l.id+'\')">Ordner öffnen</button>'+
+    '</div>'+
+    '<div id="szNachfassBox" style="grid-column:1/-1">'+vb+ab+'</div>';
+}
+// 17a — Abrechnung: bewusst reduziert. Keine Zusätze-Summierung (kein
+// verlässliches Monday-Feld dafür) und kein PDF-Parsing der SelectLine-
+// Rechnung (keine Parsing-Infrastruktur) — nur was sich echt abbilden lässt.
+function szAbrechnungBox(l){
+  return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">'+
+    '<div class="t-label" style="margin-bottom:6px">Abrechnung</div>'+
+    '<div class="t-body">Offertsumme: '+(l.offert?('CHF '+esc(l.offert)):'—')+'</div>'+
+    '<div class="t-small t-faint" style="margin-top:6px">Zusätze-Summe und Rechnungs-PDF-Abgleich sind noch nicht angebunden — „Für SelectLine kopieren" liefert die Grunddaten, den Rest bitte wie bisher von Hand prüfen.</div>'+
+    '</div>';
+}
+function szFuerSelectLine(id){
+  var l=findLead(id);
+  var txt=[l.nr, l.kunde, l.betreff||l.betreffRaw, l.offert?('CHF '+l.offert):''].filter(Boolean).join(' · ');
+  try{ navigator.clipboard.writeText(txt); }catch(e){}
+  toast('Kopiert','Grunddaten in Zwischenablage — Zusätze/Rechnung bitte manuell ergänzen.');
+}
+async function szProjektAbschliessen(id){
+  if(!confirm('Projekt wirklich abschliessen? Verschiebt es nach „Abgeschlossen".')) return;
+  try{
+    await mFetch('mutation{ move_item_to_group(item_id:'+id+', group_id:"group_mksw4paf"){ id } }');
+    await wtStatus(id,'Abgeschlossen');
+    toast('Monday','Projekt abgeschlossen.');
+    zeigeListe();
+  }catch(e){ toast('Fehler', e.message, true); }
+}
+// 19b — Vorbereitungs-Checkliste: bewusst nur eine Erinnerung, kein Tor. Reine
+// Sitzungs-Anzeige (nicht in Monday gespeichert — dafür gibt es dort kein Feld),
+// blockiert nichts, "→ Produktionsplanung" geht unabhängig vom Haken-Stand.
+var VB_CHECKLISTE = [
+  {t:'Auftragsdaten geprüft', x:'Volumen, Bestellnummer und Termine stimmen mit der Offerte überein.'},
+  {t:'Montagewunsch und Kontakt', x:'Wunschtermin des Kunden, Ansprechperson vor Ort, Zugang geklärt.'},
+  {t:'Aufmass vor Ort', x:'Falls nötig – bei Bestandsbauten fast immer.'},
+  {t:'Werkstattdaten aufbereitet', x:'Daten gesammelt, aufbereitet und im Projektordner abgelegt.'},
+  {t:'Freigabe beim Kunden', x:'Optional – nur wo es das Projekt verlangt.'},
+  {t:'Material bestellt', x:'Bestellung raus, Liefertermin notiert.'}
+];
+function szVorbereitungChecklist(l){
+  return '<div style="margin-top:10px;padding-top:10px;border-top:1px solid var(--bd)">'+
+    '<div class="t-label" style="margin-bottom:8px">Erinnerungsliste · Vorbereitung <span class="t-small t-faint">(nicht gespeichert, nur zur Übersicht — abhaken optional)</span></div>'+
+    '<div class="rk-col" style="gap:4px">'+
+      VB_CHECKLISTE.map(function(c,i){
+        return '<label style="display:flex;gap:8px;align-items:flex-start;font-size:12.5px;cursor:pointer">'+
+          '<input type="checkbox" style="margin-top:2px">'+
+          '<span><b style="font-weight:600">'+esc(c.t)+'</b> — <span class="t-muted">'+esc(c.x)+'</span></span></label>';
+      }).join('')+
+    '</div></div>';
+}
+async function szNachProduktionsplanung(id){
+  try{ await wtStatus(id,'Produktionsplanung'); toast('Monday','Status → Produktionsplanung. Monday verschiebt das Item automatisch.'); await refreshItem(id); szRenderShell(); }
+  catch(e){ toast('Fehler', e.message, true); }
+}
+// 7a — frische, unbearbeitete Anfrage
+function szNowAnfrage(l){
+  var bearbOpts = USERS.map(function(u){ return '<option value="'+u.id+'">'+esc(u.name)+'</option>'; }).join('');
+  return '<div class="rk-col" style="gap:6px">'+
+      '<span class="sz-badge">'+esc(l.status||'Unbearbeitet')+'</span>'+
+      '<span class="t-small t-muted">eingegangen '+esc(fmtDate(l.anfrageDatum||''))+'</span>'+
+    '</div>'+
+    '<div style="min-width:0">'+
+      '<div class="t-label" style="margin-bottom:6px">Worum geht es</div>'+
+      '<p id="szKi" style="margin:0;font:400 14.5px/1.45 var(--font-ui);text-wrap:pretty">wird geladen …</p>'+
+    '</div>'+
+    '<div class="rk-col" style="gap:8px;align-items:stretch">'+
+      '<select class="rk-select" id="anUser" style="font-size:12px"><option value="">Für mich übernehmen als …</option>'+bearbOpts+'</select>'+
+      '<button class="rk-btn rk-btn--primary" onclick="szAnfrageUebernehmen(\''+l.id+'\')" style="justify-content:center;padding:10px 16px;font:700 13px/1 var(--font-ui)">Anfrage übernehmen</button>'+
+    '</div>';
+}
+// 9a — Offerte raus, wartet auf Kundenantwort
+function szNowOffertpruefung(l){
+  return '<div class="rk-col" style="gap:6px">'+
+      '<span class="sz-badge">'+esc(l.status||'Offerte beim Kunden')+'</span>'+
+      (l.offert?('<span class="t-small t-muted">CHF '+esc(l.offert)+'</span>'):'')+
+    '</div>'+
+    '<div style="min-width:0">'+
+      '<div class="t-label" style="margin-bottom:6px">Offerte · Stand</div>'+
+      '<p id="szKi" style="margin:0;font:400 14px/1.45 var(--font-ui);text-wrap:pretty">wird geladen …</p>'+
+    '</div>'+
+    '<div class="rk-row" style="gap:8px">'+
+      '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szOeffneUebergabe(\''+l.id+'\')">Auftrag erhalten</button>'+
+      (l.tel?('<a class="rk-btn rk-btn--sm" href="tel:'+esc(l.tel.replace(/\s/g,''))+'">Anrufen</a>'):'')+
+      '<button class="rk-btn rk-btn--sm" style="color:var(--tx2)" onclick="szVerloren(\''+l.id+'\')">Verloren</button>'+
+      '<button class="rk-btn rk-btn--sm" onclick="szNachfassen()">Nachfassen</button>'+
+    '</div>'+
+    '<div id="szNachfassBox" style="grid-column:1/-1"></div>';
+}
+async function szAnfrageUebernehmen(id){
+  var sel=document.getElementById('anUser'); var uid=sel?sel.value:'';
+  if(!uid){ toast('Hinweis','Bitte wählen, wer übernimmt.'); return; }
+  var uname=sel.options[sel.selectedIndex].text;
+  try{
+    await wtStatus(id,'in Bearbeitung');
+    await wtBearbeiter(id,uid,uname);
+    var l=findLead(id);
+    var offSub=(l.ablauf||[]).find(function(s){return /offerte erstellen/i.test(s.name);});
+    if(offSub){
+      try{ await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+offSub.id+', column_values:$cv){ id } }', {cv:JSON.stringify({[PROD.subCol.status]:{label:'in Offertstellung'}})}); }catch(e){}
+    }
+    toast('Monday','Anfrage übernommen.');
+  }catch(e){ toast('Fehler', e.message, true); }
+}
+async function szVerloren(id){
+  if(!confirm('Anfrage als verloren markieren? Verschiebt das Projekt nach „Verloren / Abgesagt".')) return;
+  try{
+    await mFetch('mutation{ move_item_to_group(item_id:'+id+', group_id:"group_mm7293mg"){ id } }');
+    await wtStatus(id,'Offerte abgelehnt');
+    toast('Monday','Als verloren markiert.');
+    zeigeListe();
+  }catch(e){ toast('Fehler', e.message, true); }
+}
+// 10a — Übergabe "Auftrag erhalten": vorerst die eigentliche Phasen-Umstellung
+// direkt (Gruppe + Status) statt des vollen Formulars mit Aufwand-Vorschlag —
+// die "Aufwand PL"-Spalte fehlt in Monday noch, siehe Machbarkeits-Check.
+async function szOeffneUebergabe(id){
+  var l=findLead(id);
+  if(!confirm('Auftrag für „'+(l.betreff||l.betreffRaw)+'" erfassen? Verschiebt das Projekt nach Vorbereitung.\n\n(Der volle Übergabe-Dialog mit Arbeitsschritt-Vorschlag ist noch nicht gebaut — das hier setzt nur Gruppe + Status um.)')) return;
+  try{
+    await mFetch('mutation{ move_item_to_group(item_id:'+id+', group_id:"group_mkt2vn54"){ id } }');
+    await wtStatus(id,'Vorbereitung');
+    toast('Monday','Auftrag erhalten — Projekt in Vorbereitung verschoben.');
+    await refreshItem(id);
+    szRenderShell();
+  }catch(e){ toast('Fehler', e.message, true); }
 }
 
 function szFlowHTML(l){
@@ -2328,17 +2503,7 @@ function szRenderShell(){
       '<button class="rk-btn rk-btn--icon" title="Schliessen" onclick="zeigeListe()">✕</button>'+
     '</div>'+
 
-    '<div class="sz-now">'+
-      '<span class="sz-badge">'+szAmpelBadge(l)+'</span>'+
-      '<p id="szKi">wird geladen … <span class="t-faint" style="font-size:12px">KI-Stand</span></p>'+
-      '<div class="rk-row" style="gap:8px">'+
-        ((l.unterlagen||[]).some(function(f){return /offerte/i.test(f.name);}) || (l.offertdokumente||[]).length
-          ? '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szNachfassen()">Angebot nachfassen</button>' : '')+
-        (l.tel?('<a class="rk-btn rk-btn--sm" href="tel:'+esc(l.tel.replace(/\s/g,''))+'">Anrufen</a>'):'')+
-        '<button class="rk-btn rk-btn--sm" onclick="openFolder(\''+l.id+'\')">Ordner öffnen</button>'+
-      '</div>'+
-      '<div id="szNachfassBox"></div>'+
-    '</div>'+
+    '<div class="sz-now">'+szNowBandHTML(l)+'</div>'+
 
     '<div class="sz-cols">'+
       '<div class="sz-flow">'+
