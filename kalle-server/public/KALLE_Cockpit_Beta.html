@@ -1,0 +1,1924 @@
+<!doctype html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KALLE · Anfragen-Cockpit</title>
+<style>
+  :root{
+    --gold:#FAE017; --gold-d:#8a7000; --gold-bg:#FFFBE0; --gold-bd:#F0E29A; --on-gold:#3a3200;
+    --bg:#FAFAF6; --panel:#fff; --ink:#171714; --muted:#6b6b62; --bd:#e6e4da; --sub:#F5F4EE;
+    --shadow:0 1px 2px rgba(20,20,15,.04);
+    --shadow-lg:0 24px 60px rgba(0,0,0,.22);
+  }
+  *{box-sizing:border-box}
+  html,body{margin:0;height:100%}
+  body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;background:var(--bg);color:var(--ink);font-size:14px;line-height:1.45;}
+  a{color:inherit}
+  .wrap{width:85%;max-width:1900px;margin:0 auto;padding:18px 22px 60px;}
+  .top{display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap;}
+  .logo{font-family:'Syne',sans-serif;font-weight:700;font-size:20px;letter-spacing:-.3px;}
+  .logo .k{color:var(--ink);background:var(--gold);padding:2px 8px;border-radius:5px;margin-right:2px}
+  .crumb{font-size:12.5px;color:var(--muted);}
+  .crumb b{color:var(--ink)}
+  .conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px;}
+  .conn.ok{color:#2f9d54;background:#e6efe8;border:1px solid #bfe0c8}
+  .conn.bad{color:#b23b3b;background:#fbe9e9;border:1px solid #f0c9c9}
+  .conn .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+  .conn.ok .dot{animation:blink 1.6s infinite}
+  @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+  .spacer{flex:1}
+  .iconbtn{border:1px solid var(--bd);background:#fff;border-radius:9px;padding:8px 13px;font:inherit;font-size:12.5px;font-weight:600;color:#5b6472;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .iconbtn:hover{background:var(--sub)}
+  .search{position:relative;}
+  .search input{width:260px;max-width:40vw;padding:9px 12px 9px 34px;border:1px solid var(--bd);border-radius:9px;background:#fff;font:inherit;font-size:13px;}
+  .search svg{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--muted)}
+  .seg{display:inline-flex;background:#fff;border:1px solid var(--bd);border-radius:9px;overflow:hidden}
+  .seg button{border:none;background:#fff;padding:9px 14px;font:inherit;font-size:12.5px;font-weight:600;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:6px}
+  .seg button.on{background:var(--gold-bg);color:var(--on-gold)}
+  .filters{display:flex;gap:8px;margin:0 0 16px;flex-wrap:wrap;align-items:center}
+  .fchip{border:1px solid var(--bd);background:#fff;border-radius:100px;padding:6px 13px;font-size:12px;font-weight:600;color:var(--muted);cursor:pointer}
+  .fchip.on{background:var(--ink);color:#fff;border-color:var(--ink)}
+  .fchip.phase{background:transparent;border-color:transparent;color:var(--muted);font-weight:600}
+  .fchip.phase.on{background:var(--gold-bg);color:var(--on-gold);border-color:var(--gold-bd)}
+  .fcount{font-size:12px;color:var(--muted);margin-left:auto}
+  .grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+  .rowlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:10px}
+  .row-card{display:flex;align-items:center;gap:10px;background:var(--panel);border:1px solid var(--bd);border-radius:11px;padding:12px 13px;cursor:pointer;transition:.15s}
+  .row-card:hover{border-color:var(--gold);box-shadow:var(--shadow);transform:translateY(-1px)}
+  .row-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+  .row-main{flex:1;min-width:0}
+  .row-nr{font-size:12.5px;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-ph{font-size:11px;color:var(--muted);margin-top:1px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .row-av{width:22px;height:22px;font-size:9px;flex-shrink:0}
+  .pill.sm{font-size:9px;padding:1px 6px;margin-left:4px}
+  .card{background:var(--panel);border:1px solid var(--bd);border-radius:14px;padding:15px 16px;box-shadow:var(--shadow);cursor:pointer;transition:.15s;position:relative;overflow:hidden}
+  .card:hover{transform:translateY(-2px);box-shadow:0 6px 14px rgba(20,24,34,.09),0 18px 40px rgba(20,24,34,.10);border-color:#d8dce2}
+  .card .edge{position:absolute;left:0;top:0;bottom:0;width:4px}
+  .c-top{display:flex;align-items:center;gap:8px;margin-bottom:8px}
+  .pnr{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:var(--muted)}
+  .pill{font-size:10px;font-weight:800;letter-spacing:.3px;padding:3px 8px;border-radius:100px;color:#fff;text-transform:uppercase}
+  .betreff{font-weight:700;font-size:15px;line-height:1.3;margin:2px 0 3px}
+  .kunde{font-size:12.5px;color:var(--muted);margin-bottom:11px}
+  .chips{display:flex;gap:5px;flex-wrap:wrap;margin-bottom:12px;min-height:4px}
+  .chip{font-size:10.5px;font-weight:600;color:#5b6472;background:var(--sub);border:1px solid var(--bd);border-radius:6px;padding:3px 8px}
+  .c-foot{display:flex;align-items:center;gap:12px;font-size:11.5px;color:var(--muted)}
+  .c-foot .mini{display:inline-flex;align-items:center;gap:4px}
+  .av{width:26px;height:26px;border-radius:50%;display:grid;place-items:center;font-size:10.5px;font-weight:800;color:#fff;flex-shrink:0}
+  .av.empty{background:#eceef2;color:#b3b9c4;border:1px dashed #cdd3db}
+  .age{margin-left:auto;display:inline-flex;align-items:center;gap:5px;font-weight:700}
+  .age .d{width:8px;height:8px;border-radius:50%}
+  .kanban{display:flex;gap:14px;overflow-x:auto;padding-bottom:8px}
+  .lane{min-width:300px;flex:1;background:#e8eaef;border-radius:14px;padding:12px}
+  .lane h3{margin:2px 4px 12px;font-size:12.5px;font-weight:800;display:flex;align-items:center;gap:8px}
+  .lane h3 .cnt{margin-left:auto;font-size:11px;color:var(--muted);background:#fff;border-radius:100px;padding:2px 9px}
+  .lane .card{margin-bottom:12px}
+  .scrim{position:fixed;inset:0;background:rgba(23,23,20,.45);backdrop-filter:blur(2px);opacity:0;pointer-events:none;transition:.2s;z-index:50}
+  .scrim.on{opacity:1;pointer-events:auto}
+  .drawer{position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(.97);width:85vw;max-width:2000px;max-height:88vh;background:var(--bg);border-radius:16px;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:opacity .18s ease,transform .18s ease;z-index:60;display:flex;flex-direction:column;overflow:hidden}
+  .drawer.on{opacity:1;pointer-events:auto;transform:translate(-50%,-50%) scale(1)}
+  .d-head{background:#fff;border-bottom:1px solid var(--bd);padding:16px 20px;position:relative}
+  .d-close{position:absolute;right:14px;top:14px;border:none;background:var(--sub);width:32px;height:32px;border-radius:8px;cursor:pointer;font-size:16px;color:var(--muted)}
+  .d-close:hover{background:#eceef2}
+  .d-back{border:none;background:var(--sub);border-radius:8px;padding:7px 13px;font:inherit;font-size:12.5px;font-weight:700;color:var(--ink);cursor:pointer;display:inline-flex;align-items:center;gap:6px;margin-bottom:10px}
+  .d-back:hover{background:#eceef2}
+  .d-pnr{font-family:ui-monospace,monospace;font-size:12px;font-weight:700;color:var(--muted)}
+  .d-title{font-family:'Syne',sans-serif;font-weight:800;font-size:20px;line-height:1.2;margin:3px 0 10px;padding-right:40px}
+  .d-controls{display:flex;gap:9px;flex-wrap:wrap;align-items:center}
+  .selctl{position:relative}
+  .selctl select{appearance:none;border:1px solid var(--bd);background:#fff;border-radius:8px;padding:7px 30px 7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer}
+  .selctl::after{content:'▾';position:absolute;right:11px;top:50%;transform:translateY(-50%);pointer-events:none;color:var(--muted);font-size:11px}
+  .lnk{font-size:12px;font-weight:700;color:var(--gold-d);text-decoration:none;display:inline-flex;align-items:center;gap:5px;padding:7px 11px;border:1px solid var(--gold-bd);background:var(--gold-bg);border-radius:8px;cursor:pointer}
+  .lnk.ghost{color:#5b6472;background:#fff;border-color:var(--bd)}
+  .d-body{flex:1;overflow-y:auto;padding:18px 20px 26px}
+  .sect{background:#fff;border:1px solid var(--bd);border-radius:13px;padding:15px 16px;margin-bottom:12px;box-shadow:var(--shadow)}
+  .sect h4{margin:0 0 12px;font-size:13.5px;font-weight:700;color:var(--ink);display:flex;align-items:center;gap:8px}
+  .sect h4 svg{color:var(--gold-d);flex-shrink:0}
+  .sect h4 .n{margin-left:auto;font-weight:600;font-size:11.5px;color:var(--muted)}
+  .ai-sect{background:var(--gold-bg);border-color:var(--gold-bd)}
+  .ai-sect h4{color:var(--on-gold)}
+  .loc-sect{background:var(--sub)}
+  .nf-sect{background:var(--gold-bg);border-color:var(--gold-bd)}
+  .nf-sect h4{color:var(--on-gold)}
+  .nf-preview{background:#fff;border:1px solid var(--bd);border-radius:9px;padding:11px 13px;margin-bottom:10px}
+  .nf-meta{font-size:10.5px;color:var(--muted);margin:0 0 6px}
+  .nf-betreff{font-size:13px;font-weight:700;margin:0 0 6px}
+  .nf-text{font-size:12.5px;line-height:1.6;margin:0;white-space:pre-wrap}
+  .nf-actions{display:flex;gap:8px;flex-wrap:wrap}
+  .d2col{display:block}
+  @media(min-width:1020px){ .d2col{display:grid;grid-template-columns:300px 300px 1fr;gap:18px;align-items:start} .d2left,.d2mid{position:sticky;top:0} }
+  .kv{display:grid;grid-template-columns:88px 1fr;gap:7px 12px;font-size:13px}
+  .kv .k{color:var(--muted)}
+  .kv span:not(.k){overflow-wrap:anywhere;word-break:break-word;min-width:0}
+  .kv a{color:var(--gold-d);font-weight:600;text-decoration:none}
+  .kv a:hover{text-decoration:underline}
+  .tl{position:relative;padding-left:22px}
+  .tl::before{content:'';position:absolute;left:6px;top:4px;bottom:4px;width:2px;background:var(--bd)}
+  .tl-item{position:relative;margin-bottom:14px}
+  .tl-item:last-child{margin-bottom:0}
+  .tl-dot{position:absolute;left:-22px;top:2px;width:14px;height:14px;border-radius:50%;background:#fff;border:3px solid var(--gold)}
+  .tl-item.pending .tl-dot{border-color:#cdd3db}
+  .tl-item.now .tl-dot{border-color:var(--gold);box-shadow:0 0 0 4px var(--gold-bg)}
+  .tl-check{position:absolute;left:-23px;top:1px;width:16px;height:16px;border-radius:50%;background:var(--gru);display:flex;align-items:center;justify-content:center}
+  .tl-check svg{width:10px;height:10px;color:#fff;stroke-width:3}
+  .tl-row{display:flex;align-items:flex-start;gap:8px}
+  .tl-row .tl-main{flex:1;min-width:0}
+  .tl-cbtn{border:none;background:transparent;color:var(--muted);cursor:pointer;display:inline-flex;align-items:center;gap:4px;font-size:11px;padding:2px 5px;border-radius:6px;flex-shrink:0}
+  .tl-cbtn:hover{background:var(--sub);color:var(--ink)}
+  .tl-cbtn.has{color:var(--gold-d)}
+  .tl-thread{margin:8px 0 4px 0;padding:10px 12px;background:var(--sub);border-radius:9px}
+  .tl-thread .tc{display:flex;gap:8px;padding:6px 0;border-bottom:1px solid var(--bd)}
+  .tl-thread .tc:last-of-type{border-bottom:none}
+  .tl-thread .tc .av{width:22px;height:22px;font-size:9px;flex-shrink:0}
+  .tl-thread .tc .meta{font-size:10.5px;color:var(--muted);margin-bottom:2px}
+  .tl-thread .tc .meta b{color:var(--ink)}
+  .tl-thread .tc .txt{font-size:12.5px;white-space:pre-wrap;word-break:break-word}
+  .tl-thread .tadd{display:flex;gap:7px;margin-top:8px}
+  .tl-thread .tadd textarea{flex:1;border:1px solid var(--bd2,var(--bd));border-radius:7px;padding:7px 9px;font:inherit;font-size:12px;resize:vertical;min-height:34px;background:#fff}
+  .tl-thread .tadd button{flex-shrink:0}
+  .doclist{display:flex;flex-direction:column;gap:6px}
+  .docrow{display:flex;align-items:center;gap:10px;padding:9px 10px;border:1px solid var(--bd);border-radius:10px;cursor:pointer;background:#fff}
+  .docrow:hover{border-color:var(--gold-bd);background:var(--gold-bg)}
+  .docrow.active{border-color:var(--gold-d)}
+  .tag{display:inline-block;font-size:9.5px;font-weight:700;padding:2px 7px;border-radius:5px;color:#fff;flex-shrink:0}
+  .tag.offerte{background:#8b93a1}.tag.laufzettel{background:#c8a000}.tag.konzept{background:#5559df}.tag.ab{background:#2f9d54}
+  .preview{border:1px solid var(--bd);border-radius:10px;background:#f4f5f7;height:420px;display:flex;flex-direction:column;overflow:hidden;margin-top:8px}
+  .preview iframe{flex:1;border:none;width:100%}
+  .preview .ph{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;color:var(--muted);text-align:center;padding:0 20px;font-size:12.5px}
+  .tl-t{font-weight:700;font-size:13.5px}
+  .tl-m{font-size:12px;color:var(--muted)}
+  .badge{display:inline-block;font-size:10px;font-weight:800;padding:2px 7px;border-radius:6px;color:#fff;margin-left:6px}
+  .cmt{display:flex;gap:10px;padding:11px 0;border-bottom:1px solid var(--bd)}
+  .cmt:last-of-type{border-bottom:none}
+  .cmt .body{min-width:0}
+  .cmt .meta{font-size:11.5px;color:var(--muted);margin-bottom:3px}
+  .cmt .meta b{color:var(--ink)}
+  .cmt .txt{font-size:13px;white-space:pre-wrap;word-break:break-word}
+  .addc{display:flex;gap:8px;margin-top:12px}
+  .addc textarea{flex:1;border:1px solid var(--bd);border-radius:9px;padding:9px 11px;font:inherit;font-size:13px;resize:vertical;min-height:40px}
+  .btn{border:none;border-radius:9px;padding:9px 15px;font:inherit;font-size:13px;font-weight:700;cursor:pointer;display:inline-flex;align-items:center;gap:7px}
+  .btn.pri{background:var(--gold);color:var(--on-gold)}
+  .btn.pri:hover{background:var(--gold-d)}
+  .btn.gh{background:#fff;color:#5b6472;border:1px solid var(--bd)}
+  .btn.gh:hover{background:var(--sub)}
+  .btn:disabled{opacity:.5;cursor:not-allowed}
+  .file{display:flex;align-items:center;gap:11px;padding:9px 10px;border:1px solid var(--bd);border-radius:10px;margin-bottom:8px;cursor:pointer;transition:.12s;background:#fff}
+  .file:hover{border-color:var(--gold-bd);background:var(--gold-bg)}
+  .file .ic{width:38px;height:38px;border-radius:8px;display:grid;place-items:center;font-size:11px;font-weight:800;color:#fff;flex-shrink:0}
+  .file .nm{font-weight:600;font-size:13px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+  .file .sub{font-size:11px;color:var(--muted)}
+  .file .open{margin-left:auto;font-size:11.5px;font-weight:700;color:var(--gold-d);flex-shrink:0}
+  .empty-note{font-size:12.5px;color:var(--muted);background:var(--sub);border:1px dashed var(--bd);border-radius:10px;padding:12px 14px}
+  .nextform{display:grid;grid-template-columns:1fr 130px 150px auto;gap:8px;margin-top:6px}
+  .nextform input,.nextform select{border:1px solid var(--bd);border-radius:8px;padding:8px 10px;font:inherit;font-size:12.5px}
+  @media(max-width:620px){.nextform{grid-template-columns:1fr}}
+  .d-foot{background:#fff;border-top:1px solid var(--bd);padding:13px 20px;display:flex;gap:10px;flex-wrap:wrap}
+  .mscrim{position:fixed;inset:0;background:rgba(18,20,26,.62);backdrop-filter:blur(3px);display:none;align-items:center;justify-content:center;z-index:80;padding:24px}
+  .mscrim.on{display:flex}
+  .mbox{background:#fff;width:min(680px,96vw);max-height:90vh;border-radius:16px;box-shadow:var(--shadow-lg);display:flex;flex-direction:column;overflow:hidden}
+  .m-head{background:var(--gold-bg);border-bottom:1px solid var(--gold-bd);padding:14px 18px;display:flex;align-items:center;gap:10px}
+  .m-head .em{width:34px;height:34px;border-radius:8px;background:#fff;border:1px solid var(--gold-bd);display:grid;place-items:center}
+  .m-head .t{font-weight:800;font-size:14px}
+  .m-head .s{font-size:11.5px;color:#6f5a00}
+  .m-close{margin-left:auto;border:none;background:#fff;border:1px solid var(--gold-bd);width:30px;height:30px;border-radius:8px;cursor:pointer;color:#6f5a00}
+  .m-body{padding:16px 18px;overflow-y:auto}
+  .m-meta{font-size:12.5px;border-bottom:1px solid var(--bd);padding-bottom:11px;margin-bottom:13px}
+  .m-meta .row{display:grid;grid-template-columns:66px 1fr;gap:4px 8px;margin-bottom:3px}
+  .m-meta .row .l{color:var(--muted)}
+  .m-text{font-size:13.5px;line-height:1.6;white-space:pre-wrap;word-break:break-word}
+  #toast{position:fixed;left:50%;bottom:26px;transform:translateX(-50%) translateY(20px);background:#20242c;color:#fff;padding:11px 18px;border-radius:11px;font-size:13px;font-weight:600;box-shadow:var(--shadow-lg);opacity:0;pointer-events:none;transition:.25s;z-index:120;max-width:90vw;display:flex;align-items:center;gap:9px}
+  #toast.on{opacity:1;transform:translateX(-50%) translateY(0)}
+  #toast.err{background:#8a2b2b}
+  #toast .tag{font-size:10px;font-weight:800;background:var(--gold);color:var(--on-gold);padding:2px 7px;border-radius:5px;text-transform:uppercase;letter-spacing:.3px}
+  #toast.err .tag{background:#fff;color:#8a2b2b}
+  .center{max-width:520px;margin:8vh auto;background:#fff;border:1px solid var(--bd);border-radius:16px;padding:28px;box-shadow:var(--shadow);text-align:center}
+  .center h2{font-family:'Syne',sans-serif;margin:0 0 6px}
+  .center p{color:var(--muted);font-size:13px}
+  .center input{width:100%;padding:11px 13px;border:1px solid var(--bd);border-radius:10px;font:inherit;margin:14px 0}
+  .spin{width:34px;height:34px;border:3px solid var(--bd);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite;margin:30px auto}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .skeleton{color:var(--muted);text-align:center;padding:40px}
+
+/* ══════ REAKTOR · Anfrage-erfassen-Overlay (aus Claude-Design-Mockup übernommen) ══════ */
+/* Alles unter .rk-scope skaliert, um nicht mit den bestehenden Cockpit-Variablen zu kollidieren */
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:100;font-display:swap;src:url('fonts/FilsonProThin.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:300;font-display:swap;src:url('fonts/FilsonProLight.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:300;font-display:swap;src:url('fonts/FilsonProLightItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:350;font-display:swap;src:url('fonts/FilsonProBook.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:350;font-display:swap;src:url('fonts/FilsonProBookItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/FilsonProRegular.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/FilsonProRegularItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/FilsonProMedium.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:500;font-display:swap;src:url('fonts/FilsonProMediumItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/FilsonProBold.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:700;font-display:swap;src:url('fonts/FilsonProBoldItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/FilsonProHeavy.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:800;font-display:swap;src:url('fonts/FilsonProHeavyItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:900;font-display:swap;src:url('fonts/FilsonProBlack.otf') format('opentype')}.rk-scope{
+  --y:#fae017;                    
+  --ol:#b4baa4;                   
+
+  --bg:#111111;                   
+  --bg2:#181816;                  
+  --bg3:#1e1e1c;                  
+  --bg4:#252522;                  
+
+  --tx:rgba(255,255,255,.95);     
+  --tx2:rgba(255,255,255,.55);    
+  --tx3:rgba(255,255,255,.28);    
+
+  --bd:rgba(255,255,255,.08);     
+  --bd2:rgba(255,255,255,.15);    
+
+  --accent:#fae017;
+  --accent-ink:#111111;           
+  --accent-text:#fae017;          
+  --accent-dim:rgba(250,224,23,.15);
+  --accent-line:rgba(250,224,23,.40);
+
+  --teal:#3ecfcf;   --teal-dim:rgba(62,207,207,.12);
+  --amber:#f09030;  --amber-dim:rgba(240,144,48,.12);
+  --green:#4cbb7a;  --green-dim:rgba(76,187,122,.12);
+  --danger:#ff453a; --danger-dim:rgba(255,69,58,.12);
+
+  --font-ui:'Filson Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:22px; --s6:28px; --s7:40px;
+  --head-h:64px;                  
+}
+.rk-scope.theme-light{
+  color:var(--tx);                
+  background:var(--bg);           
+  --bg:#F4F4F1; --bg2:#ffffff; --bg3:#F7F7F4; --bg4:#EEEEEA;
+  --tx:#111111; --tx2:#5F5F58; --tx3:#9A9A91;
+  --bd:#E4E3DD; --bd2:#D6D5CD;
+  --accent:#fae017; --accent-ink:#111111; --accent-text:#7A6A00;
+  --accent-dim:rgba(250,224,23,.20); --accent-line:rgba(150,132,0,.42);
+  --teal:#1F9A9A;   --teal-dim:rgba(31,154,154,.11);
+  --amber:#C9761F;  --amber-dim:rgba(201,118,31,.12);
+  --green:#3E9E63;  --green-dim:rgba(62,158,99,.13);
+  --danger:#D9402F; --danger-dim:rgba(217,64,47,.12);
+}
+.rk-scope *, .rk-scope *::before, .rk-scope *::after{box-sizing:border-box}
+.rk-scope html, .rk-scope body{margin:0;padding:0}
+.rk-scope body{background:var(--bg);color:var(--tx);font-family:var(--font-ui);
+     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.rk-scope img{display:block;max-width:100%}
+.rk-scope [hidden]{display:none !important}
+.rk-scope a{color:var(--accent-text);text-decoration:none}
+.rk-scope a:hover{color:var(--tx)}
+.rk-scope button, .rk-scope input, .rk-scope select, .rk-scope textarea{font-family:inherit;border-radius:0}
+.rk-scope .t-hero{font:900 52px/1.02 var(--font-ui);letter-spacing:-.025em;margin:0}
+.rk-scope .t-h1{font:900 34px/1.05 var(--font-ui);letter-spacing:-.022em;margin:0}
+.rk-scope .t-h2{font:900 26px/1.10 var(--font-ui);letter-spacing:-.02em;margin:0}
+.rk-scope .t-h3{font:900 24px/1.05 var(--font-ui);letter-spacing:-.02em;margin:0}
+.rk-scope .t-title{font:700 17px/1.25 var(--font-ui);margin:0}
+.rk-scope .t-sub{font:700 15px/1.25 var(--font-ui);margin:0}
+.rk-scope .t-body{font:400 13px/1.55 var(--font-ui);text-wrap:pretty}
+.rk-scope .t-small{font:400 11.5px/1.45 var(--font-ui)}
+.rk-scope .t-label{font:600 10px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.rk-scope .t-mono{font:600 12px/1.3 var(--font-mono)}
+.rk-scope .t-muted{color:var(--tx2)}
+.rk-scope .t-faint{color:var(--tx3)}
+.rk-scope .rk-header{height:var(--head-h);display:flex;align-items:center;gap:18px;
+  padding:0 24px;border-bottom:1px solid var(--bd);background:var(--bg2)}
+.rk-scope .rk-header__rule{width:1px;height:22px;background:var(--bd2)}
+.rk-scope .rk-header__brand{font:800 12px/1 var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
+.rk-scope .rk-spacer{flex:1}
+.rk-scope .rk-live{display:inline-flex;align-items:center;gap:7px;font:500 12px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .rk-live__dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:rk-pulse 2s ease-in-out infinite}
+@keyframes rk-pulse{0%,100%{opacity:1}50%{opacity:.3}}.rk-scope .rk-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;
+  background:transparent;border:1px solid var(--bd2);color:var(--tx);
+  font:600 12.5px/1 var(--font-ui);cursor:pointer;
+  transition:border-color .15s ease,opacity .15s ease,background .15s ease}
+.rk-scope .rk-btn:hover{border-color:var(--tx)}
+.rk-scope .rk-btn:active{transform:translateY(1px)}
+.rk-scope .rk-btn--primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.rk-scope .rk-btn--primary:hover{opacity:.85;border-color:var(--accent)}
+.rk-scope .rk-btn--dark{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rk-btn--sm{padding:6px 9px;font-size:11px}
+.rk-scope .rk-btn--icon{width:32px;height:32px;padding:0;justify-content:center;color:var(--tx2);font-size:16px;font-weight:400}
+.rk-scope .rk-btn[disabled], .rk-scope .rk-btn.is-disabled{color:var(--tx3);border-color:var(--bd);cursor:not-allowed;background:transparent}
+.rk-scope .rk-btn[disabled]:hover, .rk-scope .rk-btn.is-disabled:hover{border-color:var(--bd);opacity:1}
+.rk-scope .rk-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rk-scope .rk-input, .rk-scope .rk-select, .rk-scope .rk-textarea{width:100%;padding:9px 11px;background:var(--bg2);
+  border:1px solid var(--bd2);color:var(--tx);font:400 13px/1.4 var(--font-ui)}
+.rk-scope .rk-textarea{resize:vertical;min-height:60px;line-height:1.5}
+.rk-scope .rk-input:focus, .rk-scope .rk-select:focus, .rk-scope .rk-textarea:focus{outline:2px solid var(--accent);outline-offset:-2px;border-color:transparent}
+.rk-scope .rk-input::placeholder, .rk-scope .rk-textarea::placeholder{color:var(--tx3)}
+.rk-scope .rk-select{appearance:none;padding-right:32px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9A91' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 11px center}
+.rk-scope .rk-hint{font:400 10.5px/1.35 var(--font-ui);color:var(--tx3)}
+.rk-scope .rk-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
+  background:transparent;border:1px solid var(--bd2);color:var(--tx);
+  font:600 11.5px/1.3 var(--font-ui);cursor:pointer;transition:border-color .15s}
+.rk-scope .rk-chip:hover{border-color:var(--tx)}
+.rk-scope .rk-chip.is-active{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rk-chip--accent.is-active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.rk-scope .rk-chip--static{cursor:default}
+.rk-scope .rk-chip--static:hover{border-color:var(--bd2)}
+.rk-scope .rk-check{display:flex;align-items:center;gap:8px;padding:7px 9px;text-align:left;
+  background:var(--bg2);border:1px solid var(--bd2);color:var(--tx);cursor:pointer;
+  font:500 12px/1.2 var(--font-ui);transition:border-color .15s}
+.rk-scope .rk-check:hover{border-color:var(--tx)}
+.rk-scope .rk-check.is-on{background:var(--accent-dim);border-color:var(--tx)}
+.rk-scope .rk-check__box{width:15px;height:15px;flex:none;display:grid;place-items:center;
+  border:1.5px solid var(--tx);background:var(--bg2);color:var(--bg2);font:800 10px/1 var(--font-ui)}
+.rk-scope .rk-check.is-on .rk-check__box{background:var(--tx);color:var(--bg)}
+.rk-scope .rk-check__text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-scope .rk-tabs{display:flex;align-items:flex-end;gap:2px;padding:12px 22px 0;
+  border-bottom:1px solid var(--bd);background:var(--bg2)}
+.rk-scope .rk-tab{padding:9px 14px;border:0;border-bottom:3px solid transparent;background:transparent;
+  color:var(--tx2);font:500 12.5px/1 var(--font-ui);cursor:pointer}
+.rk-scope .rk-tab:hover{color:var(--tx)}
+.rk-scope .rk-tab.is-active{border-bottom-color:var(--tx);color:var(--tx);font-weight:700}
+.rk-scope .rk-tabs__note{padding:0 0 10px;font:400 11px/1.3 var(--font-ui);color:var(--tx3)}
+.rk-scope .rk-card{background:var(--bg2);border:1px solid var(--bd)}
+.rk-scope .rk-card__head{padding:8px 12px;border-bottom:1px solid var(--bd);
+  font:600 10px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.rk-scope .rk-card__body{padding:12px}
+.rk-scope .rk-kpi{padding:11px 12px;background:var(--bg2);border:1px solid var(--bd)}
+.rk-scope .rk-kpi__val{font:800 21px/1.1 var(--font-ui);margin-top:6px}
+.rk-scope .rk-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  font:400 12px/1.35 var(--font-ui);color:var(--tx)}
+.rk-scope .rk-banner strong{font-weight:600}
+.rk-scope .rk-banner--ok{background:var(--green-dim);border-bottom:1px solid var(--bd)}
+.rk-scope .rk-banner--warn{background:var(--amber-dim);border:1px solid var(--amber)}
+.rk-scope .rk-banner__mark{width:18px;height:18px;flex:none;display:grid;place-items:center;
+  font:800 11px/1 var(--font-ui);color:#fff;background:var(--green)}
+.rk-scope .rk-banner--warn .rk-banner__mark{background:var(--amber);color:#111}
+.rk-scope .rk-drop{display:grid;place-items:center;gap:4px;min-height:72px;padding:12px;text-align:center;
+  background:var(--bg);border:1px dashed var(--bd2);color:var(--tx3);
+  font:500 11.5px/1.45 var(--font-ui);cursor:copy;transition:background .15s,border-color .15s}
+.rk-scope .rk-drop:hover{background:var(--accent-dim);border-color:var(--accent-line);color:var(--tx)}
+.rk-scope .rk-actionbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  padding:12px 22px;border-top:1px solid var(--bd);background:var(--bg3);transition:background .2s}
+.rk-scope .rk-actionbar.is-done{background:var(--green-dim)}
+.rk-scope .rk-actionbar__note{font:400 11.5px/1.35 var(--font-ui);color:var(--tx3)}
+.rk-scope .rk-done{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;
+  background:var(--green);color:#fff;font:700 13px/1 var(--font-ui)}
+.rk-scope .rk-status{display:inline-flex;align-items:center;gap:7px;font:500 11px/1.3 var(--font-ui);color:var(--tx2)}
+.rk-scope .rk-status__dot{width:9px;height:9px;border-radius:50%}
+.rk-scope .rk-status--done  .rk-status__dot{background:var(--ol)}
+.rk-scope .rk-status--open  .rk-status__dot{border:2px solid var(--accent);background:transparent}
+.rk-scope .rk-status--build{padding:5px 8px;background:var(--accent-dim);border:1px solid var(--accent);
+  color:var(--accent-text);font-weight:700;font-size:10.5px}
+.rk-scope .rk-status--build .rk-status__dot{width:8px;height:8px;background:var(--accent)}
+.rk-scope .rk-stage{position:relative;overflow:hidden;background:var(--bg)}
+.rk-scope .rk-stage__behind{opacity:.35;padding:28px 24px}
+.rk-scope .rk-scrim{position:absolute;inset:0;background:rgba(17,17,17,.5)}
+.rk-scope .rk-panel{position:absolute;left:64px;right:64px;top:28px;bottom:28px;
+  background:var(--bg);border:1px solid var(--bd2);overflow:hidden;
+  display:grid;grid-template-rows:auto auto 1fr auto}
+.rk-scope .rk-panel__head{display:flex;align-items:center;gap:16px;padding:14px 22px 0;background:var(--bg2)}
+.rk-scope .rk-meta{display:flex;align-items:center;gap:10px;font:600 12px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .rk-meta__rule{width:1px;height:10px;background:var(--bd2)}
+.rk-scope .rk-meta__mode{font:600 11px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.rk-scope .rk-person{display:flex;align-items:center;gap:10px}
+.rk-scope .rk-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--bd2)}
+.rk-scope .rk-avatar--initials{display:grid;place-items:center;background:var(--bg4);
+  font:700 11px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .rk-desk{background:#7A7A74;border:1px solid var(--bd);display:flex;flex-direction:column;
+  align-items:center;padding:16px;min-height:0;overflow:hidden;position:relative}
+.rk-scope .rk-sheet{width:440px;height:622px;flex:none;background:#fff;color:#111;position:relative;
+  box-shadow:0 6px 24px rgba(0,0,0,.35);font-family:var(--font-ui)}
+.rk-scope .rk-sheet__footbar{position:absolute;left:0;right:0;bottom:0;height:6px;display:flex}
+.rk-scope .rk-sheet__footbar span{flex:1}
+.rk-scope .rk-sheet__footbar span:first-child{background:var(--y)}
+.rk-scope .rk-sheet__footbar span:last-child{background:var(--ol)}
+.rk-scope .rk-row{display:flex;align-items:center;gap:var(--s2)}
+.rk-scope .rk-col{display:flex;flex-direction:column;gap:var(--s2)}
+.rk-scope .rk-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.rk-scope .rk-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rk-scope .rk-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.rk-scope .doc{max-width:1180px;margin:0 auto;padding:56px 32px 90px}
+.rk-scope .doc section{padding:44px 0 0}
+.rk-scope .doc h2{margin:0 0 6px}
+.rk-scope .doc h3{margin:26px 0 10px;font:700 15px/1.2 var(--font-ui);color:var(--tx)}
+.rk-scope .doc p{max-width:640px;color:var(--tx2);font:400 13.5px/1.6 var(--font-ui);text-wrap:pretty}
+.rk-scope .doc code{font:500 12px/1.5 var(--font-mono);color:var(--accent-text)}
+.rk-scope .doc pre{margin:10px 0 0;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);
+  overflow-x:auto;font:400 11.5px/1.6 var(--font-mono);color:var(--tx2)}
+.rk-scope .doc hr{border:0;border-top:1px solid var(--bd2);margin:44px 0 0}
+.rk-scope .demo{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;padding:18px;
+  background:var(--bg2);border:1px solid var(--bd);margin-top:12px}
+.rk-scope .demo--light{background:var(--bg);border-color:var(--bd2)}
+.rk-scope .sw{display:flex;flex-direction:column;gap:6px;width:132px}
+.rk-scope .sw__patch{height:54px;border:1px solid var(--bd2)}
+.rk-scope .sw__name{font:600 11px/1.3 var(--font-mono)}
+.rk-scope .sw__val{font:400 10.5px/1.3 var(--font-mono);color:var(--tx3)}
+
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;min-height:720px;background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
+.rk-scope .rx-nav{display:flex;gap:4px;margin-left:8px}
+.rk-scope .rx-pill{padding:8px 12px;background:transparent;border:1px solid transparent;color:var(--tx2);
+  font:600 12px/1 var(--font-ui);cursor:pointer}
+.rk-scope .rx-pill:hover{color:var(--tx);border-color:var(--bd2)}
+.rk-scope .rx-pill.is-active{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rx-page{padding:40px 24px 36px;display:flex;flex-direction:column;gap:28px}
+.rk-scope .rx-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.rk-scope .rx-eyebrow{font:600 11px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.rk-scope .rx-h1{margin:10px 0 0;font:900 48px/1 var(--font-ui);letter-spacing:-.025em}
+.rk-scope .rx-kern{display:flex;align-items:center;gap:14px;padding:12px 16px;background:#111;color:#fff}
+.rk-scope .rx-kern__dot{width:10px;height:10px;background:var(--y);transform:rotate(45deg)}
+.rk-scope .rx-kern__txt{font:400 13px/1.35 var(--font-ui);color:rgba(255,255,255,.8)}
+.rk-scope .rx-kern__txt b{font-weight:700;color:#fff}
+.rk-scope .rx-ways{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px}
+.rk-scope .rx-way{display:flex;flex-direction:column;gap:14px;padding:26px 26px 22px;text-decoration:none;
+  transition:opacity .15s ease,border-color .15s ease}
+.rk-scope .rx-way--main{background:#111;color:#fff;min-height:200px}
+.rk-scope .rx-way--main:hover{opacity:.9;color:#fff}
+.rk-scope .rx-way--side{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx)}
+.rk-scope .rx-way--side:hover{border-color:var(--tx);color:var(--tx)}
+.rk-scope .rx-way__kind{font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.rk-scope .rx-way--main .rx-way__kind{color:var(--y)}
+.rk-scope .rx-way--side .rx-way__kind{color:var(--tx3)}
+.rk-scope .rx-way__t{font:900 30px/1.05 var(--font-ui);letter-spacing:-.02em}
+.rk-scope .rx-way--side .rx-way__t{font-size:26px}
+.rk-scope .rx-way__x{font:400 14px/1.5 var(--font-ui);color:rgba(255,255,255,.75);max-width:460px;text-wrap:pretty}
+.rk-scope .rx-way--side .rx-way__x{font-size:13.5px;color:var(--tx2)}
+.rk-scope .rx-way__go{margin-top:auto;display:inline-flex;align-items:center;gap:10px;font:700 13px/1 var(--font-ui);color:var(--y)}
+.rk-scope .rx-way--side .rx-way__go{color:var(--tx2)}
+.rk-scope .rx-listhead{display:flex;align-items:baseline;gap:12px;padding-bottom:8px;
+  border-bottom:2px solid var(--accent);margin-bottom:8px}
+.rk-scope .rx-row{display:grid;grid-template-columns:76px minmax(0,1.1fr) minmax(0,1.4fr) 130px 150px 28px;
+  gap:16px;align-items:center;height:54px;padding:0 16px;background:var(--bg2);
+  border:1px solid var(--bd2);text-decoration:none;color:var(--tx);transition:border-color .15s}
+.rk-scope .rx-row:hover{border-color:var(--tx);color:var(--tx)}
+.rk-scope .rx-row__nr{font:600 12px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .rx-row__kunde{font:800 15px/1.2 var(--font-ui)}
+.rk-scope .rx-row__betreff{font:400 13px/1.3 var(--font-ui);color:var(--tx2)}
+.rk-scope .rx-row__art{font:600 10px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.rk-scope .rx-row__frist{justify-self:end;padding:5px 9px;font:700 11px/1 var(--font-ui);white-space:nowrap}
+.rk-scope .rx-row__who{width:26px;height:26px;border-radius:50%;background:var(--bg4);border:1px dashed var(--bd2);
+  display:grid;place-items:center;font:700 10px/1 var(--font-ui);color:var(--tx3)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;min-height:820px;background:var(--bg);color:var(--tx);
+  border:1px solid #D6D5CD;display:flex;flex-direction:column}
+.rk-scope .rx-steps{display:flex;align-items:center;gap:0}
+.rk-scope .rx-step{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;
+  background:transparent;border:none;color:var(--tx3);font:600 12.5px/1 var(--font-ui);cursor:pointer}
+.rk-scope .rx-step.is-current{color:var(--tx)}
+.rk-scope .rx-step__n{width:22px;height:22px;display:grid;place-items:center;background:transparent;
+  border:2px solid var(--bd2);color:var(--tx3);font:800 11px/1 var(--font-ui)}
+.rk-scope .rx-step.is-current .rx-step__n, .rk-scope .rx-step.is-done .rx-step__n{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rx-steps__line{width:28px;height:2px;background:var(--bd2)}
+.rk-scope .rx-view{padding:28px 24px 24px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:10px;flex:1}
+.rk-scope .rx-view[hidden]{display:none}
+.rk-scope .rx-eyebrow{font:600 11px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.rk-scope .rx-h1{margin:8px 0 0;font:900 30px/1.05 var(--font-ui);letter-spacing:-.02em}
+.rk-scope .rx-box{background:var(--bg2);border:1px solid var(--bd);padding:16px}
+.rk-scope .rx-lbl{font:500 11px/1 var(--font-ui);color:var(--tx3);margin-bottom:6px}
+.rk-scope .rx-side{display:flex;flex-direction:column;gap:10px}
+.rk-scope .rx-dark{background:#111;color:#fff;padding:14px}
+.rk-scope .rx-dark__lbl{font:600 10px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:8px}
+.rk-scope .rx-dark__x{font:400 12.5px/1.45 var(--font-ui);color:rgba(255,255,255,.8)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-scope .rx-drop{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
+  gap:22px;min-height:168px;padding:26px 28px;background:var(--accent-dim);border:2px dashed var(--accent);
+  color:var(--tx);text-align:left;cursor:copy;transition:background .15s,border-color .15s;width:100%}
+.rk-scope .rx-drop:hover{background:var(--accent);border-color:var(--tx)}
+.rk-scope .rx-drop__icon{width:64px;height:64px;display:grid;place-items:center;background:#111;color:var(--y);flex:none}
+.rk-scope .rx-drop__k{display:block;font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2)}
+.rk-scope .rx-drop__t{display:block;font:900 24px/1.05 var(--font-ui);letter-spacing:-.02em;margin-top:8px}
+.rk-scope .rx-drop__x{display:block;font:400 13px/1.45 var(--font-ui);color:var(--tx2);margin-top:8px;text-wrap:pretty}
+.rk-scope .rx-corner{position:absolute;width:14px;height:14px}
+.rk-scope .rx-corner--tl{left:10px;top:10px;border-left:2px solid #111;border-top:2px solid #111}
+.rk-scope .rx-corner--tr{right:10px;top:10px;border-right:2px solid #111;border-top:2px solid #111}
+.rk-scope .rx-corner--bl{left:10px;bottom:10px;border-left:2px solid #111;border-bottom:2px solid #111}
+.rk-scope .rx-corner--br{right:10px;bottom:10px;border-right:2px solid #111;border-bottom:2px solid #111}
+.rk-scope .rx-mailrow{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--green-dim);border:1px solid var(--green)}
+.rk-scope .rx-file{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--bd2);
+  font:800 8.5px/1 var(--font-ui)}
+.rk-scope .rx-place{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rk-scope .rx-place button{display:flex;flex-direction:column;gap:6px;padding:14px;text-align:left;cursor:pointer;
+  background:var(--bg);border:2px solid var(--bd2);color:var(--tx)}
+.rk-scope .rx-place button.is-on{background:#111;border-color:#111;color:#fff}
+.rk-scope .rx-place b{font:800 14px/1.2 var(--font-ui)}
+.rk-scope .rx-place span{font:400 12px/1.4 var(--font-ui);opacity:.75}
+.rk-scope .rx-att{display:grid;grid-template-columns:30px minmax(0,1fr) 220px;gap:12px;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--bd)}
+.rk-scope .rx-kv{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font:400 12.5px/1.35 var(--font-ui)}
+.rk-scope .rx-kv span:nth-child(odd){color:var(--tx3)}
+.rk-scope .rx-auto{display:flex;gap:8px;font:400 12.5px/1.4 var(--font-ui);color:var(--tx2)}
+.rk-scope .rx-auto i{width:8px;height:8px;background:var(--bd2);margin-top:5px;flex:none}
+.rk-scope .rx-run{flex:1;display:grid;place-items:center;padding:40px 24px}
+.rk-scope .rx-run[hidden]{display:none}
+.rk-scope .rx-run__inner{width:640px;display:flex;flex-direction:column;gap:18px}
+.rk-scope .rx-bar{height:14px;background:var(--bg3);border:1px solid var(--bd2);position:relative;overflow:hidden}
+.rk-scope .rx-bar__fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);transition:width .4s ease}
+.rk-scope .rx-chain{display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:center;
+  padding:9px 12px;background:var(--bg2);border:1px solid var(--bd2)}
+.rk-scope .rx-chain__n{width:18px;height:18px;display:grid;place-items:center;background:transparent;
+  border:2px solid var(--bd2);color:#fff;font:800 11px/1 var(--font-ui)}
+.rk-scope .rx-chain__t{font:600 13px/1.2 var(--font-ui);color:var(--tx3)}
+.rk-scope .rx-chain__d{font:500 11.5px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .rx-chain.is-cur{border-color:var(--accent)}
+.rk-scope .rx-chain.is-cur .rx-chain__n{background:var(--accent);border-color:var(--accent)}
+.rk-scope .rx-chain.is-cur .rx-chain__t{color:var(--tx)}
+.rk-scope .rx-chain.is-done{border-color:var(--green)}
+.rk-scope .rx-chain.is-done .rx-chain__n{background:var(--green);border-color:var(--green)}
+.rk-scope .rx-chain.is-done .rx-chain__t{color:var(--tx)}
+.rk-scope .rx-hand{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 18px;background:#111;color:#fff}
+
+.rk-scope{ font-family: var(--font-ui); }
+#erfassungOverlay{ position:fixed; inset:0; z-index:500; overflow:auto; background:#3A3A36; }
+#erfassungOverlay .screen{ width:1280px; max-width:100%; min-height:720px; margin:0 auto; background:var(--bg); color:var(--tx); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="top">
+    <div class="logo"><span class="k">KALLE</span>·Cockpit</div>
+    <div class="crumb">GRAFE Produktionsübersicht › <b>Projekt und Offertanfragen</b></div>
+    <span class="conn bad" id="conn"><span class="dot"></span><span id="connTxt">verbinde …</span></span>
+    <div class="spacer"></div>
+    <div class="search">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
+      <input id="q" placeholder="Suchen: Kunde, Projektnr., Betreff …">
+    </div>
+    <div class="seg">
+      <button class="on" id="vGrid" onclick="setView('grid')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>Karten</button>
+      <button id="vKan" onclick="setView('kanban')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="6" height="16" rx="1"/><rect x="9.5" y="4" width="6" height="10" rx="1"/><rect x="16" y="4" width="6" height="13" rx="1"/></svg>Kanban</button>
+    </div>
+    <button class="iconbtn" id="btnAV" style="display:none" onclick="toAuftragsverwaltung()" title="Zur klassischen Auftragsverwaltung"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6M9 3h6v4H9zM7 7h10l1 13H6z"/></svg>Auftragsverwaltung</button>
+    <button class="iconbtn" onclick="reload()" title="Alle Anfragen frisch aus Monday laden"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Aktualisieren</button>
+    <button class="iconbtn" style="background:var(--gold);border-color:var(--gold);color:#3a3200;font-weight:700" onclick="rxOeffnenOverlay()" title="Neue Anfrage erfassen (REAKTOR)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Anfrage erfassen</button>
+  </div>
+
+  <div class="filters" id="filters" style="display:none;flex-direction:column;align-items:stretch;gap:8px">
+    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
+      <div class="fchip on" data-f="alle" onclick="setPLFilter('alle',this)">Alle</div>
+      <div id="plChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
+      <div class="fcount" id="fcount"></div>
+    </div>
+    <div style="display:flex;gap:6px;flex-wrap:wrap">
+      <div class="fchip phase on" data-p="alle" onclick="setPhaseFilter('alle',this)">Alle Phasen</div>
+      <div class="fchip phase" data-p="Anfragen" onclick="setPhaseFilter('Anfragen',this)">Anfragen</div>
+      <div class="fchip phase" data-p="Vorbereitung" onclick="setPhaseFilter('Vorbereitung',this)">Vorbereitung</div>
+      <div class="fchip phase" data-p="Produktion" onclick="setPhaseFilter('Produktion',this)">Produktion</div>
+      <div class="fchip phase" data-p="Montage" onclick="setPhaseFilter('Montage',this)">Montage</div>
+      <div class="fchip phase" data-p="Abschluss" onclick="setPhaseFilter('Abschluss',this)">Abschluss</div>
+    </div>
+  </div>
+
+  <div id="overview"><div class="spin"></div></div>
+</div>
+
+<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
+<div class="drawer" id="drawer" aria-hidden="true"></div>
+<div class="mscrim" id="mscrim" onclick="if(event.target===this)closeMsg()"><div class="mbox" id="mbox"></div></div>
+<div id="toast"></div>
+
+<script>
+// ═══ KONFIGURATION (spiegelt KALLE) ═══
+const MONDAY_API='https://api.monday.com/v2', MONDAY_VER='2024-01';
+const PROD={
+  board:'1012481465', subBoard:'1012481470',
+  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', status:'status', prio:'color_mksqrk4k',
+        datenpfad:'text_mksqs2p4', email:'email_mktzse3f', leistung:'dropdown_mm5j5492',
+        offert:'numeric_mm5jnxjf', pl:'people0', standort:'location_mksw41wx', termin:'color_mm5syzb9',
+        montName:'text_mkswmy3d', montTel:'phone_mkswtq0k', montZeit:'text_mm1dy987', montCloud:'link_mkswadkr' },
+  subCol:{ datum:'date0', bearbeiter:'person', status:'status', datei:'file_mm5gpa3e', lieferschein:'file_mkt23492', offerteAbBestellung:'file_mkxwyb9z', lieferant:'board_relation_mkt38hr8' }
+};
+// Aktive Gruppen (deckt sich mit ALLOWED_GROUPS des Termin-Ampel-Jobs) → Anzeige-Phase.
+// Rechnungsstellung/Abgeschlossen bewusst NICHT drin: Projekte fallen dort automatisch
+// aus dem Cockpit, sobald sie in eine dieser Gruppen wandern — kein Archivieren nötig.
+const ALLOWED_GROUPS=[
+  {id:'group_mm5hq91f', phase:'Anfragen'},
+  {id:'group_mm5p5zwq', phase:'Anfragen'},
+  {id:'group_mkt2vn54', phase:'Vorbereitung'},
+  {id:'new_group29179', phase:'Produktion'},
+  {id:'new_group43041', phase:'Produktion'},
+  {id:'group_mkw1rbx',  phase:'Montage'},
+  {id:'topics',         phase:'Montage'},
+  {id:'group_mm5h369s', phase:'Abschluss'},
+  {id:'group_mm6csxe1', phase:'Abschluss'},
+];
+const PHASE_ORDER=['Anfragen','Vorbereitung','Produktion','Montage','Abschluss'];
+const STATUS_LABELS=["Unbearbeitet","Layoutphase / GZA","Korrektur durch PL","ON HOLD","Vorbereitung","Produktionsplanung","in Produktion","Endkontrolle","Storniert","Abgeschlossen"];
+const STATUS_HEX={"Unbearbeitet":"#ff5ac4","Layoutphase / GZA":"#784bd1","Korrektur durch PL":"#bb3354","ON HOLD":"#e484bd","Vorbereitung":"#ffcb00","Produktionsplanung":"#ff6d3b","in Produktion":"#5559df","Produktion fertig":"#9cd326","Montage":"#579bfc","Endkontrolle":"#216edf","Storniert":"#4eccc6","Abgeschlossen":"#00c875"};
+const PRIO_HEX={"EXPRESS":"#df2f4a","asap":"#fdab3d","Standard":"#00c875"};
+const PRIO_LIST=["asap","Standard","EXPRESS"];
+
+// Server-URL wie KALLE
+function serverUrl(){
+  // Als srcdoc-iframe eingebettet: location.protocol ist hier immer "about:" (auch wenn same-origin),
+  // deshalb zuerst versuchen, die echte Adresse des einbettenden Elternfensters zu lesen.
+  try{ if(window.parent && window.parent!==window && /^https?:/.test(window.parent.location.protocol)) return window.parent.location.origin; }catch(e){}
+  if(location.protocol==='http:'||location.protocol==='https:') return location.origin;
+  return localStorage.getItem('kalle_server_url')||'http://kalle.grafe.ch:8765';
+}
+function embedded(){ try{ return window.parent && window.parent!==window; }catch(e){ return false; } }
+function getToken(){
+  try{ if(embedded() && typeof window.parent.mondayToken==='function'){ const t=window.parent.mondayToken(); if(t) return t; } }catch(e){}
+  return localStorage.getItem('kalle_monday_token')||'';
+}
+function toAuftragsverwaltung(){
+  try{ if(embedded() && typeof window.parent.showPage==='function'){ const pills=window.parent.document.querySelectorAll('.nav-pill'); window.parent.showPage('auftraege', pills[1]||pills[0]); return; } }catch(e){}
+  toast('Hinweis','Auftragsverwaltung ist in KALLE verfügbar.');
+}
+
+let LEADS=[], USERS=[], DBMAP={}, view='grid', search='', serverOk=false;
+
+// ═══ Monday-Client (Browser-direkt, wie KALLE) ═══
+async function mFetch(query,variables){
+  const tok=getToken(); if(!tok) throw new Error('kein Monday-Token');
+  const r=await fetch(MONDAY_API,{method:'POST',headers:{'Content-Type':'application/json','Authorization':tok,'API-Version':MONDAY_VER},body:JSON.stringify({query,variables:variables||{}})});
+  if(!r.ok) throw new Error('HTTP '+r.status+' (evtl. CORS/Token)');
+  const d=await r.json(); if(d.errors) throw new Error((d.errors[0]&&d.errors[0].message)||'Monday API'); return d.data;
+}
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+// Monochrome Linien-Icons (statt Emoji) — erben Textfarbe/-grösse vom Elternelement.
+const ICON={
+  phone:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L15 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 3 6a2 2 0 0 1 2-2z"/></svg>',
+  mail:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="5" width="18" height="14" rx="2"/><path d="M3 7l9 6 9-6"/></svg>',
+  folder:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 7a2 2 0 0 1 2-2h4l2 2h8a2 2 0 0 1 2 2v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/></svg>',
+  msg:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H8l-5 4V6a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>',
+  paperclip:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 11.5l-8.6 8.6a4 4 0 0 1-5.7-5.7L15 6.1a2.7 2.7 0 0 1 3.8 3.8l-8.3 8.3a1.3 1.3 0 0 1-1.9-1.9l7.6-7.6"/></svg>',
+  refresh:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>',
+  pin:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s7-6.5 7-12a7 7 0 0 0-14 0c0 5.5 7 12 7 12z"/><circle cx="12" cy="9" r="2.4"/></svg>',
+  ext:'<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 3h7v7M21 3l-9 9M5 5h5M5 5v14h14v-5"/></svg>',
+  card:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>',
+  kanban:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="6" height="16" rx="1"/><rect x="9.5" y="4" width="6" height="10" rx="1"/><rect x="16" y="4" width="6" height="13" rx="1"/></svg>',
+  order:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6M9 3h6v4H9zM7 7h10l1 13H6z"/></svg>',
+  list:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="4.5" cy="6" r=".6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="12" r=".6" fill="currentColor" stroke="none"/><circle cx="4.5" cy="18" r=".6" fill="currentColor" stroke="none"/><path d="M9 6h11M9 12h11M9 18h11"/></svg>',
+  spark:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3l1.6 4.9L18.5 9l-4.9 1.6L12 15.5l-1.6-4.9L5.5 9l4.9-1.6L12 3z"/></svg>',
+  route:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="6" cy="19" r="2"/><circle cx="18" cy="5" r="2"/><path d="M8 19h5a4 4 0 0 0 4-4V9a4 4 0 0 0-4-4h-1"/></svg>',
+  upload:'<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 16V4M7 9l5-5 5 5"/><path d="M4 16v3a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-3"/></svg>',
+  pdf:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><path d="M14 2v6h6"/></svg>',
+  send:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 2 11 13"/><path d="M22 2 15 22l-4-9-9-4z"/></svg>',
+  plus:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>',
+  arrowRight:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h14M13 6l6 6-6 6"/></svg>',
+  arrowLeft:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5M11 18l-6-6 6-6"/></svg>',
+  x:'<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 6 6 18M6 6l12 12"/></svg>',
+  user:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="8" r="3.5"/><path d="M5 20a7 7 0 0 1 14 0"/></svg>',
+  ban:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M6 6l12 12"/></svg>',
+  check:'<svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg>',
+};
+function avColor(name){ if(!name) return null; let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))>>>0; const hs=["#c8a000","#5559df","#579bfc","#00a3a3","#b8500a","#8a3ffc","#2f9d54","#d9527e"]; return hs[h%hs.length]; }
+const initials=n=>!n?'':n.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+const fmtCHF=n=>"CHF "+Number(n).toLocaleString('de-CH');
+function daysBetween(iso){ if(!iso) return null; const d=new Date(iso); if(isNaN(d)) return null; return Math.max(0,Math.floor((Date.now()-d.getTime())/86400000)); }
+function ageInfo(d){ if(d==null) return {c:"#b3b9c4",t:"—"}; if(d<=1) return {c:"#00c875",t:d===0?"frisch":"1 Tag"}; if(d<=4) return {c:"#fdab3d",t:d+" Tage"}; return {c:"#df2f4a",t:d+" Tage"}; }
+function todayISO(){ const d=new Date(); return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0'); }
+
+// ═══ Laden ═══
+async function boot(){
+  if(!getToken()){ showTokenSetup(); return; }
+  await checkServer();
+  try{ await Promise.all([loadUsers(), loadDbEnrichment()]); }catch(e){}
+  await loadLeads();
+}
+async function checkServer(){
+  try{ const c=new AbortController(); setTimeout(()=>c.abort(),1500);
+    const r=await fetch(serverUrl()+'/status',{signal:c.signal}); serverOk=r.ok; }catch(e){ serverOk=false; }
+}
+async function loadUsers(){
+  try{ const d=await mFetch(`query{ users(limit:400){ id name } }`); USERS=(d.users||[]).filter(u=>u.name); }catch(e){ USERS=[]; }
+}
+async function loadDbEnrichment(){
+  if(!serverOk) return;
+  try{ const r=await fetch(serverUrl()+'/offerten'); if(!r.ok) return; const arr=await r.json();
+    (Array.isArray(arr)?arr:[]).forEach(o=>{ const k=String(o.auftragsnr||'').trim(); if(k) DBMAP[k]=o; });
+  }catch(e){}
+}
+async function loadLeads(){
+  setConn();
+  const gIds=ALLOWED_GROUPS.map(g=>`"${g.id}"`).join(',');
+  const q=`query{ boards(ids:${PROD.board}){ groups(ids:[${gIds}]){ id title items_page(limit:100){ items{
+      id name url created_at
+      column_values{ id text value column{ title } }
+      assets{ id name public_url file_extension }
+      updates(limit:25){ id text_body created_at creator{ name } }
+      subitems{ id name column_values{ id text value column{ title } } assets{ id name public_url file_extension } updates(limit:10){ id text_body created_at creator{ name } } }
+    } } } } }`;
+  try{
+    const d=await mFetch(q);
+    const groups=(((d.boards||[])[0]||{}).groups)||[];
+    LEADS=[];
+    groups.forEach(g=>{
+      const phase=(ALLOWED_GROUPS.find(x=>x.id===g.id)||{}).phase||'Anfragen';
+      (g.items_page?.items||[]).forEach(it=> LEADS.push(mapItem(it, phase)));
+    });
+    setConn(true);
+    document.getElementById('filters').style.display='flex';
+    buildPLFilter();
+    render();
+  }catch(e){
+    setConn(false,e.message);
+    document.getElementById('overview').innerHTML=`<div class="center"><h2>Konnte Anfragen nicht laden</h2><p>${esc(e.message)}</p><p style="margin-top:10px">Prüfe den Monday-Token oder ob der Zugriff via Server nötig ist.</p><button class="btn pri" style="margin-top:14px" onclick="showTokenSetup()">Token neu eingeben</button></div>`;
+  }
+}
+function cvMap(it){ const m={}; (it.column_values||[]).forEach(c=>m[c.id]=c); return m; }
+// Löst eine Personen-Spalte in einzelne, saubere Namen auf (statt des von Monday
+// kombinierten Text-Strings "Person A, Person B", der als EIN Filter-Chip endete).
+function peopleNames(cv, colId){
+  const c=cv[colId]; if(!c) return [];
+  try{
+    const val=c.value?JSON.parse(c.value):null;
+    const ids=(val&&val.personsAndTeams||[]).map(p=>p.id);
+    if(ids.length){
+      const names=ids.map(id=>{ const u=USERS.find(u=>String(u.id)===String(id)); return u?u.name:null; }).filter(Boolean);
+      if(names.length) return names;
+    }
+  }catch(e){}
+  // Fallback, falls JSON nicht auswertbar oder Person nicht in USERS: Text-Spalte kommagetrennt
+  return (c.text||'').split(',').map(s=>s.trim()).filter(Boolean);
+}
+// Ordnet die Assets eines Subitems einer bestimmten Datei-Spalte zu (Monday liefert im
+// `assets`-Feld alle Anhänge über alle Spalten gemischt zurück, ohne Spalten-Zuordnung —
+// deshalb über den Dateinamen aus dem URL-Text der Spalte matchen).
+function assetsForFileColumn(s, scv, colId) {
+  const c = scv[colId];
+  if (!c || !c.text) return [];
+  const urls = c.text.split(/[,\n]+/).map(u => u.trim()).filter(Boolean);
+  const names = urls.map(u => { try { return decodeURIComponent(u.split('/').pop()); } catch (e) { return u.split('/').pop(); } });
+  return (s.assets || []).filter(a => names.includes(a.name));
+}
+function ablaufFromSubs(subs){
+  const steps=subs.map(s=>{
+    const scv=cvMap(s);
+    const st=(scv[PROD.subCol.status]&&scv[PROD.subCol.status].text)||'';
+    const dat=(scv[PROD.subCol.datum]&&scv[PROD.subCol.datum].text)||'';
+    const be=(scv[PROD.subCol.bearbeiter]&&scv[PROD.subCol.bearbeiter].text)||'';
+    const done=/^fertig$/i.test(st);
+    const lieferant=(scv[PROD.subCol.lieferant]&&scv[PROD.subCol.lieferant].text)||'';
+    // "extern" (= Lieferschein sinnvoll) heisst hier: ein Lieferant ist hinterlegt ODER
+    // der Status deutet darauf hin — Status-Label allein ist nicht verlässlich, variiert
+    // pro Projekt/Team (gesehen: "extern", "Bestellt", ...).
+    const extern=!!lieferant || /^(extern|bestellt)$/i.test(st);
+    let d=[st||(dat?'':'ungeplant'), dat?fmtDate(dat):'', be].filter(Boolean).join(' · ');
+    if(!d) d=st||'—';
+    const updates=(s.updates||[]).slice().reverse();
+    return {id:s.id, name:s.name, done, extern, d, updates, lieferant};
+  });
+  // erster nicht-erledigter Schritt = "aktueller" Schritt
+  let markedNow=false;
+  return steps.map(s=>{
+    if(s.done) return {...s, cls:'done'};
+    if(!markedNow){ markedNow=true; return {...s, cls:'now'}; }
+    return {...s, cls:'next'};
+  });
+}
+function ampelFromTermin(text){
+  if(!text) return {c:'#b3b9c4', t:'—'};
+  if(text.includes('🔴')||/überfällig/i.test(text)) return {c:'#df2f4a', t:'Überfällig'};
+  if(text.includes('🟢')||/ok/i.test(text)) return {c:'#00c875', t:'Im Zeitplan'};
+  return {c:'#fdab3d', t:text};
+}
+function mapItem(it, phase){
+  const cv=cvMap(it); const get=id=>(cv[id]&&cv[id].text)||'';
+  const nr=get(PROD.col.projektnr)||((it.name||'').match(/^\d+/)||[''])[0];
+  const kunde=get(PROD.col.kunde);
+  let betreff=it.name||''; const parts=betreff.split(' — '); if(parts.length>1) betreff=parts.slice(1).join(' — ');
+  else { betreff=betreff.replace(new RegExp('^\\s*'+nr+'\\s*[·\\-—:]*\\s*'),'').replace(new RegExp('^'+kunde.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+'\\s*[·\\-—:]*\\s*'),''); }
+  const leistung=get(PROD.col.leistung)? get(PROD.col.leistung).split(/,\s*/).filter(Boolean):[];
+  const subs=(it.subitems||[]);
+  const anfrageSub=subs.find(s=>/anfrage eingegangen/i.test(s.name))||subs[0];
+  let anfrageDatum=''; if(anfrageSub){ const scv=cvMap(anfrageSub); anfrageDatum=(scv[PROD.subCol.datum]&&scv[PROD.subCol.datum].text)||''; }
+  const age=daysBetween(anfrageDatum||it.created_at);
+  // Dateien: Item- + Subitem-Assets (für die "Dateien"-Sektion / .msg-Vorschau)
+  let files=(it.assets||[]).map(a=>({...a,src:'Item'}));
+  subs.forEach(s=>(s.assets||[]).forEach(a=>files.push({...a,src:s.name})));
+  // Projektunterlagen = alles, was direkt am Item hängt (Laufzettel, Offerte, Konzept, …) — generisch, kein fixer Dateityp angenommen
+  const unterlagen=(it.assets||[]);
+  const offertdokumente=[];
+  subs.forEach(s=>{
+    const scv=cvMap(s);
+    assetsForFileColumn(s,scv,PROD.subCol.offerteAbBestellung).forEach(a=>offertdokumente.push({...a,subName:s.name}));
+  });
+  const hasMail=files.some(f=>/^(msg|eml)$/i.test(f.file_extension||''))|| !!get(PROD.col.email);
+  const telNote=(it.updates||[]).some(u=>/telefon/i.test(u.text_body||''));
+  const mode=hasMail?'email':(telNote?'telefon':'');
+  const db=DBMAP[nr]||{};
+  const ablauf=ablaufFromSubs(subs);
+  const nowStep=ablauf.find(s=>s.cls==='now');
+  return {
+    id:it.id, url:it.url, nr, kunde, betreff, betreffRaw:it.name, phase,
+    status:get(PROD.col.status)||'Unbearbeitet', prio:get(PROD.col.prio)||'',
+    datenpfad:get(PROD.col.datenpfad)||db.projektPfad||'', email:get(PROD.col.email)||db.email||'',
+    kontakt:db.kontaktperson||'', tel:db.telefon||'',
+    adr:{str:db.adresseStrasse||'', plz:db.adressePLZ||'', ort:db.adresseOrt||''},
+    standort:get(PROD.col.standort)||'',
+    montName:get(PROD.col.montName)||'', montTel:get(PROD.col.montTel)||'',
+    montZeit:get(PROD.col.montZeit)||'', montCloud:get(PROD.col.montCloud)||'',
+    ampel:ampelFromTermin(get(PROD.col.termin)),
+    nowStepLabel:nowStep?(nowStep.name+(nowStep.d&&nowStep.d!=='—'?' · '+nowStep.d:'')):(ablauf.length?'':'—'),
+    leistung, offert:(cv[PROD.col.offert]&&cv[PROD.col.offert].text)?Number(cv[PROD.col.offert].text.replace(/[^\d.-]/g,'')):null,
+    bearbeiter:(peopleNames(cv,PROD.col.pl)[0])||'', bearbeiterList:peopleNames(cv,PROD.col.pl), mode, age,
+    updates:(it.updates||[]).slice().reverse(), files, unterlagen, offertdokumente, subitems:subs, ablauf, anfrageDatum
+  };
+}
+
+// ═══ Render ═══
+function passes(l){
+  if(filterPL!=='alle' && !(l.bearbeiterList||[]).includes(filterPL)) return false;
+  if(filterPhase!=='alle' && l.phase!==filterPhase) return false;
+  if(search){ const s=search.toLowerCase(); if(!((l.nr+" "+l.kunde+" "+l.betreff+" "+(l.adr.ort||'')).toLowerCase().includes(s))) return false; }
+  return true;
+}
+const AMPEL_RANK={'#df2f4a':0,'#fdab3d':1,'#00c875':2,'#b3b9c4':3};
+function cardHTML(l){
+  const pHex=PRIO_HEX[l.prio]||"#cdd3db";
+  const list=l.bearbeiterList||[];
+  const av=list.length?`<div class="av row-av" style="background:${avColor(list[0])}" title="${esc(list.join(', '))}">${initials(list[0])}${list.length>1?'<sup style=\"font-size:8px;margin-left:1px\">+'+(list.length-1)+'</sup>':''}</div>`:`<div class="av row-av empty" title="ohne Bearbeiter">?</div>`;
+  const modeIco=l.mode==='telefon'?ICON.phone:(l.mode==='email'?ICON.mail:'');
+  return `<div class="row-card" onclick="openDrawer('${l.id}')">
+    <span class="row-dot" style="background:${l.ampel.c}" title="${esc(l.ampel.t)}"></span>
+    <div class="row-main">
+      <div class="row-nr">${esc(l.nr)} · ${esc(l.kunde||'—')}${l.prio?` <span class="pill sm" style="background:${pHex}">${esc(l.prio)}</span>`:''}</div>
+      <div class="row-ph">${esc(l.nowStepLabel||l.status)}${modeIco?' · '+modeIco:''}</div>
+    </div>
+    ${av}
+  </div>`;
+}
+function render(){
+  const list=LEADS.filter(passes).sort((a,b)=>(AMPEL_RANK[a.ampel.c]??9)-(AMPEL_RANK[b.ampel.c]??9));
+  document.getElementById('fcount').textContent=list.length+" von "+LEADS.length+" Projekten";
+  const ov=document.getElementById('overview');
+  if(!LEADS.length){ ov.innerHTML=`<div class="skeleton">Keine aktiven Projekte gefunden.</div>`; return; }
+  if(view==='grid'){
+    ov.innerHTML=`<div class="rowlist">${list.map(cardHTML).join('')||'<div class="empty-note">Keine Treffer.</div>'}</div>`;
+  }else{
+    ov.innerHTML=`<div class="kanban">${PHASE_ORDER.map(p=>{
+      const items=list.filter(x=> x.phase===p);
+      return `<div class="lane"><h3>${esc(p)}<span class="cnt">${items.length}</span></h3>${items.map(cardHTML).join('')||'<div class="empty-note" style="background:#fff">—</div>'}</div>`;
+    }).join('')}</div>`;
+  }
+}
+function setView(v){ view=v; document.getElementById('vGrid').classList.toggle('on',v==='grid'); document.getElementById('vKan').classList.toggle('on',v==='kanban'); render(); }
+let filterPL='alle', filterPhase='alle';
+function buildPLFilter(){
+  const set=new Set();
+  LEADS.forEach(l=>(l.bearbeiterList||[]).forEach(n=>set.add(n)));
+  const names=[...set].sort();
+  document.getElementById('plChips').innerHTML=names.map(n=>
+    `<div class="fchip" data-f="${esc(n)}" onclick="setPLFilter('${esc(n)}',this)">${esc(n)}</div>`
+  ).join('');
+}
+function setPLFilter(v,el){
+  document.querySelectorAll('.fchip:not(.phase)').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); filterPL=v; render();
+}
+function setPhaseFilter(v,el){
+  document.querySelectorAll('.fchip.phase').forEach(c=>c.classList.remove('on'));
+  el.classList.add('on'); filterPhase=v; render();
+}
+document.getElementById('q').addEventListener('input',e=>{ search=e.target.value; render(); });
+function setConn(ok,msg){ const c=document.getElementById('conn'),t=document.getElementById('connTxt');
+  if(ok===undefined){ t.textContent='lade …'; return; }
+  c.className='conn '+(ok?'ok':'bad'); t.textContent=ok?('live an Monday'+(serverOk?' + Server':'')):('offline'+(msg?' — '+msg.slice(0,40):'')); }
+
+// ═══ Detail ═══
+let curId=null;
+function fileIcon(ext){ ext=(ext||'').toUpperCase(); const m={PDF:"#d9433f",MSG:"#c8a000",EML:"#c8a000",JPG:"#2f9d54",JPEG:"#2f9d54",PNG:"#2f9d54",DWG:"#5559df",DOCX:"#2b579a",XLSX:"#217346"}; return m[ext]||"#8b93a1"; }
+function findLead(id){ return LEADS.find(l=>l.id===id); }
+function openDrawer(id){
+  const l=findLead(id); if(!l) return; curId=id;
+  const statusOpts=STATUS_LABELS.map(s=>`<option ${s===l.status?'selected':''}>${esc(s)}</option>`).join('');
+  const prioOpts=['—'].concat(PRIO_LIST).map(s=>`<option value="${s==='—'?'':s}" ${s===l.prio||(s==='—'&&!l.prio)?'selected':''}>${s}</option>`).join('');
+  const userOpts=['<option value="">— Bearbeiter —</option>'].concat(USERS.map(u=>`<option value="${u.id}" ${u.name===l.bearbeiter?'selected':''}>${esc(u.name)}</option>`)).join('');
+  const mapQAddr=l.standort || [l.adr.str,[l.adr.plz,l.adr.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  const mapQ=encodeURIComponent(mapQAddr||l.kunde);
+  let filesHTML = l.files.length ? l.files.map((f,i)=>`<div class="file" onclick="openFile('${l.id}',${i})">
+      <div class="ic" style="background:${fileIcon(f.file_extension)}">${esc((f.file_extension||'DAT').toUpperCase().slice(0,4))}</div>
+      <div style="min-width:0"><div class="nm">${esc(f.name)}</div><div class="sub">${esc(f.src||'')}</div></div>
+      <span class="open">${/^(msg|eml|txt)$/i.test(f.file_extension||'')?'öffnen ▸':'ansehen ▸'}</span></div>`).join('')
+    : `<div class="empty-note">Keine Dateien am Item. ${l.mode==='telefon'?'Telefonische Anfrage — Kurzbeschrieb steht als Kommentar unten.':''}</div>`;
+  const cmtHTML=l.updates.length? l.updates.map(c=>`<div class="cmt"><div class="av" style="background:${avColor((c.creator||{}).name||'?')};width:30px;height:30px">${initials((c.creator||{}).name||'?')}</div><div class="body"><div class="meta"><b>${esc((c.creator||{}).name||'—')}</b> · ${esc(fmtDate(c.created_at))}</div><div class="txt">${esc(c.text_body||'')}</div></div></div>`).join('') : '<div class="empty-note">Noch keine Kommentare.</div>';
+  // Verlauf aus dem bereits aufbereiteten Ablauf (Status done/now/next)
+  const verlauf=l.ablauf.length? l.ablauf.map(s=>{
+      const cls = s.cls==='next' ? 'pending' : (s.cls==='now'?'now':'');
+      const dot = s.done
+        ? `<div class="tl-check"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6 9 17l-5-5"/></svg></div>`
+        : `<div class="tl-dot"></div>`;
+      const isOpen = openStep && openStep.nr===l.nr && openStep.subId===s.id;
+      const cnt = (s.updates||[]).length;
+      return `<div class="tl-item ${cls}">${dot}
+        <div class="tl-row">
+          <div class="tl-main">
+            <div class="tl-t">${esc(s.name)}${s.cls==='now'?'<span class="badge" style="background:var(--gold);color:var(--on-gold)">aktuell</span>':''}</div>
+            <div class="tl-m">${esc(s.d||'ohne Datum')}</div>
+          </div>
+          <button class="tl-cbtn ${cnt?'has':''}" onclick="toggleStepThread('${l.nr}','${s.id}')">${ICON.msg}${cnt?' '+cnt:''}</button>
+          ${s.extern?`<button class="tl-cbtn" title="Lieferschein für diesen Schritt erstellen" onclick="event.stopPropagation(); lieferscheinOeffnen('${l.id}','${l.nr}','${esc(l.betreff||l.betreffRaw)}','${s.id}','${esc(s.lieferant||'')}')">${ICON.order}</button>`:''}
+        </div>
+        ${isOpen?renderStepThread(l,s):''}
+      </div>`;
+    }).join('') : '<div class="empty-note">Noch keine Schritte.</div>';
+  const bearbOpts=USERS.map(u=>`<option value="${u.id}">${esc(u.name)}</option>`).join('');
+  // Projektunterlagen (generisches Dateifeld am Item — Laufzettel, Offerte, Konzept, was auch immer drinliegt)
+  const unterlHTML = l.unterlagen.length ? l.unterlagen.map((f,i)=>{
+      const t=docType(f.name);
+      return `<div class="docrow" onclick="toggleUnterlage('${l.id}',${i})">
+        ${ICON.pdf}
+        <div style="min-width:0;flex:1"><div class="nm">${esc(f.name)}</div><span class="tag ${t.cls}">${t.label}</span></div>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><path d="M9 6l6 6-6 6"/></svg>
+      </div>`;
+    }).join('') : `<div class="empty-note">Noch keine Unterlagen in Monday hinterlegt.</div>`;
+  const offerHTML = l.offertdokumente.length ? l.offertdokumente.map((f,i)=>{
+      const t=docType(f.name);
+      return `<div class="docrow" onclick="toggleOfferdoc('${l.id}',${i})">
+        ${ICON.pdf}
+        <div style="min-width:0;flex:1"><div class="nm">${esc(f.name)}</div><span class="tag ${t.cls}">${t.label}</span> <span style="font-size:10px;color:var(--muted)">· ${esc(f.subName)}</span></div>
+        <svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="color:var(--muted);flex-shrink:0"><path d="M9 6l6 6-6 6"/></svg>
+      </div>`;
+    }).join('') : `<div class="empty-note">Keine Offerte/AB/Bestellung an den Schritten hinterlegt.</div>`;
+  // Externe Schritte für die AB-/Lieferschein-Zuordnung
+  const externSubs=(l.ablauf||[]).filter(s=>s.extern);
+  const externOpts=externSubs.length? externSubs.map(s=>`<option value="${s.id}">${esc(s.name)}</option>`).join('') : `<option value="">Kein externer Schritt vorhanden</option>`;
+
+  const d=document.getElementById('drawer');
+  d.innerHTML=`
+    <div class="d-head">
+      <button class="d-close" onclick="closeDrawer()">${ICON.x}</button>
+      <button class="d-back" onclick="closeDrawer()">${ICON.arrowLeft} Zurück zur Übersicht</button>
+      <div class="d-pnr">${esc(l.nr)}${l.mode?' · '+(l.mode==='telefon'?'Telefonanfrage':'E-Mail-Anfrage'):''} · <span style="color:${l.ampel.c}">${esc(l.ampel.t)}</span></div>
+      <div class="d-title">${esc(l.betreff||l.betreffRaw)}</div>
+      <div class="d-controls">
+        <div class="selctl"><select onchange="wtStatus('${l.id}',this.value)" title="Status → Monday">${statusOpts}</select></div>
+        <div class="selctl"><select onchange="wtPrio('${l.id}',this.value)" title="Priorität → Monday">${prioOpts}</select></div>
+        <div class="selctl"><select onchange="wtBearbeiter('${l.id}',this.value,this.options[this.selectedIndex].text)" title="Bearbeiter → Monday">${userOpts}</select></div>
+        <a class="lnk" href="${esc(l.url)}" target="_blank" rel="noopener">${ICON.ext} in Monday</a>
+        <span class="lnk ghost" onclick="openFolder('${l.id}')">${ICON.folder} Ordner</span>
+        <span class="lnk ghost" id="dRefresh" onclick="refreshItem('${l.id}')" title="Kommentare, Verlauf & Status frisch aus Monday laden">${ICON.refresh} Aktualisieren</span>
+      </div>
+    </div>
+    <div class="d-body">
+      <div class="d2col">
+        <div class="d2left">
+          <div class="sect ai-sect" id="aiSect">
+            <h4>${ICON.spark} Zusammenfassung</h4>
+            <div id="aiBox" style="font-size:13px;color:var(--muted)">wird geladen …</div>
+          </div>
+          <div class="sect"><h4>${ICON.pdf} Unterlagen <span class="n">${l.unterlagen.length}</span></h4>
+            <div class="doclist" id="unterlList">${unterlHTML}</div>
+            <div id="unterlPreview"></div>
+          </div>
+          <div class="sect nf-sect" id="nfSect"><h4>${ICON.send} Offertdokumente <span class="n">${l.offertdokumente.length}</span></h4>
+            <div class="doclist" id="offerList">${offerHTML}</div>
+            <div id="offerPreview"></div>
+            <div id="nfBox" style="margin-top:10px">
+              ${(l.offertdokumente||[]).length || (l.unterlagen||[]).some(f=>/offerte/i.test(f.name))
+                ? `<button class="btn pri" onclick="nachfassenStarten('${l.id}')">${ICON.send} Nachfass-Mail vorschlagen</button>`
+                : `<p style="font-size:11.5px;color:var(--muted);margin:0 0 8px">Keine Offerte erkannt — Anhang müsste dann manuell ergänzt werden.</p><button class="btn pri" onclick="nachfassenStarten('${l.id}')">${ICON.send} Trotzdem Nachfass-Mail vorschlagen</button>`}
+            </div>
+          </div>
+        </div>
+        <div class="d2mid">
+          <div class="sect"><h4>${ICON.user} Kunde</h4>
+            <div class="kv">
+              <span class="k">Firma</span><span><b>${esc(l.kunde||'—')}</b></span>
+              ${l.kontakt?`<span class="k">Ansprechpartner</span><span>${esc(l.kontakt)}</span>`:''}
+              ${l.tel?`<span class="k">Telefon</span><span><a href="tel:${esc(l.tel.replace(/\s/g,''))}">${esc(l.tel)}</a></span>`:''}
+              ${l.email?`<span class="k">E-Mail</span><span><a href="mailto:${esc(l.email)}">${esc(l.email)}</a></span>`:''}
+              <span class="k">Ordner</span><span>${l.datenpfad?`<a onclick="openFolder('${l.id}')" style="cursor:pointer">${esc(l.datenpfad)}</a>`:'—'}</span>
+            </div>
+          </div>
+          ${mapQAddr?`
+          <div class="sect loc-sect">
+            <h4>${ICON.pin} Standort</h4>
+            <p style="font-size:13px;margin:0 0 8px">${esc(mapQAddr)}</p>
+            <a class="btn gh" style="font-size:11.5px" href="https://www.google.com/maps/search/?api=1&query=${mapQ}" target="_blank" rel="noopener">${ICON.route} Route</a>
+          </div>`:''}
+          ${(l.montName||l.montTel)?`
+          <div class="sect loc-sect">
+            <h4>${ICON.user} Montagekontakt</h4>
+            <div class="kv">
+              ${l.montName?`<span class="k">Name</span><span>${esc(l.montName)}</span>`:''}
+              ${l.montTel?`<span class="k">Telefon</span><span><a href="tel:${esc(l.montTel.replace(/\s/g,''))}">${esc(l.montTel)}</a></span>`:''}
+              ${l.montZeit?`<span class="k">Zeit vor Ort</span><span>${esc(l.montZeit)}</span>`:''}
+            </div>
+            ${l.montCloud?`<a class="btn gh" style="font-size:11.5px;margin-top:8px" href="${esc(l.montCloud)}" target="_blank" rel="noopener">${ICON.folder} Montage-Cloud öffnen</a>`:''}
+          </div>`:''}
+        </div>
+        <div class="d2right">
+          <div class="sect"><h4>${ICON.list} Ablauf</h4><div class="tl">${verlauf}</div></div>
+          <div class="sect"><h4>${ICON.plus} Nächster Schritt terminieren</h4>
+            <div class="nextform">
+              <input id="nsText" placeholder="z. B. Besichtigungstermin vereinbaren">
+              <input id="nsDate" type="date" value="${todayISO()}">
+              <select id="nsUser"><option value="">Bearbeiter …</option>${bearbOpts}</select>
+              <button class="btn pri" onclick="wtNextStep('${l.id}')">${ICON.plus} Anlegen</button>
+            </div>
+            <div style="font-size:10.5px;color:var(--muted);margin-top:7px">Wird als Subelement mit Datum & Bearbeiter im Monday-Item angelegt.</div>
+          </div>
+          <div class="sect"><h4>${ICON.order} Lieferschein / Auftragsbestätigung</h4>
+            <div class="nextform" style="grid-template-columns:1fr 1fr auto">
+              <input type="file" id="abFile">
+              <select id="abSub">${externOpts}</select>
+              <button class="btn pri" onclick="wtAttachLieferdokument('${l.id}')">Ablegen</button>
+            </div>
+            <div style="font-size:10.5px;color:var(--muted);margin-top:7px">Hängt die Datei am gewählten Schritt in Monday an. Automatische Ablage im Projektordner (Explorer) ist serverseitig noch nicht verdrahtet — offener Punkt.</div>
+          </div>
+          <div class="sect"><h4>${ICON.paperclip} Dateien <span class="n">${l.files.length}</span></h4>${filesHTML}</div>
+          <div class="sect"><h4>${ICON.msg} Kommentare <span class="n">${l.updates.length}</span></h4>${cmtHTML}
+            <div class="addc"><textarea id="newc" placeholder="Kommentar … (wird als Monday-Update ans Item geschrieben)"></textarea><button class="btn pri" onclick="wtComment('${l.id}')">${ICON.send} Senden</button></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="d-foot">
+      <button class="btn pri" onclick="openInKalle('${esc(l.nr)}')">${ICON.arrowRight} In KALLE kalkulieren</button>
+      <a class="btn gh" href="${esc(l.url)}" target="_blank" rel="noopener">${ICON.ext} Item in Monday öffnen</a>
+      <button class="btn gh" onclick="wtStatus('${l.id}','Storniert')">${ICON.ban} Anfrage stornieren</button>
+    </div>`;
+  document.getElementById('scrim').classList.add('on');
+  d.classList.add('on');
+  loadSummary(l);
+}
+function openInKalle(nr){
+  nr=String(nr||'').trim();
+  if(!nr){ try{ alert('Keine Projektnummer am Projekt hinterlegt.'); }catch(e){} return; }
+  try{ parent.postMessage({type:'kalle-open', anr:nr}, '*'); }catch(e){}
+  closeDrawer();
+}
+function docType(name){
+  const n=(name||'').toLowerCase();
+  if(n.includes('laufzettel')) return {cls:'laufzettel',label:'Laufzettel'};
+  if(n.includes('offerte')) return {cls:'offerte',label:'Offerte'};
+  if(n.includes('konzept')) return {cls:'konzept',label:'Konzept'};
+  if(n.includes('kommission')||n.startsWith('ab_')) return {cls:'ab',label:'Lieferant'};
+  return {cls:'offerte',label:'Datei'};
+}
+let openStep=null;
+function lieferscheinOeffnen(itemId,nr,titel,subId,lieferant){
+  const l=findLead(itemId);
+  const p=new URLSearchParams({
+    projektnr:nr, titel:titel||'', pl:(l&&l.bearbeiter)||'',
+    lieferant:lieferant||'', subitemId:subId, projektPfad:(l&&l.datenpfad)||''
+  });
+  window.open(serverUrl()+'/lieferschein-generator.html?'+p.toString(),'_blank');
+}
+function toggleStepThread(nr,subId){
+  openStep=(openStep&&openStep.nr===nr&&openStep.subId===subId)?null:{nr,subId};
+  if(curId) openDrawer(curId);
+}
+function renderStepThread(l,s){
+  const list=(s.updates||[]).length? s.updates.map(c=>`
+    <div class="tc">
+      <div class="av" style="background:${avColor((c.creator||{}).name||'?')}">${initials((c.creator||{}).name||'?')}</div>
+      <div style="min-width:0"><div class="meta"><b>${esc((c.creator||{}).name||'—')}</b> · ${esc(fmtDate(c.created_at))}</div><div class="txt">${esc(c.text_body||'')}</div></div>
+    </div>`).join('') : `<div style="font-size:11.5px;color:var(--muted)">Noch keine Notiz zu diesem Schritt.</div>`;
+  return `<div class="tl-thread" onclick="event.stopPropagation()">
+    ${list}
+    <div class="tadd">
+      <textarea id="stc-${s.id}" placeholder="z. B. „Material ist ausgegangen, muss neu bestellt werden…"></textarea>
+      <button class="btn pri" onclick="wtSubComment('${l.id}','${s.id}','${l.nr}')">${ICON.send}</button>
+    </div>
+  </div>`;
+}
+async function wtSubComment(itemId,subId,nr){
+  const ta=document.getElementById('stc-'+subId); const body=(ta.value||'').trim();
+  if(!body){ toast('Hinweis','Bitte Text eingeben.'); return; }
+  try{
+    const d=await mFetch(`mutation($b:String!){ create_update(item_id:${subId}, body:$b){ id created_at } }`,{b:body});
+    const l=findLead(itemId);
+    const step=(l.ablauf||[]).find(s=>s.id===subId);
+    if(step) step.updates.push({id:(d.create_update||{}).id, text_body:body, created_at:(d.create_update||{}).created_at||new Date().toISOString(), creator:{name:'ich'}});
+    toast('Monday','Notiz am Schritt „'+(step?step.name:'')+'" gespeichert.');
+    openDrawer(itemId);
+  }catch(e){ toast('Fehler',e.message,true); }
+}
+let openOfferdoc=null;
+function toggleOfferdoc(id,i){
+  const l=findLead(id); const f=l.offertdokumente[i]; if(!f) return;
+  const box=document.getElementById('offerPreview');
+  if(openOfferdoc===i){ openOfferdoc=null; box.innerHTML=''; return; }
+  openOfferdoc=i;
+  box.innerHTML=`<div class="preview">
+      <iframe src="${esc(f.public_url)}" onerror="this.style.display='none'"></iframe>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:6px">Falls die Vorschau leer bleibt: der Link ist Mondays 1h-Direktlink, oft als Download markiert. <a href="${esc(f.public_url)}" target="_blank" rel="noopener">Datei direkt öffnen ▸</a></div>`;
+}
+function toggleUnterlage(id,i){
+  const l=findLead(id); const f=l.unterlagen[i]; if(!f) return;
+  const box=document.getElementById('unterlPreview');
+  if(openUnterlage===i){ openUnterlage=null; box.innerHTML=''; return; }
+  openUnterlage=i;
+  // Bester Versuch: Mondays public_url ist 1h signiert und meist als Download (attachment) markiert —
+  // eine zuverlässige Inline-Vorschau braucht einen kleinen Server-Proxy (Bytes selbst mit
+  // Content-Disposition: inline ausliefern). Bis der steht: Versuch im iframe, mit Fallback-Link.
+  box.innerHTML=`<div class="preview">
+      <iframe src="${esc(f.public_url)}" onerror="this.style.display='none'"></iframe>
+    </div>
+    <div style="font-size:10.5px;color:var(--muted);margin-top:6px">Falls die Vorschau leer bleibt: der Link ist Mondays 1h-Direktlink, oft als Download markiert. <a href="${esc(f.public_url)}" target="_blank" rel="noopener">Datei direkt öffnen ▸</a> — echte Inline-Vorschau braucht noch einen kleinen Server-Proxy bei kalle-server.</div>`;
+}
+async function loadSummary(l){
+  const box=document.getElementById('aiBox'); if(!box) return;
+  if(!serverOk){ box.innerHTML='<span style="font-style:italic">KI-Zusammenfassung braucht kalle-server (aktuell nicht erreichbar).</span>'; return; }
+  try{
+    const r=await fetch(serverUrl()+'/analyse/zusammenfassung?id='+encodeURIComponent(l.id));
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    const j=await r.json();
+    box.innerHTML=`<p style="margin:0">${esc(j.text||'—')}</p><div style="font-size:10.5px;color:var(--muted);margin-top:6px">Stand ${fmtDate(new Date().toISOString())} · <a style="cursor:pointer" onclick="loadSummary(findLead('${l.id}'))">neu generieren</a></div>`;
+  }catch(e){
+    box.innerHTML='<span style="font-style:italic">Noch nicht verfügbar — Server-Route <code>/analyse/zusammenfassung</code> fehlt auf kalle-server noch (offener Punkt).</span>';
+  }
+}
+async function nachfassenStarten(id){
+  const box=document.getElementById('nfBox'); if(!box) return;
+  box.innerHTML='<span style="font-size:12px;color:var(--muted)">Entwurf wird erstellt …</span>';
+  try{
+    const r=await fetch(serverUrl()+'/nachfassen/entwurf?id='+encodeURIComponent(id));
+    const j=await r.json();
+    if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    box.innerHTML=`
+      <div class="nf-preview">
+        <p class="nf-meta">An: ${esc(j.empfaenger)} · ${j.anhangGefunden?'Offerte-PDF wird angehängt':'kein Anhang gefunden — manuell ergänzen'}</p>
+        <p class="nf-betreff">${esc(j.betreff)}</p>
+        <p class="nf-text">${esc(j.text)}</p>
+      </div>
+      <div class="nf-actions">
+        <a class="btn pri" href="grafemail:${j.id}">${ICON.mail} In Outlook öffnen</a>
+        <button class="btn gh" onclick="nachfassenGesendet('${j.id}','${id}')">${ICON.check} Gerade gesendet</button>
+      </div>`;
+  }catch(e){
+    box.innerHTML=`<span style="font-size:12px;color:var(--rot,#D6483F)">Fehler: ${esc(e.message)}</span>`;
+  }
+}
+async function nachfassenGesendet(draftId,itemId){
+  try{
+    const r=await fetch(serverUrl()+'/reply/'+draftId+'/gesendet',{method:'POST'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('Nachfassen','Erledigt — Subelement „Offerte nachgefasst" angelegt, Mail archiviert.');
+    refreshItem(itemId);
+  }catch(e){ toast('Fehler',e.message,true); }
+}
+async function wtAttachLieferdokument(id){
+  const l=findLead(id); const fileInput=document.getElementById('abFile'); const subId=document.getElementById('abSub').value;
+  if(!fileInput.files.length){ toast('Hinweis','Bitte zuerst eine Datei auswählen.'); return; }
+  if(!subId){ toast('Hinweis','Kein externer Schritt zum Zuordnen vorhanden — Subitem-Status muss „extern" sein.'); return; }
+  if(!serverOk){ toast('Fehler','kalle-server nicht erreichbar — Ablage braucht die Server-Route /monday/attach.',true); return; }
+  const fd=new FormData(); fd.append('itemId',subId); fd.append('columnId',PROD.subCol.lieferschein); fd.append('token',getToken()); fd.append('files',fileInput.files[0]);
+  try{
+    const r=await fetch(serverUrl()+'/monday/attach',{method:'POST',body:fd});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('Abgelegt','Datei an „'+document.getElementById('abSub').selectedOptions[0].text+'" angehängt.');
+    fileInput.value=''; refreshItem(id);
+  }catch(e){ toast('Fehler', e.message+' — Ablage im Projektordner (Explorer) ist serverseitig noch nicht verdrahtet, das betrifft nur den Monday-Anhang.', true); }
+}
+function closeDrawer(){ document.getElementById('scrim').classList.remove('on'); document.getElementById('drawer').classList.remove('on'); }
+function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return iso; return d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}); }
+
+// ═══ Einzel-Item frisch aus Monday laden (Monday → Cockpit) ═══
+async function refreshItem(id){
+  const btn=document.getElementById('dRefresh'); if(btn){ btn.innerHTML=ICON.refresh+' lädt …'; btn.style.pointerEvents='none'; }
+  try{
+    const q=`query{ items(ids:[${id}]){ id name url created_at
+        column_values{ id text value column{ title } }
+        assets{ id name public_url file_extension }
+        updates(limit:25){ id text_body created_at creator{ name } }
+        subitems{ id name column_values{ id text value column{ title } } assets{ id name public_url file_extension } updates(limit:10){ id text_body created_at creator{ name } } } } }`;
+    const d=await mFetch(q);
+    const it=(d.items||[])[0]; if(!it){ toast('Monday','Item nicht gefunden.',true); return; }
+    const existing=findLead(id);
+    const mapped=mapItem(it, existing?existing.phase:'Anfragen');
+    const ix=LEADS.findIndex(l=>l.id===id); if(ix>=0) LEADS[ix]=mapped;
+    openDrawer(id); render();
+    toast('Monday','Aktualisiert — '+mapped.updates.length+' Kommentar(e), '+mapped.subitems.length+' Schritt(e).');
+  }catch(e){ toast('Fehler',e.message,true);
+    const b=document.getElementById('dRefresh'); if(b){ b.innerHTML=ICON.refresh+' Aktualisieren'; b.style.pointerEvents=''; }
+  }
+}
+
+// ═══ Write-Through ═══
+async function wtStatus(id,val){ const l=findLead(id); if(!val) return; try{
+  await mFetch(`mutation($cv:JSON!){ change_multiple_column_values(board_id:${PROD.board}, item_id:${id}, column_values:$cv){ id } }`,{cv:JSON.stringify({[PROD.col.status]:{label:val}})});
+  l.status=val; toast('Monday','Status = „'+val+'" gespeichert.'); render(); }catch(e){ toast('Fehler',e.message,true); } }
+async function wtPrio(id,val){ const l=findLead(id); try{
+  await mFetch(`mutation($cv:JSON!){ change_multiple_column_values(board_id:${PROD.board}, item_id:${id}, column_values:$cv){ id } }`,{cv:JSON.stringify(val?{[PROD.col.prio]:{label:val}}:{[PROD.col.prio]:{}})});
+  l.prio=val; toast('Monday','Priorität = „'+(val||'—')+'" gespeichert.'); render(); }catch(e){ toast('Fehler',e.message,true); } }
+async function wtBearbeiter(id,uid,uname){ const l=findLead(id); try{
+  const cv=uid?{[PROD.col.pl]:{personsAndTeams:[{id:Number(uid),kind:'person'}]}}:{[PROD.col.pl]:{personsAndTeams:[]}};
+  await mFetch(`mutation($cv:JSON!){ change_multiple_column_values(board_id:${PROD.board}, item_id:${id}, column_values:$cv){ id } }`,{cv:JSON.stringify(cv)});
+  l.bearbeiter=uid?uname:''; l.bearbeiterList=uid?[uname]:[]; toast('Monday','Bearbeiter '+(uid?'„'+uname+'"':'entfernt')+' gesetzt.'); render(); }catch(e){ toast('Fehler',e.message,true); } }
+async function wtComment(id){ const t=document.getElementById('newc'); const body=t.value.trim(); if(!body){ toast('Hinweis','Bitte Text eingeben.'); return; }
+  try{ const d=await mFetch(`mutation($b:String!){ create_update(item_id:${id}, body:$b){ id created_at } }`,{b:body});
+    const l=findLead(id); l.updates.push({id:(d.create_update||{}).id,text_body:body,created_at:(d.create_update||{}).created_at||new Date().toISOString(),creator:{name:'ich'}});
+    t.value=''; toast('Monday','Kommentar ans Item geschrieben.'); openDrawer(id); }catch(e){ toast('Fehler',e.message,true); } }
+async function wtNextStep(id){ const txt=document.getElementById('nsText').value.trim(), dat=document.getElementById('nsDate').value, uid=document.getElementById('nsUser').value;
+  if(!txt){ toast('Hinweis','Bitte Schritt benennen.'); return; }
+  const scv={}; if(dat) scv[PROD.subCol.datum]={date:dat}; if(uid) scv[PROD.subCol.bearbeiter]={personsAndTeams:[{id:Number(uid),kind:'person'}]};
+  try{ const d=await mFetch(`mutation($nm:String!,$cv:JSON!){ create_subitem(parent_item_id:${id}, item_name:$nm, column_values:$cv){ id name column_values{ id text value column{ title } } } }`,{nm:txt,cv:JSON.stringify(scv)});
+    const l=findLead(id); if(d.create_subitem) l.subitems.push(d.create_subitem);
+    toast('Monday','Nächster Schritt „'+txt+'" angelegt.'); openDrawer(id); render(); }catch(e){ toast('Fehler',e.message,true); } }
+
+// ═══ Ordnerlink ═══
+function openFolder(id){ const l=findLead(id); if(!l||!l.datenpfad){ toast('Ordner','Kein Datenpfad hinterlegt.'); return; }
+  const p=l.datenpfad;
+  try{ navigator.clipboard.writeText(p); }catch(e){}
+  // Versuch, den Pfad zu öffnen (im Intranet ggf. erlaubt); sonst ist er in der Zwischenablage.
+  let fileUrl='file:'+p.replace(/\\/g,'/'); if(fileUrl.startsWith('file:/')&&!fileUrl.startsWith('file://')) fileUrl='file://'+p.replace(/\\/g,'/');
+  try{ window.open(fileUrl,'_blank'); }catch(e){}
+  toast('Ordner','Pfad in Zwischenablage kopiert — im Explorer einfügen (Strg+V).');
+}
+
+// ═══ Datei-/E-Mail-Vorschau ═══
+async function openFile(id,idx){ const l=findLead(id); const f=l.files[idx]; if(!f) return;
+  const ext=(f.file_extension||'').toLowerCase();
+  if(/^(msg|eml|txt)$/.test(ext)){
+    let body=''; try{ const r=await fetch(f.public_url); if(r.ok) body=await r.text(); }catch(e){}
+    if(ext==='msg'||!body){ // .msg ist binär → Kurzbeschrieb-Kommentar als Inhalt zeigen
+      const note=(l.updates.find(u=>/kurzbeschrieb|notiz/i.test(u.text_body||''))||l.updates[0]||{}).text_body||'';
+      openMsg({from:l.kontakt||l.email||l.kunde,to:'anfragen@grafe.ch',date:fmtDate(l.anfrageDatum),subject:l.betreff,body:note||'(kein Textinhalt verfügbar — Datei über „im Explorer" öffnen)',attachments:l.files.filter((x,i)=>i!==idx).map(x=>x.name),url:f.public_url});
+    } else {
+      openMsg({from:l.kontakt||l.email||l.kunde,to:'anfragen@grafe.ch',date:fmtDate(l.anfrageDatum),subject:l.betreff,body:body.slice(0,4000),attachments:[],url:f.public_url});
+    }
+  } else { window.open(f.public_url,'_blank'); }
+}
+function openMsg(m){
+  const att=(m.attachments||[]).map(a=>`<div class="file"><div class="ic" style="background:${fileIcon((a.split('.').pop()||''))}">${esc((a.split('.').pop()||'DAT').toUpperCase().slice(0,4))}</div><div style="min-width:0"><div class="nm">${esc(a)}</div><div class="sub">Anhang</div></div></div>`).join('');
+  document.getElementById('mbox').innerHTML=`
+    <div class="m-head"><div class="em">${ICON.mail}</div><div><div class="t">E-Mail-Vorschau</div><div class="s">von KALLE gerendert</div></div><button class="m-close" onclick="closeMsg()">${ICON.x}</button></div>
+    <div class="m-body">
+      <div class="m-meta">
+        <div class="row"><span class="l">Von</span><span>${esc(m.from||'—')}</span></div>
+        <div class="row"><span class="l">An</span><span>${esc(m.to||'—')}</span></div>
+        ${m.date?`<div class="row"><span class="l">Datum</span><span>${esc(m.date)}</span></div>`:''}
+        <div class="row"><span class="l">Betreff</span><span><b>${esc(m.subject||'—')}</b></span></div>
+      </div>
+      <div class="m-text">${esc(m.body||'')}</div>
+      ${att?`<div style="margin-top:15px;border-top:1px solid var(--bd);padding-top:12px"><div style="font-size:11px;font-weight:800;letter-spacing:.4px;text-transform:uppercase;color:var(--muted);margin-bottom:8px">Anhänge (${m.attachments.length})</div>${att}</div>`:''}
+      ${m.url?`<div style="margin-top:14px"><a class="lnk" href="${esc(m.url)}" target="_blank" rel="noopener">Originaldatei öffnen ▸</a></div>`:''}
+    </div>`;
+  document.getElementById('mscrim').classList.add('on');
+}
+function closeMsg(){ document.getElementById('mscrim').classList.remove('on'); }
+
+// ═══ Token-Setup ═══
+function showTokenSetup(){
+  document.getElementById('filters').style.display='none';
+  document.getElementById('overview').innerHTML=`<div class="center">
+    <h2>Monday-Token hinterlegen</h2>
+    <p>Einmalig — wird lokal im Browser gespeichert (gleicher Schlüssel wie KALLE). Danach lädt das Cockpit die Anfragen live.</p>
+    <input id="tokInput" type="password" placeholder="Monday API-Token">
+    <button class="btn pri" onclick="saveToken()">Verbinden</button>
+  </div>`;
+}
+function saveToken(){ const v=(document.getElementById('tokInput').value||'').trim(); if(!v){ toast('Hinweis','Bitte Token eingeben.'); return; } localStorage.setItem('kalle_monday_token',v); document.getElementById('overview').innerHTML='<div class="spin"></div>'; boot(); }
+function reload(){ document.getElementById('overview').innerHTML='<div class="spin"></div>'; boot(); }
+
+let tt=null;
+function toast(tag,msg,err){ const el=document.getElementById('toast'); el.className=err?'err':''; el.innerHTML=`<span class="tag">${esc(tag)}</span>${esc(msg)}`; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),err?5000:3200); }
+document.addEventListener('keydown',e=>{ if(e.key==='Escape'){ if(document.getElementById('mscrim').classList.contains('on'))closeMsg(); else closeDrawer(); }});
+
+if(embedded()){ const bA=document.getElementById('btnAV'); if(bA) bA.style.display=''; document.querySelector('.crumb').textContent='in KALLE · Projekt und Offertanfragen'; }
+boot();
+</script>
+
+<div class="rk-scope theme-light" id="erfassungOverlay" hidden>
+
+<div class="screen" id="scrEinstieg">
+
+  <div class="rk-header">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
+    <span class="rk-header__rule"></span>
+    <span class="rk-header__brand">REAKTOR</span>
+    <span class="t-label">Anfragen · Projekte · Planung</span>
+    <nav class="rx-nav">
+      <button class="rx-pill is-active" type="button">Erfassen</button>
+      <button class="rx-pill" type="button" onclick="rxSchliessenUndZurueck()">Alle Projekte</button>
+    </nav>
+    <span class="rk-spacer"></span>
+    <span class="rk-live"><span class="rk-live__dot"></span>Monday · live</span>
+  </div>
+
+  <div class="rx-page">
+
+    <div class="rx-top">
+      <div>
+        <div class="rx-eyebrow">Schritt 00 · bevor ein Projekt existiert</div>
+        <h1 class="rx-h1">Was liegt an,<br>Sven?</h1>
+      </div>
+      <div class="rx-kern">
+        <span class="rx-kern__dot"></span>
+        <span class="rx-kern__txt">Kern stabil · <b id="einstiegCount2">0</b> Anfragen warten auf Verkauf</span>
+      </div>
+    </div>
+
+    <div class="rx-ways">
+      <a class="rx-way rx-way--main" href="#" onclick="reaktorZeigeErfassen();return false;">
+        <span class="rx-way__kind">Hauptweg · 2 Schritte</span>
+        <span class="rx-way__t">Anfrage erfassen.</span>
+        <span class="rx-way__x">E-Mail hineinziehen, Kunde wird erkannt, Leistungsart wählen, ablegen. Ein Klick vergibt Projektnummer, legt Ordner und Monday-Eintrag an.</span>
+        <span class="rx-way__go">Kunde &amp; Anfrage → Ablage &amp; Übersicht
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>
+
+      <a class="rx-way rx-way--side" href="#" onclick="rxNurKalkulieren();return false;">
+        <span class="rx-way__kind">Nebenweg · ohne Projektnummer</span>
+        <span class="rx-way__t">Nur kalkulieren.</span>
+        <span class="rx-way__x">Für Ausschreibungen und Grossprojekte am normalen Ablauf vorbei. Verbrennt keine Projektnummer, legt nichts ab.</span>
+        <span class="rx-way__go">Rechner öffnen →</span>
+      </a>
+    </div>
+
+    <div>
+      <div class="rx-listhead">
+        <span style="font:900 22px/1 var(--font-ui)" id="einstiegCount">0</span>
+        <span style="font:800 12px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase">Erfasst · unbearbeitet</span>
+        <span class="t-small t-muted">kommt später: Verkauf öffnet und kalkuliert im Rechner</span>
+      </div>
+
+      <div class="rk-col" style="gap:6px" id="einstiegListe"></div>
+    </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="screen" id="scrErfassen" hidden>
+
+  <div class="rk-header">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
+    <span class="rk-header__rule"></span>
+    <span class="rk-header__brand">REAKTOR</span>
+    <span class="t-label">Anfragen · Projekte · Planung</span>
+    <span class="rk-spacer"></span>
+    <div class="rx-steps">
+      <button class="rx-step is-current" data-step="1"><span class="rx-step__n">1</span>Kunde &amp; Anfrage</button>
+      <span class="rx-steps__line"></span>
+      <button class="rx-step" data-step="2"><span class="rx-step__n">2</span>Ablage &amp; Übersicht</button>
+    </div>
+    <span class="rk-header__rule"></span>
+    <a href="#" onclick="reaktorZeigeEinstieg();return false;" style="font:600 12px/1 var(--font-ui);color:var(--tx2)">Abbrechen</a>
+  </div>
+
+  <!-- ═══ Ansicht 1 · Kunde & Anfrage ═══════════════════════════ -->
+  <div class="rx-view" id="v1">
+    <div class="rk-col" style="gap:10px">
+      <div>
+        <div class="rx-eyebrow">Schritt 1 von 2 · Backoffice · jetzt</div>
+        <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
+      </div>
+
+      <button class="rx-drop" id="drop">
+        <span class="rx-drop__icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </span>
+        <span style="min-width:0">
+          <span class="rx-drop__k">Der schnellste Weg</span>
+          <span class="rx-drop__t">E-Mail der Anfrage aus Outlook hierher ziehen.</span>
+          <span class="rx-drop__x">.msg oder .eml · Kontakt, Firma, Betreff und Anhänge werden automatisch erkannt und unten ausgefüllt. Bestandskunden werden abgeglichen.</span>
+        </span>
+        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none">
+          <span style="padding:8px 12px;background:#111;color:#fff;font:700 12px/1 var(--font-ui)">Loslassen zum Einlesen</span>
+          <span style="font:500 11px/1.3 var(--font-ui);color:var(--tx3);text-align:right">kein Mail? → telefonische Anfrage<br>unten im Kurzbeschrieb</span>
+        </span>
+        <span class="rx-corner rx-corner--tl"></span><span class="rx-corner rx-corner--tr"></span>
+        <span class="rx-corner rx-corner--bl"></span><span class="rx-corner rx-corner--br"></span>
+      </button>
+
+      <div class="rx-mailrow" id="mailrow" hidden>
+        <span class="rx-file" style="background:var(--bg4);color:var(--tx)" id="mailTag">MSG</span>
+        <div style="flex:1;min-width:0">
+          <div class="ell" style="font:700 13px/1.2 var(--font-ui)" id="mailName">–</div>
+          <div style="font:400 11.5px/1.3 var(--font-ui);color:var(--tx2);margin-top:3px" id="mailMeta">Kontakt bitte unten manuell eintragen — automatische Erkennung aus der E-Mail folgt später</div>
+        </div>
+        <button class="rk-btn rk-btn--sm" id="mailDel">Entfernen</button>
+      </div>
+
+      <div class="rx-box" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px">
+        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between">
+          <span class="t-label">Kontakt · aus E-Mail erkannt</span>
+          <span class="t-label" id="neukunde" hidden style="padding:3px 7px;background:var(--accent-dim);border:1px solid var(--accent-line);color:var(--tx);letter-spacing:.08em">Neukunde · wird angelegt</span>
+        </div>
+        <label><div class="rx-lbl">Firma</div><input class="rk-input" id="fFirma" placeholder="Firma · Abgleich mit Bestandskunden beim Tippen"></label>
+        <label><div class="rx-lbl">Kundennummer</div><input class="rk-input" id="fKdNr" placeholder="wird bei Treffer übernommen"></label>
+        <label><div class="rx-lbl">Ansprechperson</div><input class="rk-input" id="fKontakt"></label>
+        <label><div class="rx-lbl">E-Mail · Telefon</div><input class="rk-input" id="fMail"></label>
+      </div>
+
+      <div class="rx-box rk-col" style="gap:12px">
+        <label><div class="rx-lbl">Betreff · wird Projektbezeichnung</div>
+          <input class="rk-input" id="fBetreff" placeholder="z. B. Innensignaletik Neubau"></label>
+        <div>
+          <div class="rx-lbl" style="margin-bottom:8px">Leistungsart</div>
+          <div class="rk-wrap" id="arten"><!-- JS --></div>
+        </div>
+        <label id="kurzWrap"><div class="rx-lbl">Kurzbeschrieb · bei telefonischer Anfrage (wird Monday-Kommentar)</div>
+          <textarea class="rk-textarea" id="fKurz" rows="3" placeholder="Was will der Kunde? Menge, Ort, Termin …"></textarea></label>
+      </div>
+    </div>
+
+    <aside class="rx-side">
+      <div class="rx-box">
+        <div class="t-label" style="margin-bottom:10px">Anhänge aus der E-Mail</div>
+        <div id="attEmpty" class="t-body t-faint">Erscheinen hier, sobald eine E-Mail hineingezogen ist. Zielordner werden in Schritt 2 gewählt.</div>
+        <div id="attList" hidden></div>
+      </div>
+
+      <div class="rx-dark">
+        <div class="rx-dark__lbl">Kommt später · Verkauf</div>
+        <div class="rx-dark__x">Kalkulieren und Offerte erstellen passiert nicht hier. Nach dem Erfassen liegt die Anfrage unter «Aufträge» als unbearbeitet und im Cockpit in der Phase Anfrage.</div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+        <button class="rk-btn" id="go2" style="justify-content:center;padding:12px 16px;font:700 13.5px/1 var(--font-ui)">
+          Weiter · Ablage &amp; Übersicht
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <span class="t-small t-faint" style="text-align:center" id="go2hint"></span>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═══ Ansicht 2 · Ablage & Übersicht ════════════════════════ -->
+  <div class="rx-view" id="v2" hidden>
+    <div class="rk-col" style="gap:10px">
+      <div>
+        <div class="rx-eyebrow">Schritt 2 von 2 · Backoffice · jetzt</div>
+        <h1 class="rx-h1">Ablage &amp; Übersicht.</h1>
+      </div>
+
+      <div class="rx-box rk-col" style="gap:12px">
+        <div class="t-label">Ablageort</div>
+        <div class="rx-place">
+          <button data-place="Firma"><b>Firmenkunde</b><span>Ordner unter dem Kunden · Rechnungsadresse = Firma</span></button>
+          <button data-place="Objekt" class="is-on"><b>Objekt</b><span>Eigene Objektadresse · z. B. Neubau, Filiale, Liegenschaft</span></button>
+        </div>
+        <div id="objFelder" style="display:grid;grid-template-columns:2fr 1fr;gap:10px 16px;padding-top:6px;border-top:1px solid var(--bd)">
+          <label><div class="rx-lbl">Objekt · Strasse</div><input class="rk-input" id="oStrasse" placeholder="z. B. Neubau, Baselstrasse 44"></label>
+          <label><div class="rx-lbl">PLZ Ort</div><input class="rk-input" id="oOrt" placeholder="4125 Riehen"></label>
+          <div style="grid-column:1/-1">
+            <div class="rx-lbl">Adresszusätze · optional</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+              <input class="rk-input" id="oAbteilung" placeholder="Abteilung">
+              <input class="rk-input" id="oZuHd" placeholder="z. Hd.">
+              <input class="rk-input" id="oGebaeude" placeholder="Gebäude">
+              <input class="rk-input" id="oKostenstelle" placeholder="Kostenstelle">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rx-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span class="t-label">Anhänge · Zielordner pro Datei</span>
+          <span class="t-small t-faint">E-Mail selbst → Korrespondenz</span>
+        </div>
+        <div id="attFolders"><!-- JS --></div>
+        <div class="rk-drop" style="margin-top:10px;min-height:44px;border-width:2px">Weitere Dateien hierher ziehen</div>
+      </div>
+    </div>
+
+    <aside class="rx-side">
+      <div class="rx-box rk-col" style="gap:8px">
+        <div class="t-label">Übersicht · vor dem Erfassen prüfen</div>
+        <div class="rx-kv">
+          <span>Kunde</span><span style="font-weight:600" id="sFirma">–</span>
+          <span>Kontakt</span><span id="sKontakt">–</span>
+          <span>Betreff</span><span style="font-weight:600" id="sBetreff">–</span>
+          <span>Leistungsart</span><span id="sArt">–</span>
+          <span>Ablage</span><span id="sAblage">–</span>
+          <span>Anhänge</span><span>3 Dateien + E-Mail</span>
+        </div>
+      </div>
+
+      <div class="rx-box">
+        <div class="t-label" style="margin-bottom:8px">«Anfrage erfassen» macht automatisch</div>
+        <div class="rk-col" style="gap:5px">
+          <div class="rx-auto"><i></i><span>Projektnummer vergeben (26xxxx)</span></div>
+          <div class="rx-auto"><i></i><span>Projektordner anlegen, Anhänge ablegen</span></div>
+          <div class="rx-auto"><i></i><span>Monday-Eintrag in Phase Anfrage, Kurzbeschrieb als Kommentar</span></div>
+          <div class="rx-auto"><i></i><span>Subelement «Offerte erstellen», Frist +3 Werktage</span></div>
+          <div class="rx-auto"><i></i><span>Unter «Aufträge» als unbearbeitet</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+        <button class="rk-btn rk-btn--primary" id="submit" style="justify-content:center;padding:12px 16px;font:700 13.5px/1 var(--font-ui)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Anfrage erfassen
+        </button>
+        <button class="rk-btn" id="back1" style="border:none;color:var(--tx3);justify-content:center;font:600 12px/1 var(--font-ui)">← zurück zu Kunde &amp; Anfrage</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═══ Ansicht 3 · Kettenreaktion ════════════════════════════ -->
+  <div class="rx-run" id="v3" hidden>
+    <div class="rx-run__inner">
+      <div style="text-align:center">
+        <div class="rx-eyebrow">REAKTOR · <span id="progLabel">Schritt 1 von 5</span></div>
+        <h1 style="margin:10px 0 0;font:900 34px/1.05 var(--font-ui);letter-spacing:-.02em" id="progTitle">Anfrage wird erfasst …</h1>
+      </div>
+
+      <div class="rx-bar"><div class="rx-bar__fill" id="progBar"></div></div>
+
+      <div class="rk-col" style="gap:6px" id="chain"><!-- JS --></div>
+
+      <div id="running" style="display:flex;justify-content:center;align-items:center">
+        <span class="t-body t-muted" style="font-style:italic" id="quip"></span>
+      </div>
+
+      <div id="done" hidden>
+        <div class="rx-hand">
+          <div>
+            <div style="font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--y)">Übergabepunkt</div>
+            <div style="font:800 15px/1.3 var(--font-ui);margin-top:6px">26-0449 ist jetzt im Cockpit sichtbar – Phase Anfrage, unbesetzt.</div>
+          </div>
+          <button class="rk-btn rk-btn--primary" style="white-space:nowrap" onclick="rxOeffneProjekt(rxErgebnis.itemId)">Im Cockpit öffnen →</button>
+        </div>
+        <div style="display:flex;justify-content:center;gap:16px;margin-top:16px">
+          <a href="#" onclick="reaktorZeigeErfassen();return false;" style="font:600 12.5px/1 var(--font-ui);color:var(--tx2)">Nächste Anfrage erfassen</a>
+          <button class="rk-btn rk-btn--sm" id="reset" style="border:none;color:var(--tx3)">Schliessen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+</div>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   REAKTOR-Erfassen im Beta-Cockpit — echte Logik statt Demo-Daten.
+   Wiederverwendet dieselben server-/Monday-Aufrufe wie das bestehende
+   REAKTOR in Grafe_Kalkulationstool_V2.html (Nummernvergabe, /projekte,
+   Geokodierung, Monday create_item/create_subitem).
+   ═══════════════════════════════════════════════════════════════ */
+
+var ARTEN = ['Schild','Folie','Folientechnik','Fahrzeugbeschriftung','Bodenmarkierung','Reklamation','Versand'];
+var ORDNER = ['Pläne & Daten','Angebote & AB','Korrespondenz','Werkstattdaten'];
+var KETTE = [
+  { text:'Projektnummer reserviert' },
+  { text:'Projektordner angelegt, Anhänge abgelegt' },
+  { text:'Monday-Eintrag erstellt · Phase Anfrage · Kommentar' },
+  { text:'Subelement «Offerte erstellen» · Frist +3 Werktage' },
+  { text:'Nummer vergeben · unter «Aufträge» als unbearbeitet' }
+];
+var SPRUECHE = [
+  'Reaktor fährt hoch … Brennstäbe werden eingesetzt.',
+  'Kettenreaktion läuft – Ordner spalten sich ab.',
+  'Monday wird bestrahlt (ungefährlich).',
+  'Kritikalität erreicht. Subelement entsteht.',
+  'Kühlwasser läuft. Gleich fertig.'
+];
+
+var rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
+var rxFiles = [];  // { file, ordner }
+var rxErgebnis = null; // { nummer, ordnerpfad, itemId } nach erfolgreichem Erfassen
+function $rx(id){ return document.getElementById(id); }
+
+/* ── einmalig aufbauen ─────────────────────────────────────────── */
+function rxBuildArten(){
+  var box = $rx('arten'); if(!box) return; box.innerHTML = '';
+  ARTEN.forEach(function(n){
+    var b = document.createElement('button');
+    b.className = 'rk-chip'; b.dataset.art = n; b.textContent = n; b.type = 'button';
+    b.addEventListener('click', function(){ rxState.art = n; rxRender(); });
+    box.appendChild(b);
+  });
+}
+
+function rxFileTag(name){
+  var ext = (name.split('.').pop()||'').toUpperCase().slice(0,4);
+  return ext || 'DAT';
+}
+function rxBuildAnhaenge(){
+  var liste = $rx('attList'), ordner = $rx('attFolders');
+  if(liste){ liste.innerHTML=''; }
+  if(ordner){ ordner.innerHTML=''; }
+  rxFiles.forEach(function(f, i){
+    var tagHtml = '<span class="rx-file" style="background:var(--bg4);color:var(--tx)">'+rxFileTag(f.file.name)+'</span>';
+    if(liste){
+      var a = document.createElement('div');
+      a.style.cssText = 'display:flex;align-items:center;gap:10px;padding:7px 0;border-bottom:1px solid var(--bd)';
+      a.innerHTML = tagHtml+'<div style="min-width:0"><div class="ell" style="font:600 12.5px/1.2 var(--font-ui)">'+esc(f.file.name)+'</div><div style="font:400 11px/1.3 var(--font-ui);color:var(--tx3);margin-top:2px">'+Math.round(f.file.size/1024)+' KB</div></div>';
+      liste.appendChild(a);
+    }
+    if(ordner){
+      var opts = [f.ordner].concat(ORDNER.filter(function(o){return o!==f.ordner;}))
+                   .map(function(o){return '<option>'+o+'</option>';}).join('');
+      var r = document.createElement('div');
+      r.className = 'rx-att';
+      r.innerHTML = tagHtml+'<div style="min-width:0"><div class="ell" style="font:600 13px/1.2 var(--font-ui)">'+esc(f.file.name)+'</div><div style="font:400 11px/1.3 var(--font-ui);color:var(--tx3);margin-top:2px">'+Math.round(f.file.size/1024)+' KB</div></div><select class="rk-select" data-i="'+i+'"></select>';
+      ordner.appendChild(r);
+      var sel = r.querySelector('select'); sel.innerHTML = opts;
+      sel.addEventListener('change', function(){ rxFiles[i].ordner = sel.value; });
+    }
+  });
+}
+
+function rxBuildKette(){
+  var box = $rx('chain'); if(!box) return; box.innerHTML = '';
+  KETTE.forEach(function(c, i){
+    var d = document.createElement('div');
+    d.className = 'rx-chain'; d.dataset.i = i;
+    d.innerHTML = '<span class="rx-chain__n"></span><span class="rx-chain__t">'+c.text+'</span><span class="rx-chain__d" id="chainD'+i+'"></span>';
+    box.appendChild(d);
+  });
+}
+
+function rxAddFiles(fileList){
+  Array.prototype.forEach.call(fileList, function(file){
+    if(rxFiles.some(function(f){return f.file.name===file.name && f.file.size===file.size;})) return;
+    rxFiles.push({ file:file, ordner:'Pläne & Daten' });
+  });
+  rxState.mail = rxFiles.length > 0;
+  rxRender();
+}
+
+/* ── alles, was vom Zustand abhängt ────────────────────────────── */
+function rxRender(){
+  $rx('v1').hidden = rxState.schritt !== 1;
+  $rx('v2').hidden = rxState.schritt !== 2;
+  $rx('v3').hidden = rxState.schritt !== 3;
+
+  Array.prototype.forEach.call(document.querySelectorAll('.rx-step'), function(b){
+    var n = Number(b.dataset.step);
+    b.classList.toggle('is-current', rxState.schritt === n);
+    b.classList.toggle('is-done', rxState.schritt > n);
+    var nEl = b.querySelector('.rx-step__n'); if(nEl) nEl.textContent = rxState.schritt > n ? '✓' : String(n);
+  });
+
+  $rx('drop').hidden      = rxState.mail;
+  $rx('mailrow').hidden   = !rxState.mail;
+  $rx('attEmpty').hidden  = !rxState.mail;
+  $rx('attList').hidden   = !rxState.mail;
+  $rx('kurzWrap').hidden  = rxState.mail;
+  if(rxState.mail && rxFiles.length){
+    $rx('mailTag').textContent = rxFileTag(rxFiles[0].file.name);
+    $rx('mailName').textContent = rxFiles.length===1 ? rxFiles[0].file.name : rxFiles.length+' Dateien gezogen';
+  }
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-art]'), function(b){
+    b.classList.toggle('is-active', b.dataset.art === rxState.art);
+  });
+
+  var bereit = !!($rx('fFirma').value.trim());
+  $rx('go2').className = 'rk-btn' + (bereit ? ' rk-btn--primary' : '');
+  $rx('go2').disabled  = !bereit;
+  $rx('go2hint').textContent = bereit
+    ? 'Projektnummer wird erst im letzten Schritt vergeben'
+    : 'Bitte mindestens Firma/Kunde eintragen';
+
+  Array.prototype.forEach.call(document.querySelectorAll('[data-place]'), function(b){
+    b.classList.toggle('is-on', b.dataset.place === rxState.ablage);
+  });
+  $rx('objFelder').hidden = rxState.ablage !== 'Objekt';
+
+  $rx('sFirma').textContent = $rx('fFirma').value || '–';
+  $rx('sKontakt').textContent = $rx('fKontakt').value || '–';
+  $rx('sBetreff').textContent = $rx('fBetreff').value || '–';
+  $rx('sArt').textContent = rxState.art;
+  $rx('sAblage').textContent = rxState.ablage === 'Objekt'
+    ? ('Objekt · '+($rx('oStrasse').value||'–')+', '+($rx('oOrt').value||'–'))
+    : 'Firmenkunde · '+($rx('fFirma').value||'–');
+  var sAnh = document.getElementById('sAnhaenge'); if(sAnh) sAnh.textContent = rxFiles.length+' Datei(en)';
+
+  var p = rxState.fortschritt, fertig = p >= KETTE.length;
+  $rx('progBar').style.width = Math.round(p/KETTE.length*100)+'%';
+  $rx('progBar').style.background = rxState.fehler ? 'var(--danger)' : (fertig ? 'var(--green)' : 'var(--accent)');
+  $rx('progLabel').textContent = rxState.fehler ? 'Fehler' : (fertig ? 'Kettenreaktion abgeschlossen' : 'Schritt '+p+' von '+KETTE.length);
+  $rx('progTitle').textContent = rxState.fehler ? rxState.fehler : (fertig ? ('Anfrage '+(rxErgebnis?rxErgebnis.nummer:'')+' erfasst.') : 'Anfrage wird erfasst …');
+  $rx('quip').textContent = rxState.fehler ? '' : SPRUECHE[Math.min(p, SPRUECHE.length-1)];
+  $rx('running').hidden = fertig || !!rxState.fehler;
+  $rx('done').hidden = !fertig;
+
+  Array.prototype.forEach.call(document.querySelectorAll('.rx-chain'), function(el){
+    var i = Number(el.dataset.i);
+    el.classList.toggle('is-done', i < p);
+    el.classList.toggle('is-cur', i === p && !fertig);
+    var nEl = el.querySelector('.rx-chain__n'); if(nEl) nEl.textContent = i < p ? '✓' : '';
+  });
+}
+
+/* ── Werktage addieren (Sa/So überspringen) ────────────────────── */
+function rxWerktageAdd(n){
+  var d = new Date();
+  var added = 0;
+  while(added < n){
+    d.setDate(d.getDate()+1);
+    var wd = d.getDay();
+    if(wd !== 0 && wd !== 6) added++;
+  }
+  return d.toISOString().slice(0,10);
+}
+
+/* ── Geokodierung (Nominatim/OpenStreetMap, kein API-Key) ──────── */
+async function rxGeocode(adresse){
+  if(!adresse) return null;
+  try{
+    var url = 'https://nominatim.openstreetmap.org/search?format=jsonv2&addressdetails=1&countrycodes=ch&limit=1&q='+encodeURIComponent(adresse);
+    var r = await fetch(url, { headers:{ 'Accept':'application/json' } });
+    if(!r.ok) return null;
+    var arr = await r.json();
+    var hit = arr && arr[0];
+    if(!hit || !hit.lat || !hit.lon) return null;
+    var a = hit.address || {};
+    var strasse = a.road || '', hausnr = a.house_number || '';
+    var ort = a.city || a.town || a.village || a.municipality || '';
+    var land = a.country || 'Schweiz';
+    var landCode = (a.country_code || 'ch').toUpperCase();
+    return {
+      lat:String(hit.lat), lng:String(hit.lon),
+      address: hit.display_name || adresse,
+      city: ort ? { long_name:ort, short_name:ort } : null,
+      street: strasse ? { long_name:strasse, short_name:strasse } : null,
+      streetNumber: hausnr ? { long_name:hausnr, short_name:hausnr } : null,
+      country: { long_name:land, short_name:landCode }
+    };
+  }catch(e){ console.warn('[Geocode]', e.message); return null; }
+}
+
+/* ── Die eigentliche Kettenreaktion ─────────────────────────────── */
+async function rxErfassen(){
+  if(rxState.laufend) return;
+  rxState.laufend = true; rxState.fehler = '';
+  rxState.schritt = 3; rxState.fortschritt = 0; rxRender();
+
+  var firma = $rx('fFirma').value.trim();
+  var kdnr = $rx('fKdNr').value.trim();
+  var kontakt = $rx('fKontakt').value.trim();
+  var mail = $rx('fMail').value.trim();
+  var betreff = $rx('fBetreff').value.trim() || firma;
+  var kurz = $rx('fKurz') ? $rx('fKurz').value.trim() : '';
+  var ablage = rxState.ablage;
+  var strasse = $rx('oStrasse').value.trim();
+  var ort = $rx('oOrt').value.trim();
+  var zuHd = $rx('oZuHd').value.trim();
+
+  var nummer = null, itemId = null, ordnerpfad = '';
+  try{
+    /* Schritt 1 — Nummer reservieren */
+    var r1 = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
+    var j1 = await r1.json();
+    if(!r1.ok || !j1.nummer) throw new Error(j1.error || 'Keine Nummer erhalten');
+    nummer = j1.nummer;
+    rxErgebnis = { nummer:nummer };
+    document.getElementById('chainD0').textContent = nummer;
+    rxState.fortschritt = 1; rxRender();
+
+    /* Schritt 2 — Projektordner anlegen */
+    var body2 = {
+      typ: ablage === 'Objekt' ? 'objekt' : 'firma',
+      projektnr: nummer, bezeichnung: betreff, auftragsnr: nummer,
+      emailText: kurz || null,
+    };
+    if(ablage === 'Objekt'){ body2.ort = ort; body2.strasse = strasse; }
+    else { body2.firmaName = firma; }
+    var r2 = await fetch(serverUrl()+'/projekte', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body2) });
+    var j2 = await r2.json();
+    if(!r2.ok || !j2.ok) throw new Error(j2.error || 'Ordner konnte nicht angelegt werden');
+    ordnerpfad = j2.ordnerpfad;
+
+    /* Anhänge hochladen (best effort — bricht die Erfassung bei Fehlschlag nicht ab) */
+    for(var i=0;i<rxFiles.length;i++){
+      try{
+        var fd = new FormData();
+        fd.append('projektPfad', ordnerpfad);
+        fd.append('zielOrdner', rxFiles[i].ordner);
+        fd.append('file', rxFiles[i].file);
+        await fetch(serverUrl()+'/projekte/upload', { method:'POST', body: fd });
+      }catch(e){ console.warn('[Upload]', rxFiles[i].file.name, e.message); }
+    }
+    document.getElementById('chainD1').textContent = ordnerpfad;
+    rxState.fortschritt = 2; rxRender();
+
+    /* Schritt 3 — Monday-Item anlegen */
+    var cv = {};
+    cv[PROD.col.projektnr] = nummer;
+    cv[PROD.col.kunde] = firma;
+    cv[PROD.col.datenpfad] = ordnerpfad;
+    if(mail) cv[PROD.col.email] = { email: mail, text: mail };
+    var itemName = nummer+' '+firma+' — '+betreff;
+    var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
+    itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
+    if(!itemId) throw new Error('Monday-Item nicht angelegt');
+    rxErgebnis.itemId = itemId;
+
+    /* Kommentar mit Kurzbeschrieb/Kontakt */
+    var kommentarZeilen = [];
+    if(kontakt) kommentarZeilen.push('Kontakt: '+kontakt);
+    if(mail) kommentarZeilen.push('E-Mail/Telefon: '+mail);
+    if(kdnr) kommentarZeilen.push('Kundennummer: '+kdnr);
+    if(kurz) kommentarZeilen.push('', kurz);
+    if(kommentarZeilen.length){
+      try{ await mFetch('mutation($b:String!){ create_update(item_id:'+itemId+', body:$b){ id } }', { b: kommentarZeilen.join('\\n') }); }catch(e){}
+    }
+
+    /* Montageadresse — eigener, abgesicherter Schritt (siehe V9.56-Fix) */
+    if(ablage === 'Objekt' && (strasse || ort)){
+      try{
+        var geo = await rxGeocode([strasse, ort].filter(Boolean).join(', '));
+        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({[PROD.col.standort]:geo}) });
+      }catch(e){ console.warn('[Montageadresse]', e.message); }
+    }
+    document.getElementById('chainD2').textContent = 'group_mm5hq91f';
+    rxState.fortschritt = 3; rxRender();
+
+    /* Schritt 4 — Subelement "Offerte erstellen", Frist +3 Werktage */
+    var frist = rxWerktageAdd(3);
+    var subCv = {}; subCv[PROD.subCol.datum] = { date: frist };
+    await mFetch('mutation($nm:String!,$cv:JSON!){ create_subitem(parent_item_id:'+itemId+', item_name:$nm, column_values:$cv){ id } }', { nm:'Offerte erstellen', cv: JSON.stringify(subCv) });
+    document.getElementById('chainD3').textContent = frist;
+    rxState.fortschritt = 4; rxRender();
+
+    /* Schritt 5 — Nummer fest vergeben */
+    await fetch(serverUrl()+'/nummern/commit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:nummer }) });
+    document.getElementById('chainD4').textContent = 'Unbearbeitet';
+    rxState.fortschritt = 5; rxRender();
+
+    /* Cockpit-Liste aktualisiert im Hintergrund neu laden */
+    try{ await loadLeads(); }catch(e){}
+
+  }catch(e){
+    console.error('[Erfassen]', e);
+    rxState.fehler = e.message || 'Unbekannter Fehler';
+    rxRender();
+  }finally{
+    rxState.laufend = false;
+  }
+}
+
+/* ── Ereignisse ───────────────────────────────────────────────── */
+function rxBind(){
+  $rx('drop').addEventListener('click', function(){ /* Klick öffnet Dateiauswahl */
+    var inp = document.createElement('input'); inp.type='file'; inp.multiple = true;
+    inp.onchange = function(){ rxAddFiles(inp.files); };
+    inp.click();
+  });
+  ['dragover','dragenter'].forEach(function(ev){
+    $rx('drop').addEventListener(ev, function(e){ e.preventDefault(); });
+  });
+  $rx('drop').addEventListener('drop', function(e){
+    e.preventDefault();
+    if(e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length) rxAddFiles(e.dataTransfer.files);
+  });
+  $rx('mailDel').addEventListener('click', function(){ rxFiles = []; rxState.mail = false; rxRender(); });
+  $rx('fFirma').addEventListener('input', rxRender);
+  $rx('fBetreff').addEventListener('input', rxRender);
+  $rx('oStrasse').addEventListener('input', rxRender);
+  $rx('oOrt').addEventListener('input', rxRender);
+  $rx('go2').addEventListener('click', function(){ if(!$rx('go2').disabled){ rxBuildAnhaenge(); rxState.schritt = 2; rxRender(); } });
+  $rx('back1').addEventListener('click', function(){ rxState.schritt = 1; rxRender(); });
+  $rx('submit').addEventListener('click', rxErfassen);
+  var resetBtn = $rx('reset'); if(resetBtn) resetBtn.addEventListener('click', function(){ rxSchliessenUndZurueck(); });
+  Array.prototype.forEach.call(document.querySelectorAll('.rx-step'), function(b){
+    b.addEventListener('click', function(){ if(rxState.schritt < 3) { rxState.schritt = Number(b.dataset.step); rxRender(); } });
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-place]'), function(b){
+    b.addEventListener('click', function(){ rxState.ablage = b.dataset.place; rxRender(); });
+  });
+  var dropZone2 = document.querySelector('#v2 .rk-drop');
+  if(dropZone2){
+    ['dragover','dragenter'].forEach(function(ev){ dropZone2.addEventListener(ev, function(e){ e.preventDefault(); }); });
+    dropZone2.addEventListener('drop', function(e){ e.preventDefault(); if(e.dataTransfer && e.dataTransfer.files.length){ rxAddFiles(e.dataTransfer.files); rxBuildAnhaenge(); } });
+  }
+}
+
+/* ── Overlay öffnen/schliessen ───────────────────────────────────── */
+function reaktorZeigeEinstieg(){
+  document.getElementById('scrEinstieg').hidden = false;
+  document.getElementById('scrErfassen').hidden = true;
+  rxRenderEinstiegListe();
+}
+function reaktorZeigeErfassen(){
+  rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
+  rxFiles = []; rxErgebnis = null;
+  document.getElementById('scrEinstieg').hidden = true;
+  document.getElementById('scrErfassen').hidden = false;
+  rxBuildAnhaenge(); rxRender();
+  var f = document.getElementById('fFirma'); if(f) f.focus();
+}
+function rxOeffnenOverlay(){
+  document.getElementById('erfassungOverlay').hidden = false;
+  reaktorZeigeEinstieg();
+}
+function rxSchliessenUndZurueck(){
+  document.getElementById('erfassungOverlay').hidden = true;
+  render();
+}
+function rxNurKalkulieren(){
+  document.getElementById('erfassungOverlay').hidden = true;
+  try{ parent.postMessage({type:'kalle-open', anr:''}, '*'); }catch(e){}
+}
+function rxRenderEinstiegListe(){
+  var box = document.getElementById('einstiegListe');
+  var head = document.getElementById('einstiegCount');
+  if(!box) return;
+  var offen = (LEADS||[]).filter(function(l){ return l.phase === 'Anfragen'; });
+  if(head) head.textContent = String(offen.length);
+  box.innerHTML = offen.length ? offen.map(function(l){
+    return '<div class="rx-row" style="cursor:pointer" onclick="rxOeffneProjekt(\''+l.id+'\')">'+
+      '<span class="rx-row__nr">'+esc(l.nr)+'</span>'+
+      '<span class="rx-row__kunde ell">'+esc(l.kunde||'—')+'</span>'+
+      '<span class="rx-row__betreff ell">'+esc(l.betreff||l.betreffRaw||'')+'</span>'+
+      '<span class="rx-row__art">'+esc(l.nowStepLabel||'')+'</span>'+
+      '<span class="rx-row__frist" style="background:'+l.ampel.c+';color:#fff">'+esc(l.ampel.t)+'</span>'+
+      '<span class="rx-row__who" title="'+esc(l.bearbeiter||'ohne Bearbeiter')+'">'+(l.bearbeiter?esc(l.bearbeiter.slice(0,1)):'?')+'</span>'+
+    '</div>';
+  }).join('') : '<div class="t-body t-faint">Keine unbearbeiteten Anfragen.</div>';
+}
+function rxOeffneProjekt(id){
+  document.getElementById('erfassungOverlay').hidden = true;
+  openDrawer(id);
+}
+
+rxBuildArten();
+rxBuildKette();
+rxBind();
+
+</script>
+</body>
+</html>
