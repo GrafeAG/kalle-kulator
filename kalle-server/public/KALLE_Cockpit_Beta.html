@@ -517,49 +517,801 @@
 .rk-scope{ font-family: var(--font-ui); }
 #erfassungOverlay{ position:fixed; inset:0; z-index:500; overflow:auto; background:#3A3A36; }
 #erfassungOverlay .screen{ width:1280px; max-width:100%; min-height:720px; margin:0 auto; background:var(--bg); color:var(--tx); }
+
+/* ══════ REAKTOR-Design (Etappe 1) — Projektliste, Schaltzentrale, Erfassen ══════ */
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:100;font-display:swap;src:url('fonts/FilsonProThin.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:300;font-display:swap;src:url('fonts/FilsonProLight.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:300;font-display:swap;src:url('fonts/FilsonProLightItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:350;font-display:swap;src:url('fonts/FilsonProBook.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:350;font-display:swap;src:url('fonts/FilsonProBookItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/FilsonProRegular.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:400;font-display:swap;src:url('fonts/FilsonProRegularItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/FilsonProMedium.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:500;font-display:swap;src:url('fonts/FilsonProMediumItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/FilsonProBold.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:700;font-display:swap;src:url('fonts/FilsonProBoldItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/FilsonProHeavy.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:italic;font-weight:800;font-display:swap;src:url('fonts/FilsonProHeavyItalic.otf') format('opentype')}@font-face{font-family:'Filson Pro';font-style:normal;font-weight:900;font-display:swap;src:url('fonts/FilsonProBlack.otf') format('opentype')}.rk-scope{
+  --y:#fae017;                    
+  --ol:#b4baa4;                   
+
+  --bg:#111111;                   
+  --bg2:#181816;                  
+  --bg3:#1e1e1c;                  
+  --bg4:#252522;                  
+
+  --tx:rgba(255,255,255,.95);     
+  --tx2:rgba(255,255,255,.55);    
+  --tx3:rgba(255,255,255,.28);    
+
+  --bd:rgba(255,255,255,.08);     
+  --bd2:rgba(255,255,255,.15);    
+
+  --accent:#fae017;
+  --accent-ink:#111111;           
+  --accent-text:#fae017;          
+  --accent-dim:rgba(250,224,23,.15);
+  --accent-line:rgba(250,224,23,.40);
+
+  --teal:#3ecfcf;   --teal-dim:rgba(62,207,207,.12);
+  --amber:#f09030;  --amber-dim:rgba(240,144,48,.12);
+  --green:#4cbb7a;  --green-dim:rgba(76,187,122,.12);
+  --danger:#ff453a; --danger-dim:rgba(255,69,58,.12);
+
+  --font-ui:'Filson Pro',system-ui,-apple-system,'Segoe UI',sans-serif;
+  --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
+
+  --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:22px; --s6:28px; --s7:40px;
+  --head-h:64px;                  
+}
+.rk-scope.theme-light{
+  color:var(--tx);                
+  background:var(--bg);           
+  --bg:#F4F4F1; --bg2:#ffffff; --bg3:#F7F7F4; --bg4:#EEEEEA;
+  --tx:#111111; --tx2:#5F5F58; --tx3:#9A9A91;
+  --bd:#E4E3DD; --bd2:#D6D5CD;
+  --accent:#fae017; --accent-ink:#111111; --accent-text:#7A6A00;
+  --accent-dim:rgba(250,224,23,.20); --accent-line:rgba(150,132,0,.42);
+  --teal:#1F9A9A;   --teal-dim:rgba(31,154,154,.11);
+  --amber:#C9761F;  --amber-dim:rgba(201,118,31,.12);
+  --green:#3E9E63;  --green-dim:rgba(62,158,99,.13);
+  --danger:#D9402F; --danger-dim:rgba(217,64,47,.12);
+}
+.rk-scope *, .rk-scope *::before, .rk-scope *::after{box-sizing:border-box}
+.rk-scope html, .rk-scope body{margin:0;padding:0}
+.rk-scope body{background:var(--bg);color:var(--tx);font-family:var(--font-ui);
+     -webkit-font-smoothing:antialiased;text-rendering:optimizeLegibility}
+.rk-scope img{display:block;max-width:100%}
+.rk-scope [hidden]{display:none !important}
+.rk-scope a{color:var(--accent-text);text-decoration:none}
+.rk-scope a:hover{color:var(--tx)}
+.rk-scope button, .rk-scope input, .rk-scope select, .rk-scope textarea{font-family:inherit;border-radius:0}
+.rk-scope .t-hero{font:900 52px/1.02 var(--font-ui);letter-spacing:-.025em;margin:0}
+.rk-scope .t-h1{font:900 34px/1.05 var(--font-ui);letter-spacing:-.022em;margin:0}
+.rk-scope .t-h2{font:900 26px/1.10 var(--font-ui);letter-spacing:-.02em;margin:0}
+.rk-scope .t-h3{font:900 24px/1.05 var(--font-ui);letter-spacing:-.02em;margin:0}
+.rk-scope .t-title{font:700 17px/1.25 var(--font-ui);margin:0}
+.rk-scope .t-sub{font:700 15px/1.25 var(--font-ui);margin:0}
+.rk-scope .t-body{font:400 13px/1.55 var(--font-ui);text-wrap:pretty}
+.rk-scope .t-small{font:400 11.5px/1.45 var(--font-ui)}
+.rk-scope .t-label{font:600 10px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.rk-scope .t-mono{font:600 12px/1.3 var(--font-mono)}
+.rk-scope .t-muted{color:var(--tx2)}
+.rk-scope .t-faint{color:var(--tx3)}
+.rk-scope .rk-header{height:var(--head-h);display:flex;align-items:center;gap:18px;
+  padding:0 24px;border-bottom:1px solid var(--bd);background:var(--bg2)}
+.rk-scope .rk-header__rule{width:1px;height:22px;background:var(--bd2)}
+.rk-scope .rk-header__brand{font:800 12px/1 var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
+.rk-scope .rk-spacer{flex:1}
+.rk-scope .rk-live{display:inline-flex;align-items:center;gap:7px;font:500 12px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .rk-live__dot{width:7px;height:7px;border-radius:50%;background:var(--green);animation:rk-pulse 2s ease-in-out infinite}
+@keyframes rk-pulse{0%,100%{opacity:1}50%{opacity:.3}}.rk-scope .rk-btn{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;
+  background:transparent;border:1px solid var(--bd2);color:var(--tx);
+  font:600 12.5px/1 var(--font-ui);cursor:pointer;
+  transition:border-color .15s ease,opacity .15s ease,background .15s ease}
+.rk-scope .rk-btn:hover{border-color:var(--tx)}
+.rk-scope .rk-btn:active{transform:translateY(1px)}
+.rk-scope .rk-btn--primary{background:var(--accent);border-color:var(--accent);color:var(--accent-ink);font-weight:700}
+.rk-scope .rk-btn--primary:hover{opacity:.85;border-color:var(--accent)}
+.rk-scope .rk-btn--dark{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rk-btn--sm{padding:6px 9px;font-size:11px}
+.rk-scope .rk-btn--icon{width:32px;height:32px;padding:0;justify-content:center;color:var(--tx2);font-size:16px;font-weight:400}
+.rk-scope .rk-btn[disabled], .rk-scope .rk-btn.is-disabled{color:var(--tx3);border-color:var(--bd);cursor:not-allowed;background:transparent}
+.rk-scope .rk-btn[disabled]:hover, .rk-scope .rk-btn.is-disabled:hover{border-color:var(--bd);opacity:1}
+.rk-scope .rk-field{display:flex;flex-direction:column;gap:8px;min-width:0}
+.rk-scope .rk-input, .rk-scope .rk-select, .rk-scope .rk-textarea{width:100%;padding:10px 12px;background:var(--bg3);
+  border:1px solid var(--bd2);color:var(--tx);font:400 13.5px/1.4 var(--font-ui);
+  transition:border-color .15s ease,box-shadow .15s ease}
+.rk-scope .rk-textarea{resize:vertical;min-height:78px;line-height:1.55}
+.rk-scope .rk-input:focus, .rk-scope .rk-select:focus, .rk-scope .rk-textarea:focus{outline:none;
+  border-color:var(--accent-text);box-shadow:0 0 0 3px var(--accent-dim)}
+.rk-scope .rk-input:disabled, .rk-scope .rk-select:disabled, .rk-scope .rk-textarea:disabled{opacity:.55;cursor:not-allowed}
+.rk-scope .rk-input::placeholder, .rk-scope .rk-textarea::placeholder{color:var(--tx3)}
+.rk-scope .rk-select{appearance:none;padding-right:34px;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9A91' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 12px center}
+.rk-scope .rk-hint{font:400 10.5px/1.35 var(--font-ui);color:var(--tx3)}
+.rk-scope .rk-chip{display:inline-flex;align-items:center;gap:6px;padding:6px 10px;
+  background:transparent;border:1px solid var(--bd2);color:var(--tx);
+  font:600 11.5px/1.3 var(--font-ui);cursor:pointer;transition:border-color .15s}
+.rk-scope .rk-chip:hover{border-color:var(--tx)}
+.rk-scope .rk-chip.is-active{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rk-chip--accent.is-active{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.rk-scope .rk-chip--static{cursor:default}
+.rk-scope .rk-chip--static:hover{border-color:var(--bd2)}
+.rk-scope .rk-check{display:flex;align-items:center;gap:8px;padding:7px 9px;text-align:left;
+  background:var(--bg2);border:1px solid var(--bd2);color:var(--tx);cursor:pointer;
+  font:500 12px/1.2 var(--font-ui);transition:border-color .15s}
+.rk-scope .rk-check:hover{border-color:var(--tx)}
+.rk-scope .rk-check.is-on{background:var(--accent-dim);border-color:var(--tx)}
+.rk-scope .rk-check__box{width:15px;height:15px;flex:none;display:grid;place-items:center;
+  border:1.5px solid var(--tx);background:var(--bg2);color:var(--bg2);font:800 10px/1 var(--font-ui)}
+.rk-scope .rk-check.is-on .rk-check__box{background:var(--tx);color:var(--bg)}
+.rk-scope .rk-check__text{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-scope .rk-navpill{display:inline-flex;align-items:center;gap:5px;padding:5px 12px;border:none;
+  background:transparent;color:var(--tx2);font:500 11px/1 var(--font-ui);
+  letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:all .15s ease}
+.rk-scope .rk-navpill:hover{color:var(--tx);background:var(--bg3)}
+.rk-scope .rk-navpill.is-active{color:var(--accent-text);background:var(--accent-dim)}
+.rk-scope .rk-tabs{display:flex;align-items:flex-end;gap:2px;padding:12px 22px 0;
+  border-bottom:1px solid var(--bd);background:var(--bg2)}
+.rk-scope .rk-tab{padding:9px 14px;border:0;border-bottom:3px solid transparent;background:transparent;
+  color:var(--tx2);font:500 12.5px/1 var(--font-ui);cursor:pointer}
+.rk-scope .rk-tab:hover{color:var(--tx)}
+.rk-scope .rk-tab.is-active{border-bottom-color:var(--tx);color:var(--tx);font-weight:700}
+.rk-scope .rk-tabs__note{padding:0 0 10px;font:400 11px/1.3 var(--font-ui);color:var(--tx3)}
+.rk-scope .rk-card{background:var(--bg2);border:1px solid var(--bd)}
+.rk-scope .rk-card__head{padding:8px 12px;border-bottom:1px solid var(--bd);
+  font:600 10px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:var(--tx3)}
+.rk-scope .rk-card__body{padding:12px}
+.rk-scope .rk-kpi{padding:11px 12px;background:var(--bg2);border:1px solid var(--bd)}
+.rk-scope .rk-kpi__val{font:800 21px/1.1 var(--font-ui);margin-top:6px}
+.rk-scope .rk-banner{display:flex;align-items:center;gap:10px;padding:10px 14px;
+  font:400 12px/1.35 var(--font-ui);color:var(--tx)}
+.rk-scope .rk-banner strong{font-weight:600}
+.rk-scope .rk-banner--ok{background:var(--green-dim);border-bottom:1px solid var(--bd)}
+.rk-scope .rk-banner--warn{background:var(--amber-dim);border:1px solid var(--amber)}
+.rk-scope .rk-banner__mark{width:18px;height:18px;flex:none;display:grid;place-items:center;
+  font:800 11px/1 var(--font-ui);color:#fff;background:var(--green)}
+.rk-scope .rk-banner--warn .rk-banner__mark{background:var(--amber);color:#111}
+.rk-scope .rk-drop{display:grid;place-items:center;gap:4px;min-height:72px;padding:12px;text-align:center;
+  background:var(--bg);border:1px dashed var(--bd2);color:var(--tx3);
+  font:500 11.5px/1.45 var(--font-ui);cursor:copy;transition:background .15s,border-color .15s}
+.rk-scope .rk-drop:hover{background:var(--accent-dim);border-color:var(--accent-line);color:var(--tx)}
+.rk-scope .rk-actionbar{display:flex;flex-wrap:wrap;align-items:center;gap:10px;
+  padding:12px 22px;border-top:1px solid var(--bd);background:var(--bg3);transition:background .2s}
+.rk-scope .rk-actionbar.is-done{background:var(--green-dim)}
+.rk-scope .rk-actionbar__note{font:400 11.5px/1.35 var(--font-ui);color:var(--tx3)}
+.rk-scope .rk-done{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;
+  background:var(--green);color:#fff;font:700 13px/1 var(--font-ui)}
+.rk-scope .rk-status{display:inline-flex;align-items:center;gap:7px;font:500 11px/1.3 var(--font-ui);color:var(--tx2)}
+.rk-scope .rk-status__dot{width:9px;height:9px;border-radius:50%}
+.rk-scope .rk-status--done  .rk-status__dot{background:var(--ol)}
+.rk-scope .rk-status--open  .rk-status__dot{border:2px solid var(--accent);background:transparent}
+.rk-scope .rk-status--build{padding:5px 8px;background:var(--accent-dim);border:1px solid var(--accent);
+  color:var(--accent-text);font-weight:700;font-size:10.5px}
+.rk-scope .rk-status--build .rk-status__dot{width:8px;height:8px;background:var(--accent)}
+.rk-scope .rk-stage{position:relative;overflow:hidden;background:var(--bg)}
+.rk-scope .rk-stage__behind{opacity:.35;padding:28px 24px}
+.rk-scope .rk-scrim{position:absolute;inset:0;background:rgba(17,17,17,.5)}
+.rk-scope .rk-panel{position:absolute;left:64px;right:64px;top:28px;bottom:28px;
+  background:var(--bg);border:1px solid var(--bd2);overflow:hidden;
+  display:grid;grid-template-rows:auto auto 1fr auto}
+.rk-scope .rk-panel__head{display:flex;align-items:center;gap:16px;padding:14px 22px 0;background:var(--bg2)}
+.rk-scope .rk-meta{display:flex;align-items:center;gap:10px;font:600 12px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .rk-meta__rule{width:1px;height:10px;background:var(--bd2)}
+.rk-scope .rk-meta__mode{font:600 11px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--tx2)}
+.rk-scope .rk-person{display:flex;align-items:center;gap:10px}
+.rk-scope .rk-avatar{width:30px;height:30px;border-radius:50%;object-fit:cover;border:1px solid var(--bd2)}
+.rk-scope .rk-avatar--initials{display:grid;place-items:center;background:var(--bg4);
+  font:700 11px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .rk-desk{background:#7A7A74;border:1px solid var(--bd);display:flex;flex-direction:column;
+  align-items:center;padding:16px;min-height:0;overflow:hidden;position:relative}
+.rk-scope .rk-sheet{width:440px;height:622px;flex:none;background:#fff;color:#111;position:relative;
+  box-shadow:0 6px 24px rgba(0,0,0,.35);font-family:var(--font-ui)}
+.rk-scope .rk-sheet__footbar{position:absolute;left:0;right:0;bottom:0;height:6px;display:flex}
+.rk-scope .rk-sheet__footbar span{flex:1}
+.rk-scope .rk-sheet__footbar span:first-child{background:var(--y)}
+.rk-scope .rk-sheet__footbar span:last-child{background:var(--ol)}
+.rk-scope .rk-row{display:flex;align-items:center;gap:var(--s2)}
+.rk-scope .rk-col{display:flex;flex-direction:column;gap:var(--s2)}
+.rk-scope .rk-grid-2{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:14px 18px}
+.rk-scope .rk-grid-3{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px}
+.rk-scope .rk-wrap{display:flex;flex-wrap:wrap;gap:6px}
+.rk-scope .doc{max-width:1180px;margin:0 auto;padding:56px 32px 90px}
+.rk-scope .doc section{padding:44px 0 0}
+.rk-scope .doc h2{margin:0 0 6px}
+.rk-scope .doc h3{margin:26px 0 10px;font:700 15px/1.2 var(--font-ui);color:var(--tx)}
+.rk-scope .doc p{max-width:640px;color:var(--tx2);font:400 13.5px/1.6 var(--font-ui);text-wrap:pretty}
+.rk-scope .doc code{font:500 12px/1.5 var(--font-mono);color:var(--accent-text)}
+.rk-scope .doc pre{margin:10px 0 0;padding:12px 14px;background:var(--bg2);border:1px solid var(--bd);
+  overflow-x:auto;font:400 11.5px/1.6 var(--font-mono);color:var(--tx2)}
+.rk-scope .doc hr{border:0;border-top:1px solid var(--bd2);margin:44px 0 0}
+.rk-scope .demo{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start;padding:18px;
+  background:var(--bg2);border:1px solid var(--bd);margin-top:12px}
+.rk-scope .demo--light{background:var(--bg);border-color:var(--bd2)}
+.rk-scope .sw{display:flex;flex-direction:column;gap:6px;width:132px}
+.rk-scope .sw__patch{height:54px;border:1px solid var(--bd2)}
+.rk-scope .sw__name{font:600 11px/1.3 var(--font-mono)}
+.rk-scope .sw__val{font:400 10.5px/1.3 var(--font-mono);color:var(--tx3)}
+
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
+.rk-scope .pl-body{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:760px}
+.rk-scope .pl-side{border-right:1px solid var(--bd);padding:20px 14px 24px;display:flex;flex-direction:column;
+  gap:22px;background:var(--bg2)}
+.rk-scope .pl-filter{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;
+  background:transparent;border:none;text-align:left;color:var(--tx);font:500 13px/1 var(--font-ui);
+  cursor:pointer;transition:background .12s;width:100%}
+.rk-scope .pl-filter:hover{background:var(--bg4)}
+.rk-scope .pl-filter.is-on{background:var(--tx);color:var(--bg)}
+.rk-scope .pl-filter__n{font:600 12px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .pl-filter.is-on .pl-filter__n{color:rgba(255,255,255,.6)}
+.rk-scope .pl-filter--pl{padding-left:5px;gap:8px}
+.rk-scope .pl-ava{width:22px;height:22px;border-radius:50%;background:var(--bg4);overflow:hidden;flex:none;
+  display:grid;place-items:center;font:700 9px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .pl-ava img{width:100%;height:100%;object-fit:cover;display:block}
+.rk-scope .pl-main{padding:26px 28px 32px;display:flex;flex-direction:column;gap:30px;min-width:0}
+.rk-scope .pl-bandhead{display:flex;align-items:baseline;gap:12px;padding-bottom:8px;margin-bottom:8px;
+  border-bottom:2px solid var(--bd2)}
+.rk-scope .pl-bandhead--red{border-bottom-color:var(--danger)}
+.rk-scope .pl-bandhead--yellow{border-bottom-color:var(--accent)}
+.rk-scope .pl-bandn{font:900 26px/1 var(--font-ui)}
+.rk-scope .pl-bandt{font:800 12px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase}
+.rk-scope .pl-row{display:grid;grid-template-columns:minmax(0,1.1fr) minmax(0,1.6fr) 168px 28px;gap:18px;
+  align-items:center;height:56px;padding:0 16px;background:var(--bg2);border:1px solid var(--bd2);
+  text-decoration:none;color:var(--tx);transition:border-color .15s,transform .15s}
+.rk-scope .pl-row:hover{border-color:var(--tx);color:var(--tx)}
+.rk-scope .pl-row:active{transform:translateY(1px)}
+.rk-scope .pl-row--plan{height:50px;border-color:var(--bd)}
+.rk-scope .pl-row__k{display:flex;align-items:baseline;gap:10px;min-width:0}
+.rk-scope .pl-row__kunde{font:800 15.5px/1.2 var(--font-ui);letter-spacing:-.01em}
+.rk-scope .pl-row--plan .pl-row__kunde{font-size:14.5px;font-weight:700}
+.rk-scope .pl-row__nr{font:500 11px/1 var(--font-mono);color:var(--tx3);flex:none}
+.rk-scope .pl-row__step{font:400 13.5px/1.3 var(--font-ui);color:var(--tx2)}
+.rk-scope .pl-row__chip{justify-self:end;padding:6px 10px;font:700 11.5px/1 var(--font-ui);white-space:nowrap}
+.rk-scope .pl-row__chip--red{background:var(--danger);color:#fff}
+.rk-scope .pl-row__chip--yellow{background:var(--accent);color:#111}
+.rk-scope .pl-row__phase{justify-self:end;font:500 12px/1 var(--font-ui);color:var(--tx3);white-space:nowrap}
+.rk-scope .pl-row__img{width:26px;height:26px;border-radius:50%;object-fit:cover;border:1px solid var(--bd2)}
+.rk-scope .pl-group{display:grid;grid-template-columns:150px minmax(0,1fr);gap:16px;align-items:center;
+  padding:9px 0;border-bottom:1px solid var(--bd)}
+.rk-scope .pl-tag{display:inline-flex;align-items:center;padding:5px 9px;background:var(--bg2);
+  border:1px solid var(--bd);text-decoration:none;color:var(--tx2);font:500 12.5px/1 var(--font-ui);
+  transition:border-color .15s,color .15s}
+.rk-scope .pl-tag:hover{border-color:var(--tx);color:var(--tx)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;height:900px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
+.rk-scope .sz-panel{position:absolute;left:80px;right:80px;top:32px;bottom:32px;background:var(--bg);
+  border:1px solid var(--bd2);display:grid;grid-template-rows:auto auto 1fr;overflow:hidden}
+.rk-scope .sz-head{display:flex;align-items:center;gap:16px;padding:16px 22px;
+  border-bottom:1px solid var(--bd);background:var(--bg2)}
+.rk-scope .sz-now{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:22px;align-items:center;
+  padding:16px 22px;background:var(--bg3);border-bottom:1px solid var(--bd)}
+.rk-scope .sz-badge{display:inline-flex;align-items:center;padding:8px 12px;background:var(--danger);color:#fff;
+  font:700 12px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;white-space:nowrap}
+.rk-scope .sz-now p{margin:0;font:400 14px/1.45 var(--font-ui);text-wrap:pretty;min-width:0}
+.rk-scope .sz-cols{display:grid;grid-template-columns:minmax(0,1fr) 400px;gap:10px;padding:10px;min-height:0}
+.rk-scope .sz-flow{background:var(--bg2);border:1px solid var(--bd);padding:16px 18px;overflow:auto;min-height:0}
+.rk-scope .sz-step{display:grid;grid-template-columns:28px 1fr;gap:12px}
+.rk-scope .sz-rail{display:flex;flex-direction:column;align-items:center}
+.rk-scope .sz-mark{width:20px;height:20px;flex:none;display:grid;place-items:center;margin-top:11px;
+  background:transparent;border:2px solid var(--bd2);color:var(--tx3);font:800 11px/1 var(--font-ui)}
+.rk-scope .sz-line{flex:1;width:2px;background:var(--bd2);margin-top:4px}
+.rk-scope .sz-step.is-done .sz-mark{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .sz-step.is-current .sz-mark{background:var(--danger);border-color:var(--danger);color:#fff}
+.rk-scope .sz-card{margin-bottom:2px;background:transparent;border:1px solid transparent}
+.rk-scope .sz-step.is-current .sz-card{background:var(--danger-dim);border-color:var(--danger)}
+.rk-scope .sz-step.is-open .sz-card{background:var(--bg3);border-color:var(--bd2)}
+.rk-scope .sz-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;background:transparent;
+  border:none;text-align:left;color:var(--tx);cursor:pointer;transition:background .12s}
+.rk-scope .sz-btn:hover{background:var(--bg3)}
+.rk-scope .sz-name{font:400 14.5px/1.2 var(--font-ui)}
+.rk-scope .sz-step.is-done .sz-name{color:var(--tx2)}
+.rk-scope .sz-step.is-current .sz-name{font-weight:700}
+.rk-scope .sz-od{padding:3px 7px;background:var(--danger);color:#fff;font:700 10px/1 var(--font-ui);
+  letter-spacing:.08em;text-transform:uppercase}
+.rk-scope .sz-date{font:500 12px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .sz-who{width:22px;height:22px;border-radius:50%;background:var(--bg4);border:1px solid var(--bd2);
+  overflow:hidden;display:grid;place-items:center;font:700 9px/1 var(--font-ui);color:var(--tx2);flex:none}
+.rk-scope .sz-who img{width:100%;height:100%;object-fit:cover;display:block}
+.rk-scope .sz-chev{color:var(--tx3);flex:none;transition:transform .15s}
+.rk-scope .sz-step.is-open .sz-chev{transform:rotate(180deg)}
+.rk-scope .sz-detail{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.rk-scope .sz-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rk-scope .sz-fact{padding:8px 10px;background:var(--bg2);border:1px solid var(--bd)}
+.rk-scope .sz-fact b{display:block;font:700 13px/1.2 var(--font-ui);margin-top:5px}
+.rk-scope .sz-note{display:flex;gap:10px}
+.rk-scope .sz-note img{width:22px;height:22px;border-radius:50%;object-fit:cover;flex:none;border:1px solid var(--bd2)}
+.rk-scope .sz-side{display:flex;flex-direction:column;background:var(--bg2);border:1px solid var(--bd);
+  min-height:0;overflow:hidden}
+.rk-scope .sz-tabs{display:flex;border-bottom:1px solid var(--bd)}
+.rk-scope .sz-tab{flex:1;padding:12px 8px 11px;background:transparent;border:none;border-bottom:2px solid transparent;
+  color:var(--tx3);font:700 12px/1 var(--font-ui);letter-spacing:.06em;text-transform:uppercase;
+  cursor:pointer;transition:color .15s}
+.rk-scope .sz-tab:hover{color:var(--tx)}
+.rk-scope .sz-tab.is-active{border-bottom-color:var(--tx);color:var(--tx)}
+.rk-scope .sz-pane{display:flex;flex-direction:column;gap:12px;padding:14px;overflow:auto;min-height:0}
+.rk-scope .sz-folders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.rk-scope .sz-folder{display:flex;flex-direction:column;align-items:flex-start;gap:8px;min-height:72px;padding:12px;
+  background:var(--bg);border:2px dashed var(--bd2);color:var(--tx);text-align:left;cursor:copy;
+  transition:border-color .15s,background .15s}
+.rk-scope .sz-folder:hover{border-color:var(--tx);background:var(--accent-dim)}
+.rk-scope .sz-folder__top{display:flex;justify-content:space-between;width:100%;align-items:center}
+.rk-scope .sz-folder__n{font:600 11px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .sz-folder__name{font:700 13px/1.2 var(--font-ui)}
+.rk-scope .sz-file{display:flex;align-items:center;gap:10px;padding:8px 6px;margin:0 -6px;cursor:pointer;transition:background .12s}
+.rk-scope .sz-file:hover{background:var(--bg3)}
+.rk-scope .sz-file__tag{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--bd2);
+  font:800 9px/1 var(--font-ui);flex:none}
+.rk-scope .sz-kv{display:grid;grid-template-columns:auto 1fr;gap:9px 14px;font:400 13px/1.35 var(--font-ui)}
+.rk-scope .sz-kv span:nth-child(odd){color:var(--tx3)}
+.rk-scope .sz-act{display:grid;grid-template-columns:48px 1fr;gap:10px;align-items:start;padding:9px 0;
+  border-bottom:1px solid var(--bd);font:400 13px/1.4 var(--font-ui)}
+.rk-scope .sz-act span:first-child{font:500 11.5px/1.35 var(--font-ui);color:var(--tx3)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;min-height:720px;background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
+.rk-scope .rx-nav{display:flex;gap:4px;margin-left:8px}
+.rk-scope .rx-page{padding:40px 24px 36px;display:flex;flex-direction:column;gap:28px}
+.rk-scope .rx-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
+.rk-scope .rx-eyebrow{font:600 11px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.rk-scope .rx-h1{margin:10px 0 0;font:900 48px/1 var(--font-ui);letter-spacing:-.025em}
+.rk-scope .rx-kern{display:flex;align-items:center;gap:14px;padding:12px 16px;background:#111;color:#fff}
+.rk-scope .rx-kern__dot{width:10px;height:10px;background:var(--y);transform:rotate(45deg)}
+.rk-scope .rx-kern__txt{font:400 13px/1.35 var(--font-ui);color:rgba(255,255,255,.8)}
+.rk-scope .rx-kern__txt b{font-weight:700;color:#fff}
+.rk-scope .rx-ways{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px}
+.rk-scope .rx-way{display:flex;flex-direction:column;gap:14px;padding:26px 26px 22px;text-decoration:none;
+  transition:opacity .15s ease,border-color .15s ease}
+.rk-scope .rx-way--main{background:#111;color:#fff;min-height:200px}
+.rk-scope .rx-way--main:hover{opacity:.9;color:#fff}
+.rk-scope .rx-way--side{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx)}
+.rk-scope .rx-way--side:hover{border-color:var(--tx);color:var(--tx)}
+.rk-scope .rx-way__kind{font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase}
+.rk-scope .rx-way--main .rx-way__kind{color:var(--y)}
+.rk-scope .rx-way--side .rx-way__kind{color:var(--tx3)}
+.rk-scope .rx-way__t{font:900 30px/1.05 var(--font-ui);letter-spacing:-.02em}
+.rk-scope .rx-way--side .rx-way__t{font-size:26px}
+.rk-scope .rx-way__x{font:400 14px/1.5 var(--font-ui);color:rgba(255,255,255,.75);max-width:460px;text-wrap:pretty}
+.rk-scope .rx-way--side .rx-way__x{font-size:13.5px;color:var(--tx2)}
+.rk-scope .rx-way__go{margin-top:auto;display:inline-flex;align-items:center;gap:10px;font:700 13px/1 var(--font-ui);color:var(--y)}
+.rk-scope .rx-way--side .rx-way__go{color:var(--tx2)}
+.rk-scope .rx-listhead{display:flex;align-items:baseline;gap:12px;padding-bottom:8px;
+  border-bottom:2px solid var(--accent);margin-bottom:8px}
+.rk-scope .rx-row{display:grid;grid-template-columns:76px minmax(0,1.1fr) minmax(0,1.4fr) 130px 150px 28px;
+  gap:16px;align-items:center;height:54px;padding:0 16px;background:var(--bg2);
+  border:1px solid var(--bd2);text-decoration:none;color:var(--tx);transition:border-color .15s}
+.rk-scope .rx-row:hover{border-color:var(--tx);color:var(--tx)}
+.rk-scope .rx-row__nr{font:600 12px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .rx-row__kunde{font:800 15px/1.2 var(--font-ui)}
+.rk-scope .rx-row__betreff{font:400 13px/1.3 var(--font-ui);color:var(--tx2)}
+.rk-scope .rx-row__art{font:600 10px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--tx3)}
+.rk-scope .rx-row__frist{justify-self:end;padding:5px 9px;font:700 11px/1 var(--font-ui);white-space:nowrap}
+.rk-scope .rx-row__who{width:26px;height:26px;border-radius:50%;background:var(--bg4);border:1px dashed var(--bd2);
+  display:grid;place-items:center;font:700 10px/1 var(--font-ui);color:var(--tx3)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;min-height:820px;background:var(--bg);color:var(--tx);
+  border:1px solid #D6D5CD;display:flex;flex-direction:column}
+.rk-scope .rx-steps{display:flex;align-items:center;gap:0}
+.rk-scope .rx-step{display:inline-flex;align-items:center;gap:8px;padding:6px 12px 6px 6px;
+  background:transparent;border:none;color:var(--tx3);font:600 12.5px/1 var(--font-ui);cursor:pointer}
+.rk-scope .rx-step.is-current{color:var(--tx)}
+.rk-scope .rx-step__n{width:22px;height:22px;display:grid;place-items:center;background:transparent;
+  border:2px solid var(--bd2);color:var(--tx3);font:800 11px/1 var(--font-ui)}
+.rk-scope .rx-step.is-current .rx-step__n, .rk-scope .rx-step.is-done .rx-step__n{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .rx-steps__line{width:28px;height:2px;background:var(--bd2)}
+.rk-scope .rx-view{padding:28px 24px 24px;display:grid;grid-template-columns:minmax(0,1fr) 380px;gap:10px;flex:1}
+.rk-scope .rx-view[hidden]{display:none}
+.rk-scope .rx-eyebrow{font:600 11px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
+.rk-scope .rx-h1{margin:8px 0 0;font:900 30px/1.05 var(--font-ui);letter-spacing:-.02em}
+.rk-scope .rx-box{background:var(--bg2);border:1px solid var(--bd);padding:16px}
+.rk-scope .rx-lbl{font:500 11px/1 var(--font-ui);color:var(--tx3);margin-bottom:6px}
+.rk-scope .rx-side{display:flex;flex-direction:column;gap:10px}
+.rk-scope .rx-dark{background:#111;color:#fff;padding:14px}
+.rk-scope .rx-dark__lbl{font:600 10px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase;color:rgba(255,255,255,.55);margin-bottom:8px}
+.rk-scope .rx-dark__x{font:400 12.5px/1.45 var(--font-ui);color:rgba(255,255,255,.8)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.rk-scope .rx-drop{position:relative;display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;
+  gap:22px;min-height:168px;padding:26px 28px;background:var(--accent-dim);border:2px dashed var(--accent);
+  color:var(--tx);text-align:left;cursor:copy;transition:background .15s,border-color .15s;width:100%}
+.rk-scope .rx-drop:hover{background:var(--accent);border-color:var(--tx)}
+.rk-scope .rx-drop__icon{width:64px;height:64px;display:grid;place-items:center;background:#111;color:var(--y);flex:none}
+.rk-scope .rx-drop__k{display:block;font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--tx2)}
+.rk-scope .rx-drop__t{display:block;font:900 24px/1.05 var(--font-ui);letter-spacing:-.02em;margin-top:8px}
+.rk-scope .rx-drop__x{display:block;font:400 13px/1.45 var(--font-ui);color:var(--tx2);margin-top:8px;text-wrap:pretty}
+.rk-scope .rx-corner{position:absolute;width:14px;height:14px}
+.rk-scope .rx-corner--tl{left:10px;top:10px;border-left:2px solid #111;border-top:2px solid #111}
+.rk-scope .rx-corner--tr{right:10px;top:10px;border-right:2px solid #111;border-top:2px solid #111}
+.rk-scope .rx-corner--bl{left:10px;bottom:10px;border-left:2px solid #111;border-bottom:2px solid #111}
+.rk-scope .rx-corner--br{right:10px;bottom:10px;border-right:2px solid #111;border-bottom:2px solid #111}
+.rk-scope .rx-mailrow{display:flex;align-items:center;gap:12px;padding:12px 14px;
+  background:var(--green-dim);border:1px solid var(--green)}
+.rk-scope .rx-file{width:30px;height:30px;display:grid;place-items:center;border:1px solid var(--bd2);
+  font:800 8.5px/1 var(--font-ui)}
+.rk-scope .rx-place{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+.rk-scope .rx-place button{display:flex;flex-direction:column;gap:6px;padding:14px;text-align:left;cursor:pointer;
+  background:var(--bg);border:2px solid var(--bd2);color:var(--tx)}
+.rk-scope .rx-place button.is-on{background:#111;border-color:#111;color:#fff}
+.rk-scope .rx-place b{font:800 14px/1.2 var(--font-ui)}
+.rk-scope .rx-place span{font:400 12px/1.4 var(--font-ui);opacity:.75}
+.rk-scope .rx-att{display:grid;grid-template-columns:30px minmax(0,1fr) 220px;gap:12px;align-items:center;
+  padding:8px 0;border-bottom:1px solid var(--bd)}
+.rk-scope .rx-kv{display:grid;grid-template-columns:auto 1fr;gap:7px 12px;font:400 12.5px/1.35 var(--font-ui)}
+.rk-scope .rx-kv span:nth-child(odd){color:var(--tx3)}
+.rk-scope .rx-auto{display:flex;gap:8px;font:400 12.5px/1.4 var(--font-ui);color:var(--tx2)}
+.rk-scope .rx-auto i{width:8px;height:8px;background:var(--bd2);margin-top:5px;flex:none}
+.rk-scope .rx-run{flex:1;display:grid;place-items:center;padding:40px 24px}
+.rk-scope .rx-run[hidden]{display:none}
+.rk-scope .rx-run__inner{width:640px;display:flex;flex-direction:column;gap:18px}
+.rk-scope .rx-bar{height:14px;background:var(--bg3);border:1px solid var(--bd2);position:relative;overflow:hidden}
+.rk-scope .rx-bar__fill{position:absolute;left:0;top:0;bottom:0;width:0;background:var(--accent);transition:width .4s ease}
+.rk-scope .rx-chain{display:grid;grid-template-columns:20px 1fr auto;gap:12px;align-items:center;
+  padding:9px 12px;background:var(--bg2);border:1px solid var(--bd2)}
+.rk-scope .rx-chain__n{width:18px;height:18px;display:grid;place-items:center;background:transparent;
+  border:2px solid var(--bd2);color:#fff;font:800 11px/1 var(--font-ui)}
+.rk-scope .rx-chain__t{font:600 13px/1.2 var(--font-ui);color:var(--tx3)}
+.rk-scope .rx-chain__d{font:500 11.5px/1 var(--font-mono);color:var(--tx3)}
+.rk-scope .rx-chain.is-cur{border-color:var(--accent)}
+.rk-scope .rx-chain.is-cur .rx-chain__n{background:var(--accent);border-color:var(--accent)}
+.rk-scope .rx-chain.is-cur .rx-chain__t{color:var(--tx)}
+.rk-scope .rx-chain.is-done{border-color:var(--green)}
+.rk-scope .rx-chain.is-done .rx-chain__n{background:var(--green);border-color:var(--green)}
+.rk-scope .rx-chain.is-done .rx-chain__t{color:var(--tx)}
+.rk-scope .rx-hand{display:flex;align-items:center;justify-content:space-between;gap:16px;
+  padding:16px 18px;background:#111;color:#fff}
+
+.rk-scope{ font-family: var(--font-ui); }
+#scrErfassen, #scrEinstieg{ position:fixed; inset:0; z-index:500; overflow:auto; background:#3A3A36; }
+#scrErfassen .screen, #scrEinstieg .screen{ position:static; height:auto; min-height:720px; margin:0 auto; }
 </style>
 </head>
 <body>
-<div class="wrap">
-  <div class="top">
-    <div class="logo"><span class="k">KALLE</span>·Cockpit</div>
-    <div class="crumb">GRAFE Produktionsübersicht › <b>Projekt und Offertanfragen</b></div>
-    <span class="conn bad" id="conn"><span class="dot"></span><span id="connTxt">verbinde …</span></span>
-    <div class="spacer"></div>
-    <div class="search">
-      <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="7"/><line x1="16.5" y1="16.5" x2="21" y2="21"/></svg>
-      <input id="q" placeholder="Suchen: Kunde, Projektnr., Betreff …">
-    </div>
-    <div class="seg">
-      <button class="on" id="vGrid" onclick="setView('grid')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M8 2v4M16 2v4M3 10h18"/></svg>Karten</button>
-      <button id="vKan" onclick="setView('kanban')"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="4" width="6" height="16" rx="1"/><rect x="9.5" y="4" width="6" height="10" rx="1"/><rect x="16" y="4" width="6" height="13" rx="1"/></svg>Kanban</button>
-    </div>
-    <button class="iconbtn" id="btnAV" style="display:none" onclick="toAuftragsverwaltung()" title="Zur klassischen Auftragsverwaltung"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 5h6M9 3h6v4H9zM7 7h10l1 13H6z"/></svg>Auftragsverwaltung</button>
-    <button class="iconbtn" onclick="reload()" title="Alle Anfragen frisch aus Monday laden"><svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 12a9 9 0 1 1-2.6-6.4M21 4v5h-5"/></svg>Aktualisieren</button>
-    <button class="iconbtn" style="background:var(--gold);border-color:var(--gold);color:#3a3200;font-weight:700" onclick="rxOeffnenOverlay()" title="Neue Anfrage erfassen (REAKTOR)"><svg viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14M5 12h14"/></svg>Anfrage erfassen</button>
+<div id="tokenOverlay" hidden style="position:fixed;inset:0;z-index:900;background:rgba(58,58,54,.94);display:flex;align-items:center;justify-content:center"></div>
+<div class="rk-scope theme-light" id="app">
+
+<div class="screen rk-screen" id="scrListe">
+
+  <div class="rk-header">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
+    <span class="rk-header__rule"></span>
+    <span class="rk-header__brand">REAKTOR</span>
+    <nav style="display:flex;gap:4px;margin-left:8px">
+      <button class="rk-navpill is-active" type="button">Alle Projekte</button>
+      <button class="rk-navpill" type="button" onclick="reaktorZeigeErfassen()">Erfassen</button>
+    </nav>
+    <span class="rk-spacer"></span>
+    <span class="conn bad" id="conn" style="font:500 11px/1 var(--font-ui);color:var(--tx3)"><span id="connTxt">verbinde …</span></span>
+    <button class="rk-btn rk-btn--sm" onclick="reload()" title="Alle Projekte frisch aus Monday laden">Aktualisieren</button>
   </div>
 
-  <div class="filters" id="filters" style="display:none;flex-direction:column;align-items:stretch;gap:8px">
-    <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center">
-      <div class="fchip on" data-f="alle" onclick="setPLFilter('alle',this)">Alle</div>
-      <div id="plChips" style="display:flex;gap:8px;flex-wrap:wrap"></div>
-      <div class="fcount" id="fcount"></div>
-    </div>
-    <div style="display:flex;gap:6px;flex-wrap:wrap">
-      <div class="fchip phase on" data-p="alle" onclick="setPhaseFilter('alle',this)">Alle Phasen</div>
-      <div class="fchip phase" data-p="Anfragen" onclick="setPhaseFilter('Anfragen',this)">Anfragen</div>
-      <div class="fchip phase" data-p="Vorbereitung" onclick="setPhaseFilter('Vorbereitung',this)">Vorbereitung</div>
-      <div class="fchip phase" data-p="Produktion" onclick="setPhaseFilter('Produktion',this)">Produktion</div>
-      <div class="fchip phase" data-p="Montage" onclick="setPhaseFilter('Montage',this)">Montage</div>
-      <div class="fchip phase" data-p="Abschluss" onclick="setPhaseFilter('Abschluss',this)">Abschluss</div>
-    </div>
-  </div>
+  <div class="pl-body">
 
-  <div id="overview"><div class="spin"></div></div>
+    <aside class="pl-side">
+      <input class="rk-input" id="suche" placeholder="Suchen …">
+
+      <div>
+        <div class="t-label" style="padding:0 8px 8px">Phase</div>
+        <div class="rk-col" style="gap:1px" id="phasen"></div>
+      </div>
+
+      <div>
+        <div class="t-label" style="padding:0 8px 8px">Projektleitung</div>
+        <div class="rk-col" style="gap:1px" id="pls"></div>
+      </div>
+
+      <div style="margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--bd)" class="t-small t-faint">
+        130 aktive Projekte · Ampel alle 2 Min. neu
+      </div>
+    </aside>
+
+    <main class="pl-main">
+      <div style="display:flex;align-items:baseline;gap:16px">
+        <h1 class="t-h1">Aktive Projekte.</h1>
+        <span class="t-body t-muted" id="datumZeile">· <span id="sichtbar">0</span> sichtbar</span>
+      </div>
+
+      <section id="secRed">
+        <div class="pl-bandhead pl-bandhead--red">
+          <span class="pl-bandn" style="color:var(--danger)" id="nRed">3</span>
+          <span class="pl-bandt">Überfällig</span>
+          <span class="t-small t-muted">nächster Schritt liegt in der Vergangenheit</span>
+        </div>
+        <div class="rk-col" style="gap:6px" id="listRed"></div>
+      </section>
+
+      <section id="secYellow">
+        <div class="pl-bandhead pl-bandhead--yellow">
+          <span class="pl-bandn" id="nYellow">3</span>
+          <span class="pl-bandt">Heute / morgen</span>
+          <span class="t-small t-muted">fällig in den nächsten 48 h</span>
+        </div>
+        <div class="rk-col" style="gap:6px" id="listYellow"></div>
+      </section>
+
+      <section id="secGreen">
+        <div class="pl-bandhead">
+          <span class="pl-bandn t-faint" id="nGreen">8</span>
+          <span class="pl-bandt t-muted">Im Plan</span>
+          <span class="t-small t-muted">nach Phase · Klick öffnet das Projekt</span>
+          <span class="rk-spacer"></span>
+          <button class="rk-btn rk-btn--sm" id="togglePlan">einzeln zeigen</button>
+        </div>
+        <div id="listGreenGrouped"></div>
+        <div class="rk-col" style="gap:6px" id="listGreenFlat" hidden></div>
+      </section>
+    </main>
+  </div>
 </div>
 
-<div class="scrim" id="scrim" onclick="closeDrawer()"></div>
-<div class="drawer" id="drawer" aria-hidden="true"></div>
+
+<div class="screen rk-screen" id="scrDetail" hidden><div class="sz-panel" id="szPanel"></div></div>
+
+<div class="screen rk-screen" id="scrEinstieg">
+
+  <div class="rk-header">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
+    <span class="rk-header__rule"></span>
+    <span class="rk-header__brand">REAKTOR</span>
+    <span class="t-label">Anfragen · Projekte · Planung</span>
+    <nav class="rx-nav">
+      <button class="rk-navpill is-active" type="button">Erfassen</button>
+      <button class="rk-navpill">Mein Tag</button>
+      <button class="rk-navpill" type="button" onclick="zeigeListe()">Alle Projekte</button>
+      <button class="rk-navpill">Ressourcen</button>
+      <span class="rk-header__rule" style="margin:0 4px"></span>
+      <button class="rk-navpill">KALLE-KULATOR ↗</button>
+    </nav>
+    <span class="rk-spacer"></span>
+    <span class="rk-live"><span class="rk-live__dot"></span>Monday · Ordner · bereit</span>
+  </div>
+
+  <div class="rx-page">
+
+    <div class="rx-top">
+      <div>
+        <div class="rx-eyebrow">Schritt 00 · bevor ein Projekt existiert</div>
+        <h1 class="rx-h1">Was liegt an,<br>Sven?</h1>
+      </div>
+      <div class="rx-kern">
+        <span class="rx-kern__dot"></span>
+        <span class="rx-kern__txt">Kern stabil · <b id="einstiegCount2">0</b> Anfragen warten auf Verkauf</span>
+      </div>
+    </div>
+
+    <div class="rx-ways">
+      <a class="rx-way rx-way--main" href="#" onclick="reaktorZeigeErfassen();return false;">
+        <span class="rx-way__kind">Hauptweg · 2 Schritte</span>
+        <span class="rx-way__t">Anfrage erfassen.</span>
+        <span class="rx-way__x">E-Mail hineinziehen, Kunde wird erkannt, Leistungsart wählen, ablegen. Ein Klick vergibt Projektnummer, legt Ordner und Monday-Eintrag an.</span>
+        <span class="rx-way__go">Kunde &amp; Anfrage → Ablage &amp; Übersicht
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </span>
+      </a>
+
+      <a class="rx-way rx-way--side" href="#" onclick="rxNurKalkulieren();return false;">
+        <span class="rx-way__kind">Nebenweg · ohne Projektnummer</span>
+        <span class="rx-way__t">Nur kalkulieren.</span>
+        <span class="rx-way__x">Für Ausschreibungen und Grossprojekte am normalen Ablauf vorbei. Verbrennt keine Projektnummer, legt nichts ab.</span>
+        <span class="rx-way__go">Rechner öffnen →</span>
+      </a>
+    </div>
+
+    <div>
+      <div class="rx-listhead">
+        <span style="font:900 22px/1 var(--font-ui)" id="einstiegCount">0</span>
+        <span style="font:800 12px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase">Erfasst · unbearbeitet</span>
+        <span class="t-small t-muted">kommt später: Verkauf öffnet und kalkuliert im Rechner</span>
+      </div>
+
+      <div class="rk-col" style="gap:6px" id="einstiegListe"></div>
+    </div>
+    </div>
+
+  </div>
+</div>
+
+
+<div class="screen rk-screen" id="scrErfassen" hidden>
+
+  <div class="rk-header">
+    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
+    <span class="rk-header__rule"></span>
+    <span class="rk-header__brand">REAKTOR</span>
+    <span class="t-label">Anfragen · Projekte · Planung</span>
+    <span class="rk-spacer"></span>
+    <div class="rx-steps">
+      <button class="rx-step is-current" data-step="1"><span class="rx-step__n">1</span>Kunde &amp; Anfrage</button>
+      <span class="rx-steps__line"></span>
+      <button class="rx-step" data-step="2"><span class="rx-step__n">2</span>Ablage &amp; Übersicht</button>
+    </div>
+    <span class="rk-header__rule"></span>
+    <a href="#" onclick="reaktorZeigeEinstieg();return false;" style="font:600 12px/1 var(--font-ui);color:var(--tx2)">Abbrechen</a>
+  </div>
+
+  <!-- ═══ Ansicht 1 · Kunde & Anfrage ═══════════════════════════ -->
+  <div class="rx-view" id="v1">
+    <div class="rk-col" style="gap:10px">
+      <div>
+        <div class="rx-eyebrow">Schritt 1 von 2 · Backoffice · jetzt</div>
+        <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
+      </div>
+
+      <button class="rx-drop" id="drop">
+        <span class="rx-drop__icon">
+          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        </span>
+        <span style="min-width:0">
+          <span class="rx-drop__k">Der schnellste Weg</span>
+          <span class="rx-drop__t">E-Mail der Anfrage aus Outlook hierher ziehen.</span>
+          <span class="rx-drop__x">.msg oder .eml · Kontakt, Firma, Betreff und Anhänge werden automatisch erkannt und unten ausgefüllt. Bestandskunden werden abgeglichen.</span>
+        </span>
+        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none">
+          <span style="padding:8px 12px;background:#111;color:#fff;font:700 12px/1 var(--font-ui)">Loslassen zum Einlesen</span>
+          <span style="font:500 11px/1.3 var(--font-ui);color:var(--tx3);text-align:right">kein Mail? → telefonische Anfrage<br>unten im Kurzbeschrieb</span>
+        </span>
+        <span class="rx-corner rx-corner--tl"></span><span class="rx-corner rx-corner--tr"></span>
+        <span class="rx-corner rx-corner--bl"></span><span class="rx-corner rx-corner--br"></span>
+      </button>
+
+      <div class="rx-mailrow" id="mailrow" hidden>
+        <span class="rx-file" style="background:var(--bg4);color:var(--tx)" id="mailTag">MSG</span>
+        <div style="flex:1;min-width:0">
+          <div class="ell" style="font:700 13px/1.2 var(--font-ui)" id="mailName">–</div>
+          <div style="font:400 11.5px/1.3 var(--font-ui);color:var(--tx2);margin-top:3px">Kontakt bitte unten manuell eintragen — automatische Erkennung aus der E-Mail folgt später</div>
+        </div>
+        <button class="rk-btn rk-btn--sm" id="mailDel">Entfernen</button>
+      </div>
+
+      <div class="rx-box" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px">
+        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between">
+          <span class="t-label">Kontakt · aus E-Mail erkannt</span>
+          <span class="t-label" id="neukunde" hidden style="padding:3px 7px;background:var(--accent-dim);border:1px solid var(--accent-line);color:var(--tx);letter-spacing:.08em">Neukunde · wird angelegt</span>
+        </div>
+        <label><div class="rx-lbl">Firma</div><input class="rk-input" id="fFirma" placeholder="Firma · Abgleich mit Bestandskunden beim Tippen"></label>
+        <label><div class="rx-lbl">Kundennummer</div><input class="rk-input" id="fKdNr" placeholder="wird bei Treffer übernommen"></label>
+        <label><div class="rx-lbl">Ansprechperson</div><input class="rk-input" id="fKontakt"></label>
+        <label><div class="rx-lbl">E-Mail · Telefon</div><input class="rk-input" id="fMail"></label>
+      </div>
+
+      <div class="rx-box rk-col" style="gap:12px">
+        <label><div class="rx-lbl">Betreff · wird Projektbezeichnung</div>
+          <input class="rk-input" id="fBetreff" placeholder="z. B. Innensignaletik Neubau"></label>
+        <div>
+          <div class="rx-lbl" style="margin-bottom:8px">Leistungsart</div>
+          <div class="rk-wrap" id="arten"><!-- JS --></div>
+        </div>
+        <label id="kurzWrap"><div class="rx-lbl">Kurzbeschrieb · bei telefonischer Anfrage (wird Monday-Kommentar)</div>
+          <textarea class="rk-textarea" id="fKurz" rows="3" placeholder="Was will der Kunde? Menge, Ort, Termin …"></textarea></label>
+      </div>
+    </div>
+
+    <aside class="rx-side">
+      <div class="rx-box">
+        <div class="t-label" style="margin-bottom:10px">Anhänge aus der E-Mail</div>
+        <div id="attEmpty" class="t-body t-faint">Erscheinen hier, sobald eine E-Mail hineingezogen ist. Zielordner werden in Schritt 2 gewählt.</div>
+        <div id="attList" hidden></div>
+      </div>
+
+      <div class="rx-dark">
+        <div class="rx-dark__lbl">Kommt später · Verkauf</div>
+        <div class="rx-dark__x">Kalkulieren und Offerte erstellen passiert nicht hier. Nach dem Erfassen liegt die Anfrage unter «Aufträge» als unbearbeitet und im Cockpit in der Phase Anfrage.</div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+        <button class="rk-btn" id="go2" style="justify-content:center;padding:12px 16px;font:700 13.5px/1 var(--font-ui)">
+          Weiter · Ablage &amp; Übersicht
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+        </button>
+        <span class="t-small t-faint" style="text-align:center" id="go2hint"></span>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═══ Ansicht 2 · Ablage & Übersicht ════════════════════════ -->
+  <div class="rx-view" id="v2" hidden>
+    <div class="rk-col" style="gap:10px">
+      <div>
+        <div class="rx-eyebrow">Schritt 2 von 2 · Backoffice · jetzt</div>
+        <h1 class="rx-h1">Ablage &amp; Übersicht.</h1>
+      </div>
+
+      <div class="rx-box rk-col" style="gap:12px">
+        <div class="t-label">Ablageort</div>
+        <div class="rx-place">
+          <button data-place="Firma"><b>Firmenkunde</b><span>Ordner unter dem Kunden · Rechnungsadresse = Firma</span></button>
+          <button data-place="Objekt" class="is-on"><b>Objekt</b><span>Eigene Objektadresse · z. B. Neubau, Filiale, Liegenschaft</span></button>
+        </div>
+        <div id="objFelder" style="display:grid;grid-template-columns:2fr 1fr;gap:10px 16px;padding-top:6px;border-top:1px solid var(--bd)">
+          <label><div class="rx-lbl">Objekt · Strasse</div><input class="rk-input" id="oStrasse" placeholder="z. B. Neubau, Baselstrasse 44"></label>
+          <label><div class="rx-lbl">PLZ Ort</div><input class="rk-input" id="oOrt" placeholder="4125 Riehen"></label>
+          <div style="grid-column:1/-1">
+            <div class="rx-lbl">Adresszusätze · optional</div>
+            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
+              <input class="rk-input" id="oAbteilung" placeholder="Abteilung">
+              <input class="rk-input" id="oZuHd" placeholder="z. Hd.">
+              <input class="rk-input" id="oGebaeude" placeholder="Gebäude">
+              <input class="rk-input" id="oKostenstelle" placeholder="Kostenstelle">
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="rx-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+          <span class="t-label">Anhänge · Zielordner pro Datei</span>
+          <span class="t-small t-faint">E-Mail selbst → Korrespondenz</span>
+        </div>
+        <div id="attFolders"><!-- JS --></div>
+        <div class="rk-drop" style="margin-top:10px;min-height:44px;border-width:2px">Weitere Dateien hierher ziehen</div>
+      </div>
+    </div>
+
+    <aside class="rx-side">
+      <div class="rx-box rk-col" style="gap:8px">
+        <div class="t-label">Übersicht · vor dem Erfassen prüfen</div>
+        <div class="rx-kv">
+          <span>Kunde</span><span style="font-weight:600" id="sFirma">–</span>
+          <span>Kontakt</span><span id="sKontakt">–</span>
+          <span>Betreff</span><span style="font-weight:600" id="sBetreff">–</span>
+          <span>Leistungsart</span><span id="sArt">–</span>
+          <span>Ablage</span><span id="sAblage">–</span>
+          <span>Anhänge</span><span>3 Dateien + E-Mail</span>
+        </div>
+      </div>
+
+      <div class="rx-box">
+        <div class="t-label" style="margin-bottom:8px">«Anfrage erfassen» macht automatisch</div>
+        <div class="rk-col" style="gap:5px">
+          <div class="rx-auto"><i></i><span>Projektnummer vergeben (26xxxx)</span></div>
+          <div class="rx-auto"><i></i><span>Projektordner anlegen, Anhänge ablegen</span></div>
+          <div class="rx-auto"><i></i><span>Monday-Eintrag in Phase Anfrage, Kurzbeschrieb als Kommentar</span></div>
+          <div class="rx-auto"><i></i><span>Subelement «Offerte erstellen», Frist +3 Werktage</span></div>
+          <div class="rx-auto"><i></i><span>Unter «Aufträge» als unbearbeitet</span></div>
+        </div>
+      </div>
+
+      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
+        <button class="rk-btn rk-btn--primary" id="submit" style="justify-content:center;padding:12px 16px;font:700 13.5px/1 var(--font-ui)">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+          Anfrage erfassen
+        </button>
+        <button class="rk-btn" id="back1" style="border:none;color:var(--tx3);justify-content:center;font:600 12px/1 var(--font-ui)">← zurück zu Kunde &amp; Anfrage</button>
+      </div>
+    </aside>
+  </div>
+
+  <!-- ═══ Ansicht 3 · Kettenreaktion ════════════════════════════ -->
+  <div class="rx-run" id="v3" hidden>
+    <div class="rx-run__inner">
+      <div style="text-align:center">
+        <div class="rx-eyebrow">REAKTOR · <span id="progLabel">Schritt 1 von 5</span></div>
+        <h1 style="margin:10px 0 0;font:900 34px/1.05 var(--font-ui);letter-spacing:-.02em" id="progTitle">Anfrage wird erfasst …</h1>
+      </div>
+
+      <div class="rx-bar"><div class="rx-bar__fill" id="progBar"></div></div>
+
+      <div class="rk-col" style="gap:6px" id="chain"><!-- JS --></div>
+
+      <div id="running" style="display:flex;justify-content:center;align-items:center">
+        <span class="t-body t-muted" style="font-style:italic" id="quip"></span>
+      </div>
+
+      <div id="done" hidden>
+        <div class="rx-hand">
+          <div>
+            <div style="font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--y)">Übergabepunkt</div>
+            <div style="font:800 15px/1.3 var(--font-ui);margin-top:6px">26-0449 ist jetzt im Cockpit sichtbar – Phase Anfrage, unbesetzt.</div>
+          </div>
+          <button class="rk-btn rk-btn--primary" style="white-space:nowrap" onclick="rxOeffneProjekt(rxErgebnis.itemId)">Im Cockpit öffnen →</button>
+        </div>
+        <div style="display:flex;justify-content:center;gap:16px;margin-top:16px">
+          <a href="#" onclick="reaktorZeigeErfassen();return false;" style="font:600 12.5px/1 var(--font-ui);color:var(--tx2)">Nächste Anfrage erfassen</a>
+          <button class="rk-btn rk-btn--sm" id="reset" style="border:none;color:var(--tx3)">Schliessen</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+
+</div>
+
 <div class="mscrim" id="mscrim" onclick="if(event.target===this)closeMsg()"><div class="mbox" id="mbox"></div></div>
 <div id="toast"></div>
 
@@ -695,12 +1447,12 @@ async function loadLeads(){
       (g.items_page?.items||[]).forEach(it=> LEADS.push(mapItem(it, phase)));
     });
     setConn(true);
-    document.getElementById('filters').style.display='flex';
-    buildPLFilter();
+    plBuildFilter();
     render();
   }catch(e){
     setConn(false,e.message);
-    document.getElementById('overview').innerHTML=`<div class="center"><h2>Konnte Anfragen nicht laden</h2><p>${esc(e.message)}</p><p style="margin-top:10px">Prüfe den Monday-Token oder ob der Zugriff via Server nötig ist.</p><button class="btn pri" style="margin-top:14px" onclick="showTokenSetup()">Token neu eingeben</button></div>`;
+    const ov=document.getElementById('tokenOverlay'); ov.hidden=false;
+    ov.innerHTML=`<div class="center" style="background:#fff;padding:28px 30px;max-width:440px;border:1px solid #D6D5CD"><h2>Konnte Anfragen nicht laden</h2><p>${esc(e.message)}</p><p style="margin-top:10px">Prüfe den Monday-Token oder ob der Zugriff via Server nötig ist.</p><button class="btn pri" style="margin-top:14px" onclick="document.getElementById('tokenOverlay').hidden=true;showTokenSetup()">Token neu eingeben</button></div>`;
   }
 }
 function cvMap(it){ const m={}; (it.column_values||[]).forEach(c=>m[c.id]=c); return m; }
@@ -1242,16 +1994,16 @@ function closeMsg(){ document.getElementById('mscrim').classList.remove('on'); }
 
 // ═══ Token-Setup ═══
 function showTokenSetup(){
-  document.getElementById('filters').style.display='none';
-  document.getElementById('overview').innerHTML=`<div class="center">
+  const ov=document.getElementById('tokenOverlay'); ov.hidden=false;
+  ov.innerHTML=`<div class="center" style="background:#fff;padding:28px 30px;max-width:420px;border:1px solid #D6D5CD">
     <h2>Monday-Token hinterlegen</h2>
     <p>Einmalig — wird lokal im Browser gespeichert (gleicher Schlüssel wie KALLE). Danach lädt das Cockpit die Anfragen live.</p>
     <input id="tokInput" type="password" placeholder="Monday API-Token">
     <button class="btn pri" onclick="saveToken()">Verbinden</button>
   </div>`;
 }
-function saveToken(){ const v=(document.getElementById('tokInput').value||'').trim(); if(!v){ toast('Hinweis','Bitte Token eingeben.'); return; } localStorage.setItem('kalle_monday_token',v); document.getElementById('overview').innerHTML='<div class="spin"></div>'; boot(); }
-function reload(){ document.getElementById('overview').innerHTML='<div class="spin"></div>'; boot(); }
+function saveToken(){ const v=(document.getElementById('tokInput').value||'').trim(); if(!v){ toast('Hinweis','Bitte Token eingeben.'); return; } localStorage.setItem('kalle_monday_token',v); document.getElementById('tokenOverlay').hidden=true; boot(); }
+function reload(){ boot(); }
 
 let tt=null;
 function toast(tag,msg,err){ const el=document.getElementById('toast'); el.className=err?'err':''; el.innerHTML=`<span class="tag">${esc(tag)}</span>${esc(msg)}`; el.classList.add('on'); clearTimeout(tt); tt=setTimeout(()=>el.classList.remove('on'),err?5000:3200); }
@@ -1261,274 +2013,412 @@ if(embedded()){ const bA=document.getElementById('btnAV'); if(bA) bA.style.displ
 boot();
 </script>
 
-<div class="rk-scope theme-light" id="erfassungOverlay" hidden>
 
-<div class="screen" id="scrEinstieg">
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Projektliste (Station 6a) — echte Daten statt Demo-Array.
+   Nutzt dieselbe LEADS-Liste, die auch bisher schon geladen wurde.
+   ═══════════════════════════════════════════════════════════════ */
 
-  <div class="rk-header">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
-    <span class="rk-header__rule"></span>
-    <span class="rk-header__brand">REAKTOR</span>
-    <span class="t-label">Anfragen · Projekte · Planung</span>
-    <nav class="rx-nav">
-      <button class="rx-pill is-active" type="button">Erfassen</button>
-      <button class="rx-pill" type="button" onclick="rxSchliessenUndZurueck()">Alle Projekte</button>
-    </nav>
-    <span class="rk-spacer"></span>
-    <span class="rk-live"><span class="rk-live__dot"></span>Monday · live</span>
-  </div>
+var plState = { suche:'', phase:null, pl:null, planOffen:false };
+function $pl(id){ return document.getElementById(id); }
 
-  <div class="rx-page">
+function plBand(l){
+  if(l.ampel.c === '#df2f4a') return 'rot';
+  if(l.ampel.c === '#fdab3d') return 'gelb';
+  return 'gruen';
+}
+function plChipText(l){ return l.ampel.t || ''; }
 
-    <div class="rx-top">
-      <div>
-        <div class="rx-eyebrow">Schritt 00 · bevor ein Projekt existiert</div>
-        <h1 class="rx-h1">Was liegt an,<br>Sven?</h1>
-      </div>
-      <div class="rx-kern">
-        <span class="rx-kern__dot"></span>
-        <span class="rx-kern__txt">Kern stabil · <b id="einstiegCount2">0</b> Anfragen warten auf Verkauf</span>
-      </div>
-    </div>
+function plGefiltert(){
+  var q = plState.suche.toLowerCase();
+  return (LEADS||[]).filter(function(l){
+    if(plState.phase !== null && l.phase !== plState.phase) return false;
+    if(plState.pl && (l.bearbeiterList||[]).indexOf(plState.pl) === -1) return false;
+    if(q && ((l.kunde||'')+' '+l.nr+' '+(l.nowStepLabel||'')).toLowerCase().indexOf(q) < 0) return false;
+    return true;
+  });
+}
 
-    <div class="rx-ways">
-      <a class="rx-way rx-way--main" href="#" onclick="reaktorZeigeErfassen();return false;">
-        <span class="rx-way__kind">Hauptweg · 2 Schritte</span>
-        <span class="rx-way__t">Anfrage erfassen.</span>
-        <span class="rx-way__x">E-Mail hineinziehen, Kunde wird erkannt, Leistungsart wählen, ablegen. Ein Klick vergibt Projektnummer, legt Ordner und Monday-Eintrag an.</span>
-        <span class="rx-way__go">Kunde &amp; Anfrage → Ablage &amp; Übersicht
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </span>
-      </a>
+function plAvatar(l){
+  var namen = l.bearbeiterList||[];
+  if(!namen.length) return '<span class="rk-avatar rk-avatar--initials pl-row__img" title="ohne Bearbeiter">?</span>';
+  return '<span class="rk-avatar rk-avatar--initials pl-row__img" title="'+esc(namen.join(', '))+'">'+esc(initials(namen[0]))+'</span>';
+}
 
-      <a class="rx-way rx-way--side" href="#" onclick="rxNurKalkulieren();return false;">
-        <span class="rx-way__kind">Nebenweg · ohne Projektnummer</span>
-        <span class="rx-way__t">Nur kalkulieren.</span>
-        <span class="rx-way__x">Für Ausschreibungen und Grossprojekte am normalen Ablauf vorbei. Verbrennt keine Projektnummer, legt nichts ab.</span>
-        <span class="rx-way__go">Rechner öffnen →</span>
-      </a>
-    </div>
+function plZeile(l, art){
+  var rechts = art === 'gruen'
+    ? '<span class="pl-row__phase">'+esc(l.phase)+'</span>'
+    : '<span class="pl-row__chip pl-row__chip--'+(art==='rot'?'red':'yellow')+'">'+esc(plChipText(l))+'</span>';
+  return '<a class="pl-row'+(art==='gruen'?' pl-row--plan':'')+'" href="#" onclick="oeffneProjekt(\''+l.id+'\');return false;">'+
+    '<span class="pl-row__k"><span class="pl-row__kunde ell">'+esc(l.kunde||'—')+'</span>'+
+    '<span class="pl-row__nr">'+esc(l.nr)+'</span></span>'+
+    '<span class="pl-row__step ell">'+esc(l.nowStepLabel||l.status||'')+'</span>'+rechts+
+    plAvatar(l)+
+    '</a>';
+}
 
-    <div>
-      <div class="rx-listhead">
-        <span style="font:900 22px/1 var(--font-ui)" id="einstiegCount">0</span>
-        <span style="font:800 12px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase">Erfasst · unbearbeitet</span>
-        <span class="t-small t-muted">kommt später: Verkauf öffnet und kalkuliert im Rechner</span>
-      </div>
+function plBuildFilter(){
+  var ph = $pl('phasen'); if(!ph) return; ph.innerHTML = '';
+  var alle = document.createElement('button');
+  alle.className = 'pl-filter'; alle.dataset.phase = '';
+  alle.innerHTML = '<span>Alle Phasen</span><span class="pl-filter__n">'+(LEADS||[]).length+'</span>';
+  ph.appendChild(alle);
+  PHASE_ORDER.forEach(function(name){
+    var n = (LEADS||[]).filter(function(l){ return l.phase===name; }).length;
+    var b = document.createElement('button');
+    b.className = 'pl-filter'; b.dataset.phase = name;
+    b.innerHTML = '<span>'+name+'</span><span class="pl-filter__n">'+n+'</span>';
+    ph.appendChild(b);
+  });
+  ph.onclick = function(e){
+    var b = e.target.closest('.pl-filter'); if(!b) return;
+    var v = b.dataset.phase;
+    plState.phase = (v === '' || plState.phase === v) ? null : v;
+    plRender();
+  };
 
-      <div class="rk-col" style="gap:6px" id="einstiegListe"></div>
-    </div>
-    </div>
+  var plBox = $pl('pls'); if(!plBox) return; plBox.innerHTML = '';
+  var namen = [...new Set((LEADS||[]).flatMap(function(l){ return l.bearbeiterList||[]; }))].sort();
+  namen.forEach(function(name){
+    var n = (LEADS||[]).filter(function(l){ return (l.bearbeiterList||[]).indexOf(name) !== -1; }).length;
+    var b = document.createElement('button');
+    b.className = 'pl-filter pl-filter--pl'; b.dataset.pl = name;
+    b.innerHTML = '<span class="pl-ava"><span class="rk-avatar rk-avatar--initials" style="width:22px;height:22px;font-size:9px">'+esc(initials(name))+'</span></span>'+
+                  '<span style="flex:1">'+esc(name)+'</span>'+
+                  '<span class="pl-filter__n">'+n+'</span>';
+    plBox.appendChild(b);
+  });
+  plBox.onclick = function(e){
+    var b = e.target.closest('.pl-filter'); if(!b) return;
+    plState.pl = plState.pl === b.dataset.pl ? null : b.dataset.pl;
+    plRender();
+  };
+}
 
-  </div>
-</div>
+function plRender(){
+  var liste = plGefiltert();
+  var rot   = liste.filter(function(l){ return plBand(l)==='rot'; });
+  var gelb  = liste.filter(function(l){ return plBand(l)==='gelb'; });
+  var gruen = liste.filter(function(l){ return plBand(l)==='gruen'; });
+
+  if($pl('sichtbar')) $pl('sichtbar').textContent = liste.length;
+  if($pl('nRed')) $pl('nRed').textContent = rot.length;
+  if($pl('nYellow')) $pl('nYellow').textContent = gelb.length;
+  if($pl('nGreen')) $pl('nGreen').textContent = gruen.length;
+
+  if($pl('secRed')) $pl('secRed').hidden = rot.length===0;
+  if($pl('secYellow')) $pl('secYellow').hidden = gelb.length===0;
+  if($pl('secGreen')) $pl('secGreen').hidden = gruen.length===0;
+
+  if($pl('listRed')) $pl('listRed').innerHTML = rot.map(function(l){ return plZeile(l,'rot'); }).join('');
+  if($pl('listYellow')) $pl('listYellow').innerHTML = gelb.map(function(l){ return plZeile(l,'gelb'); }).join('');
+  if($pl('listGreenFlat')) $pl('listGreenFlat').innerHTML = gruen.map(function(l){ return plZeile(l,'gruen'); }).join('');
+
+  var html = '';
+  PHASE_ORDER.forEach(function(name){
+    var items = gruen.filter(function(l){ return l.phase===name; });
+    if(!items.length) return;
+    html += '<div class="pl-group"><span style="display:flex;align-items:baseline;gap:8px">'+
+      '<span style="font:600 12.5px/1 var(--font-ui)">'+name+'</span>'+
+      '<span style="font:600 11px/1 var(--font-mono);color:var(--tx3)">'+items.length+'</span></span>'+
+      '<div class="rk-wrap">'+items.map(function(l){
+        return '<a class="pl-tag" href="#" onclick="oeffneProjekt(\''+l.id+'\');return false;" title="'+esc(l.nr)+' · '+esc(l.nowStepLabel||'')+'">'+esc(l.kunde||l.nr)+'</a>';
+      }).join('')+'</div></div>';
+  });
+  if($pl('listGreenGrouped')) $pl('listGreenGrouped').innerHTML = html;
+
+  if($pl('listGreenGrouped')) $pl('listGreenGrouped').hidden = plState.planOffen;
+  if($pl('listGreenFlat')) $pl('listGreenFlat').hidden = !plState.planOffen;
+  if($pl('togglePlan')) $pl('togglePlan').textContent = plState.planOffen ? 'nach Phase gruppieren' : 'einzeln zeigen';
+
+  Array.prototype.forEach.call(document.querySelectorAll('#phasen .pl-filter'), function(b){
+    b.classList.toggle('is-on', b.dataset.phase !== '' && b.dataset.phase === plState.phase);
+  });
+  Array.prototype.forEach.call(document.querySelectorAll('#pls .pl-filter'), function(b){
+    b.classList.toggle('is-on', b.dataset.pl === plState.pl);
+  });
+}
+
+function plInit(){
+  plBuildFilter();
+  plRender();
+  var s = $pl('suche'); if(s) s.addEventListener('input', function(){ plState.suche = this.value; plRender(); });
+  var t = $pl('togglePlan'); if(t) t.addEventListener('click', function(){ plState.planOffen = !plState.planOffen; plRender(); });
+}
+
+</script>
+<script>
+/* ═══════════════════════════════════════════════════════════════
+   Schaltzentrale (Station 6b) — echte Daten statt Demo-Array.
+   Baut das komplette Panel bei jedem Öffnen aus dem echten Lead neu.
+   ═══════════════════════════════════════════════════════════════ */
+
+var szOffen = -1;   // welcher Ablaufschritt ist aufgeklappt
+var szTab = 'ablage';
+var szCurId = null;
+
+function oeffneProjekt(id){
+  szOffen = -1; szTab = 'ablage';
+  document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
+  document.getElementById('scrDetail').hidden = false;
+  openDrawer(id);
+  refreshItem(id).then(function(){ if(szCurId===id) openDrawer(id); }).catch(function(){});
+}
+function zeigeListe(){
+  document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
+  document.getElementById('scrListe').hidden = false;
+  plRender();
+}
+// Ueberschreibt die alte, modale openDrawer()-Funktion: rendert jetzt die volle
+// Schaltzentrale-Seite. Alle bestehenden wt*-Funktionen rufen am Ende weiterhin
+// openDrawer(id) auf, um den aktuellen Stand neu anzuzeigen -- das greift jetzt
+// automatisch hier statt in der alten Schublade.
+function openDrawer(id){ szCurId = id; curId = id; szRenderShell(); }
+
+function szAmpelBadge(l){
+  return esc(l.phase)+' · '+esc(l.nowStepLabel||l.status||'');
+}
+
+function szFlowHTML(l){
+  var steps = l.ablauf||[];
+  var fertigCount = steps.filter(function(s){return s.done;}).length;
+  var html = steps.map(function(s,i){
+    var fertig = s.cls==='done', current = s.cls==='now';
+    var avatar = '<span class="sz-who">'+esc((s.who||s.name||'W').charAt(0).toUpperCase())+'</span>';
+    var kommentare = (s.updates&&s.updates.length) ? '<span class="t-small t-faint">'+s.updates.length+(s.updates.length===1?' Notiz':' Notizen')+'</span>' : '';
+    var noten = (s.updates||[]).map(function(c){
+      var wer=(c.creator||{}).name||'—';
+      return '<div class="sz-note"><span class="rk-avatar rk-avatar--initials" style="width:26px;height:26px;font-size:10px">'+esc(initials(wer))+'</span>'+
+        '<div style="min-width:0"><div class="t-small t-faint"><b style="font-weight:600;color:var(--tx)">'+esc(wer)+'</b> · '+esc(fmtDate(c.created_at))+'</div>'+
+        '<div class="t-body" style="margin-top:4px">'+esc(c.text_body||'')+'</div></div></div>';
+    }).join('');
+    var detail =
+      '<div class="sz-detail" hidden>'+
+        '<div class="sz-facts">'+
+          '<div class="sz-fact"><span class="t-label" style="letter-spacing:.08em">Status</span><b>'+esc(s.d||'—')+'</b></div>'+
+          (s.lieferant?('<div class="sz-fact"><span class="t-label" style="letter-spacing:.08em">Lieferant</span><b>'+esc(s.lieferant)+'</b></div>'):'')+
+        '</div>'+
+        (noten?('<div class="rk-col" style="gap:8px;padding:10px 12px;background:var(--bg2);border:1px solid var(--bd)">'+noten+'</div>'):'')+
+        '<div style="display:flex;gap:8px;align-items:center">'+
+          '<input class="rk-input" id="szNote'+i+'" placeholder="Notiz zu diesem Schritt …" style="padding:7px 10px">'+
+          '<button class="rk-btn rk-btn--sm" onclick="szSendNote(\''+s.id+'\','+i+')">Senden</button></div>'+
+        (s.extern?('<div style="display:flex;gap:8px"><button class="rk-btn rk-btn--dark rk-btn--sm" onclick="lieferscheinOeffnen(\''+szCurId+'\',\''+l.nr+'\',\''+esc(l.betreff||l.betreffRaw||'').replace(/'/g,"")+'\',\''+s.id+'\',\''+esc(s.lieferant||'').replace(/'/g,"")+'\')">Lieferschein erstellen</button></div>'):'')+
+      '</div>';
+    return '<div class="sz-step'+(fertig?' is-done':'')+(current?' is-current':'')+'" data-i="'+i+'">'+
+      '<div class="sz-rail"><span class="sz-mark">'+(fertig?'✓':'')+'</span>'+(i<steps.length-1?'<span class="sz-line"></span>':'')+'</div>'+
+      '<div class="sz-card">'+
+        '<button class="sz-btn" onclick="szToggleStep('+i+')">'+
+          '<span class="sz-name">'+esc(s.name)+'</span>'+
+          kommentare+
+          '<span class="rk-spacer"></span>'+
+          '<span class="sz-date">'+esc(s.d||'')+'</span>'+
+          avatar+
+          '<svg class="sz-chev" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="6 9 12 15 18 9"/></svg>'+
+        '</button>'+detail+
+      '</div></div>';
+  }).join('');
+  return { html: html, fertigCount: fertigCount, total: steps.length };
+}
+
+function szToggleStep(i){ szOffen = (szOffen===i) ? -1 : i; szRenderFlowState(); }
+function szRenderFlowState(){
+  Array.prototype.forEach.call(document.querySelectorAll('.sz-step'), function(el){
+    var auf = Number(el.dataset.i) === szOffen;
+    el.classList.toggle('is-open', auf);
+    el.querySelector('.sz-detail').hidden = !auf;
+  });
+}
+async function szSendNote(subId, i){
+  var inp = document.getElementById('szNote'+i); var txt=(inp.value||'').trim();
+  if(!txt){ toast('Hinweis','Bitte Text eingeben.'); return; }
+  try{
+    await mFetch('mutation($b:String!){ create_update(item_id:'+subId+', body:$b){ id created_at } }', {b:txt});
+    var l=findLead(szCurId); var step=(l.ablauf||[]).find(function(s){return s.id===subId;});
+    if(step) step.updates.push({text_body:txt, created_at:new Date().toISOString(), creator:{name:'ich'}});
+    toast('Monday','Notiz gespeichert.');
+    szRenderShell();
+  }catch(e){ toast('Fehler', e.message, true); }
+}
+
+function szDocRow(f, sub){
+  var t = docType(f.name);
+  return '<div class="sz-file" onclick="szTogglePreview(\''+esc(f.public_url||'').replace(/'/g,"")+'\')" style="cursor:pointer">'+
+    '<span class="sz-file__tag" style="background:var(--bg4);color:var(--tx)">'+esc((f.file_extension||'DAT').toUpperCase().slice(0,4))+'</span>'+
+    '<div style="min-width:0;flex:1"><div class="ell" style="font:600 13px/1.2 var(--font-ui)">'+esc(f.name)+'</div>'+
+    '<div class="t-small t-faint" style="margin-top:3px">'+esc(t.label)+(sub?' · '+esc(sub):'')+'</div></div></div>';
+}
+function szTogglePreview(url){
+  if(!url) return;
+  window.open(url, '_blank');
+}
+
+function szBuildSide(l){
+  var unterl = (l.unterlagen||[]).map(function(f){ return szDocRow(f,''); }).join('');
+  var offerD = (l.offertdokumente||[]).map(function(f){ return szDocRow(f, f.subName); }).join('');
+  var dateien = (l.files||[]).map(function(f){ return szDocRow(f, f.src); }).join('');
+  var alle = unterl+offerD+dateien;
+  var ablageHTML =
+    '<div class="t-label" style="margin-bottom:8px">Unterlagen &amp; Dateien <span class="t-small t-faint">('+((l.unterlagen||[]).length+(l.offertdokumente||[]).length+(l.files||[]).length)+')</span></div>'+
+    '<div class="rk-col" style="gap:2px">'+(alle||'<div class="t-body t-faint">Keine Dateien am Projekt.</div>')+'</div>'+
+    '<div class="rk-drop" style="margin-top:10px;min-height:44px">Datei hierher ziehen (Ablage folgt — Reactor-Anbindung offen)</div>'+
+    (l.datenpfad?('<a href="#" onclick="openFolder(\''+l.id+'\');return false;" style="margin-top:auto;padding-top:10px;border-top:1px solid var(--bd);font:600 12px/1 var(--font-ui);color:var(--tx2)">'+esc(l.nr)+' im Explorer öffnen ↗</a>'):'');
+
+  var kundeHTML =
+    '<div><div style="font:800 16px/1.2 var(--font-ui);letter-spacing:-.01em">'+esc(l.kunde||'—')+'</div>'+
+    '<div class="sz-kv" style="margin-top:12px">'+
+      (l.kontakt?('<span>Kontakt</span><span>'+esc(l.kontakt)+'</span>'):'')+
+      (l.tel?('<span>Telefon</span><a href="tel:'+esc(l.tel.replace(/\s/g,''))+'" style="color:var(--tx);font-weight:600">'+esc(l.tel)+'</a>'):'')+
+      (l.email?('<span>E-Mail</span><a href="mailto:'+esc(l.email)+'" style="color:var(--tx);font-weight:600" class="ell">'+esc(l.email)+'</a>'):'')+
+    '</div></div>';
+  var mapQAddr = l.standort || [l.adr.str,[l.adr.plz,l.adr.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
+  if(mapQAddr){
+    var mapQ = encodeURIComponent(mapQAddr);
+    kundeHTML += '<div style="border-top:1px solid var(--bd);padding-top:14px">'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">'+
+      '<span class="t-label">Montage · vor Ort</span>'+
+      '<a class="rk-btn rk-btn--sm" href="https://www.google.com/maps/search/?api=1&query='+mapQ+'" target="_blank" rel="noopener">Route</a></div>'+
+      '<div class="t-body">'+esc(mapQAddr)+'</div>';
+    if(l.montName || l.montTel){
+      kundeHTML += '<div class="rk-row" style="gap:12px;margin-top:12px">'+
+        '<span class="rk-avatar rk-avatar--initials" style="width:32px;height:32px">'+esc(initials(l.montName||'?'))+'</span>'+
+        '<div><div style="font:700 13px/1.2 var(--font-ui)">'+esc(l.montName||'—')+'</div>'+
+        '<div class="t-small t-muted" style="margin-top:3px">'+esc(l.montTel||'')+'</div></div></div>';
+    }
+    if(l.montZeit){
+      kundeHTML += '<div style="margin-top:12px;padding:10px 12px;background:var(--accent-dim);border:1px solid var(--accent-line);display:flex;justify-content:space-between;align-items:center">'+
+        '<span class="t-label" style="letter-spacing:.08em;color:var(--tx2)">Zeit vor Ort</span>'+
+        '<span style="font:800 14px/1 var(--font-ui)">'+esc(l.montZeit)+'</span></div>';
+    }
+    kundeHTML += '</div>';
+  }
+
+  var updates = (l.updates||[]);
+  var aktivHTML = updates.length ? updates.map(function(c){
+    var wer=(c.creator||{}).name||'—';
+    return '<div class="sz-act"><span>'+esc(fmtDate(c.created_at))+'</span><div><b style="font-weight:600">'+esc(wer)+'</b> · '+esc((c.text_body||'').slice(0,140))+'</div></div>';
+  }).join('') : '<div class="t-body t-faint">Noch keine Kommentare.</div>';
+  aktivHTML += '<div style="display:flex;gap:8px;align-items:flex-end;margin-top:14px">'+
+    '<textarea class="rk-textarea" id="newc" rows="2" placeholder="Kommentar zum Projekt … (wird als Monday-Update ans Item geschrieben)" style="min-height:60px"></textarea>'+
+    '<button class="rk-btn rk-btn--sm" onclick="szSendComment()">Senden</button></div>';
+
+  return { ablage: ablageHTML, kunde: kundeHTML, aktiv: aktivHTML };
+}
+function szSendComment(){ wtComment(szCurId); }
+
+function szRenderShell(){
+  var l = findLead(szCurId); if(!l) return;
+  var panel = document.getElementById('szPanel');
+  var flow = szFlowHTML(l);
+  var side = szBuildSide(l);
+  var bearbOpts = USERS.map(function(u){ return '<option value="'+u.id+'">'+esc(u.name)+'</option>'; }).join('');
+
+  panel.innerHTML =
+    '<div class="sz-head">'+
+      '<div style="min-width:0;flex:1">'+
+        '<div class="rk-meta"><span>'+esc(l.nr)+'</span><span class="rk-meta__rule"></span>'+
+        '<span class="rk-meta__mode">'+esc(l.phase)+' · Schritt '+(flow.fertigCount+1)+' von '+flow.total+'</span></div>'+
+        '<h2 style="margin:6px 0 0;font:900 26px/1.05 var(--font-ui);letter-spacing:-.02em">'+esc(l.betreff||l.betreffRaw||l.kunde)+'</h2>'+
+      '</div>'+
+      '<div class="rk-person"><span class="rk-avatar rk-avatar--initials">'+esc(initials((l.bearbeiterList||[])[0]||'?'))+'</span>'+
+        '<div><div class="t-label" style="letter-spacing:.08em">Projektleitung</div>'+
+        '<div style="font:600 13px/1 var(--font-ui);margin-top:4px">'+esc((l.bearbeiterList||[]).join(', ')||'—')+'</div></div></div>'+
+      '<span style="width:1px;height:28px;background:var(--bd)"></span>'+
+      '<a class="rk-btn rk-btn--sm" href="'+esc(l.url)+'" target="_blank" rel="noopener">in Monday</a>'+
+      '<button class="rk-btn rk-btn--icon" title="Schliessen" onclick="zeigeListe()">✕</button>'+
+    '</div>'+
+
+    '<div class="sz-now">'+
+      '<span class="sz-badge">'+szAmpelBadge(l)+'</span>'+
+      '<p id="szKi">wird geladen … <span class="t-faint" style="font-size:12px">KI-Stand</span></p>'+
+      '<div class="rk-row" style="gap:8px">'+
+        ((l.unterlagen||[]).some(function(f){return /offerte/i.test(f.name);}) || (l.offertdokumente||[]).length
+          ? '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szNachfassen()">Angebot nachfassen</button>' : '')+
+        (l.tel?('<a class="rk-btn rk-btn--sm" href="tel:'+esc(l.tel.replace(/\s/g,''))+'">Anrufen</a>'):'')+
+        '<button class="rk-btn rk-btn--sm" onclick="openFolder(\''+l.id+'\')">Ordner öffnen</button>'+
+      '</div>'+
+      '<div id="szNachfassBox"></div>'+
+    '</div>'+
+
+    '<div class="sz-cols">'+
+      '<div class="sz-flow">'+
+        '<div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:14px">'+
+          '<span class="t-label">Arbeitsablauf</span>'+
+          '<span class="t-body t-muted">'+flow.fertigCount+' von '+flow.total+' erledigt</span>'+
+        '</div>'+
+        '<div id="flow">'+flow.html+'</div>'+
+        '<div style="display:grid;grid-template-columns:minmax(0,1fr) 140px 130px auto;gap:10px;align-items:end;'+
+                    'margin-top:16px;padding-top:14px;border-top:1px solid var(--bd)">'+
+          '<input class="rk-input" id="nsText" placeholder="Nächsten Schritt terminieren …">'+
+          '<input class="rk-input" id="nsDate" type="date" value="'+todayISO()+'">'+
+          '<select class="rk-select" id="nsUser"><option value="">Bearbeiter …</option>'+bearbOpts+'</select>'+
+          '<button class="rk-btn" onclick="wtNextStep(\''+l.id+'\')">Terminieren</button>'+
+        '</div>'+
+      '</div>'+
+      '<div class="sz-side">'+
+        '<div class="sz-tabs">'+
+          '<button class="sz-tab'+(szTab==='ablage'?' is-active':'')+'" data-tab="ablage" onclick="szSetTab(\'ablage\')">Ablage</button>'+
+          '<button class="sz-tab'+(szTab==='kunde'?' is-active':'')+'" data-tab="kunde" onclick="szSetTab(\'kunde\')">Kunde</button>'+
+          '<button class="sz-tab'+(szTab==='aktiv'?' is-active':'')+'" data-tab="aktiv" onclick="szSetTab(\'aktiv\')">Aktivität</button>'+
+        '</div>'+
+        '<div class="sz-pane" data-pane="ablage"'+(szTab!=='ablage'?' hidden':'')+'>'+side.ablage+'</div>'+
+        '<div class="sz-pane" data-pane="kunde"'+(szTab!=='kunde'?' hidden':'')+'>'+side.kunde+'</div>'+
+        '<div class="sz-pane" data-pane="aktiv"'+(szTab!=='aktiv'?' hidden':'')+'>'+side.aktiv+'</div>'+
+      '</div>'+
+    '</div>';
+
+  szRenderFlowState();
+  szLoadKi(l);
+}
+function szSetTab(tab){
+  szTab = tab;
+  Array.prototype.forEach.call(document.querySelectorAll('.sz-tab'), function(t){ t.classList.toggle('is-active', t.dataset.tab===tab); });
+  Array.prototype.forEach.call(document.querySelectorAll('[data-pane]'), function(p){ p.hidden = p.dataset.pane !== tab; });
+}
+async function szLoadKi(l){
+  var box = document.getElementById('szKi'); if(!box) return;
+  if(!serverOk){ box.innerHTML = '<span style="font-style:italic">KI-Zusammenfassung braucht kalle-server (aktuell nicht erreichbar).</span>'; return; }
+  try{
+    var r = await fetch(serverUrl()+'/analyse/zusammenfassung?id='+encodeURIComponent(l.id));
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    var j = await r.json();
+    box.innerHTML = esc(j.text||'—')+' <span class="t-faint" style="font-size:12px">KI-Stand · jetzt</span>';
+  }catch(e){
+    box.innerHTML = '<span style="font-style:italic">Noch nicht verfügbar — Server-Route fehlt auf kalle-server noch.</span>';
+  }
+}
+async function szNachfassen(){
+  var box = document.getElementById('szNachfassBox');
+  box.innerHTML = '<p class="t-small t-faint" style="margin:8px 0 0">Entwurf wird erstellt …</p>';
+  try{
+    var r = await fetch(serverUrl()+'/nachfassen/entwurf?id='+encodeURIComponent(szCurId));
+    var j = await r.json();
+    if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    box.innerHTML = '<div style="margin-top:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--bd)">'+
+      '<div class="t-small t-faint">An: '+esc(j.empfaenger)+(j.anhangGefunden?' · Offerte-PDF wird angehängt':' · kein Anhang gefunden')+'</div>'+
+      '<div style="font:700 13px/1.3 var(--font-ui);margin-top:6px">'+esc(j.betreff)+'</div>'+
+      '<div class="t-body" style="margin-top:6px;white-space:pre-wrap">'+esc(j.text)+'</div>'+
+      '<div class="rk-row" style="gap:8px;margin-top:10px">'+
+        '<a class="rk-btn rk-btn--primary rk-btn--sm" href="grafemail:'+j.id+'">In Outlook öffnen</a>'+
+        '<button class="rk-btn rk-btn--sm" onclick="szNachfassenGesendet(\''+j.id+'\')">Gerade gesendet</button>'+
+      '</div></div>';
+  }catch(e){ box.innerHTML = '<p class="t-small" style="color:var(--danger);margin-top:8px">'+esc(e.message)+'</p>'; }
+}
+async function szNachfassenGesendet(draftId){
+  try{
+    var r = await fetch(serverUrl()+'/reply/'+draftId+'/gesendet', {method:'POST'});
+    if(!r.ok) throw new Error('HTTP '+r.status);
+    toast('Nachfassen','Erledigt — Subelement angelegt, Mail archiviert.');
+    refreshItem(szCurId).then(szRenderShell);
+  }catch(e){ toast('Fehler', e.message, true); }
+}
 
 
-<div class="screen" id="scrErfassen" hidden>
+// Ueberschreibt die alte Karten-/Kanban-Renderfunktion: die neue Projektliste (plRender)
+// uebernimmt das jetzt vollstaendig.
+function render(){ plRender(); }
 
-  <div class="rk-header">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg>
-    <span class="rk-header__rule"></span>
-    <span class="rk-header__brand">REAKTOR</span>
-    <span class="t-label">Anfragen · Projekte · Planung</span>
-    <span class="rk-spacer"></span>
-    <div class="rx-steps">
-      <button class="rx-step is-current" data-step="1"><span class="rx-step__n">1</span>Kunde &amp; Anfrage</button>
-      <span class="rx-steps__line"></span>
-      <button class="rx-step" data-step="2"><span class="rx-step__n">2</span>Ablage &amp; Übersicht</button>
-    </div>
-    <span class="rk-header__rule"></span>
-    <a href="#" onclick="reaktorZeigeEinstieg();return false;" style="font:600 12px/1 var(--font-ui);color:var(--tx2)">Abbrechen</a>
-  </div>
-
-  <!-- ═══ Ansicht 1 · Kunde & Anfrage ═══════════════════════════ -->
-  <div class="rx-view" id="v1">
-    <div class="rk-col" style="gap:10px">
-      <div>
-        <div class="rx-eyebrow">Schritt 1 von 2 · Backoffice · jetzt</div>
-        <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
-      </div>
-
-      <button class="rx-drop" id="drop">
-        <span class="rx-drop__icon">
-          <svg width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-        </span>
-        <span style="min-width:0">
-          <span class="rx-drop__k">Der schnellste Weg</span>
-          <span class="rx-drop__t">E-Mail der Anfrage aus Outlook hierher ziehen.</span>
-          <span class="rx-drop__x">.msg oder .eml · Kontakt, Firma, Betreff und Anhänge werden automatisch erkannt und unten ausgefüllt. Bestandskunden werden abgeglichen.</span>
-        </span>
-        <span style="display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none">
-          <span style="padding:8px 12px;background:#111;color:#fff;font:700 12px/1 var(--font-ui)">Loslassen zum Einlesen</span>
-          <span style="font:500 11px/1.3 var(--font-ui);color:var(--tx3);text-align:right">kein Mail? → telefonische Anfrage<br>unten im Kurzbeschrieb</span>
-        </span>
-        <span class="rx-corner rx-corner--tl"></span><span class="rx-corner rx-corner--tr"></span>
-        <span class="rx-corner rx-corner--bl"></span><span class="rx-corner rx-corner--br"></span>
-      </button>
-
-      <div class="rx-mailrow" id="mailrow" hidden>
-        <span class="rx-file" style="background:var(--bg4);color:var(--tx)" id="mailTag">MSG</span>
-        <div style="flex:1;min-width:0">
-          <div class="ell" style="font:700 13px/1.2 var(--font-ui)" id="mailName">–</div>
-          <div style="font:400 11.5px/1.3 var(--font-ui);color:var(--tx2);margin-top:3px" id="mailMeta">Kontakt bitte unten manuell eintragen — automatische Erkennung aus der E-Mail folgt später</div>
-        </div>
-        <button class="rk-btn rk-btn--sm" id="mailDel">Entfernen</button>
-      </div>
-
-      <div class="rx-box" style="display:grid;grid-template-columns:1fr 1fr;gap:12px 16px">
-        <div style="grid-column:1/-1;display:flex;align-items:center;justify-content:space-between">
-          <span class="t-label">Kontakt · aus E-Mail erkannt</span>
-          <span class="t-label" id="neukunde" hidden style="padding:3px 7px;background:var(--accent-dim);border:1px solid var(--accent-line);color:var(--tx);letter-spacing:.08em">Neukunde · wird angelegt</span>
-        </div>
-        <label><div class="rx-lbl">Firma</div><input class="rk-input" id="fFirma" placeholder="Firma · Abgleich mit Bestandskunden beim Tippen"></label>
-        <label><div class="rx-lbl">Kundennummer</div><input class="rk-input" id="fKdNr" placeholder="wird bei Treffer übernommen"></label>
-        <label><div class="rx-lbl">Ansprechperson</div><input class="rk-input" id="fKontakt"></label>
-        <label><div class="rx-lbl">E-Mail · Telefon</div><input class="rk-input" id="fMail"></label>
-      </div>
-
-      <div class="rx-box rk-col" style="gap:12px">
-        <label><div class="rx-lbl">Betreff · wird Projektbezeichnung</div>
-          <input class="rk-input" id="fBetreff" placeholder="z. B. Innensignaletik Neubau"></label>
-        <div>
-          <div class="rx-lbl" style="margin-bottom:8px">Leistungsart</div>
-          <div class="rk-wrap" id="arten"><!-- JS --></div>
-        </div>
-        <label id="kurzWrap"><div class="rx-lbl">Kurzbeschrieb · bei telefonischer Anfrage (wird Monday-Kommentar)</div>
-          <textarea class="rk-textarea" id="fKurz" rows="3" placeholder="Was will der Kunde? Menge, Ort, Termin …"></textarea></label>
-      </div>
-    </div>
-
-    <aside class="rx-side">
-      <div class="rx-box">
-        <div class="t-label" style="margin-bottom:10px">Anhänge aus der E-Mail</div>
-        <div id="attEmpty" class="t-body t-faint">Erscheinen hier, sobald eine E-Mail hineingezogen ist. Zielordner werden in Schritt 2 gewählt.</div>
-        <div id="attList" hidden></div>
-      </div>
-
-      <div class="rx-dark">
-        <div class="rx-dark__lbl">Kommt später · Verkauf</div>
-        <div class="rx-dark__x">Kalkulieren und Offerte erstellen passiert nicht hier. Nach dem Erfassen liegt die Anfrage unter «Aufträge» als unbearbeitet und im Cockpit in der Phase Anfrage.</div>
-      </div>
-
-      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
-        <button class="rk-btn" id="go2" style="justify-content:center;padding:12px 16px;font:700 13.5px/1 var(--font-ui)">
-          Weiter · Ablage &amp; Übersicht
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </button>
-        <span class="t-small t-faint" style="text-align:center" id="go2hint"></span>
-      </div>
-    </aside>
-  </div>
-
-  <!-- ═══ Ansicht 2 · Ablage & Übersicht ════════════════════════ -->
-  <div class="rx-view" id="v2" hidden>
-    <div class="rk-col" style="gap:10px">
-      <div>
-        <div class="rx-eyebrow">Schritt 2 von 2 · Backoffice · jetzt</div>
-        <h1 class="rx-h1">Ablage &amp; Übersicht.</h1>
-      </div>
-
-      <div class="rx-box rk-col" style="gap:12px">
-        <div class="t-label">Ablageort</div>
-        <div class="rx-place">
-          <button data-place="Firma"><b>Firmenkunde</b><span>Ordner unter dem Kunden · Rechnungsadresse = Firma</span></button>
-          <button data-place="Objekt" class="is-on"><b>Objekt</b><span>Eigene Objektadresse · z. B. Neubau, Filiale, Liegenschaft</span></button>
-        </div>
-        <div id="objFelder" style="display:grid;grid-template-columns:2fr 1fr;gap:10px 16px;padding-top:6px;border-top:1px solid var(--bd)">
-          <label><div class="rx-lbl">Objekt · Strasse</div><input class="rk-input" id="oStrasse" placeholder="z. B. Neubau, Baselstrasse 44"></label>
-          <label><div class="rx-lbl">PLZ Ort</div><input class="rk-input" id="oOrt" placeholder="4125 Riehen"></label>
-          <div style="grid-column:1/-1">
-            <div class="rx-lbl">Adresszusätze · optional</div>
-            <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px">
-              <input class="rk-input" id="oAbteilung" placeholder="Abteilung">
-              <input class="rk-input" id="oZuHd" placeholder="z. Hd.">
-              <input class="rk-input" id="oGebaeude" placeholder="Gebäude">
-              <input class="rk-input" id="oKostenstelle" placeholder="Kostenstelle">
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="rx-box">
-        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
-          <span class="t-label">Anhänge · Zielordner pro Datei</span>
-          <span class="t-small t-faint">E-Mail selbst → Korrespondenz</span>
-        </div>
-        <div id="attFolders"><!-- JS --></div>
-        <div class="rk-drop" style="margin-top:10px;min-height:44px;border-width:2px">Weitere Dateien hierher ziehen</div>
-      </div>
-    </div>
-
-    <aside class="rx-side">
-      <div class="rx-box rk-col" style="gap:8px">
-        <div class="t-label">Übersicht · vor dem Erfassen prüfen</div>
-        <div class="rx-kv">
-          <span>Kunde</span><span style="font-weight:600" id="sFirma">–</span>
-          <span>Kontakt</span><span id="sKontakt">–</span>
-          <span>Betreff</span><span style="font-weight:600" id="sBetreff">–</span>
-          <span>Leistungsart</span><span id="sArt">–</span>
-          <span>Ablage</span><span id="sAblage">–</span>
-          <span>Anhänge</span><span>3 Dateien + E-Mail</span>
-        </div>
-      </div>
-
-      <div class="rx-box">
-        <div class="t-label" style="margin-bottom:8px">«Anfrage erfassen» macht automatisch</div>
-        <div class="rk-col" style="gap:5px">
-          <div class="rx-auto"><i></i><span>Projektnummer vergeben (26xxxx)</span></div>
-          <div class="rx-auto"><i></i><span>Projektordner anlegen, Anhänge ablegen</span></div>
-          <div class="rx-auto"><i></i><span>Monday-Eintrag in Phase Anfrage, Kurzbeschrieb als Kommentar</span></div>
-          <div class="rx-auto"><i></i><span>Subelement «Offerte erstellen», Frist +3 Werktage</span></div>
-          <div class="rx-auto"><i></i><span>Unter «Aufträge» als unbearbeitet</span></div>
-        </div>
-      </div>
-
-      <div style="margin-top:auto;display:flex;flex-direction:column;gap:8px">
-        <button class="rk-btn rk-btn--primary" id="submit" style="justify-content:center;padding:12px 16px;font:700 13.5px/1 var(--font-ui)">
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
-          Anfrage erfassen
-        </button>
-        <button class="rk-btn" id="back1" style="border:none;color:var(--tx3);justify-content:center;font:600 12px/1 var(--font-ui)">← zurück zu Kunde &amp; Anfrage</button>
-      </div>
-    </aside>
-  </div>
-
-  <!-- ═══ Ansicht 3 · Kettenreaktion ════════════════════════════ -->
-  <div class="rx-run" id="v3" hidden>
-    <div class="rx-run__inner">
-      <div style="text-align:center">
-        <div class="rx-eyebrow">REAKTOR · <span id="progLabel">Schritt 1 von 5</span></div>
-        <h1 style="margin:10px 0 0;font:900 34px/1.05 var(--font-ui);letter-spacing:-.02em" id="progTitle">Anfrage wird erfasst …</h1>
-      </div>
-
-      <div class="rx-bar"><div class="rx-bar__fill" id="progBar"></div></div>
-
-      <div class="rk-col" style="gap:6px" id="chain"><!-- JS --></div>
-
-      <div id="running" style="display:flex;justify-content:center;align-items:center">
-        <span class="t-body t-muted" style="font-style:italic" id="quip"></span>
-      </div>
-
-      <div id="done" hidden>
-        <div class="rx-hand">
-          <div>
-            <div style="font:600 10px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--y)">Übergabepunkt</div>
-            <div style="font:800 15px/1.3 var(--font-ui);margin-top:6px">26-0449 ist jetzt im Cockpit sichtbar – Phase Anfrage, unbesetzt.</div>
-          </div>
-          <button class="rk-btn rk-btn--primary" style="white-space:nowrap" onclick="rxOeffneProjekt(rxErgebnis.itemId)">Im Cockpit öffnen →</button>
-        </div>
-        <div style="display:flex;justify-content:center;gap:16px;margin-top:16px">
-          <a href="#" onclick="reaktorZeigeErfassen();return false;" style="font:600 12.5px/1 var(--font-ui);color:var(--tx2)">Nächste Anfrage erfassen</a>
-          <button class="rk-btn rk-btn--sm" id="reset" style="border:none;color:var(--tx3)">Schliessen</button>
-        </div>
-      </div>
-    </div>
-  </div>
-
-</div>
-
-
-</div>
+</script>
 <script>
 /* ═══════════════════════════════════════════════════════════════
    REAKTOR-Erfassen im Beta-Cockpit — echte Logik statt Demo-Daten.
@@ -1801,7 +2691,7 @@ async function rxErfassen(){
     if(ablage === 'Objekt' && (strasse || ort)){
       try{
         var geo = await rxGeocode([strasse, ort].filter(Boolean).join(', '));
-        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({[PROD.col.standort]:geo}) });
+        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify((function(o){o[PROD.col.standort]=geo;return o;})({})) });
       }catch(e){ console.warn('[Montageadresse]', e.message); }
     }
     document.getElementById('chainD2').textContent = 'group_mm5hq91f';
