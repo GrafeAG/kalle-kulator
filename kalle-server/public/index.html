@@ -47,9 +47,9 @@ body{background:var(--bg);color:var(--text);font-family:'Inter',sans-serif;font-
 
 /* HEADER */
 header{background:var(--surface);border-bottom:1px solid var(--border);padding:0 24px;display:flex;align-items:center;justify-content:space-between;height:52px;position:sticky;top:0;z-index:200;}
-body.beta-fullscreen > header{display:none}
-body.beta-fullscreen #page-cockpit-beta{position:fixed;inset:0;z-index:300;margin:0;padding:0}
-body.beta-fullscreen #page-cockpit-beta #ckFrameBeta{height:100vh!important}
+body.beta-fullscreen header .nav-pills{display:none}
+body.beta-fullscreen #page-cockpit-beta{position:fixed;top:52px;left:0;right:0;bottom:0;z-index:300;margin:0;padding:0}
+body.beta-fullscreen #page-cockpit-beta #ckFrameBeta{height:calc(100vh - 52px)!important}
 .grafe-logo{display:flex;align-items:center;gap:10px;text-decoration:none;}
 .logo-div{width:1px;height:20px;background:var(--border);margin:0 4px;}
 .logo-tool{font-family:'Sora',sans-serif;font-size:13px;font-weight:700;color:var(--text2);letter-spacing:.5px;white-space:nowrap;}
@@ -2926,7 +2926,7 @@ const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilit�
 const UI_VERSION='V9.61';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
-  ['V9.61','Kontrollraum (Beta) laeuft jetzt echt im Vollbild: KALLE's eigene Kopfzeile wird ausgeblendet, sobald die Beta-Seite aktiv ist (body.beta-fullscreen), das iframe fuellt den ganzen Bildschirm - dadurch verschwindet die bisher doppelt wirkende Kopfzeile (KALLE-Navigation oben, REAKTOR-Kopfzeile darunter). Ausstieg zurueck zu KALLE ueber ein neues X-Symbol oben rechts im Cockpit selbst (funktioniert unabhaengig davon, welcher interne Screen gerade offen ist) sowie ueber die schon vorhandene, jetzt verdrahtete KALLE-KULATOR-Pille im REAKTOR-Kopf.'],
+  ['V9.61','Kontrollraum (Beta) laeuft jetzt echt im Vollbild: KALLEs eigene Kopfzeile wird ausgeblendet, sobald die Beta-Seite aktiv ist (body.beta-fullscreen), das iframe fuellt den ganzen Bildschirm - dadurch verschwindet die bisher doppelt wirkende Kopfzeile (KALLE-Navigation oben, REAKTOR-Kopfzeile darunter). Ausstieg zurueck zu KALLE ueber ein neues X-Symbol oben rechts im Cockpit selbst (funktioniert unabhaengig davon, welcher interne Screen gerade offen ist) sowie ueber die schon vorhandene, jetzt verdrahtete KALLE-KULATOR-Pille im REAKTOR-Kopf.'],
   ['V9.60','REAKTOR-Startseite (Willkommens-Overlay) bekommt direkt unter der bestehenden „Kontrollraum“-Kachel einen kleinen, gelb hervorgehobenen Link „Kontrollraum (Beta) testen — neues Design“ - damit muss die Beta-Pille oben in der Navigation nicht mehr gesucht werden. Oeffnet dieselbe Beta-Seite wie die Nav-Pille (sucht die Pille per Text „Beta“ statt per festem Index, damit es auch bei kuenftigen Nav-Aenderungen nicht bricht). Ausserhalb dieser Ergaenzung nichts veraendert.'],
   ['V9.59','Kontrollraum (Cockpit) strukturell entkoppelt: lief bisher als base64-kodierter Textblock eingebettet in dieser Datei (#ckB64/#ckB64Beta), dekodiert per JavaScript ins iframe (srcdoc). Beide Bloecke jetzt entfernt - Cockpit und Beta-Cockpit sind echte, eigenstaendige Dateien (KALLE_Cockpit.html, KALLE_Cockpit_Beta.html) im public-Ordner, iframes laden sie jetzt einfach per src= statt Dekodier-Umweg. Wichtiger Fund dabei: eine bereits im public-Ordner liegende KALLE_Cockpit.html war ein veralteter Stand von vor dieser Session (526 statt 944 Zeilen, ohne 3-Spalten-Layout, Lieferschein, Montagekontakt, Schritt-Kommentare, Nachfassen) - wurde NICHT als Basis verwendet, stattdessen der tatsaechlich aktuelle, bisher eingebettete Stand exportiert und an ihrer Stelle abgelegt. Nebeneffekt: serverUrl() erkennt die Einbettung jetzt zuverlaessiger, da location.protocol bei echter src=-Navigation korrekt http(s): zeigt statt „about:“ wie bei srcdoc.'],
   ['V9.58','Reaktor · Auto-Upload beim Reinziehen einer Datei komplett entfernt (nicht nur gebuendelt wie in V9.57). Dateien werden nur noch in der Warteschlange gesammelt und erst hochgeladen, wenn das Projekt tatsaechlich ausgeloest wird - die "Anfrage erfassen"-Kette ruft projUploadFiles() dafuer bereits an der richtigen Stelle auf (Schritt "Unterlagen werden abgelegt"). Fuer bestehende Projekte bleibt der manuelle Upload-Button unveraendert.'],
