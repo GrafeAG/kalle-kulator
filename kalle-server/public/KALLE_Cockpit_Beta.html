@@ -956,12 +956,15 @@
   padding:16px 18px;background:#111;color:#fff}
 
 .rk-scope{ font-family: var(--font-ui); }
+#tokenOverlay:not([hidden]){ display:flex; }
+#app{ background:#3A3A36; min-height:100vh; padding:24px; box-sizing:border-box; }
+#scrListe, #scrDetail{ margin:0 auto; }
 #scrErfassen, #scrEinstieg{ position:fixed; inset:0; z-index:500; overflow:auto; background:#3A3A36; }
 #scrErfassen .screen, #scrEinstieg .screen{ position:static; height:auto; min-height:720px; margin:0 auto; }
 </style>
 </head>
 <body>
-<div id="tokenOverlay" hidden style="position:fixed;inset:0;z-index:900;background:rgba(58,58,54,.94);display:flex;align-items:center;justify-content:center"></div>
+<div id="tokenOverlay" hidden style="position:fixed;inset:0;z-index:900;background:rgba(58,58,54,.94);align-items:center;justify-content:center"></div>
 <div class="rk-scope theme-light" id="app">
 <button type="button" onclick="szExitFullscreen()" title="Zurück zu KALLE-KULATOR" style="position:fixed;top:10px;right:10px;z-index:9999;width:30px;height:30px;border-radius:50%;background:#171714;color:#fff;border:none;cursor:pointer;font-size:15px;line-height:1;display:flex;align-items:center;justify-content:center;box-shadow:0 2px 8px rgba(0,0,0,.3)">✕</button>
 
