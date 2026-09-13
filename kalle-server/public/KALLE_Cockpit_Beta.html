@@ -2121,7 +2121,7 @@ function plZeile(l, art){
     ? '<span class="pl-row__phase">'+esc(l.phase)+'</span>'
     : '<span class="pl-row__chip pl-row__chip--'+(art==='rot'?'red':'yellow')+'">'+esc(plChipText(l))+'</span>';
   return '<a class="pl-row'+(art==='gruen'?' pl-row--plan':'')+'" href="#" onclick="oeffneProjekt(\''+l.id+'\');return false;">'+
-    '<span class="pl-row__k"><span class="pl-row__kunde ell">'+esc(l.kunde||'—')+'</span>'+
+    '<span class="pl-row__k"><span class="pl-row__kunde ell">'+esc(l.betreffRaw||l.kunde||'—')+'</span>'+
     '<span class="pl-row__nr">'+esc(l.nr)+'</span></span>'+
     '<span class="pl-row__step ell">'+esc(l.nowStepLabel||l.status||'')+'</span>'+rechts+
     plAvatar(l)+
@@ -2193,7 +2193,7 @@ function plRender(){
       '<span style="font:600 12.5px/1 var(--font-ui)">'+name+'</span>'+
       '<span style="font:600 11px/1 var(--font-mono);color:var(--tx3)">'+items.length+'</span></span>'+
       '<div class="rk-wrap">'+items.map(function(l){
-        return '<a class="pl-tag" href="#" onclick="oeffneProjekt(\''+l.id+'\');return false;" title="'+esc(l.nr)+' · '+esc(l.nowStepLabel||'')+'">'+esc(l.kunde||l.nr)+'</a>';
+        return '<a class="pl-tag" href="#" onclick="oeffneProjekt(\''+l.id+'\');return false;" title="'+esc(l.nr)+' · '+esc(l.nowStepLabel||'')+'">'+esc(l.betreffRaw||l.kunde||l.nr)+'</a>';
       }).join('')+'</div></div>';
   });
   if($pl('listGreenGrouped')) $pl('listGreenGrouped').innerHTML = html;
@@ -2311,7 +2311,7 @@ function szAbrechnungBox(l){
 }
 function szFuerSelectLine(id){
   var l=findLead(id);
-  var txt=[l.nr, l.kunde, l.betreff||l.betreffRaw, l.offert?('CHF '+l.offert):''].filter(Boolean).join(' · ');
+  var txt=[l.nr, l.betreffRaw||l.betreff, l.offert?('CHF '+l.offert):''].filter(Boolean).join(' · ');
   try{ navigator.clipboard.writeText(txt); }catch(e){}
   toast('Kopiert','Grunddaten in Zwischenablage — Zusätze/Rechnung bitte manuell ergänzen.');
 }
@@ -2458,7 +2458,7 @@ async function szVerloren(id){
 // die "Aufwand PL"-Spalte fehlt in Monday noch, siehe Machbarkeits-Check.
 async function szOeffneUebergabe(id){
   var l=findLead(id);
-  if(!confirm('Auftrag für „'+(l.betreff||l.betreffRaw)+'" erfassen? Verschiebt das Projekt nach Vorbereitung.\n\n(Der volle Übergabe-Dialog mit Arbeitsschritt-Vorschlag ist noch nicht gebaut — das hier setzt nur Gruppe + Status um.)')) return;
+  if(!confirm('Auftrag für „'+(l.betreffRaw||l.betreff)+'" erfassen? Verschiebt das Projekt nach Vorbereitung.\n\n(Der volle Übergabe-Dialog mit Arbeitsschritt-Vorschlag ist noch nicht gebaut — das hier setzt nur Gruppe + Status um.)')) return;
   try{
     await mFetch('mutation{ move_item_to_group(item_id:'+id+', group_id:"group_mkt2vn54"){ id } }');
     await wtStatus(id,'Vorbereitung');
@@ -2491,7 +2491,7 @@ function szFlowHTML(l){
         '<div style="display:flex;gap:8px;align-items:center">'+
           '<input class="rk-input" id="szNote'+i+'" placeholder="Notiz zu diesem Schritt …" style="padding:7px 10px">'+
           '<button class="rk-btn rk-btn--sm" onclick="szSendNote(\''+s.id+'\','+i+')">Senden</button></div>'+
-        (s.lieferant?('<div style="display:flex;gap:8px"><button class="rk-btn rk-btn--dark rk-btn--sm" onclick="lieferscheinOeffnen(\''+szCurId+'\',\''+l.nr+'\',\''+esc(l.betreff||l.betreffRaw||'').replace(/'/g,"")+'\',\''+s.id+'\',\''+esc(s.lieferant||'').replace(/'/g,"")+'\')">Lieferschein erstellen</button></div>'):'')+
+        (s.lieferant?('<div style="display:flex;gap:8px"><button class="rk-btn rk-btn--dark rk-btn--sm" onclick="lieferscheinOeffnen(\''+szCurId+'\',\''+l.nr+'\',\''+esc(l.betreffRaw||l.betreff||'').replace(/'/g,"")+'\',\''+s.id+'\',\''+esc(s.lieferant||'').replace(/'/g,"")+'\')">Lieferschein erstellen</button></div>'):'')+
       '</div>';
     return '<div class="sz-step'+(fertig?' is-done':'')+(current?' is-current':'')+'" data-i="'+i+'">'+
       '<div class="sz-rail"><span class="sz-mark">'+(fertig?'✓':'')+'</span>'+(i<steps.length-1?'<span class="sz-line"></span>':'')+'</div>'+
@@ -2606,7 +2606,7 @@ function szRenderShell(){
       '<div style="min-width:0;flex:1">'+
         '<div class="rk-meta"><span>'+esc(l.nr)+'</span><span class="rk-meta__rule"></span>'+
         '<span class="rk-meta__mode">'+esc(l.phase)+' · Schritt '+(flow.fertigCount+1)+' von '+flow.total+'</span></div>'+
-        '<h2 style="margin:6px 0 0;font:900 26px/1.05 var(--font-ui);letter-spacing:-.02em">'+esc(l.betreff||l.betreffRaw||l.kunde)+'</h2>'+
+        '<h2 style="margin:6px 0 0;font:900 26px/1.05 var(--font-ui);letter-spacing:-.02em">'+esc(l.betreffRaw||l.betreff||l.kunde)+'</h2>'+
       '</div>'+
       '<div class="rk-person"><span class="rk-avatar rk-avatar--initials">'+esc(initials((l.bearbeiterList||[])[0]||'?'))+'</span>'+
         '<div><div class="t-label" style="letter-spacing:.08em">Projektleitung</div>'+
@@ -3088,7 +3088,7 @@ function rxRenderEinstiegListe(){
     return '<div class="rx-row" style="cursor:pointer" onclick="rxOeffneProjekt(\''+l.id+'\')">'+
       '<span class="rx-row__nr">'+esc(l.nr)+'</span>'+
       '<span class="rx-row__kunde ell">'+esc(l.kunde||'—')+'</span>'+
-      '<span class="rx-row__betreff ell">'+esc(l.betreff||l.betreffRaw||'')+'</span>'+
+      '<span class="rx-row__betreff ell">'+esc(l.betreffRaw||l.betreff||'')+'</span>'+
       '<span class="rx-row__art">'+esc(l.nowStepLabel||'')+'</span>'+
       '<span class="rx-row__frist" style="background:'+l.ampel.c+';color:#fff">'+esc(l.ampel.t)+'</span>'+
       '<span class="rx-row__who" title="'+esc(l.bearbeiter||'ohne Bearbeiter')+'">'+(l.bearbeiter?esc(l.bearbeiter.slice(0,1)):'?')+'</span>'+
