@@ -961,6 +961,70 @@
 #scrListe, #scrDetail{ margin:0 auto; }
 #app{ overflow:auto; }
 #scrListe, #scrDetail, #scrEinstieg, #scrErfassen{ margin:0 auto; }
+
+/* ═══ 9a Offertpruefung — echte CSS aus offertpruefung.html ═══ */
+.rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
+.rk-scope .screen{width:1280px;height:900px;position:relative;overflow:hidden;
+  background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
+.rk-scope .sz-panel{position:absolute;left:80px;right:80px;top:32px;bottom:32px;background:var(--bg);
+  border:1px solid var(--bd2);display:grid;grid-template-rows:auto auto 1fr;overflow:hidden}
+.rk-scope .sz-head{display:flex;align-items:center;gap:16px;padding:16px 22px;border-bottom:1px solid var(--bd);background:var(--bg2)}
+.rk-scope .sz-now{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:22px;align-items:center;
+  padding:16px 22px;background:var(--bg3);border-bottom:1px solid var(--bd)}
+.rk-scope .sz-badge{display:inline-flex;align-items:center;padding:8px 12px;font:700 12px/1 var(--font-ui);
+  letter-spacing:.08em;text-transform:uppercase;white-space:nowrap;background:var(--accent);color:#111}
+.rk-scope .sz-badge.is-sent{background:var(--green);color:#fff}
+.rk-scope .sz-cols{display:grid;grid-template-columns:minmax(0,1fr) 440px;gap:10px;padding:10px;min-height:0}
+.rk-scope .sz-flow{background:var(--bg2);border:1px solid var(--bd);padding:16px 18px;overflow:auto;min-height:0}
+.rk-scope .sz-step{display:grid;grid-template-columns:28px 1fr;gap:12px}
+.rk-scope .sz-rail{display:flex;flex-direction:column;align-items:center}
+.rk-scope .sz-mark{width:20px;height:20px;flex:none;display:grid;place-items:center;margin-top:11px;
+  background:transparent;border:2px solid var(--bd2);color:var(--tx3);font:800 11px/1 var(--font-ui)}
+.rk-scope .sz-line{flex:1;width:2px;background:var(--bd2);margin-top:4px}
+.rk-scope .sz-step.is-done .sz-mark{background:var(--tx);border-color:var(--tx);color:var(--bg)}
+.rk-scope .sz-step.is-current .sz-mark{background:var(--accent);border-color:var(--accent);color:#111}
+.rk-scope .sz-card{margin-bottom:2px;background:transparent;border:1px solid transparent}
+.rk-scope .sz-step.is-current .sz-card{background:var(--accent-dim);border-color:var(--accent)}
+.rk-scope .sz-step.is-open .sz-card{background:var(--bg3);border-color:var(--bd2)}
+.rk-scope .sz-btn{width:100%;display:flex;align-items:center;gap:10px;padding:9px 12px;background:transparent;
+  border:none;text-align:left;color:var(--tx);cursor:pointer;transition:background .12s}
+.rk-scope .sz-btn:hover{background:var(--bg3)}
+.rk-scope .sz-name{font:400 14.5px/1.2 var(--font-ui)}
+.rk-scope .sz-step.is-done .sz-name{color:var(--tx2)}
+.rk-scope .sz-step.is-current .sz-name{font-weight:700}
+.rk-scope .sz-tag{padding:3px 7px;font:700 10px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;
+  background:var(--bg4);color:var(--tx2)}
+.rk-scope .sz-new{font:600 10.5px/1 var(--font-ui);letter-spacing:.08em;text-transform:uppercase;color:var(--accent-text)}
+.rk-scope .sz-date{font:500 12px/1 var(--font-ui);color:var(--tx2)}
+.rk-scope .sz-who{min-width:22px;height:22px;padding:0 6px;border-radius:11px;background:var(--bg4);
+  border:1px solid var(--bd2);overflow:hidden;display:grid;place-items:center;
+  font:600 10px/1 var(--font-ui);color:var(--tx2);flex:none}
+.rk-scope .sz-who img{width:22px;height:22px;border-radius:50%;object-fit:cover;display:block}
+.rk-scope .sz-chev{color:var(--tx3);flex:none;transition:transform .15s}
+.rk-scope .sz-step.is-open .sz-chev{transform:rotate(180deg)}
+.rk-scope .sz-detail{padding:0 12px 12px;display:flex;flex-direction:column;gap:10px}
+.rk-scope .sz-facts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px}
+.rk-scope .sz-fact{padding:8px 10px;background:var(--bg2);border:1px solid var(--bd)}
+.rk-scope .sz-fact b{display:block;font:700 13px/1.2 var(--font-ui);margin-top:5px}
+.rk-scope .of-side{display:flex;flex-direction:column;gap:10px;overflow:auto;min-height:0}
+.rk-scope .of-head{display:flex;align-items:center;justify-content:space-between;padding:12px 14px 10px;
+  border-bottom:1px solid var(--bd)}
+.rk-scope .of-kv{display:grid;grid-template-columns:auto 1fr;gap:6px 12px;font:400 12.5px/1.3 var(--font-ui)}
+.rk-scope .of-kv span:nth-child(odd){color:var(--tx3)}
+.rk-scope .of-att{display:inline-flex;align-items:center;gap:6px;padding:5px 9px;border:1px solid var(--bd2);
+  font:500 12px/1 var(--font-ui)}
+.rk-scope .of-att i{font:800 8.5px/1 var(--font-ui);padding:2px 4px;font-style:normal}
+.rk-scope .of-ok{display:flex;align-items:center;gap:10px;padding:10px 12px;background:var(--green-dim);border:1px solid var(--green)}
+.rk-scope .of-line{display:flex;gap:8px;align-items:flex-start;font:400 12.5px/1.4 var(--font-ui)}
+.rk-scope .of-line i{width:8px;height:8px;background:var(--green);margin-top:5px;flex:none;font-style:normal}
+.rk-scope .of-path{display:flex;align-items:center;gap:6px;padding:8px 14px;background:var(--bg3);
+  border-bottom:1px solid var(--bd);font:500 11px/1 var(--font-mono);color:var(--tx2)}
+.rk-scope .of-doc{display:grid;grid-template-columns:34px minmax(0,1fr) auto;gap:10px;align-items:center;
+  padding:8px 6px;border-bottom:1px solid var(--bd);transition:background .12s}
+.rk-scope .of-doc:hover{background:var(--bg3)}
+.rk-scope .of-doc__tag{width:34px;height:34px;display:grid;place-items:center;border:1px solid var(--bd2);
+  font:800 9px/1 var(--font-ui)}
+.rk-scope .ell{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 </style>
 </head>
 <body>
@@ -1335,7 +1399,7 @@ const PROD={
 // aus dem Cockpit, sobald sie in eine dieser Gruppen wandern — kein Archivieren nötig.
 const ALLOWED_GROUPS=[
   {id:'group_mm5hq91f', phase:'Anfragen'},
-  {id:'group_mm5p5zwq', phase:'Anfragen'},
+  {id:'group_mm5p5zwq', phase:'Offertprüfung'},
   {id:'group_mkt2vn54', phase:'Vorbereitung'},
   {id:'new_group29179', phase:'Produktion'},
   {id:'new_group43041', phase:'Produktion'},
@@ -1344,7 +1408,7 @@ const ALLOWED_GROUPS=[
   {id:'group_mm5h369s', phase:'Abschluss'},
   {id:'group_mm6csxe1', phase:'Abschluss'},
 ];
-const PHASE_ORDER=['Anfragen','Vorbereitung','Produktion','Montage','Abschluss'];
+const PHASE_ORDER=['Anfragen','Offertprüfung','Vorbereitung','Produktion','Montage','Abschluss'];
 const STATUS_LABELS=["Unbearbeitet","Layoutphase / GZA","Korrektur durch PL","ON HOLD","Vorbereitung","Produktionsplanung","in Produktion","Endkontrolle","Storniert","Abgeschlossen"];
 const STATUS_HEX={"Unbearbeitet":"#ff5ac4","Layoutphase / GZA":"#784bd1","Korrektur durch PL":"#bb3354","ON HOLD":"#e484bd","Vorbereitung":"#ffcb00","Produktionsplanung":"#ff6d3b","in Produktion":"#5559df","Produktion fertig":"#9cd326","Montage":"#579bfc","Endkontrolle":"#216edf","Storniert":"#4eccc6","Abgeschlossen":"#00c875"};
 const PRIO_HEX={"EXPRESS":"#df2f4a","asap":"#fdab3d","Standard":"#00c875"};
@@ -1500,7 +1564,7 @@ function ablaufFromSubs(subs){
     let d=[st||(dat?'':'ungeplant'), dat?fmtDate(dat):'', be].filter(Boolean).join(' · ');
     if(!d) d=st||'—';
     const updates=(s.updates||[]).slice().reverse();
-    return {id:s.id, name:s.name, done, extern, d, updates, lieferant};
+    return {id:s.id, name:s.name, done, extern, d, updates, lieferant, datumRaw:dat};
   });
   // erster nicht-erledigter Schritt = "aktueller" Schritt
   let markedNow=false;
@@ -2203,9 +2267,9 @@ function szHatOfferte(l){
   return (l.unterlagen||[]).some(function(f){return /offerte/i.test(f.name);}) || (l.offertdokumente||[]).length>0;
 }
 function szNowBandHTML(l){
-  if(l.phase==='Anfragen' && !szHatOfferte(l) && (!l.status || /unbearbeitet/i.test(l.status))) return szNowAnfrage(l);
-  if(l.phase==='Anfragen' && !szHatOfferte(l)) return szNowOfferteErstellen(l);
-  if(l.phase==='Anfragen' && szHatOfferte(l)) return szNowOffertpruefung(l);
+  if(l.phase==='Anfragen' && (!l.status || /unbearbeitet/i.test(l.status))) return szNowAnfrage(l);
+  if(l.phase==='Anfragen') return szNowOfferteErstellen(l);
+  if(l.phase==='Offertprüfung') return szNowOffertpruefung(l);
   return szNowGenerisch(l);
 }
 // 19a — Anfrage übernommen, Offerte wird gerade erstellt (im Rechner oder extern)
@@ -2228,7 +2292,6 @@ function szNowGenerisch(l){
   return '<span class="sz-badge">'+szAmpelBadge(l)+'</span>'+
     '<p id="szKi">wird geladen … <span class="t-faint" style="font-size:12px">KI-Stand</span></p>'+
     '<div class="rk-row" style="gap:8px">'+
-      (szHatOfferte(l) ? '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szNachfassen()">Angebot nachfassen</button>' : '')+
       (l.phase==='Vorbereitung' ? '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szNachProduktionsplanung(\''+l.id+'\')">→ Produktionsplanung</button>' : '')+
       (l.phase==='Abschluss' ? '<button class="rk-btn rk-btn--sm" onclick="szFuerSelectLine(\''+l.id+'\')">Für SelectLine kopieren</button><button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szProjektAbschliessen(\''+l.id+'\')">Projekt abschliessen</button>' : '')+
       (l.tel?('<a class="rk-btn rk-btn--sm" href="tel:'+esc(l.tel.replace(/\s/g,''))+'">Anrufen</a>'):'')+
@@ -2303,23 +2366,67 @@ function szNowAnfrage(l){
       '<button class="rk-btn rk-btn--primary" onclick="szAnfrageUebernehmen(\''+l.id+'\')" style="justify-content:center;padding:10px 16px;font:700 13px/1 var(--font-ui)">Anfrage übernehmen</button>'+
     '</div>';
 }
-// 9a — Offerte raus, wartet auf Kundenantwort
+// 9a — exakte Struktur aus offertpruefung.html (.of-side, zwei rk-card)
+function szOfSideHTML(l){
+  return '<div class="of-side">'+
+    '<div class="rk-card" style="display:flex;flex-direction:column">'+
+      '<div class="of-head"><span class="t-label">Nachfass-Mail · KI-Entwurf</span>'+
+        '<span class="t-small t-faint" id="draftMeta">wird geladen …</span></div>'+
+      '<div id="paneDraft" style="padding:12px 14px;display:flex;flex-direction:column;gap:10px">'+
+        '<p class="t-body t-faint">Entwurf wird erstellt …</p>'+
+      '</div>'+
+      '<div id="paneSent" hidden style="padding:14px;display:flex;flex-direction:column;gap:10px">'+
+        '<div class="of-ok"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="var(--green)" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>'+
+          '<div><div style="font:700 13px/1.2 var(--font-ui)">Nachfrage gesendet</div>'+
+          '<div class="t-small t-muted" style="margin-top:3px">Subelement wurde angelegt, Kopie archiviert.</div></div></div>'+
+      '</div>'+
+    '</div>'+
+    '<div class="rk-card" style="display:flex;flex-direction:column;flex:none">'+
+      '<div class="of-head"><span class="t-label">Dokumente der Offerte</span>'+
+        '<span style="font:600 11px/1 var(--font-mono);color:var(--tx3)" id="docsCount">0</span></div>'+
+      '<div class="of-path"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'+
+        '<span>'+esc(l.nr)+'</span><span class="t-faint">›</span><span>Angebote &amp; AB</span><span class="t-faint">›</span>'+
+        '<span style="font-weight:600;color:var(--tx)">Offerte</span></div>'+
+      '<div class="rk-col" style="gap:0;padding:4px 8px" id="docs"></div>'+
+      '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--bd)">'+
+        '<span class="t-small t-faint">Vom Reactor abgelegt und am Monday-Item angehängt.</span>'+
+        '<a href="#" onclick="openFolder(\''+l.id+'\');return false;" style="font:600 12px/1 var(--font-ui);color:var(--tx2);white-space:nowrap">Ordner öffnen ↗</a>'+
+      '</div>'+
+    '</div>'+
+  '</div>';
+}
+function szDokumenteOfferteRender(l){
+  var box=document.getElementById('docs'); var cnt=document.getElementById('docsCount'); if(!box) return;
+  var docs=(l.offertdokumente||[]).concat(l.unterlagen||[]).filter(function(f){return /offerte/i.test(f.name)||true;});
+  if(cnt) cnt.textContent=docs.length;
+  box.innerHTML = docs.length ? docs.map(function(f){
+    return '<div class="of-doc" onclick="window.open(\''+esc(f.public_url||'').replace(/'/g,'')+'\',\'_blank\')"><span class="of-doc__tag">'+esc((f.file_extension||'DAT').toUpperCase().slice(0,4))+'</span>'+
+      '<span class="ell" style="font:600 13px/1.2 var(--font-ui)">'+esc(f.name)+'</span></div>';
+  }).join('') : '<p class="t-small t-faint" style="padding:8px 6px">Keine Dokumente gefunden.</p>';
+}
+function szTageSeitVersand(l){
+  var step=(l.ablauf||[]).find(function(s){return /gesendet|versendet|verschickt/i.test(s.name);});
+  if(!step || !step.datumRaw) return null;
+  var d=new Date(step.datumRaw); if(isNaN(d)) return null;
+  var tage=Math.floor((Date.now()-d.getTime())/86400000);
+  return {tage:tage, datum:fmtDate(step.datumRaw)};
+}
 function szNowOffertpruefung(l){
-  return '<div class="rk-col" style="gap:6px">'+
-      '<span class="sz-badge">'+esc(l.status||'Offerte beim Kunden')+'</span>'+
-      (l.offert?('<span class="t-small t-muted">CHF '+esc(l.offert)+'</span>'):'')+
+  var info=szTageSeitVersand(l);
+  var tageTxt=info?(info.tage+' TAGE'):'OFFERTE BEIM KUNDEN';
+  return '<div class="rk-col" style="gap:4px">'+
+      '<span class="sz-badge" style="background:var(--accent);color:#111">OFFERTE IST RAUS · '+esc(tageTxt)+'</span>'+
+      '<span class="t-small t-muted">'+(info?('gesendet '+esc(info.datum)+' · '):'')+(l.offert?('CHF '+esc(l.offert)+' · '):'')+'keine Reaktion</span>'+
     '</div>'+
     '<div style="min-width:0">'+
-      '<div class="t-label" style="margin-bottom:6px">Offerte · Stand</div>'+
+      '<div class="t-label" style="margin-bottom:6px">Offerte · KI-Kurzfassung</div>'+
       '<p id="szKi" style="margin:0;font:400 14px/1.45 var(--font-ui);text-wrap:pretty">wird geladen …</p>'+
     '</div>'+
     '<div class="rk-row" style="gap:8px">'+
       '<button class="rk-btn rk-btn--primary rk-btn--sm" onclick="szOeffneUebergabe(\''+l.id+'\')">Auftrag erhalten</button>'+
       (l.tel?('<a class="rk-btn rk-btn--sm" href="tel:'+esc(l.tel.replace(/\s/g,''))+'">Anrufen</a>'):'')+
       '<button class="rk-btn rk-btn--sm" style="color:var(--tx2)" onclick="szVerloren(\''+l.id+'\')">Verloren</button>'+
-      '<button class="rk-btn rk-btn--sm" onclick="szNachfassen()">Nachfassen</button>'+
-    '</div>'+
-    '<div id="szNachfassBox" style="grid-column:1/-1"></div>';
+    '</div>';
 }
 async function szAnfrageUebernehmen(id){
   var sel=document.getElementById('anUser'); var uid=sel?sel.value:'';
@@ -2526,6 +2633,7 @@ function szRenderShell(){
           '<button class="rk-btn" onclick="wtNextStep(\''+l.id+'\')">Terminieren</button>'+
         '</div>'+
       '</div>'+
+      (l.phase==='Offertprüfung' ? szOfSideHTML(l) :
       '<div class="sz-side">'+
         '<div class="sz-tabs">'+
           '<button class="sz-tab'+(szTab==='ablage'?' is-active':'')+'" data-tab="ablage" onclick="szSetTab(\'ablage\')">Ablage</button>'+
@@ -2535,8 +2643,9 @@ function szRenderShell(){
         '<div class="sz-pane" data-pane="ablage"'+(szTab!=='ablage'?' hidden':'')+'>'+side.ablage+'</div>'+
         '<div class="sz-pane" data-pane="kunde"'+(szTab!=='kunde'?' hidden':'')+'>'+side.kunde+'</div>'+
         '<div class="sz-pane" data-pane="aktiv"'+(szTab!=='aktiv'?' hidden':'')+'>'+side.aktiv+'</div>'+
-      '</div>'+
+      '</div>')+
     '</div>';
+  if(l.phase==='Offertprüfung'){ szNachfassenAuto(); szDokumenteOfferteRender(l); }
 
   szRenderFlowState();
   szLoadKi(l);
@@ -2558,23 +2667,38 @@ async function szLoadKi(l){
     box.innerHTML = '<span style="font-style:italic">Noch nicht verfügbar — Server-Route fehlt auf kalle-server noch.</span>';
   }
 }
-async function szNachfassen(){
-  var box = document.getElementById('szNachfassBox');
-  box.innerHTML = '<p class="t-small t-faint" style="margin:8px 0 0">Entwurf wird erstellt …</p>';
+async function szNachfassenLaden(targetId){
+  var pane = document.getElementById('paneDraft'); var meta = document.getElementById('draftMeta');
+  if(!pane) return;
+  pane.innerHTML = '<p class="t-body t-faint">Entwurf wird erstellt …</p>';
   try{
     var r = await fetch(serverUrl()+'/nachfassen/entwurf?id='+encodeURIComponent(szCurId));
     var j = await r.json();
     if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
-    box.innerHTML = '<div style="margin-top:10px;padding:10px 12px;background:var(--bg2);border:1px solid var(--bd)">'+
-      '<div class="t-small t-faint">An: '+esc(j.empfaenger)+(j.anhangGefunden?' · Offerte-PDF wird angehängt':' · kein Anhang gefunden')+'</div>'+
-      '<div style="font:700 13px/1.3 var(--font-ui);margin-top:6px">'+esc(j.betreff)+'</div>'+
-      '<div class="t-body" style="margin-top:6px;white-space:pre-wrap">'+esc(j.text)+'</div>'+
-      '<div class="rk-row" style="gap:8px;margin-top:10px">'+
-        '<a class="rk-btn rk-btn--primary rk-btn--sm" href="grafemail:'+j.id+'">In Outlook öffnen</a>'+
-        '<button class="rk-btn rk-btn--sm" onclick="szNachfassenGesendet(\''+j.id+'\')">Gerade gesendet</button>'+
-      '</div></div>';
-  }catch(e){ box.innerHTML = '<p class="t-small" style="color:var(--danger);margin-top:8px">'+esc(e.message)+'</p>'; }
+    if(meta) meta.textContent = 'gerade eben';
+    pane.innerHTML =
+      '<div class="of-kv"><span>An</span><span style="font-weight:600">'+esc(j.empfaenger)+'</span>'+
+        '<span>Betreff</span><span style="font-weight:600">'+esc(j.betreff)+'</span></div>'+
+      '<textarea class="rk-textarea" id="draftText" rows="8" style="min-height:170px">'+esc(j.text)+'</textarea>'+
+      '<div>'+
+        '<div class="t-label" style="letter-spacing:.08em;margin-bottom:6px">Anhänge · automatisch</div>'+
+        '<div class="rk-wrap">'+
+          (j.anhangGefunden
+            ? '<span class="of-att"><i style="background:var(--tx);color:var(--bg)">PDF</i>Offerte angehängt</span>'
+            : '<span class="t-small t-faint">kein Anhang gefunden — manuell ergänzen</span>')+
+        '</div>'+
+      '</div>'+
+      '<div style="display:flex;gap:8px;align-items:center;padding-top:6px">'+
+        '<a class="rk-btn rk-btn--primary" id="send" href="grafemail:'+j.id+'">'+
+          '<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>'+
+          ' In Outlook senden</a>'+
+        '<button class="rk-btn rk-btn--sm" onclick="szNachfassenLaden()">Neu formulieren</button>'+
+        '<span class="rk-spacer"></span>'+
+        '<button class="rk-btn rk-btn--sm" style="color:var(--tx2)" onclick="szNachfassenGesendet(\''+j.id+'\')">Gerade gesendet</button>'+
+      '</div>';
+  }catch(e){ pane.innerHTML = '<p class="t-small" style="color:var(--danger)">'+esc(e.message)+'</p>'; }
 }
+function szNachfassenAuto(){ szNachfassenLaden(); }
 async function szNachfassenGesendet(draftId){
   try{
     var r = await fetch(serverUrl()+'/reply/'+draftId+'/gesendet', {method:'POST'});
