@@ -2923,12 +2923,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.64';
+const UI_VERSION='V9.62';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
-  ['V9.64','Schild-Zuschnitt · Formfaktor „Oval/Ausschnitte" von 0.75 auf 0.69 korrigiert. Herleitung: Block A der Testfräsung (VH200, Alu3mm) zeigte Rechteck-Formen (2.00 Min) bei ×0.49 relativ zu Komplex (4.05 Min) — Rechteck-Faktor 0.5 passt damit fast exakt, bleibt unverändert. Für Oval ergab der Vergleich mit geschlossener Rundung (2.54 Min) rechnerisch ×0.63 — mit SKU auf Mittelwert aus altem Wert (0.75) und Messwert (0.63) verständigt = 0.69, da Buchstabe „O" zusätzlich eine Innenkontur fräst, ein reiner Oval-Zuschnitt nicht (realer Wert vermutlich niedriger, aber ohne dedizierte Messung nicht belastbar genug für eine radikalere Korrektur).'],
-  ['V9.63','Schild-Zuschnitt „CNC Fräsen" (cSl/slSetZuschnitt): Materialzeitfaktor und Serienrabatt aus V9.62 (bisher nur Fräsbuchstaben) gelten jetzt auch hier — gleicher Bugtyp/gleiche Lücke, gehört konzeptionell zusammen. Basis-Minuten (fzMin) werden neu zusätzlich mit dem Materialzeitfaktor des gewählten Schildmaterials (slMat) und dem Serienrabatt (nach Stückzahl) multipliziert, bevor der Formfaktor (Rechteck/Oval/Komplex) draufkommt. Hinweistext in der Zuschnitt-Detailansicht zeigt Material und Serienfaktor jetzt mit an. Formfaktor-Stufen (0.5/0.75/1.0) selbst unverändert — Rückmeldung an SKU ausstehend, ob Oval (0.75) zu hoch angesetzt ist (Indiz aus Testfräsung: eher ~0.6, aber nicht 1:1 übertragbar, da Buchstabe „O" Innen- und Aussenkontur fräst, ein Oval-Zuschnitt nur die Aussenkontur).'],
-  ['V9.62','Fräsbuchstaben · Kalkulation an reale Testfräsung (10.09.2026) angeglichen: (1) NEU Materialzeitfaktor — wirkt separat von den bestehenden flaechenFaktoren (die weiterhin nur den Materialverbrauch/die Fläche bestimmen) ausschliesslich auf die Fräszeit. Grund: Block C der Testfräsung zeigte bei gleichem Zeichen/gleicher Grösse Zeitunterschiede bis Faktor 8 zwischen Materialien (Forex 0.35 Min vs. Messing 8.5 Min), die das Modell bisher komplett ignorierte (gleiche Zeit für Dibond und Messing). Referenz Alu bei 3mm (auf 3mm interpoliert, da nicht direkt getestet), Messing ebenso auf 3mm interpoliert; Dibond/Acryl/Eiche/Forex je 1 Messpunkt ohne Dicke-Differenzierung. (2) NEU Serienrabatt 25% ab dem 2. Stück im selben Aufspannvorgang (gemessen real 43%, bewusst konservativ auf 25% gesetzt) — bisher wurde jedes Stück einzeln zum vollen Preis gerechnet, obwohl beim Fräsen mehrerer Zeichen ohne Neu-Rüsten Zeit gespart wird. (3) NEU Eiche 19mm und Forex 5mm im Materialkatalog (P.schildmaterial) als fräsbar angelegt. Beide Faktoren wirken nur in cFr()/getMatZeitfaktor()/getSerienfaktor() — Materialflächen-/Kostenberechnung (matFN, calcMatFM) unverändert.'],
+  ['V9.62','Kundenkontakt, Kunden-Telefon und Kundenadresse werden bei der Anfrage-Erfassung jetzt mitgeschrieben (drei neue Monday-Spalten: Kundenkontakt/Kunden-Telefon/Kundenadresse) - vorher gingen diese im Erfassungsformular eingegebenen Daten schlicht verloren, ausser Kundenname und E-Mail. Kundenadresse laeuft wie die Montageadresse ueber Geokodierung, eigenstaendig und getrennt von der Baustellenadresse.'],
   ['V9.61','Kontrollraum (Beta) laeuft jetzt echt im Vollbild: KALLEs eigene Kopfzeile wird ausgeblendet, sobald die Beta-Seite aktiv ist (body.beta-fullscreen), das iframe fuellt den ganzen Bildschirm - dadurch verschwindet die bisher doppelt wirkende Kopfzeile (KALLE-Navigation oben, REAKTOR-Kopfzeile darunter). Ausstieg zurueck zu KALLE ueber ein neues X-Symbol oben rechts im Cockpit selbst (funktioniert unabhaengig davon, welcher interne Screen gerade offen ist) sowie ueber die schon vorhandene, jetzt verdrahtete KALLE-KULATOR-Pille im REAKTOR-Kopf.'],
   ['V9.60','REAKTOR-Startseite (Willkommens-Overlay) bekommt direkt unter der bestehenden „Kontrollraum“-Kachel einen kleinen, gelb hervorgehobenen Link „Kontrollraum (Beta) testen — neues Design“ - damit muss die Beta-Pille oben in der Navigation nicht mehr gesucht werden. Oeffnet dieselbe Beta-Seite wie die Nav-Pille (sucht die Pille per Text „Beta“ statt per festem Index, damit es auch bei kuenftigen Nav-Aenderungen nicht bricht). Ausserhalb dieser Ergaenzung nichts veraendert.'],
   ['V9.59','Kontrollraum (Cockpit) strukturell entkoppelt: lief bisher als base64-kodierter Textblock eingebettet in dieser Datei (#ckB64/#ckB64Beta), dekodiert per JavaScript ins iframe (srcdoc). Beide Bloecke jetzt entfernt - Cockpit und Beta-Cockpit sind echte, eigenstaendige Dateien (KALLE_Cockpit.html, KALLE_Cockpit_Beta.html) im public-Ordner, iframes laden sie jetzt einfach per src= statt Dekodier-Umweg. Wichtiger Fund dabei: eine bereits im public-Ordner liegende KALLE_Cockpit.html war ein veralteter Stand von vor dieser Session (526 statt 944 Zeilen, ohne 3-Spalten-Layout, Lieferschein, Montagekontakt, Schritt-Kommentare, Nachfassen) - wurde NICHT als Basis verwendet, stattdessen der tatsaechlich aktuelle, bisher eingebettete Stand exportiert und an ihrer Stelle abgelegt. Nebeneffekt: serverUrl() erkennt die Einbettung jetzt zuverlaessiger, da location.protocol bei echter src=-Navigation korrekt http(s): zeigt statt „about:“ wie bei srcdoc.'],
@@ -3150,9 +3148,6 @@ const DEF={
     {name:"Messing",            dicke:6,  typ:"metall",  ekKg:16.00, dichte:8500, platteL:2000,platteB:1000, steg:15, fraesbar:true, preis:816.00},
     {name:"Dibond",             dicke:4,  typ:"m2",     platteL:2800,platteB:1250, steg:15, fraesbar:true, preis:36.00},
     {name:"Acryl",              dicke:6,  typ:"m2",     platteL:2050,platteB:1520, steg:15, fraesbar:true, preis:48.00},
-    // dichte bei Eiche/Forex nur für Gewichtsanzeige geschätzt (Massivholz ~700, PVC-Hartschaum ~550) — Preis/Format von SKU bestätigt
-    {name:"Eiche",              dicke:19, typ:"m2",     platteL:1500,platteB:1250, steg:15, fraesbar:true, preis:168.00, dichte:700},
-    {name:"Forex",              dicke:5,  typ:"m2",     platteL:2500,platteB:1000, steg:0,  fraesbar:true, preis:24.00,  dichte:550},
   ],
   druckarten:[
     {name:"Solvent",preis:35.00},{name:"UV 4c",preis:28.00},{name:"UV 300% Weiss",preis:65.00},
@@ -3255,19 +3250,6 @@ const DEF={
       '0':0.850,'1':0.550,'2':0.800,'3':0.780,'4':0.820,
       '5':0.780,'6':0.830,'7':0.720,'8':0.840,'9':0.830,
     },
-    // Materialzeitfaktor: wirkt NUR auf die Fräszeit (fzTotal), NICHT auf flaechenFaktoren/Materialverbrauch.
-    // Quelle: Testfräsung 10.09.2026 (Albian, Flexicam), Zeichen "O", VH 200mm, Block C.
-    // Referenz = Alu bei 3mm (interpoliert aus 2mm/4mm-Messwerten, da 3mm nicht direkt getestet) = Faktor 1.0.
-    // Messing ebenso auf 3mm interpoliert (aus 2mm/5mm). Dibond/Acryl/Eiche/Forex: nur 1 Messpunkt vorhanden,
-    // Dicke-Einfluss dort mangels Daten nicht separat berücksichtigt (SKU: "Referenzdicken normieren").
-    // Matching per Substring auf mat.name — s. getMatZeitfaktor().
-    materialZeitfaktor:{
-      "Alu roh":1.00, "Messing":1.76, "Dibond":0.26, "Acryl":0.36, "Eiche":0.87, "Forex":0.09,
-    },
-    // Serienrabatt: mehrere Zeichen im selben Aufspannvorgang sind schneller (kein Neu-Rüsten je Stück).
-    // Gemessen: 10× "O" im Verbund = 43% schneller pro Stück ab dem 2. Stück (Testfräsung 10.09.2026, Block D2).
-    // SKU: bewusst konservativ auf 25% gesetzt ("auf der sicheren Seite").
-    serienrabatt:0.25,
     nestingZuschlaege:[
       {vhBis:120,z:.08},{vhBis:220,z:.12},{vhBis:400,z:.16},
       {vhBis:600,z:.20},{vhBis:800,z:.24},{vhBis:99999,z:.28},
@@ -4106,19 +4088,6 @@ function gSelTxtInRow(chkId){
 function getFraeszeit(vh){const fz=P.fraes.fraeszeiten;for(let i=0;i<fz.length;i++){if(vh<=fz[i].vh)return fz[i].min;}const l=fz[fz.length-1];return l.min+(vh-l.vh)*(l.min/l.vh)*.5;}
 function getFF(ch){return P.fraes.flaechenFaktoren[ch.toUpperCase()]||1.0;}
 function getAFlaeche(vh){const h=vh/1000;return h*(h*.7);}
-// Materialzeitfaktor: wirkt nur auf Fräszeit, nicht auf Materialfläche/-kosten (s. P.fraes.materialZeitfaktor).
-function getMatZeitfaktor(mat){
-  const mzf=P.fraes?.materialZeitfaktor||{};
-  const name=(mat?.name||'').toLowerCase();
-  for(const k in mzf){if(name.includes(k.toLowerCase()))return mzf[k];}
-  return 1.0;
-}
-// Serienrabatt: ab dem 2. Stück im selben Aufspannvorgang schneller (kein Neu-Rüsten je Stück).
-// anzGes = Gesamtstückzahl (Buchstaben × Sätze). 1 Stück = kein Rabatt.
-function getSerienfaktor(anzGes){
-  const rabatt=P.fraes?.serienrabatt??0.25;
-  return anzGes>1 ? (1-rabatt*(anzGes-1)/anzGes) : 1;
-}
 function getLackInfo(vh){for(const l of P.fraes.lackierung){if(vh<=l.vhBis)return l;}return P.fraes.lackierung[P.fraes.lackierung.length-1];}
 function getGravurSek(vh, mat){
   const tables=P.gravur.sekundenProZeichen;
@@ -5592,12 +5561,9 @@ function cFr(){
   }
 
   const fzBasis=getFraeszeit(vh);
-  const matZeitfaktor=getMatZeitfaktor(mat);
   let fzTotal=0;
-  gezaehlt.forEach(ch=>fzTotal+=fzBasis*getFF(ch)*matZeitfaktor);
+  gezaehlt.forEach(ch=>fzTotal+=fzBasis*getFF(ch));
   fzTotal*=saetze;
-  const serienfaktor=getSerienfaktor(anzGes);
-  fzTotal*=serienfaktor;
   const fraeskosten=(fzTotal/60)*sa;
 
   const aF=getAFlaeche(vh);
@@ -7760,17 +7726,12 @@ function slSetZuschnitt(btn){
     const vh=Math.max(80,Math.min(Math.round(Math.sqrt(m2/0.7)*1000),1000));
     const nesting=(function(){for(const n of (P.fraes?.nestingZuschlaege||[])){if(vh<=n.vhBis)return n.z;}return .28;})();
     const fzBasis=(function(){const fz=P.fraes?.fraeszeiten||[];for(let i=0;i<fz.length;i++){if(vh<=fz[i].vh)return fz[i].min;}const l2=fz[fz.length-1];return l2?l2.min+(vh-l2.vh)*(l2.min/l2.vh)*.5:1;})();
-    // Materialzeitfaktor + Serienrabatt gleich wie bei Fräsbuchstaben (cFr) — s. dort für Herleitung.
-    const slMatIdx=parseInt($('slMat')?.value)||0;
-    const slMat=P.schildmaterial[isNaN(slMatIdx)?0:slMatIdx]||{name:''};
-    const matZeitfaktor=getMatZeitfaktor(slMat);
-    const serienfaktor=getSerienfaktor(stk);
-    const fzMin=Math.round(fzBasis*stk*(1+nesting)*matZeitfaktor*serienfaktor*10)/10;
+    const fzMin=Math.round(fzBasis*stk*(1+nesting)*10)/10;
     const defEntg=Math.round(stk*1.5*10)/10;
     const slFormfaktor = window._slFormfaktor || 0.5; // default Rechteck
     const fzMinAdj = Math.round(fzMin * slFormfaktor * 10) / 10;
     window._slFzMinBase = fzMin; // store base for recalculation
-    det.innerHTML=`<div class="hint ht" style="margin-bottom:8px;font-size:10px;">${(m2*10000).toFixed(0)} cm² → äq. VH ${vh}mm · Nesting +${Math.round(nesting*100)}% · Material ${slMat.name||'–'} ×${matZeitfaktor.toFixed(2)}${stk>1?' · Serie ×'+serienfaktor.toFixed(2):''} → Basis ${fzMin} Min</div>
+    det.innerHTML=`<div class="hint ht" style="margin-bottom:8px;font-size:10px;">${(m2*10000).toFixed(0)} cm² → äq. VH ${vh}mm · Nesting +${Math.round(nesting*100)}% → Basis ${fzMin} Min</div>
 
     <!-- Formfaktor Selector -->
     <div style="margin-bottom:10px;">
@@ -7783,12 +7744,12 @@ function slSetZuschnitt(btn){
           <div style="font-size:9px;color:var(--muted);">−50% Fräszeit</div>
           <div style="font-size:9px;color:var(--accent);">× 0.5</div>
         </div>
-        <div class="zopt${slFormfaktor===0.69?' sel':''}" data-ff="0.69" onclick="slSetFormfaktor(0.69,this)"
+        <div class="zopt${slFormfaktor===0.75?' sel':''}" data-ff="0.75" onclick="slSetFormfaktor(0.75,this)"
           style="flex:1;padding:6px 4px;text-align:center;font-size:10px;">
           <div style="font-size:13px;">⬭</div>
           <div style="font-weight:600;">Oval / Ausschnitte</div>
-          <div style="font-size:9px;color:var(--muted);">−31% Fräszeit</div>
-          <div style="font-size:9px;color:var(--accent);">× 0.69</div>
+          <div style="font-size:9px;color:var(--muted);">−25% Fräszeit</div>
+          <div style="font-size:9px;color:var(--accent);">× 0.75</div>
         </div>
         <div class="zopt${slFormfaktor===1.0?' sel':''}" data-ff="1.0" onclick="slSetFormfaktor(1.0,this)"
           style="flex:1;padding:6px 4px;text-align:center;font-size:10px;">
@@ -19090,7 +19051,7 @@ const MONDAY_PROD = {
   board:'1012481465',
   group:'group_mm5hq91f',            // Gruppe „Projekt und Offertanfragen"
   statusCol:'status', statusAnfrage:'Unbearbeitet',
-  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w', montageCloud:'link_mkswadkr', montageadresse:'location_mksw41wx' },
+  col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', datenpfad:'text_mksqs2p4', email:'email_mktzse3f', label:'link_mm5pzp3w', montageCloud:'link_mkswadkr', montageadresse:'location_mksw41wx', kundenkontakt:'text_mm76304x', kundentel:'phone_mm76fb50', kundenadresse:'location_mm76wf0d' },
   labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html', // Kisten-Label-Generator (Kalle-Intranet)
   subBoard:'1012481470',
   subCol:{ datum:'date0', offertsumme:'numeric_mm5hemt3', datei:'file_mm5gpa3e', bearbeiter:'person', status:'status' }
@@ -19136,6 +19097,8 @@ async function mondayProdAnfrage(data, token){
   if(kunde) cv[MONDAY_PROD.col.kunde]=kunde;
   if(data.datenpfad) cv[MONDAY_PROD.col.datenpfad]=String(data.datenpfad);
   if(data.email) cv[MONDAY_PROD.col.email]={email:String(data.email), text:String(data.email)};
+  if(data.kontakt) cv[MONDAY_PROD.col.kundenkontakt]=String(data.kontakt);
+  if(data.tel) cv[MONDAY_PROD.col.kundentel]={phone:String(data.tel), countryShortName:'CH'};
   // Montageadresse ABSICHTLICH NICHT hier: die Location-Spalte verlangt ein
   // vollständiges, geokodiertes Objekt (lat/lng/city/street/country) — ein reines
   // {address:"..."} wird von Monday abgelehnt ("invalid value"). Läuft deshalb
@@ -19162,6 +19125,19 @@ async function mondayProdAnfrage(data, token){
         console.warn('[Monday] Montageadresse „'+data.montageadresse+'" nicht geokodierbar — Spalte bleibt leer.');
       }
     }catch(e){ console.warn('[Monday] Montageadresse evtl. nicht gesetzt:', e.message); }
+  }
+  // Kundenadresse (z. B. Firmensitz) — eigenständig von der Montageadresse (Baustelle),
+  // gleiches Best-effort-Vorgehen: Geokodierung schlägt fehl → Spalte bleibt leer,
+  // blockiert die Erfassung nie.
+  if(data.kundenadresse){
+    try{
+      const geo=await _geocodeAdresse(String(data.kundenadresse));
+      if(geo){
+        await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify({[MONDAY_PROD.col.kundenadresse]:geo})}}, token);
+      }else{
+        console.warn('[Monday] Kundenadresse „'+data.kundenadresse+'" nicht geokodierbar — Spalte bleibt leer.');
+      }
+    }catch(e){ console.warn('[Monday] Kundenadresse evtl. nicht gesetzt:', e.message); }
   }
   // Subelement „Anfrage eingegangen" (Datum heute + evtl. Offertsumme)
   let subId='';
@@ -20204,7 +20180,7 @@ function toggleEmailAnalyse(){
       const montageadresse = (CUR.ablage==='o')
         ? [CUR.obStr, CUR.obZusatz?('('+CUR.obZusatz+')'):'', CUR.obOrt].filter(Boolean).join(' ').replace(/\s+/g,' ').trim()
         : '';
-      const res=await window.mondayProdAnfrage({ nr:CUR.nr, kunde:k.name||'', betreff:CUR.betreff||'', datenpfad:pfad||'', email:k.email||'', kurzbeschrieb:kegKurzbeschrieb(), montageadresse }, tok);
+      const res=await window.mondayProdAnfrage({ nr:CUR.nr, kunde:k.name||'', betreff:CUR.betreff||'', datenpfad:pfad||'', email:k.email||'', kontakt:k.kontakt||'', tel:k.tel||'', kundenadresse:[k.strasse,[k.plz,k.ort].filter(Boolean).join(' ')].filter(Boolean).join(', '), kurzbeschrieb:kegKurzbeschrieb(), montageadresse }, tok);
       CUR.mondayItem=res.itemId; try{ window._currentMondayItem=res.itemId; }catch(e){}
       if(res.existing){
         // Item existiert schon — fehlenden Datenpfad UND fehlende Montageadresse nachtragen, damit sie nie leer bleiben.
