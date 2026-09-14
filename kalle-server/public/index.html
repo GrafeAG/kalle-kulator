@@ -19097,8 +19097,10 @@ async function mondayProdAnfrage(data, token){
   if(kunde) cv[MONDAY_PROD.col.kunde]=kunde;
   if(data.datenpfad) cv[MONDAY_PROD.col.datenpfad]=String(data.datenpfad);
   if(data.email) cv[MONDAY_PROD.col.email]={email:String(data.email), text:String(data.email)};
-  if(data.kontakt) cv[MONDAY_PROD.col.kundenkontakt]=String(data.kontakt);
-  if(data.tel) cv[MONDAY_PROD.col.kundentel]={phone:String(data.tel), countryShortName:'CH'};
+  // Kontaktperson/Telefon/Adresse NICHT als eigene Monday-Spalten — landen stattdessen
+  // in der bestehenden kunden-Tabelle über POST /offerten (weiter unten), damit es
+  // weniger Monday-Spalten braucht und der gleiche Mechanismus wie bei einer echten
+  // Offert-Berechnung genutzt wird.
   // Montageadresse ABSICHTLICH NICHT hier: die Location-Spalte verlangt ein
   // vollständiges, geokodiertes Objekt (lat/lng/city/street/country) — ein reines
   // {address:"..."} wird von Monday abgelehnt ("invalid value"). Läuft deshalb
@@ -19126,18 +19128,14 @@ async function mondayProdAnfrage(data, token){
       }
     }catch(e){ console.warn('[Monday] Montageadresse evtl. nicht gesetzt:', e.message); }
   }
-  // Kundenadresse (z. B. Firmensitz) — eigenständig von der Montageadresse (Baustelle),
-  // gleiches Best-effort-Vorgehen: Geokodierung schlägt fehl → Spalte bleibt leer,
-  // blockiert die Erfassung nie.
-  if(data.kundenadresse){
+  // Kontaktperson/Telefon/Adresse in die bestehende kunden-Tabelle schreiben
+  // (POST /offerten legt den Kunden an oder aktualisiert ihn) — weniger Monday-
+  // Spalten, gleicher Mechanismus wie bei einer echten Offert-Berechnung.
+  if(data.kontakt || data.tel || data.kundenadresse){
     try{
-      const geo=await _geocodeAdresse(String(data.kundenadresse));
-      if(geo){
-        await _mondayFetch({query:`mutation($cv:JSON!){ change_multiple_column_values(board_id:${MONDAY_PROD.board}, item_id:${itemId}, column_values:$cv){ id } }`, variables:{cv:JSON.stringify({[MONDAY_PROD.col.kundenadresse]:geo})}}, token);
-      }else{
-        console.warn('[Monday] Kundenadresse „'+data.kundenadresse+'" nicht geokodierbar — Spalte bleibt leer.');
-      }
-    }catch(e){ console.warn('[Monday] Kundenadresse evtl. nicht gesetzt:', e.message); }
+      await fetch(KALLE_SERVER+'/offerten', { method:'POST', headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({ auftragsnr:nr, kundenname:kunde, kontaktperson:data.kontakt||'', email:data.email||'', telefon:data.tel||'', adresse:data.kundenadresse||'', positions:[], total:0 }) });
+    }catch(e){ console.warn('[Kunden-DB]', e.message); }
   }
   // Subelement „Anfrage eingegangen" (Datum heute + evtl. Offertsumme)
   let subId='';
