@@ -1391,7 +1391,8 @@ const PROD={
   col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', status:'status', prio:'color_mksqrk4k',
         datenpfad:'text_mksqs2p4', email:'email_mktzse3f', leistung:'dropdown_mm5j5492',
         offert:'numeric_mm5jnxjf', pl:'people0', standort:'location_mksw41wx', termin:'color_mm5syzb9',
-        montName:'text_mkswmy3d', montTel:'phone_mkswtq0k', montZeit:'text_mm1dy987', montCloud:'link_mkswadkr' },
+        montName:'text_mkswmy3d', montTel:'phone_mkswtq0k', montZeit:'text_mm1dy987', montCloud:'link_mkswadkr',
+        kundenkontakt:'text_mm76304x', kundentel:'phone_mm76fb50', kundenadresse:'location_mm76wf0d' },
   subCol:{ datum:'date0', bearbeiter:'person', status:'status', datei:'file_mm5gpa3e', lieferschein:'file_mkt23492', offerteAbBestellung:'file_mkxwyb9z', lieferant:'board_relation_mkt38hr8' }
 };
 // Aktive Gruppen (deckt sich mit ALLOWED_GROUPS des Termin-Ampel-Jobs) → Anzeige-Phase.
@@ -1628,7 +1629,8 @@ function mapItem(it, phase){
     id:it.id, url:it.url, nr, kunde, betreff, betreffRaw:it.name, phase,
     status:get(PROD.col.status)||'Unbearbeitet', prio:get(PROD.col.prio)||'',
     datenpfad:get(PROD.col.datenpfad)||db.projektPfad||'', email:get(PROD.col.email)||db.email||'',
-    kontakt:db.kontaktperson||'', tel:db.telefon||'',
+    kontakt:get(PROD.col.kundenkontakt)||db.kontaktperson||'', tel:get(PROD.col.kundentel)||db.telefon||'',
+    kundenadresseText:get(PROD.col.kundenadresse)||'',
     adr:{str:db.adresseStrasse||'', plz:db.adressePLZ||'', ort:db.adresseOrt||''},
     standort:get(PROD.col.standort)||'',
     montName:get(PROD.col.montName)||'', montTel:get(PROD.col.montTel)||'',
@@ -2645,6 +2647,7 @@ function szBuildSide(l){
     '<div class="sz-kv" style="margin-top:12px">'+
       (l.kontakt?('<span>Kontakt</span><span>'+esc(l.kontakt)+'</span>'):'')+
       (l.tel?('<span>Telefon</span><a href="tel:'+esc(l.tel.replace(/\s/g,''))+'" style="color:var(--tx);font-weight:600">'+esc(l.tel)+'</a>'):'')+
+      (l.kundenadresseText?('<span>Adresse</span><span>'+esc(l.kundenadresseText)+'</span>'):'')+
       (l.email?('<span>E-Mail</span><a href="mailto:'+esc(l.email)+'" style="color:var(--tx);font-weight:600" class="ell">'+esc(l.email)+'</a>'):'')+
     '</div></div>';
   var mapQAddr = l.standort || [l.adr.str,[l.adr.plz,l.adr.ort].filter(Boolean).join(' ')].filter(Boolean).join(', ');
@@ -3054,7 +3057,11 @@ async function rxErfassen(){
     cv[PROD.col.projektnr] = nummer;
     cv[PROD.col.kunde] = firma;
     cv[PROD.col.datenpfad] = ordnerpfad;
-    if(mail) cv[PROD.col.email] = { email: mail, text: mail };
+    if(mail){
+      if(mail.indexOf('@') !== -1) cv[PROD.col.email] = { email: mail, text: mail };
+      else cv[PROD.col.kundentel] = { phone: mail, countryShortName: 'CH' };
+    }
+    if(kontakt) cv[PROD.col.kundenkontakt] = kontakt;
     var itemName = nummer+' '+firma+' — '+betreff;
     var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
     itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
@@ -3075,7 +3082,7 @@ async function rxErfassen(){
     if(ablage === 'Objekt' && (strasse || ort)){
       try{
         var geo = await rxGeocode([strasse, ort].filter(Boolean).join(', '));
-        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify((function(o){o[PROD.col.standort]=geo;return o;})({})) });
+        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({ [PROD.col.standort]:geo, [PROD.col.kundenadresse]:geo }) });
       }catch(e){ console.warn('[Montageadresse]', e.message); }
     }
     document.getElementById('chainD2').textContent = 'group_mm5hq91f';
