@@ -3057,11 +3057,9 @@ async function rxErfassen(){
     cv[PROD.col.projektnr] = nummer;
     cv[PROD.col.kunde] = firma;
     cv[PROD.col.datenpfad] = ordnerpfad;
-    if(mail){
-      if(mail.indexOf('@') !== -1) cv[PROD.col.email] = { email: mail, text: mail };
-      else cv[PROD.col.kundentel] = { phone: mail, countryShortName: 'CH' };
-    }
-    if(kontakt) cv[PROD.col.kundenkontakt] = kontakt;
+    var telWert = (mail && mail.indexOf('@') === -1) ? mail : '';
+    var mailWert = (mail && mail.indexOf('@') !== -1) ? mail : '';
+    if(mailWert) cv[PROD.col.email] = { email: mailWert, text: mailWert };
     var itemName = nummer+' '+firma+' — '+betreff;
     var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
     itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
@@ -3079,11 +3077,23 @@ async function rxErfassen(){
     }
 
     /* Montageadresse — eigener, abgesicherter Schritt (siehe V9.56-Fix) */
+    var kundenadresseText = '';
     if(ablage === 'Objekt' && (strasse || ort)){
+      kundenadresseText = [strasse, ort].filter(Boolean).join(', ');
       try{
-        var geo = await rxGeocode([strasse, ort].filter(Boolean).join(', '));
-        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({ [PROD.col.standort]:geo, [PROD.col.kundenadresse]:geo }) });
+        var geo = await rxGeocode(kundenadresseText);
+        if(geo) await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({ [PROD.col.standort]:geo }) });
       }catch(e){ console.warn('[Montageadresse]', e.message); }
+    }
+    /* Kontaktperson, Telefon, Adresse NICHT als eigene Monday-Spalten — landen
+       stattdessen in der bestehenden kunden-Tabelle über die schon vorhandene
+       Route POST /offerten (wird später von loadDbEnrichment() wieder gelesen,
+       gleicher Mechanismus wie bei einer echten Offert-Berechnung). */
+    if(serverOk && (kontakt || telWert || kundenadresseText)){
+      try{
+        await fetch(serverUrl()+'/offerten', { method:'POST', headers:{'Content-Type':'application/json'},
+          body: JSON.stringify({ auftragsnr:nummer, kundenname:firma, kontaktperson:kontakt, email:mailWert, telefon:telWert, adresse:kundenadresseText, positions:[], total:0 }) });
+      }catch(e){ console.warn('[Kunden-DB]', e.message); }
     }
     document.getElementById('chainD2').textContent = 'group_mm5hq91f';
     rxState.fortschritt = 3; rxRender();
