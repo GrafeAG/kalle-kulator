@@ -1471,6 +1471,23 @@ const ICON={
 };
 function avColor(name){ if(!name) return null; let h=0; for(const c of name) h=(h*31+c.charCodeAt(0))>>>0; const hs=["#c8a000","#5559df","#579bfc","#00a3a3","#b8500a","#8a3ffc","#2f9d54","#d9527e"]; return hs[h%hs.length]; }
 const initials=n=>!n?'':n.split(/\s+/).slice(0,2).map(w=>w[0]||'').join('').toUpperCase();
+// Echte Mitarbeiterfotos aus dem Design-Paket — nur für die Personen vorhanden,
+// für die es ein Foto gibt (assets/team/*.jpg). Zuordnung über den Vornamen,
+// alle anderen fallen weiterhin auf den Initialen-Avatar zurück.
+const TEAM_PHOTOS={benjamin:'benjamin.jpg', claudia:'claudia.jpg', daniel:'daniel.jpg', nikolai:'nikolai.jpg', sven:'sven.jpg', zora:'zora.jpg', michael:'michael.jpg', marc:'marc.jpg', alex:'alex.jpg', leonie:'leonie.jpg'};
+function teamFoto(name){
+  if(!name) return null;
+  var vorname=String(name).trim().split(/\s+/)[0].toLowerCase();
+  return TEAM_PHOTOS[vorname]||null;
+}
+function avatarHTML(name, sizePx, fontPx, extraClass){
+  sizePx=sizePx||30; fontPx=fontPx||Math.round(sizePx*0.36); extraClass=extraClass||'';
+  var foto=teamFoto(name);
+  if(foto){
+    return '<img class="rk-avatar '+extraClass+'" src="assets/team/'+foto+'" alt="'+esc(name)+'" title="'+esc(name)+'" style="width:'+sizePx+'px;height:'+sizePx+'px;border-radius:50%;object-fit:cover;flex:none">';
+  }
+  return '<span class="rk-avatar rk-avatar--initials '+extraClass+'" title="'+esc(name||'ohne Bearbeiter')+'" style="width:'+sizePx+'px;height:'+sizePx+'px;font-size:'+fontPx+'px">'+esc(initials(name)||'?')+'</span>';
+}
 const fmtCHF=n=>"CHF "+Number(n).toLocaleString('de-CH');
 function daysBetween(iso){ if(!iso) return null; const d=new Date(iso); if(isNaN(d)) return null; return Math.max(0,Math.floor((Date.now()-d.getTime())/86400000)); }
 function ageInfo(d){ if(d==null) return {c:"#b3b9c4",t:"—"}; if(d<=1) return {c:"#00c875",t:d===0?"frisch":"1 Tag"}; if(d<=4) return {c:"#fdab3d",t:d+" Tage"}; return {c:"#df2f4a",t:d+" Tage"}; }
@@ -1564,7 +1581,7 @@ function ablaufFromSubs(subs){
     let d=[st||(dat?'':'ungeplant'), dat?fmtDate(dat):'', be].filter(Boolean).join(' · ');
     if(!d) d=st||'—';
     const updates=(s.updates||[]).slice().reverse();
-    return {id:s.id, name:s.name, done, extern, d, updates, lieferant, datumRaw:dat};
+    return {id:s.id, name:s.name, done, extern, d, updates, lieferant, datumRaw:dat, assets:s.assets||[]};
   });
   // erster nicht-erledigter Schritt = "aktueller" Schritt
   let markedNow=false;
@@ -1976,6 +1993,19 @@ function closeDrawer(){ document.getElementById('scrim').classList.remove('on');
 function fmtDate(iso){ if(!iso) return ''; const d=new Date(iso); if(isNaN(d)) return iso; return d.toLocaleDateString('de-CH',{day:'2-digit',month:'2-digit',year:'numeric'}); }
 
 // ═══ Einzel-Item frisch aus Monday laden (Monday → Cockpit) ═══
+// Verzögertes, gebündeltes Neuladen nach schreibenden Aktionen: läuft erst
+// nach einer kurzen Ruhepause, damit Ablage-/Erstellprozesse (Datei-Upload,
+// Monday-Mutation) sicher abgeschlossen sind, bevor neu geladen wird. Mehrere
+// Aktionen kurz hintereinander lösen nur EINEN Refresh aus, nicht mehrere.
+var _szAutoRefreshTimer = null;
+function szAutoRefresh(id, delayMs){
+  if(!id) return;
+  if(_szAutoRefreshTimer) clearTimeout(_szAutoRefreshTimer);
+  _szAutoRefreshTimer = setTimeout(function(){
+    _szAutoRefreshTimer = null;
+    refreshItem(id);
+  }, delayMs || 1400);
+}
 async function refreshItem(id){
   const btn=document.getElementById('dRefresh'); if(btn){ btn.innerHTML=ICON.refresh+' lädt …'; btn.style.pointerEvents='none'; }
   try{
@@ -2000,24 +2030,23 @@ async function refreshItem(id){
 // ═══ Write-Through ═══
 async function wtStatus(id,val){ const l=findLead(id); if(!val) return; try{
   await mFetch(`mutation($cv:JSON!){ change_multiple_column_values(board_id:${PROD.board}, item_id:${id}, column_values:$cv){ id } }`,{cv:JSON.stringify({[PROD.col.status]:{label:val}})});
-  l.status=val; toast('Monday','Status = „'+val+'" gespeichert.'); render(); }catch(e){ toast('Fehler',e.message,true); } }
+  l.status=val; toast('Monday','Status = „'+val+'" gespeichert.'); render(); szAutoRefresh(id); }catch(e){ toast('Fehler',e.message,true); } }
 async function wtPrio(id,val){ const l=findLead(id); try{
   await mFetch(`mutation($cv:JSON!){ change_multiple_column_values(board_id:${PROD.board}, item_id:${id}, column_values:$cv){ id } }`,{cv:JSON.stringify(val?{[PROD.col.prio]:{label:val}}:{[PROD.col.prio]:{}})});
-  l.prio=val; toast('Monday','Priorität = „'+(val||'—')+'" gespeichert.'); render(); }catch(e){ toast('Fehler',e.message,true); } }
+  l.prio=val; toast('Monday','Priorität = „'+(val||'—')+'" gespeichert.'); render(); szAutoRefresh(id); }catch(e){ toast('Fehler',e.message,true); } }
 async function wtBearbeiter(id,uid,uname){ const l=findLead(id); try{
   const cv=uid?{[PROD.col.pl]:{personsAndTeams:[{id:Number(uid),kind:'person'}]}}:{[PROD.col.pl]:{personsAndTeams:[]}};
   await mFetch(`mutation($cv:JSON!){ change_multiple_column_values(board_id:${PROD.board}, item_id:${id}, column_values:$cv){ id } }`,{cv:JSON.stringify(cv)});
-  l.bearbeiter=uid?uname:''; l.bearbeiterList=uid?[uname]:[]; toast('Monday','Bearbeiter '+(uid?'„'+uname+'"':'entfernt')+' gesetzt.'); render(); }catch(e){ toast('Fehler',e.message,true); } }
+  l.bearbeiter=uid?uname:''; l.bearbeiterList=uid?[uname]:[]; toast('Monday','Bearbeiter '+(uid?'„'+uname+'"':'entfernt')+' gesetzt.'); render(); szAutoRefresh(id); }catch(e){ toast('Fehler',e.message,true); } }
 async function wtComment(id){ const t=document.getElementById('newc'); const body=t.value.trim(); if(!body){ toast('Hinweis','Bitte Text eingeben.'); return; }
   try{ const d=await mFetch(`mutation($b:String!){ create_update(item_id:${id}, body:$b){ id created_at } }`,{b:body});
     const l=findLead(id); l.updates.push({id:(d.create_update||{}).id,text_body:body,created_at:(d.create_update||{}).created_at||new Date().toISOString(),creator:{name:'ich'}});
-    t.value=''; toast('Monday','Kommentar ans Item geschrieben.'); openDrawer(id); }catch(e){ toast('Fehler',e.message,true); } }
+    t.value=''; toast('Monday','Kommentar ans Item geschrieben.'); openDrawer(id); szAutoRefresh(id); }catch(e){ toast('Fehler',e.message,true); } }
 async function wtNextStep(id){ const txt=document.getElementById('nsText').value.trim(), dat=document.getElementById('nsDate').value, uid=document.getElementById('nsUser').value;
   if(!txt){ toast('Hinweis','Bitte Schritt benennen.'); return; }
   const scv={}; if(dat) scv[PROD.subCol.datum]={date:dat}; if(uid) scv[PROD.subCol.bearbeiter]={personsAndTeams:[{id:Number(uid),kind:'person'}]};
   try{ const d=await mFetch(`mutation($nm:String!,$cv:JSON!){ create_subitem(parent_item_id:${id}, item_name:$nm, column_values:$cv){ id name column_values{ id text value column{ title } } } }`,{nm:txt,cv:JSON.stringify(scv)});
-    const l=findLead(id); if(d.create_subitem) l.subitems.push(d.create_subitem);
-    toast('Monday','Nächster Schritt „'+txt+'" angelegt.'); openDrawer(id); render(); }catch(e){ toast('Fehler',e.message,true); } }
+    toast('Monday','Nächster Schritt „'+txt+'" angelegt.'); openDrawer(id); render(); szAutoRefresh(id, 900); }catch(e){ toast('Fehler',e.message,true); } }
 
 // ═══ Ordnerlink ═══
 function openFolder(id){ const l=findLead(id); if(!l||!l.datenpfad){ toast('Ordner','Kein Datenpfad hinterlegt.'); return; }
@@ -2112,8 +2141,8 @@ function plGefiltert(){
 
 function plAvatar(l){
   var namen = l.bearbeiterList||[];
-  if(!namen.length) return '<span class="rk-avatar rk-avatar--initials pl-row__img" title="ohne Bearbeiter">?</span>';
-  return '<span class="rk-avatar rk-avatar--initials pl-row__img" title="'+esc(namen.join(', '))+'">'+esc(initials(namen[0]))+'</span>';
+  if(!namen.length) return avatarHTML('', 26, 10, 'pl-row__img');
+  return avatarHTML(namen[0], 26, 10, 'pl-row__img');
 }
 
 function plZeile(l, art){
@@ -2154,7 +2183,7 @@ function plBuildFilter(){
     var n = (LEADS||[]).filter(function(l){ return (l.bearbeiterList||[]).indexOf(name) !== -1; }).length;
     var b = document.createElement('button');
     b.className = 'pl-filter pl-filter--pl'; b.dataset.pl = name;
-    b.innerHTML = '<span class="pl-ava"><span class="rk-avatar rk-avatar--initials" style="width:22px;height:22px;font-size:9px">'+esc(initials(name))+'</span></span>'+
+    b.innerHTML = '<span class="pl-ava">'+avatarHTML(name, 22, 9)+'</span>'+
                   '<span style="flex:1">'+esc(name)+'</span>'+
                   '<span class="pl-filter__n">'+n+'</span>';
     plBox.appendChild(b);
@@ -2366,7 +2395,19 @@ function szNowAnfrage(l){
       '<button class="rk-btn rk-btn--primary" onclick="szAnfrageUebernehmen(\''+l.id+'\')" style="justify-content:center;padding:10px 16px;font:700 13px/1 var(--font-ui)">Anfrage übernehmen</button>'+
     '</div>';
 }
-// 9a — exakte Struktur aus offertpruefung.html (.of-side, zwei rk-card)
+// Breadcrumb aus dem ECHTEN Datenpfad ableiten — nicht mehr aus einer
+// angenommenen Ordnerstruktur, die nicht der echten Explorer-Ablage entsprach.
+function szPfadBreadcrumb(l){
+  var ordner = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>';
+  if(!l.datenpfad) return ordner+'<span class="t-faint">Kein Datenpfad hinterlegt</span>';
+  var teile = l.datenpfad.split(/[\\\/]/).filter(Boolean);
+  var letzte = teile.slice(-3); // nur die letzten 3 Ebenen, sonst zu lang
+  return ordner + letzte.map(function(t,i){
+    var trenner = i>0 ? '<span class="t-faint">›</span>' : '';
+    var stil = i===letzte.length-1 ? ' style="font-weight:600;color:var(--tx)"' : '';
+    return trenner+'<span'+stil+'>'+esc(t)+'</span>';
+  }).join('');
+}
 function szOfSideHTML(l){
   return '<div class="of-side">'+
     '<div class="rk-card" style="display:flex;flex-direction:column">'+
@@ -2384,9 +2425,7 @@ function szOfSideHTML(l){
     '<div class="rk-card" style="display:flex;flex-direction:column;flex:none">'+
       '<div class="of-head"><span class="t-label">Dokumente der Offerte</span>'+
         '<span style="font:600 11px/1 var(--font-mono);color:var(--tx3)" id="docsCount">0</span></div>'+
-      '<div class="of-path"><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="flex:none"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>'+
-        '<span>'+esc(l.nr)+'</span><span class="t-faint">›</span><span>Angebote &amp; AB</span><span class="t-faint">›</span>'+
-        '<span style="font-weight:600;color:var(--tx)">Offerte</span></div>'+
+      '<div class="of-path">'+szPfadBreadcrumb(l)+'</div>'+
       '<div class="rk-col" style="gap:0;padding:4px 8px" id="docs"></div>'+
       '<div style="display:flex;align-items:center;justify-content:space-between;gap:10px;padding:10px 14px;border-top:1px solid var(--bd)">'+
         '<span class="t-small t-faint">Vom Reactor abgelegt und am Monday-Item angehängt.</span>'+
@@ -2442,6 +2481,7 @@ async function szAnfrageUebernehmen(id){
     }
     toast('Monday','Anfrage übernommen.');
     szRenderShell();
+    szAutoRefresh(id, 900);
   }catch(e){ toast('Fehler', e.message, true); }
 }
 async function szVerloren(id){
@@ -2477,7 +2517,7 @@ function szFlowHTML(l){
     var kommentare = (s.updates&&s.updates.length) ? '<span class="t-small t-faint">'+s.updates.length+(s.updates.length===1?' Notiz':' Notizen')+'</span>' : '';
     var noten = (s.updates||[]).map(function(c){
       var wer=(c.creator||{}).name||'—';
-      return '<div class="sz-note"><span class="rk-avatar rk-avatar--initials" style="width:26px;height:26px;font-size:10px">'+esc(initials(wer))+'</span>'+
+      return '<div class="sz-note">'+avatarHTML(wer, 26, 10)+
         '<div style="min-width:0"><div class="t-small t-faint"><b style="font-weight:600;color:var(--tx)">'+esc(wer)+'</b> · '+esc(fmtDate(c.created_at))+'</div>'+
         '<div class="t-body" style="margin-top:4px">'+esc(c.text_body||'')+'</div></div></div>';
     }).join('');
@@ -2492,6 +2532,19 @@ function szFlowHTML(l){
           '<input class="rk-input" id="szNote'+i+'" placeholder="Notiz zu diesem Schritt …" style="padding:7px 10px">'+
           '<button class="rk-btn rk-btn--sm" onclick="szSendNote(\''+s.id+'\','+i+')">Senden</button></div>'+
         (s.lieferant?('<div style="display:flex;gap:8px"><button class="rk-btn rk-btn--dark rk-btn--sm" onclick="lieferscheinOeffnen(\''+szCurId+'\',\''+l.nr+'\',\''+esc(l.betreffRaw||l.betreff||'').replace(/'/g,"")+'\',\''+s.id+'\',\''+esc(s.lieferant||'').replace(/'/g,"")+'\')">Lieferschein erstellen</button></div>'):'')+
+        '<div style="border-top:1px solid var(--bd);padding-top:10px;margin-top:2px">'+
+          '<div class="t-label" style="letter-spacing:.08em;margin-bottom:6px">Dateien zu diesem Schritt'+((s.assets&&s.assets.length)?' ('+s.assets.length+')':'')+'</div>'+
+          (s.assets&&s.assets.length ? '<div class="rk-col" style="gap:2px;margin-bottom:8px">'+s.assets.map(function(a){
+            return '<div class="sz-file" onclick="window.open(\''+esc(a.public_url||'').replace(/'/g,'')+'\',\'_blank\')" style="cursor:pointer">'+
+              '<span class="sz-file__tag" style="background:var(--bg4)">'+esc((a.file_extension||'DAT').toUpperCase().slice(0,4))+'</span>'+
+              '<span class="ell" style="font:600 12.5px/1.2 var(--font-ui)">'+esc(a.name)+'</span></div>';
+          }).join('')+'</div>' : '')+
+          '<div style="display:flex;gap:8px;align-items:center">'+
+            '<select class="rk-select" id="szStepOrdner'+i+'" style="font-size:12px;width:170px"><option>Pläne & Daten</option><option>Angebote & AB</option><option>Korrespondenz</option><option>Werkstattdaten</option></select>'+
+            '<button class="rk-btn rk-btn--sm" onclick="szStepDateiWaehlen(\''+s.id+'\','+i+')">Datei/E-Mail ablegen …</button>'+
+            '<input type="file" id="szStepFile'+i+'" style="display:none" onchange="szStepDateiUpload(\''+s.id+'\','+i+')">'+
+          '</div>'+
+        '</div>'+
       '</div>';
     return '<div class="sz-step'+(fertig?' is-done':'')+(current?' is-current':'')+'" data-i="'+i+'">'+
       '<div class="sz-rail"><span class="sz-mark">'+(fertig?'✓':'')+'</span>'+(i<steps.length-1?'<span class="sz-line"></span>':'')+'</div>'+
@@ -2517,6 +2570,40 @@ function szRenderFlowState(){
     el.querySelector('.sz-detail').hidden = !auf;
   });
 }
+function szStepDateiWaehlen(subId, i){
+  document.getElementById('szStepFile'+i).click();
+}
+async function szStepDateiUpload(subId, i){
+  var inp = document.getElementById('szStepFile'+i);
+  var file = inp.files && inp.files[0]; if(!file) return;
+  var ordner = document.getElementById('szStepOrdner'+i).value;
+  var l = findLead(szCurId);
+  if(!l || !l.datenpfad){ toast('Fehler','Kein Projektordner bekannt.', true); return; }
+  try{
+    var fd = new FormData();
+    fd.append('projektPfad', l.datenpfad);
+    fd.append('zielOrdner', ordner);
+    fd.append('file', file);
+    var r = await fetch(serverUrl()+'/projekte/upload', {method:'POST', body: fd});
+    var j = await r.json().catch(function(){return {};});
+    if(!r.ok || !j.ok) throw new Error(j.error || ('HTTP '+r.status));
+    toast('Ablage', 'In „'+ordner+'" abgelegt: '+j.pfad);
+    var token = getToken();
+    if(token){
+      try{
+        var fd2 = new FormData();
+        fd2.append('itemId', subId);
+        fd2.append('columnId', PROD.subCol.datei);
+        fd2.append('token', token);
+        fd2.append('files', file);
+        var r2 = await fetch(serverUrl()+'/monday/attach', {method:'POST', body: fd2});
+        if(r2.ok) toast('Monday', 'Auch am Schritt angehängt.');
+      }catch(e2){}
+    }
+    inp.value = '';
+    szAutoRefresh(szCurId, 1600);
+  }catch(e){ toast('Fehler', e.message, true); }
+}
 async function szSendNote(subId, i){
   var inp = document.getElementById('szNote'+i); var txt=(inp.value||'').trim();
   if(!txt){ toast('Hinweis','Bitte Text eingeben.'); return; }
@@ -2526,6 +2613,7 @@ async function szSendNote(subId, i){
     if(step) step.updates.push({text_body:txt, created_at:new Date().toISOString(), creator:{name:'ich'}});
     toast('Monday','Notiz gespeichert.');
     szRenderShell();
+    szAutoRefresh(szCurId);
   }catch(e){ toast('Fehler', e.message, true); }
 }
 
@@ -2569,7 +2657,7 @@ function szBuildSide(l){
       '<div class="t-body">'+esc(mapQAddr)+'</div>';
     if(l.montName || l.montTel){
       kundeHTML += '<div class="rk-row" style="gap:12px;margin-top:12px">'+
-        '<span class="rk-avatar rk-avatar--initials" style="width:32px;height:32px">'+esc(initials(l.montName||'?'))+'</span>'+
+        avatarHTML(l.montName||'?', 32)+
         '<div><div style="font:700 13px/1.2 var(--font-ui)">'+esc(l.montName||'—')+'</div>'+
         '<div class="t-small t-muted" style="margin-top:3px">'+esc(l.montTel||'')+'</div></div></div>';
     }
@@ -2608,10 +2696,11 @@ function szRenderShell(){
         '<span class="rk-meta__mode">'+esc(l.phase)+' · Schritt '+(flow.fertigCount+1)+' von '+flow.total+'</span></div>'+
         '<h2 style="margin:6px 0 0;font:900 26px/1.05 var(--font-ui);letter-spacing:-.02em">'+esc(l.betreffRaw||l.betreff||l.kunde)+'</h2>'+
       '</div>'+
-      '<div class="rk-person"><span class="rk-avatar rk-avatar--initials">'+esc(initials((l.bearbeiterList||[])[0]||'?'))+'</span>'+
+      '<div class="rk-person">'+avatarHTML((l.bearbeiterList||[])[0]||'?', 30)+
         '<div><div class="t-label" style="letter-spacing:.08em">Projektleitung</div>'+
         '<div style="font:600 13px/1 var(--font-ui);margin-top:4px">'+esc((l.bearbeiterList||[]).join(', ')||'—')+'</div></div></div>'+
       '<span style="width:1px;height:28px;background:var(--bd)"></span>'+
+      '<button class="rk-btn rk-btn--sm" id="dRefresh" onclick="refreshItem(\''+l.id+'\')" title="Kommentare, Schritte & Status frisch aus Monday laden">Aktualisieren</button>'+
       '<a class="rk-btn rk-btn--sm" href="'+esc(l.url)+'" target="_blank" rel="noopener">in Monday</a>'+
       '<button class="rk-btn rk-btn--icon" title="Schliessen" onclick="zeigeListe()">✕</button>'+
     '</div>'+
