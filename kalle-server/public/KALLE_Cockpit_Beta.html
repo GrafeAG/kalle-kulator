@@ -1220,7 +1220,7 @@
         <span class="rx-file" style="background:var(--bg4);color:var(--tx)" id="mailTag">MSG</span>
         <div style="flex:1;min-width:0">
           <div class="ell" style="font:700 13px/1.2 var(--font-ui)" id="mailName">–</div>
-          <div style="font:400 11.5px/1.3 var(--font-ui);color:var(--tx2);margin-top:3px">Kontakt bitte unten manuell eintragen — automatische Erkennung aus der E-Mail folgt später</div>
+          <div style="font:400 11.5px/1.3 var(--font-ui);color:var(--tx2);margin-top:3px" id="mailHint">Kontakt wird unten automatisch erkannt — bitte kurz prüfen</div>
         </div>
         <button class="rk-btn rk-btn--sm" id="mailDel">Entfernen</button>
       </div>
@@ -2895,7 +2895,42 @@ function rxAddFiles(fileList){
     rxFiles.push({ file:file, ordner:'Pläne & Daten' });
   });
   rxState.mail = rxFiles.length > 0;
+  var mailFile = Array.prototype.find.call(fileList, function(f){ return /\.(msg|eml|txt)$/i.test(f.name||''); });
+  if(mailFile) rxAnalysiereMail(mailFile);
   rxRender();
+}
+
+// Automatische Kontakterkennung aus einer gezogenen E-Mail — nutzt dieselbe
+// Analyse und denselben Kundenabgleich wie der Reactor, per window.parent
+// (Beta läuft als Iframe auf derselben Seite), statt sie zu duplizieren.
+async function rxAnalysiereMail(file){
+  var box = document.getElementById('mailrow');
+  var nameEl = document.getElementById('mailName');
+  if(nameEl) nameEl.textContent = 'Wird gelesen …';
+  try{
+    if(typeof window.parent.extractEmailText !== 'function' || typeof window.parent.analyseWithServer !== 'function'){
+      console.warn('[KALLE-DEBUG] rxAnalysiereMail: window.parent.extractEmailText/analyseWithServer fehlen (Reactor nicht geladen?)');
+      return;
+    }
+    var text = await window.parent.extractEmailText(file);
+    if(!text || text.trim().length < 5) return;
+    var fields = await window.parent.analyseWithServer(text);
+    var kunde = null;
+    if(typeof window.parent.matchKunde === 'function'){
+      kunde = window.parent.matchKunde({ name: fields.kundenname||'', email: fields.email||'' });
+    }
+    $rx('fFirma').value = kunde ? (kunde.name||fields.kundenname||'') : (fields.kundenname||'');
+    $rx('fKdNr').value = kunde ? (kunde.nr||'') : '';
+    $rx('fKontakt').value = kunde ? (kunde.kontakt||fields.kontaktperson||'') : (fields.kontaktperson||'');
+    $rx('fMail').value = (kunde && kunde.email ? kunde.email : fields.email) || fields.telefon || '';
+    if(!$rx('fBetreff').value.trim()) $rx('fBetreff').value = fields.betreff || '';
+    var nk = document.getElementById('neukunde'); if(nk) nk.hidden = !!kunde;
+    if(nameEl) nameEl.textContent = file.name;
+    rxRender();
+  }catch(e){
+    console.warn('[KALLE-DEBUG] rxAnalysiereMail Fehler:', e.message);
+    if(nameEl) nameEl.textContent = file.name + ' — Erkennung fehlgeschlagen, bitte manuell eintragen';
+  }
 }
 
 /* ── alles, was vom Zustand abhängt ────────────────────────────── */
