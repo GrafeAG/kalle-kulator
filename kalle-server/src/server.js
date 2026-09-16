@@ -119,6 +119,21 @@ try {
   console.warn('⚠ Route /nachfassen NICHT geladen — fehlt src/routes/nachfassen.js? (' + e.message + ')');
 }
 
+// ── NEU: Zentrale Vorgangsnummern-Vergabe (26xxxx) — reservieren/commit/freigeben ──
+// Fehlte bisher komplett in server.js, exakt derselbe Fehler wie zuvor bei
+// analyse.js: die Datei existierte und war korrekt, wurde aber nie gemountet.
+// POST /nummern/reservieren lief dadurch ins Leere (404 → SPA-Fallback lieferte
+// index.html statt JSON) — betraf sowohl den Reactor selbst als auch die Beta
+// (rxErfassen()/reserveVorgangsnummer() rufen denselben Endpoint auf), blockierte
+// dadurch vermutlich jede neue Anfrage-Erfassung komplett. Gefunden am 16.09.2026
+// beim Live-Test der neuen Projektnummer-Live-Anzeige in der Beta.
+try {
+  app.use('/nummern', require('./routes/nummern'));
+  console.log('✓ Route /nummern aktiv');
+} catch (e) {
+  console.warn('⚠ Route /nummern NICHT geladen — fehlt src/routes/nummern.js? (' + e.message + ')');
+}
+
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
   // API-Routen: JSON

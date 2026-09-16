@@ -1194,10 +1194,11 @@
   <!-- ═══ Ansicht 1 · Kunde & Anfrage ═══════════════════════════ -->
   <div class="rx-view" id="v1">
     <div class="rk-col" style="gap:10px">
-      <div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div class="rx-eyebrow">Schritt 1 von 2 · Backoffice · jetzt</div>
-        <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
+        <span id="rxVgBadge" hidden style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;background:var(--accent-dim);border:1px solid var(--accent-line);border-radius:100px;font:700 10.5px/1 var(--font-ui);letter-spacing:.05em;color:var(--tx)"><span id="rxVgNr">—</span><span style="opacity:.65;font-weight:600">reserviert</span></span>
       </div>
+      <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
 
       <div class="rx-drop" id="drop" role="button" tabindex="0">
         <span class="rx-drop__icon">
@@ -1233,12 +1234,23 @@
         <label><div class="rx-lbl">Firma</div><input class="rk-input" id="fFirma" placeholder="Firma · Abgleich mit Bestandskunden beim Tippen"></label>
         <label><div class="rx-lbl">Kundennummer</div><input class="rk-input" id="fKdNr" placeholder="wird bei Treffer übernommen"></label>
         <label><div class="rx-lbl">Ansprechperson</div><input class="rk-input" id="fKontakt"></label>
-        <label><div class="rx-lbl">E-Mail · Telefon</div><input class="rk-input" id="fMail"></label>
+        <label><div class="rx-lbl">Telefon</div><input class="rk-input" id="fTel"></label>
+        <label style="grid-column:1/-1"><div class="rx-lbl">E-Mail</div><input class="rk-input" id="fMail"></label>
+        <label style="grid-column:1/-1"><div class="rx-lbl">Strasse / Nr.</div><input class="rk-input" id="fStrasse"></label>
+        <label><div class="rx-lbl">PLZ</div><input class="rk-input" id="fPlz"></label>
+        <label><div class="rx-lbl">Ort</div><input class="rk-input" id="fOrt"></label>
+        <label><div class="rx-lbl">Zusatz 1 · z. B. Abteilung</div><input class="rk-input" id="fZusatz1" placeholder="z. B. Abteilung Einkauf"></label>
+        <label><div class="rx-lbl">Zusatz 2 · frei</div><input class="rk-input" id="fZusatz2" placeholder="z. B. z. Hd. / Gebäude / Kostenstelle"></label>
       </div>
 
       <div class="rx-box rk-col" style="gap:12px">
         <label><div class="rx-lbl">Betreff · wird Projektbezeichnung</div>
           <input class="rk-input" id="fBetreff" placeholder="z. B. Innensignaletik Neubau"></label>
+        <div class="rx-projname" style="display:flex;align-items:baseline;gap:8px;padding:8px 10px;background:var(--bg4);border-radius:8px;font:600 12px/1.3 var(--font-ui)">
+          <span style="color:var(--tx3);font-weight:700">Projektbezeichnung</span>
+          <span id="rxProjNr" style="font-weight:700">—</span>
+          <span id="rxProjTxt" style="color:var(--tx2)">…</span>
+        </div>
         <div>
           <div class="rx-lbl" style="margin-bottom:8px">Leistungsart</div>
           <div class="rk-wrap" id="arten"><!-- JS --></div>
@@ -2836,6 +2848,34 @@ var SPRUECHE = [
 
 var rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
 var rxFiles = [];  // { file, ordner }
+var rxNr = '';           // beim Einstieg in Erfassen reservierte Vorgangsnummer
+var rxNrCommitted = false;
+
+async function rxReserveNr(){
+  var badge = document.getElementById('rxVgBadge'), nrEl = document.getElementById('rxVgNr');
+  try{
+    var r = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
+    var j = await r.json();
+    if(r.ok && j.nummer){
+      rxNr = j.nummer; rxNrCommitted = false;
+      if(nrEl) nrEl.textContent = rxNr;
+      if(badge) badge.hidden = false;
+      rxUpdateProjname();
+    }
+  }catch(e){ console.warn('[KALLE-DEBUG] rxReserveNr:', e.message); }
+}
+async function rxFreigebeNr(){
+  if(!rxNr || rxNrCommitted) return;
+  try{ await fetch(serverUrl()+'/nummern/freigeben', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:rxNr }) }); }catch(e){}
+  rxNr = ''; rxNrCommitted = false;
+  var badge = document.getElementById('rxVgBadge'); if(badge) badge.hidden = true;
+}
+function rxUpdateProjname(){
+  var betreff = ($rx('fBetreff') ? $rx('fBetreff').value.trim() : '') || '…';
+  var nrEl = document.getElementById('rxProjNr'), txtEl = document.getElementById('rxProjTxt');
+  if(nrEl) nrEl.textContent = rxNr || '—';
+  if(txtEl) txtEl.textContent = betreff;
+}
 var rxErgebnis = null; // { nummer, ordnerpfad, itemId } nach erfolgreichem Erfassen
 function $rx(id){ return document.getElementById(id); }
 
@@ -2922,7 +2962,12 @@ async function rxAnalysiereMail(file){
     $rx('fFirma').value = kunde ? (kunde.name||fields.kundenname||'') : (fields.kundenname||'');
     $rx('fKdNr').value = kunde ? (kunde.nr||'') : '';
     $rx('fKontakt').value = kunde ? (kunde.kontakt||fields.kontaktperson||'') : (fields.kontaktperson||'');
-    $rx('fMail').value = (kunde && kunde.email ? kunde.email : fields.email) || fields.telefon || '';
+    $rx('fTel').value = kunde ? (kunde.tel||fields.telefon||'') : (fields.telefon||'');
+    $rx('fMail').value = kunde ? (kunde.email||fields.email||'') : (fields.email||'');
+    $rx('fStrasse').value = kunde ? (kunde.strasse||fields.adresseStrasse||'') : (fields.adresseStrasse||'');
+    $rx('fPlz').value = kunde ? (kunde.plz||fields.adressePLZ||'') : (fields.adressePLZ||'');
+    $rx('fOrt').value = kunde ? (kunde.ort||fields.adresseOrt||'') : (fields.adresseOrt||'');
+    if(kunde){ $rx('fZusatz1').value = kunde.zusatz1||''; $rx('fZusatz2').value = kunde.zusatz2||''; }
     if(!$rx('fBetreff').value.trim()) $rx('fBetreff').value = fields.betreff || '';
     var nk = document.getElementById('neukunde'); if(nk) nk.hidden = !!kunde;
     if(nameEl) nameEl.textContent = file.name;
@@ -2938,6 +2983,7 @@ function rxRender(){
   $rx('v1').hidden = rxState.schritt !== 1;
   $rx('v2').hidden = rxState.schritt !== 2;
   $rx('v3').hidden = rxState.schritt !== 3;
+  rxUpdateProjname();
 
   Array.prototype.forEach.call(document.querySelectorAll('.rx-step'), function(b){
     var n = Number(b.dataset.step);
@@ -3045,7 +3091,13 @@ async function rxErfassen(){
   var firma = $rx('fFirma').value.trim();
   var kdnr = $rx('fKdNr').value.trim();
   var kontakt = $rx('fKontakt').value.trim();
+  var tel = $rx('fTel').value.trim();
   var mail = $rx('fMail').value.trim();
+  var kStrasse = $rx('fStrasse').value.trim();
+  var kPlz = $rx('fPlz').value.trim();
+  var kOrt = $rx('fOrt').value.trim();
+  var zusatz1 = $rx('fZusatz1').value.trim();
+  var zusatz2 = $rx('fZusatz2').value.trim();
   var betreff = $rx('fBetreff').value.trim() || firma;
   var kurz = $rx('fKurz') ? $rx('fKurz').value.trim() : '';
   var ablage = rxState.ablage;
@@ -3055,11 +3107,18 @@ async function rxErfassen(){
 
   var nummer = null, itemId = null, ordnerpfad = '';
   try{
-    /* Schritt 1 — Nummer reservieren */
-    var r1 = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
-    var j1 = await r1.json();
-    if(!r1.ok || !j1.nummer) throw new Error(j1.error || 'Keine Nummer erhalten');
-    nummer = j1.nummer;
+    /* Schritt 1 — die beim Einstieg in Erfassen bereits reservierte Nummer
+       wiederverwenden (rxReserveNr(), siehe reaktorZeigeErfassen), statt ein
+       zweites Mal zu reservieren. Nur falls aus irgendeinem Grund noch keine
+       vorliegt (z. B. Reservierung beim Einstieg fehlgeschlagen), jetzt
+       nachholen. */
+    if(!rxNr){
+      var r1 = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
+      var j1 = await r1.json();
+      if(!r1.ok || !j1.nummer) throw new Error(j1.error || 'Keine Nummer erhalten');
+      rxNr = j1.nummer;
+    }
+    nummer = rxNr;
     rxErgebnis = { nummer:nummer };
     document.getElementById('chainD0').textContent = nummer;
     rxState.fortschritt = 1; rxRender();
@@ -3095,8 +3154,8 @@ async function rxErfassen(){
     cv[PROD.col.projektnr] = nummer;
     cv[PROD.col.kunde] = firma;
     cv[PROD.col.datenpfad] = ordnerpfad;
-    var telWert = (mail && mail.indexOf('@') === -1) ? mail : '';
-    var mailWert = (mail && mail.indexOf('@') !== -1) ? mail : '';
+    var telWert = tel;
+    var mailWert = mail;
     if(mailWert) cv[PROD.col.email] = { email: mailWert, text: mailWert };
     var itemName = nummer+' '+firma+' — '+betreff;
     var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
@@ -3107,7 +3166,8 @@ async function rxErfassen(){
     /* Kommentar mit Kurzbeschrieb/Kontakt */
     var kommentarZeilen = [];
     if(kontakt) kommentarZeilen.push('Kontakt: '+kontakt);
-    if(mail) kommentarZeilen.push('E-Mail/Telefon: '+mail);
+    if(mail) kommentarZeilen.push('E-Mail: '+mail);
+    if(tel) kommentarZeilen.push('Telefon: '+tel);
     if(kdnr) kommentarZeilen.push('Kundennummer: '+kdnr);
     if(kurz) kommentarZeilen.push('', kurz);
     if(kommentarZeilen.length){
@@ -3126,11 +3186,15 @@ async function rxErfassen(){
     /* Kontaktperson, Telefon, Adresse NICHT als eigene Monday-Spalten — landen
        stattdessen in der bestehenden kunden-Tabelle über die schon vorhandene
        Route POST /offerten (wird später von loadDbEnrichment() wieder gelesen,
-       gleicher Mechanismus wie bei einer echten Offert-Berechnung). */
-    if(serverOk && (kontakt || telWert || kundenadresseText)){
+       gleicher Mechanismus wie bei einer echten Offert-Berechnung). Adresse
+       hier ist die Kundenadresse aus Schritt 1 (fStrasse/fPlz/fOrt) — nicht
+       zu verwechseln mit der Objekt-/Montageadresse aus Schritt 2, die separat
+       oben für die Monday-Standort-Spalte geokodiert wird. */
+    var kundenAdresseText = [kStrasse, [kPlz, kOrt].filter(Boolean).join(' '), zusatz1, zusatz2].filter(Boolean).join(', ');
+    if(serverOk && (kontakt || telWert || mailWert || kundenAdresseText)){
       try{
         await fetch(serverUrl()+'/offerten', { method:'POST', headers:{'Content-Type':'application/json'},
-          body: JSON.stringify({ auftragsnr:nummer, kundenname:firma, kontaktperson:kontakt, email:mailWert, telefon:telWert, adresse:kundenadresseText, positions:[], total:0 }) });
+          body: JSON.stringify({ auftragsnr:nummer, kundenname:firma, kontaktperson:kontakt, email:mailWert, telefon:telWert, adresse:kundenAdresseText, positions:[], total:0 }) });
       }catch(e){ console.warn('[Kunden-DB]', e.message); }
     }
     document.getElementById('chainD2').textContent = 'group_mm5hq91f';
@@ -3145,6 +3209,7 @@ async function rxErfassen(){
 
     /* Schritt 5 — Nummer fest vergeben */
     await fetch(serverUrl()+'/nummern/commit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:nummer }) });
+    rxNrCommitted = true;
     document.getElementById('chainD4').textContent = 'Unbearbeitet';
     rxState.fortschritt = 5; rxRender();
 
@@ -3198,6 +3263,7 @@ function rxBind(){
 
 /* ── Overlay öffnen/schliessen ───────────────────────────────────── */
 function reaktorZeigeEinstieg(){
+  rxFreigebeNr();
   document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
   document.getElementById('scrEinstieg').hidden = false;
   rxRenderEinstiegListe();
@@ -3208,6 +3274,7 @@ function reaktorZeigeErfassen(){
   document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
   document.getElementById('scrErfassen').hidden = false;
   rxBuildAnhaenge(); rxRender();
+  rxReserveNr();
   var f = document.getElementById('fFirma'); if(f) f.focus();
 }
 function rxOeffnenOverlay(){
