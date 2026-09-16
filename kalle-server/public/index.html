@@ -2926,7 +2926,7 @@ const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilit�
 const UI_VERSION='V9.64';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
-  ['V9.64','Reaktor · Bug behoben: War der Datenablage-Pfad im Schritt „Ablageort" manuell uebernommen (z.B. weil der Projektordner schon bestand), wurde die Standard-Unterordner-Struktur (01 Korrespondenz … 07 Projektabschluss) nie angelegt. Root Cause: kegErfassen() rief bei manuellem Pfad ueberhaupt keinen Server-Endpunkt mehr auf, sondern uebernahm den eingegebenen Pfad nur als String - der Aufruf, der die Unterordner erzeugt (POST /projekte), wurde komplett uebersprungen. Fix: POST /projekte serverseitig um ein Feld pfadOverride erweitert (legt KEINEN neuen Firma-/Objekt-Basisordner an, nutzt den uebergebenen Pfad direkt, prueft ihn per pfadErlaubt() gegen die Projektbasis), durchlaeuft danach aber dieselbe Unterordner-Schleife wie beim automatischen Pfad - idempotent (fs.mkdirSync recursive:true), legt also nur nach, was fehlt, ohne Fehler bei bereits vorhandenen Ordnern. Client ruft diesen Endpunkt jetzt auch im manuellen Zweig auf, statt ihn zu ueberspringen.'],
+  ['V9.64','matchKunde() und extractEmailText() (E-Mail-.msg/.eml-Text-Extraktion inkl. echtem msgreader-Parser) werden jetzt zusaetzlich auf window exportiert, rein additiv, kein bestehendes Verhalten geaendert. Grund: der Kontrollraum (Beta) laeuft als Iframe auf derselben Seite und kann diese Funktionen jetzt direkt ueber window.parent wiederverwenden, statt E-Mail-Analyse und Kundenabgleich ein zweites Mal zu bauen - fuer die automatische Kontakterkennung beim Erfassen in der Beta.'],
   ['V9.63','Kontrollraum (Beta) ist jetzt wirklich randlos im Vollbild: vorher blieb der komplette KALLE-Header (nicht nur die Nav-Pillen) sichtbar, wodurch die Beta wie ein kleines Fenster in einer Box wirkte statt wie in V9.61 beschrieben. Fix: der ganze Header wird jetzt ausgeblendet, das Cockpit geht bis top:0 und volle 100vh. Ausserdem: der kleine runde X-Button oben rechts im Cockpit ist jetzt eine beschriftete Schaltflaeche „X Beta beenden" - besser erkennbar als Ausstiegspunkt. Vorbereitung fuer Standalone-Betrieb: laeuft die Beta-Seite kuenftig ohne Elternfenster (nicht mehr im iframe eingebettet), fuehrt der Button stattdessen zurueck zur KALLE-Startseite statt ins Leere zu laufen.'],
   ['V9.62','Kundenkontakt, Kunden-Telefon und Kundenadresse werden bei der Anfrage-Erfassung jetzt mitgeschrieben (drei neue Monday-Spalten: Kundenkontakt/Kunden-Telefon/Kundenadresse) - vorher gingen diese im Erfassungsformular eingegebenen Daten schlicht verloren, ausser Kundenname und E-Mail. Kundenadresse laeuft wie die Montageadresse ueber Geokodierung, eigenstaendig und getrennt von der Baustellenadresse.'],
   ['V9.61','Kontrollraum (Beta) laeuft jetzt echt im Vollbild: KALLEs eigene Kopfzeile wird ausgeblendet, sobald die Beta-Seite aktiv ist (body.beta-fullscreen), das iframe fuellt den ganzen Bildschirm - dadurch verschwindet die bisher doppelt wirkende Kopfzeile (KALLE-Navigation oben, REAKTOR-Kopfzeile darunter). Ausstieg zurueck zu KALLE ueber ein neues X-Symbol oben rechts im Cockpit selbst (funktioniert unabhaengig davon, welcher interne Screen gerade offen ist) sowie ueber die schon vorhandene, jetzt verdrahtete KALLE-KULATOR-Pille im REAKTOR-Kopf.'],
@@ -20364,30 +20364,7 @@ function toggleEmailAnalyse(){
     kegProgSet(34, _overr?'Datenablage wird übernommen …':'Projektordner wird angelegt …');
     if(_overr){
       pfad=_overr; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad;
-      // V9.64: Auch bei manuell übernommenem Pfad /projekte aufrufen — legt KEINEN
-      // neuen Basisordner an (Server nutzt den übergebenen Pfad direkt, siehe
-      // pfadOverride serverseitig), stellt aber die Standard-Unterordner-Struktur
-      // sicher (idempotent). Vorher wurde dieser Zweig komplett ohne Server-Aufruf
-      // durchlaufen — ein bereits bestehender Basisordner ohne die Unterordner
-      // (01 Korrespondenz … 07 Projektabschluss) blieb dadurch unvollständig.
-      if(srvOn){
-        try{
-          const body={ pfadOverride:_overr, projektnr:CUR.nr, bezeichnung:CUR.betreff, auftragsnr:CUR.nr, typ:CUR.ablage==='o'?'objekt':'firma' };
-          if(CUR.ablage==='o'){ body.ort=CUR.obOrt||k.ort||''; body.strasse=CUR.obStr||k.strasse||''; } else { body.firmaName=k.name; }
-          const r=await fetch(_srv()+'/projekte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
-          const d=await r.json();
-          if(d&&d.ok){
-            if(d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad; }
-            rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
-          } else {
-            rows.push(['warn','Datenablage (manuell übernommen)', pfad+' — Struktur nicht geprüft: '+((d&&d.error)||'unbekannter Fehler')]);
-          }
-        }catch(e){
-          rows.push(['warn','Datenablage (manuell übernommen)', pfad+' — Struktur-Check fehlgeschlagen: '+e.message]);
-        }
-      } else {
-        rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
-      }
+      rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
       if(srvOn && _fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
     } else if(CUR.roche && CUR.roche.active && srvOn){
       try{
@@ -20591,6 +20568,10 @@ function toggleEmailAnalyse(){
     let n=0, loaded=false; const iv=setInterval(()=>{ updateSrv(); if(SRV()&&!loaded){ loaded=true; loadGateAuftraege(true); } if(++n>20||(stammGeladen()&&loaded)) clearInterval(iv); },700);
   }
   if(document.readyState==='loading') window.addEventListener('DOMContentLoaded',()=>setTimeout(init,60)); else setTimeout(init,60);
+  // Für die Beta-Cockpit-Iframe (window.parent-Zugriff) freigeben — reine
+  // Wiederverwendung, kein neues Verhalten. Siehe UI_CHANGELOG V9.64.
+  window.matchKunde = matchKunde;
+  window.extractEmailText = extractEmailText;
 })();
 
 </script>
