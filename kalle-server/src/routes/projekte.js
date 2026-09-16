@@ -213,6 +213,7 @@ router.post('/', express.json({ limit: '5mb' }), async (req, res) => {
     typ, firmaName, ort, strasse,
     projektnr, bezeichnung, auftragsnr,
     emailText, offerteJson, offerteHtml,
+    pfadOverride,   // V9.64: manuell erfasster/bereits bestehender Pfad (Reaktor „Ablageort")
   } = req.body;
 
   if (!projektnr || !bezeichnung) {
@@ -232,7 +233,24 @@ router.post('/', express.json({ limit: '5mb' }), async (req, res) => {
   }
 
   try {
-    if (typ === 'firma') {
+    // V9.64: Manueller Pfad (Reaktor-Override) — Firma-/Objekt-Lookup bewusst
+    // übersprungen (der Aufrufer hat den Zielordner ja schon selbst bestimmt,
+    // z.B. weil er bereits existiert), aber die Unterordner-Struktur weiter
+    // unten läuft trotzdem — bislang wurde bei manuellem Pfad client-seitig
+    // GAR KEIN Aufruf dieser Route gemacht, wodurch eine bereits vorhandene
+    // Basis ohne die Standard-Unterordner blieb. mkDir() ist idempotent
+    // (fs.mkdirSync recursive:true) — bei bereits vollständiger Struktur
+    // passiert hier schlicht nichts.
+    if (pfadOverride) {
+      projektPfad = zuLokal(String(pfadOverride).trim().replace(/[\\/]+$/, ''));
+      if (!pfadErlaubt(projektPfad)) {
+        return res.status(403).json({ error: 'Manueller Pfad liegt ausserhalb der Projektbasis — nicht erlaubt.' });
+      }
+      const projektExistierte = fs.existsSync(projektPfad);
+      mkDir(projektPfad);
+      erstellteOrdner.push(projektExistierte ? 'Projektordner (bereits vorhanden, übernommen)' : 'Projektordner (manueller Pfad, neu angelegt)');
+    }
+    else if (typ === 'firma') {
       if (!firmaName) return res.status(400).json({ error: 'firmaName fehlt' });
       const firmaClean = sane(firmaName);
       mkDir(FIRMA_DIR);
@@ -259,10 +277,12 @@ router.post('/', express.json({ limit: '5mb' }), async (req, res) => {
       erstellteOrdner.push(projektOrdnerName);
     }
     else {
-      return res.status(400).json({ error: 'typ muss "firma" oder "objekt" sein' });
+      return res.status(400).json({ error: 'typ muss "firma" oder "objekt" sein (oder pfadOverride angeben)' });
     }
 
-    // Unterordner
+    // Unterordner — läuft in JEDEM Fall (auch bei pfadOverride), damit die
+    // Standard-Struktur sichergestellt ist, egal ob der Basisordner gerade
+    // neu angelegt oder schon vorhanden war.
     for (const sub of UNTERORDNER) {
       try {
         const subPfad = mkDir(path.join(projektPfad, sub));
