@@ -74,6 +74,23 @@ try {
   console.warn('⚠ Route /montage NICHT geladen — fehlt src/routes/montage.js? (' + e.message + ')');
 }
 
+// ── NEU: E-Mail-Analyse für die Anfrage-Erfassung (analyse.js) ───────────
+// Fehlte bisher komplett in server.js — nur die GET /analyse/zusammenfassung-
+// Route (Cockpit-Kurzzusammenfassung, siehe unten) war gemountet, die
+// eigentliche POST /analyse-Route (Kontakterkennung aus der Anfrage-Mail,
+// von analyseWithServer() im Frontend aufgerufen) lief dadurch ins Leere
+// (404 → SPA-Fallback lieferte index.html statt JSON zurück). Root Cause
+// des "Zusammenfassung fehlt"-Bugs vom 16.09.2026 — nicht max_tokens allein,
+// die Route war schlicht nie erreichbar. Beide /analyse-Router vertragen
+// sich (Express probiert POST / bzw. GET /zusammenfassung der Reihe nach
+// durch, kein Konflikt), müssen aber BEIDE gemountet sein.
+try {
+  app.use('/analyse', require('./routes/analyse'));
+  console.log('✓ Route /analyse aktiv');
+} catch (e) {
+  console.warn('⚠ Route /analyse NICHT geladen — fehlt src/routes/analyse.js? (' + e.message + ')');
+}
+
 // ── NEU: KI-Kurzzusammenfassung fürs Cockpit (analyse_zusammenfassung.js) ──
 // Eigene Route, unabhängig von einer eventuell separat gemounteten /analyse-
 // Route für die Mail-Analyse — Express probiert beide GET-Pfade der Reihe
