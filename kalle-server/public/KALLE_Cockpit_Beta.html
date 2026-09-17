@@ -1196,7 +1196,7 @@
     <div class="rk-col" style="gap:10px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div class="rx-eyebrow">Schritt 1 von 2 · Backoffice · jetzt</div>
-        <span id="rxVgBadge" hidden style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px;background:var(--accent-dim);border:1px solid var(--accent-line);border-radius:100px;font:700 10.5px/1 var(--font-ui);letter-spacing:.05em;color:var(--tx)"><span id="rxVgNr">—</span><span style="opacity:.65;font-weight:600">reserviert</span></span>
+        <span id="rxVgBadge" style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 12px;background:var(--accent-dim);border:1px solid var(--accent-line);border-radius:100px;font:700 10.5px/1 var(--font-ui);letter-spacing:.05em;color:var(--tx)"><span style="opacity:.65;font-weight:600">Nr.</span><input id="rxVgNr" placeholder="z. B. 265912" style="width:74px;border:0;background:transparent;font:700 10.5px/1 var(--font-ui);letter-spacing:.05em;color:var(--tx);padding:2px 0"><span id="rxVgTag" style="opacity:.65;font-weight:600">manuell</span></span>
       </div>
       <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
 
@@ -1312,12 +1312,21 @@
       </div>
 
       <div class="rx-box">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+          <span class="t-label">Datenablage-Pfad</span>
+          <a href="#" id="rxPfadReset" style="font:600 11px/1 var(--font-ui);color:var(--tx3);text-decoration:none">↺ Auto</a>
+        </div>
+        <input class="rk-input" id="rxPfadInput" spellcheck="false" style="font:500 12.5px/1.4 var(--font-mono, var(--font-ui));white-space:nowrap;overflow-x:auto" placeholder="\\stgag002.artexgroup.local\grafeag\01-Kundenprojekte\…">
+        <div style="font:400 10.5px/1.4 var(--font-ui);color:var(--tx3);margin-top:5px">Automatisch vorgeschlagen — bei bereits bestehendem Ordner oder abweichendem Namen hier direkt anpassen. Dann wird genau dieser Pfad verwendet (kein neuer Ordner).</div>
+      </div>
+
+      <div class="rx-box">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
           <span class="t-label">Anhänge · Zielordner pro Datei</span>
           <span class="t-small t-faint">E-Mail selbst → Korrespondenz</span>
         </div>
         <div id="attFolders"><!-- JS --></div>
-        <div class="rk-drop" style="margin-top:10px;min-height:44px;border-width:2px">Weitere Dateien hierher ziehen</div>
+        <div class="rk-drop" style="margin-top:10px;min-height:110px;padding:16px;border-width:2px;display:flex;align-items:center;justify-content:center;text-align:center;font:600 13px/1.4 var(--font-ui)">Weitere Dateien hierher ziehen</div>
       </div>
     </div>
 
@@ -1400,11 +1409,12 @@
 const MONDAY_API='https://api.monday.com/v2', MONDAY_VER='2024-01';
 const PROD={
   board:'1012481465', subBoard:'1012481470',
+  labelBase:'http://kalle.grafe.ch:8765/Montage_Laufzettel_Generator.html',
   col:{ projektnr:'text_mkv7v7m6', kunde:'text_mm5hbe90', status:'status', prio:'color_mksqrk4k',
         datenpfad:'text_mksqs2p4', email:'email_mktzse3f', leistung:'dropdown_mm5j5492',
         offert:'numeric_mm5jnxjf', pl:'people0', standort:'location_mksw41wx', termin:'color_mm5syzb9',
         montName:'text_mkswmy3d', montTel:'phone_mkswtq0k', montZeit:'text_mm1dy987', montCloud:'link_mkswadkr',
-        kundenkontakt:'text_mm76304x', kundentel:'phone_mm76fb50', kundenadresse:'location_mm76wf0d' },
+        kundenkontakt:'text_mm76304x', kundentel:'phone_mm76fb50', kundenadresse:'location_mm76wf0d', label:'link_mm5pzp3w' },
   subCol:{ datum:'date0', bearbeiter:'person', status:'status', datei:'file_mm5gpa3e', lieferschein:'file_mkt23492', offerteAbBestellung:'file_mkxwyb9z', lieferant:'board_relation_mkt38hr8' }
 };
 // Aktive Gruppen (deckt sich mit ALLOWED_GROUPS des Termin-Ampel-Jobs) → Anzeige-Phase.
@@ -2830,7 +2840,7 @@ function render(){ plRender(); }
    ═══════════════════════════════════════════════════════════════ */
 
 var ARTEN = ['Schild','Folie','Folientechnik','Fahrzeugbeschriftung','Bodenmarkierung','Reklamation','Versand'];
-var ORDNER = ['Pläne & Daten','Angebote & AB','Korrespondenz','Werkstattdaten'];
+var ORDNER = ['01 Korrespondenz','02 Offertphase','03 Ausführung','04 Werkstattdaten','05 Nachträge','06 Fotos','07 Projektabschluss'];
 var KETTE = [
   { text:'Projektnummer reserviert' },
   { text:'Projektordner angelegt, Anhänge abgelegt' },
@@ -2848,33 +2858,66 @@ var SPRUECHE = [
 
 var rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
 var rxFiles = [];  // { file, ordner }
-var rxNr = '';           // beim Einstieg in Erfassen reservierte Vorgangsnummer
+var rxNr = '';           // beim Einstieg in Erfassen reservierte (oder manuell eingetragene) Vorgangsnummer
 var rxNrCommitted = false;
+var rxNrManual = false;  // true sobald der Bearbeiter die Nummer selbst eingetippt hat
+var rxPfadEdited = false;
 
 async function rxReserveNr(){
-  var badge = document.getElementById('rxVgBadge'), nrEl = document.getElementById('rxVgNr');
+  var nrEl = document.getElementById('rxVgNr'), tagEl = document.getElementById('rxVgTag');
   try{
     var r = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
     var j = await r.json();
     if(r.ok && j.nummer){
-      rxNr = j.nummer; rxNrCommitted = false;
-      if(nrEl) nrEl.textContent = rxNr;
-      if(badge) badge.hidden = false;
+      if(!rxNrManual){
+        rxNr = j.nummer; rxNrCommitted = false;
+        if(nrEl) nrEl.value = rxNr;
+        if(tagEl) tagEl.textContent = 'reserviert';
+      }
       rxUpdateProjname();
+    } else {
+      if(tagEl) tagEl.textContent = 'bitte manuell eintragen';
+      if(nrEl) nrEl.focus();
     }
-  }catch(e){ console.warn('[KALLE-DEBUG] rxReserveNr:', e.message); }
+  }catch(e){
+    console.warn('[KALLE-DEBUG] rxReserveNr:', e.message);
+    if(tagEl) tagEl.textContent = 'bitte manuell eintragen';
+  }
 }
 async function rxFreigebeNr(){
-  if(!rxNr || rxNrCommitted) return;
+  if(!rxNr || rxNrCommitted || rxNrManual) { rxNr = ''; rxNrCommitted = false; rxNrManual = false; return; }
   try{ await fetch(serverUrl()+'/nummern/freigeben', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:rxNr }) }); }catch(e){}
   rxNr = ''; rxNrCommitted = false;
-  var badge = document.getElementById('rxVgBadge'); if(badge) badge.hidden = true;
 }
 function rxUpdateProjname(){
   var betreff = ($rx('fBetreff') ? $rx('fBetreff').value.trim() : '') || '…';
   var nrEl = document.getElementById('rxProjNr'), txtEl = document.getElementById('rxProjTxt');
   if(nrEl) nrEl.textContent = rxNr || '—';
   if(txtEl) txtEl.textContent = betreff;
+}
+var rxBasis = '';
+async function rxLadeBasis(){
+  if(rxBasis) return rxBasis;
+  try{
+    if(typeof window.parent.ladeProjektBasis === 'function'){
+      rxBasis = await window.parent.ladeProjektBasis();
+    }
+  }catch(e){ console.warn('[KALLE-DEBUG] rxLadeBasis:', e.message); }
+  if(!rxBasis) rxBasis = '\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte';
+  rxRender();
+  return rxBasis;
+}
+function rxUpdatePfad(){
+  var pin = document.getElementById('rxPfadInput');
+  if(!pin || rxPfadEdited) return;
+  var base = rxBasis || '\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte';
+  var firma = ($rx('fFirma') ? $rx('fFirma').value.trim() : '') || '…';
+  var ort = ($rx('fOrt') && $rx('fOrt').value.trim()) || (document.getElementById('oOrt') && document.getElementById('oOrt').value.trim()) || '…';
+  var str = (document.getElementById('oStrasse') && document.getElementById('oStrasse').value.trim()) || '…';
+  var betreff = ($rx('fBetreff') ? $rx('fBetreff').value.trim() : '');
+  var leaf = ((rxNr ? rxNr+' - ' : '') + betreff).trim();
+  var pfad = (rxState.ablage === 'Objekt') ? (base+'\\Objekte\\'+ort+'\\'+str+'\\') : (base+'\\Firmenkunden\\'+firma+'\\');
+  pin.value = pfad + leaf + '\\';
 }
 var rxErgebnis = null; // { nummer, ordnerpfad, itemId } nach erfolgreichem Erfassen
 function $rx(id){ return document.getElementById(id); }
@@ -2932,7 +2975,7 @@ function rxBuildKette(){
 function rxAddFiles(fileList){
   Array.prototype.forEach.call(fileList, function(file){
     if(rxFiles.some(function(f){return f.file.name===file.name && f.file.size===file.size;})) return;
-    rxFiles.push({ file:file, ordner:'Pläne & Daten' });
+    rxFiles.push({ file:file, ordner: /\.(msg|eml|txt)$/i.test(file.name||'') ? '01 Korrespondenz' : '02 Offertphase' });
   });
   rxState.mail = rxFiles.length > 0;
   var mailFile = Array.prototype.find.call(fileList, function(f){ return /\.(msg|eml|txt)$/i.test(f.name||''); });
@@ -2984,6 +3027,7 @@ function rxRender(){
   $rx('v2').hidden = rxState.schritt !== 2;
   $rx('v3').hidden = rxState.schritt !== 3;
   rxUpdateProjname();
+  rxUpdatePfad();
 
   Array.prototype.forEach.call(document.querySelectorAll('.rx-step'), function(b){
     var n = Number(b.dataset.step);
@@ -3124,11 +3168,30 @@ async function rxErfassen(){
     rxState.fortschritt = 1; rxRender();
 
     /* Schritt 2 — Projektordner anlegen */
+    /* offerteJson: das Original schickt hier immer ein JSON mit den
+       Kundendaten mit (auch wenn beim Erfassen selbst noch nicht kalkuliert
+       wurde — dann mit total:0/positions:[]). Ohne projekte.js auf Serverseite
+       kann nicht abschliessend geprüft werden, ob/wie das Feld dort verarbeitet
+       wird — hier best-effort mit den in Schritt 1 vorhandenen Daten befüllt,
+       damit der Aufruf strukturell dem Original entspricht. */
+    var offerteData = {
+      auftragsnr: nummer, kundenname: firma, kontaktperson: kontakt,
+      datum: new Date().toISOString().split('T')[0], bemerkung: kurz || '',
+      adresseStrasse: kStrasse, adressePLZ: kPlz, adresseOrt: kOrt,
+      bearbeiter: '', total: 0, positions: [], savedAt: new Date().toISOString()
+    };
     var body2 = {
       typ: ablage === 'Objekt' ? 'objekt' : 'firma',
       projektnr: nummer, bezeichnung: betreff, auftragsnr: nummer,
       emailText: kurz || null,
+      offerteJson: JSON.stringify(offerteData, null, 2),
     };
+    /* Manuell angepasster Ablagepfad (Datenablage-Pfad-Feld) — Server unterstützt
+       das seit V9.64 über pfadOverride (bereits bestehender Ordner o.ä.); ohne
+       das hier mitzuschicken hätte die Bearbeitung des Feldes keine Wirkung. */
+    if(rxPfadEdited && $rx('rxPfadInput') && $rx('rxPfadInput').value.trim()){
+      body2.pfadOverride = $rx('rxPfadInput').value.trim();
+    }
     if(ablage === 'Objekt'){ body2.ort = ort; body2.strasse = strasse; }
     else { body2.firmaName = firma; }
     var r2 = await fetch(serverUrl()+'/projekte', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(body2) });
@@ -3150,6 +3213,14 @@ async function rxErfassen(){
     rxState.fortschritt = 2; rxRender();
 
     /* Schritt 3 — Monday-Item anlegen */
+    /* Duplikat-Prüfung: existiert schon ein Item mit dieser Projektnummer
+       (z. B. bei Doppelklick/Netzwerk-Retry), wird es wiederverwendet statt
+       ein zweites anzulegen — exakt wie im Reactor (mondayProdAnfrage()). */
+    var bestehend = null;
+    try{
+      var exQ = await mFetch('query($v:[String!]){ items_page_by_column_values(board_id:'+PROD.board+', columns:[{column_id:"'+PROD.col.projektnr+'", column_values:$v}], limit:1){ items{ id } } }', { v:[nummer] });
+      bestehend = exQ && exQ.items_page_by_column_values && exQ.items_page_by_column_values.items[0];
+    }catch(e){}
     var cv = {};
     cv[PROD.col.projektnr] = nummer;
     cv[PROD.col.kunde] = firma;
@@ -3157,11 +3228,21 @@ async function rxErfassen(){
     var telWert = tel;
     var mailWert = mail;
     if(mailWert) cv[PROD.col.email] = { email: mailWert, text: mailWert };
-    var itemName = nummer+' '+firma+' — '+betreff;
-    var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
-    itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
+    if(nummer) cv[PROD.col.label] = { url: PROD.labelBase+'?pnr='+encodeURIComponent(nummer), text:'Label drucken' };
+    /* Item-Name: nur Projektnummer + Betreff — KEIN Kunde (steht schon in der
+       Kunde-Spalte), exakt wie im Reactor (mondayProdAnfrage()). */
+    var itemName = (nummer+' '+betreff).replace(/\s{2,}/g,' ').trim().slice(0,255) || ('Anfrage '+nummer);
+    if(bestehend){
+      itemId = bestehend.id;
+    } else {
+      var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
+      itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
+    }
     if(!itemId) throw new Error('Monday-Item nicht angelegt');
     rxErgebnis.itemId = itemId;
+    /* Status separat setzen (nicht-blockierend, wie im Original) */
+    try{ await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({ [PROD.col.status]: { label:'Unbearbeitet' } }) }); }
+    catch(e){ console.warn('[KALLE-DEBUG] Status evtl. nicht gesetzt:', e.message); }
 
     /* Kommentar mit Kurzbeschrieb/Kontakt */
     var kommentarZeilen = [];
@@ -3244,6 +3325,9 @@ function rxBind(){
   $rx('fBetreff').addEventListener('input', rxRender);
   $rx('oStrasse').addEventListener('input', rxRender);
   $rx('oOrt').addEventListener('input', rxRender);
+  $rx('rxPfadInput').addEventListener('input', function(){ rxPfadEdited = true; });
+  $rx('rxPfadReset').addEventListener('click', function(e){ e.preventDefault(); rxPfadEdited = false; rxRender(); });
+  $rx('rxVgNr').addEventListener('input', function(){ rxNr = this.value.trim(); rxNrManual = true; rxRender(); });
   $rx('go2').addEventListener('click', function(){ if(!$rx('go2').disabled){ rxBuildAnhaenge(); rxState.schritt = 2; rxRender(); } });
   $rx('back1').addEventListener('click', function(){ rxState.schritt = 1; rxRender(); });
   $rx('submit').addEventListener('click', rxErfassen);
@@ -3270,11 +3354,12 @@ function reaktorZeigeEinstieg(){
 }
 function reaktorZeigeErfassen(){
   rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
-  rxFiles = []; rxErgebnis = null;
+  rxFiles = []; rxErgebnis = null; rxNrManual = false; rxPfadEdited = false;
   document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
   document.getElementById('scrErfassen').hidden = false;
   rxBuildAnhaenge(); rxRender();
   rxReserveNr();
+  rxLadeBasis();
   var f = document.getElementById('fFirma'); if(f) f.focus();
 }
 function rxOeffnenOverlay(){
