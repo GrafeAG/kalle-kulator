@@ -197,6 +197,8 @@
   .center input{width:100%;padding:11px 13px;border:1px solid var(--bd);border-radius:10px;font:inherit;margin:14px 0}
   .spin{width:34px;height:34px;border:3px solid var(--bd);border-top-color:var(--gold);border-radius:50%;animation:sp 1s linear infinite;margin:30px auto}
   @keyframes sp{to{transform:rotate(360deg)}}
+  @keyframes rxRauteSpin{from{transform:rotate(45deg)}to{transform:rotate(405deg)}}
+  .rx-raute-spin{display:inline-block;width:11px;height:11px;background:var(--y);flex:none;animation:rxRauteSpin .9s linear infinite;vertical-align:middle}
   .skeleton{color:var(--muted);text-align:center;padding:40px}
 
 /* ══════ REAKTOR · Anfrage-erfassen-Overlay (aus Claude-Design-Mockup übernommen) ══════ */
@@ -1193,12 +1195,13 @@
 
   <!-- ═══ Ansicht 1 · Kunde & Anfrage ═══════════════════════════ -->
   <div class="rx-view" id="v1">
-    <div class="rk-col" style="gap:10px">
+    <div class="rk-col" style="gap:4px">
       <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
         <div class="rx-eyebrow">Schritt 1 von 2 · Backoffice · jetzt</div>
-        <span id="rxVgBadge" style="display:inline-flex;align-items:center;gap:6px;padding:3px 9px 3px 12px;background:var(--accent-dim);border:1px solid var(--accent-line);border-radius:100px;font:700 10.5px/1 var(--font-ui);letter-spacing:.05em;color:var(--tx)"><span style="opacity:.65;font-weight:600">Nr.</span><input id="rxVgNr" placeholder="z. B. 265912" style="width:74px;border:0;background:transparent;font:700 10.5px/1 var(--font-ui);letter-spacing:.05em;color:var(--tx);padding:2px 0"><span id="rxVgTag" style="opacity:.65;font-weight:600">manuell</span></span>
+        <span id="rxVgBadge" style="display:inline-flex;align-items:center;gap:7px;padding:5px 12px 5px 14px;background:var(--accent-dim);border:1.5px solid var(--accent-line);border-radius:100px;font:700 12.5px/1 var(--font-ui);letter-spacing:.04em;color:var(--tx)"><span style="opacity:.65;font-weight:700">Projektnr.</span><input id="rxVgNr" placeholder="z. B. 265912" title="Existiert das Projekt schon? Nummer hier eintragen." style="width:88px;border:0;background:transparent;font:700 12.5px/1 var(--font-ui);letter-spacing:.04em;color:var(--tx);padding:2px 0"><span id="rxVgTag" style="opacity:.65;font-weight:600">manuell</span></span>
       </div>
-      <h1 class="rx-h1">Kunde &amp; Anfrage.</h1>
+      <div class="t-small t-faint" style="padding-left:1px">Nummer wird automatisch reserviert — <b>existiert das Projekt bereits</b>, hier stattdessen die bekannte Nummer eintragen.</div>
+      <h1 class="rx-h1" style="margin-top:8px">Kunde &amp; Anfrage.</h1>
 
       <div class="rx-drop" id="drop" role="button" tabindex="0">
         <span class="rx-drop__icon">
@@ -3101,14 +3104,17 @@ function rxAddFiles(fileList){
 async function rxAnalysiereMail(file){
   var box = document.getElementById('mailrow');
   var nameEl = document.getElementById('mailName');
-  if(nameEl) nameEl.textContent = 'Wird gelesen …';
+  function status(txt){ if(nameEl) nameEl.innerHTML = '<span class="rx-raute-spin"></span> '+esc(txt); }
+  status('Wird gelesen …');
   try{
     if(typeof window.parent.extractEmailText !== 'function' || typeof window.parent.analyseWithServer !== 'function'){
       console.warn('[KALLE-DEBUG] rxAnalysiereMail: window.parent.extractEmailText/analyseWithServer fehlen (Reactor nicht geladen?)');
+      if(nameEl) nameEl.textContent = file.name;
       return;
     }
     var text = await window.parent.extractEmailText(file);
-    if(!text || text.trim().length < 5) return;
+    if(!text || text.trim().length < 5){ if(nameEl) nameEl.textContent = file.name; return; }
+    status('Wird analysiert …');
     var fields = await window.parent.analyseWithServer(text);
     var kunde = null;
     if(typeof window.parent.matchKunde === 'function'){
@@ -3285,7 +3291,7 @@ async function rxErfassen(){
        stoppen, statt anzunehmen es gäbe noch kein Item und eines anzulegen. */
     var bestehend = null, lookupFehler = null;
     try{
-      var exQ0 = await mFetch('query($v:[String!]){ items_page_by_column_values(board_id:'+PROD.board+', columns:[{column_id:"'+PROD.col.projektnr+'", column_values:$v}], limit:1){ items{ id } } }', { v:[nummer] });
+      var exQ0 = await mFetch('query($v:[String]!){ items_page_by_column_values(board_id:'+PROD.board+', columns:[{column_id:"'+PROD.col.projektnr+'", column_values:$v}], limit:1){ items{ id } } }', { v:[nummer] });
       bestehend = exQ0 && exQ0.items_page_by_column_values && exQ0.items_page_by_column_values.items[0];
     }catch(e){ lookupFehler = e.message; }
     if(lookupFehler){
