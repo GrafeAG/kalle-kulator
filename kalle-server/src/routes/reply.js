@@ -58,7 +58,8 @@ router.get('/:id', (req, res) => {
     empfaenger: draft.empfaenger,
     betreff: draft.betreff,
     text: draft.text,
-    anhangPfad: draft.anhangPfad || '',
+    anhangPfad: draft.anhangPfad || '',                  // Abwärtskompatibilität: bisheriger Helfer kennt nur dieses Feld
+    anhaenge: Array.isArray(draft.anhaenge) ? draft.anhaenge : (draft.anhangPfad ? [draft.anhangPfad] : []), // neu: vollständige Liste
   });
 });
 

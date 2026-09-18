@@ -140,7 +140,8 @@ Antworte NUR mit einem JSON-Objekt, ohne Erklärung, ohne Markdown-Backticks:
       empfaenger: email,
       betreff: json.betreff || `Nachfrage zu unserer Offerte — ${item.name}`,
       text: json.text || '',
-      anhangPfad,
+      anhangPfad,                              // Abwärtskompatibilität: erster/einziger Anhang für einen Helfer, der (noch) nur ein Feld kennt
+      anhaenge: anhangPfad ? [anhangPfad] : [], // neu: Liste, für nachträgliches Hinzufügen weiterer Anhänge
       projektId: id,
       projektPfad: datenpfad,
       ablageOrdner: '02 Offertphase',
@@ -159,6 +160,51 @@ Antworte NUR mit einem JSON-Objekt, ohne Erklärung, ohne Markdown-Backticks:
     console.error('[Nachfassen]', err.message);
     res.status(500).json({ error: err.message });
   }
+});
+
+// POST /nachfassen/:id/anhang  { relPfad, aktion:'hinzufuegen'|'entfernen' }
+//
+// Neu (Sven, September 2026): ergänzt/entfernt einen Anhang an einem bereits
+// erstellten, noch nicht bestätigten Entwurf — z.B. wenn im Cockpit in der
+// Liste "Dokumente der Offerte" (siehe GET /projekte/dateien) ein weiteres
+// Dokument angehakt wird. relPfad kommt von genau dieser Route und ist
+// relativ zum Projektordner (mit "/" getrennt) — wird hier gegen den
+// projektPfad DIESES Entwurfs aufgelöst, nicht gegen eine allgemeine
+// Projektbasis: ein Entwurf darf nur Dateien aus seinem EIGENEN Projektordner
+// anhängen, nie aus einem fremden.
+router.post('/:id/anhang', express.json(), (req, res) => {
+  const draft = replyStore.holen(req.params.id);
+  if (!draft) return res.status(404).json({ ok: false, error: 'Entwurf nicht gefunden oder abgelaufen' });
+  if (draft.gesendet) return res.status(409).json({ ok: false, error: 'Entwurf wurde bereits bestätigt — keine Änderung mehr möglich' });
+  if (!draft.projektPfad) return res.status(400).json({ ok: false, error: 'Entwurf hat keinen Projektpfad — Anhänge nicht möglich' });
+
+  const relPfad = String((req.body && req.body.relPfad) || '').replace(/\\/g, '/');
+  const aktion = (req.body && req.body.aktion) === 'entfernen' ? 'entfernen' : 'hinzufuegen';
+  if (!relPfad) return res.status(400).json({ ok: false, error: 'relPfad fehlt' });
+  // ".."-Segmente verbieten, bevor überhaupt aufgelöst wird — verhindert,
+  // dass relPfad aus dem eigenen Projektordner heraus zeigt.
+  if (relPfad.split('/').some((seg) => seg === '..' || seg === '.')) {
+    return res.status(400).json({ ok: false, error: 'Ungültiger Pfad' });
+  }
+  const absPfad = path.join(draft.projektPfad, relPfad.split('/').join(path.sep));
+  const normProjekt = path.normalize(draft.projektPfad).toLowerCase();
+  const normAbs = path.normalize(absPfad).toLowerCase();
+  if (!normAbs.startsWith(normProjekt)) {
+    return res.status(403).json({ ok: false, error: 'Pfad liegt ausserhalb des Projektordners dieses Entwurfs' });
+  }
+
+  const bisher = Array.isArray(draft.anhaenge) ? draft.anhaenge.slice() : (draft.anhangPfad ? [draft.anhangPfad] : []);
+  let neu;
+  if (aktion === 'entfernen') {
+    neu = bisher.filter((p) => path.normalize(p).toLowerCase() !== normAbs);
+  } else {
+    if (!fs.existsSync(absPfad)) return res.status(404).json({ ok: false, error: 'Datei existiert nicht (mehr)' });
+    neu = bisher.some((p) => path.normalize(p).toLowerCase() === normAbs) ? bisher : bisher.concat([absPfad]);
+  }
+
+  const aktualisiert = replyStore.aktualisieren(req.params.id, { anhaenge: neu, anhangPfad: neu[0] || '' });
+  if (!aktualisiert) return res.status(409).json({ ok: false, error: 'Entwurf konnte nicht aktualisiert werden (evtl. inzwischen bestätigt)' });
+  res.json({ ok: true, anhaenge: neu });
 });
 
 module.exports = router;

@@ -354,6 +354,42 @@ router.get('/open', (req, res) => {
   res.json({ ok: true, pfad: explorerPfad });
 });
 
+// ── GET /projekte/dateien?pfad=... — echte Ordnerinhalte rekursiv listen ──
+// Neu (Sven, September 2026): für die Anzeige "Dokumente der Offerte" im
+// Cockpit — bisher gab es dafür keine Route, nur /open (öffnet Explorer
+// SERVERSEITIG, für eine Web-Ansicht nutzlos) und den DB-Datensatz unter
+// /projekte/:projektnr. relPfad nutzt bewusst "/" (nicht "\"), damit das
+// Frontend nicht plattformabhängig parsen muss.
+router.get('/dateien', (req, res) => {
+  const pfad = req.query.pfad;
+  if (!pfad) return res.status(400).json({ error: 'pfad fehlt' });
+  if (!pfadErlaubt(pfad)) return res.status(403).json({ error: 'Pfad nicht erlaubt' });
+  const basisLokal = zuLokal(path.normalize(pfad));
+  if (!fs.existsSync(basisLokal)) return res.json({ ok: true, ordner: zurFreigabe(basisLokal), dateien: [] });
+
+  const dateien = [];
+  function scan(dir, relPrefix) {
+    let entries;
+    try { entries = fs.readdirSync(dir, { withFileTypes: true }); } catch (e) { console.warn('[Projekte/Dateien] Unterordner nicht lesbar:', dir, e.message); return; }
+    for (const e of entries) {
+      const abs = path.join(dir, e.name);
+      const rel = relPrefix ? path.join(relPrefix, e.name) : e.name;
+      if (e.isDirectory()) {
+        scan(abs, rel);
+      } else if (e.isFile()) {
+        let groesse = 0;
+        try { groesse = fs.statSync(abs).size; } catch (err) { /* egal, dann bleibt 0 */ }
+        dateien.push({ relPfad: rel.split(path.sep).join('/'), name: e.name, groesse });
+      }
+    }
+  }
+  try { scan(basisLokal, ''); }
+  catch (e) { return res.status(500).json({ ok: false, error: e.message }); }
+
+  dateien.sort((a, b) => a.relPfad.localeCompare(b.relPfad));
+  res.json({ ok: true, ordner: zurFreigabe(basisLokal), dateien });
+});
+
 // ── POST /projekte/ablegen — Offerte in 02 Offertphase ────────────────────
 // Rendert das übergebene HTML per Puppeteer zu einem echten PDF und legt
 // DAS ab (nicht das rohe HTML). Ist Puppeteer nicht installiert/startbar,

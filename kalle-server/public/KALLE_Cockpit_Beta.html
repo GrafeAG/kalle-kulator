@@ -2477,14 +2477,55 @@ function szOfSideHTML(l){
     '</div>'+
   '</div>';
 }
-function szDokumenteOfferteRender(l){
+async function szDokumenteOfferteRender(l){
   var box=document.getElementById('docs'); var cnt=document.getElementById('docsCount'); if(!box) return;
-  var docs=(l.offertdokumente||[]).concat(l.unterlagen||[]).filter(function(f){return /offerte/i.test(f.name)||true;});
-  if(cnt) cnt.textContent=docs.length;
-  box.innerHTML = docs.length ? docs.map(function(f){
-    return '<div class="of-doc" onclick="window.open(\''+esc(f.public_url||'').replace(/'/g,'')+'\',\'_blank\')"><span class="of-doc__tag">'+esc((f.file_extension||'DAT').toUpperCase().slice(0,4))+'</span>'+
-      '<span class="ell" style="font:600 13px/1.2 var(--font-ui)">'+esc(f.name)+'</span></div>';
-  }).join('') : '<p class="t-small t-faint" style="padding:8px 6px">Keine Dokumente gefunden.</p>';
+  if(!l.datenpfad){ box.innerHTML='<p class="t-small t-faint" style="padding:8px 6px">Kein Ablagepfad hinterlegt.</p>'; if(cnt) cnt.textContent='0'; return; }
+  box.innerHTML='<p class="t-small t-faint" style="padding:8px 6px">Lade Ordnerinhalt …</p>';
+  try{
+    var r = await fetch(serverUrl()+'/projekte/dateien?pfad='+encodeURIComponent(l.datenpfad));
+    var j = await r.json();
+    if(!r.ok || !j.ok) throw new Error(j.error||('HTTP '+r.status));
+    var docs = j.dateien||[];
+    if(cnt) cnt.textContent=docs.length;
+    box.innerHTML = docs.length ? docs.map(function(f){
+      var ext=(f.name.split('.').pop()||'DAT').toUpperCase().slice(0,4);
+      var kb=f.groesse?Math.round(f.groesse/1024)+' KB':'';
+      return '<label class="of-doc" style="cursor:pointer">'+
+        '<input type="checkbox" class="doc-check" data-relpfad="'+esc(f.relPfad)+'" onchange="szToggleAnhang(this)" style="margin-right:8px">'+
+        '<span class="of-doc__tag">'+esc(ext)+'</span>'+
+        '<span class="ell" style="font:600 13px/1.2 var(--font-ui)" title="'+esc(f.relPfad)+'">'+esc(f.name)+'</span>'+
+        (kb?('<span class="t-small t-faint" style="margin-left:6px">'+kb+'</span>'):'')+
+      '</label>';
+    }).join('') : '<p class="t-small t-faint" style="padding:8px 6px">Keine Dokumente gefunden.</p>';
+  }catch(e){
+    box.innerHTML='<p class="t-small" style="color:var(--danger);padding:8px 6px">'+esc(e.message)+'</p>';
+    if(cnt) cnt.textContent='?';
+  }
+}
+async function szToggleAnhang(checkbox){
+  var relPfad = checkbox.getAttribute('data-relpfad');
+  if(!szDraftId){ toast('Nachfassen','Erst den Nachfass-Entwurf laden, bevor Anhänge ausgewählt werden können.',true); checkbox.checked=!checkbox.checked; return; }
+  checkbox.disabled = true;
+  try{
+    var r = await fetch(serverUrl()+'/nachfassen/'+encodeURIComponent(szDraftId)+'/anhang', {
+      method:'POST', headers:{'Content-Type':'application/json'},
+      body: JSON.stringify({ relPfad: relPfad, aktion: checkbox.checked?'hinzufuegen':'entfernen' })
+    });
+    var j = await r.json();
+    if(!r.ok || !j.ok) throw new Error(j.error||('HTTP '+r.status));
+    var wrap = document.getElementById('draftAnhaenge');
+    if(wrap){
+      wrap.innerHTML = j.anhaenge.length ? j.anhaenge.map(function(p){
+        var name = p.split(/[\\\/]/).pop();
+        return '<span class="of-att"><i style="background:var(--tx);color:var(--bg)">'+esc((name.split('.').pop()||'DAT').toUpperCase().slice(0,4))+'</i>'+esc(name)+'</span>';
+      }).join('') : '<span class="t-small t-faint">keine Anhänge ausgewählt</span>';
+    }
+  }catch(e){
+    checkbox.checked = !checkbox.checked; // Häkchen zurücksetzen, wenn der Server abgelehnt hat
+    toast('Fehler', e.message, true);
+  }finally{
+    checkbox.disabled = false;
+  }
 }
 function szTageSeitVersand(l){
   var step=(l.ablauf||[]).find(function(s){return /gesendet|versendet|verschickt/i.test(s.name);});
@@ -2800,25 +2841,28 @@ async function szLoadKi(l){
     box.innerHTML = '<span style="font-style:italic">Noch nicht verfügbar — Server-Route fehlt auf kalle-server noch.</span>';
   }
 }
+var szDraftId = '';
 async function szNachfassenLaden(targetId){
   var pane = document.getElementById('paneDraft'); var meta = document.getElementById('draftMeta');
   if(!pane) return;
   pane.innerHTML = '<p class="t-body t-faint">Entwurf wird erstellt …</p>';
+  szDraftId = '';
   try{
     var r = await fetch(serverUrl()+'/nachfassen/entwurf?id='+encodeURIComponent(szCurId));
     var j = await r.json();
     if(!r.ok) throw new Error(j.error||('HTTP '+r.status));
+    szDraftId = j.id;
     if(meta) meta.textContent = 'gerade eben';
     pane.innerHTML =
       '<div class="of-kv"><span>An</span><span style="font-weight:600">'+esc(j.empfaenger)+'</span>'+
         '<span>Betreff</span><span style="font-weight:600">'+esc(j.betreff)+'</span></div>'+
       '<textarea class="rk-textarea" id="draftText" rows="8" style="min-height:170px">'+esc(j.text)+'</textarea>'+
       '<div>'+
-        '<div class="t-label" style="letter-spacing:.08em;margin-bottom:6px">Anhänge · automatisch</div>'+
-        '<div class="rk-wrap">'+
+        '<div class="t-label" style="letter-spacing:.08em;margin-bottom:6px">Anhänge</div>'+
+        '<div class="rk-wrap" id="draftAnhaenge">'+
           (j.anhangGefunden
             ? '<span class="of-att"><i style="background:var(--tx);color:var(--bg)">PDF</i>Offerte angehängt</span>'
-            : '<span class="t-small t-faint">kein Anhang gefunden — manuell ergänzen</span>')+
+            : '<span class="t-small t-faint">kein Anhang gefunden — unten aus den Dokumenten der Offerte ergänzen</span>')+
         '</div>'+
       '</div>'+
       '<div style="display:flex;gap:8px;align-items:center;padding-top:6px">'+

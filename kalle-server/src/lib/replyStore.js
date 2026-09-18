@@ -37,6 +37,17 @@ function alsGesendetMarkieren(id) {
   return d;
 }
 
+// Neu: bestehenden, noch nicht gesendeten Entwurf nachträglich ändern (z.B.
+// weitere Anhänge hinzufügen/entfernen). Reines Object.assign — der Store
+// selbst kennt kein festes Schema, siehe erstellen() oben.
+function aktualisieren(id, patch) {
+  const d = STORE.get(id);
+  if (!d) return null;
+  if (d.gesendet) return null; // ein bereits bestätigter Entwurf wird nicht mehr verändert
+  Object.assign(d, patch);
+  return d;
+}
+
 // Alte Entwürfe gelegentlich aufräumen (bei jedem 50. Aufruf reicht für die
 // erwartete Nutzungsmenge völlig).
 let calls = 0;
@@ -49,4 +60,4 @@ function aufraeumen() {
   }
 }
 
-module.exports = { erstellen, holen, alsGesendetMarkieren, aufraeumen };
+module.exports = { erstellen, holen, alsGesendetMarkieren, aktualisieren, aufraeumen };
