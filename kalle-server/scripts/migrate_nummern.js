@@ -38,10 +38,25 @@ async function run() {
     eingefuegt += r.rowCount;
   }
 
-  // Bereits in offerten vergebene 26xxxx als 'vergeben' markieren (Doppelvergabe verhindern)
+  // Bereits in offerten ODER projekte vergebene 26xxxx als 'vergeben' markieren
+  // (Doppelvergabe verhindern). Vorher wurde hier nur offerten.auftragsnr
+  // geprüft — eine Nummer, die nur als projekte.projektnr existiert (z. B.
+  // weil nie eine Offerte dafür gespeichert wurde), blieb fälschlich als
+  // "frei" im Pool. Ergänzt gemäss Korrekturauftrag Punkt 5 / README Punkt 5.
+  // Rein additive Erweiterung derselben UPDATE-Anweisung, kein neuer
+  // INSERT/Poolaufbau — kein erneuter Initiallauf beabsichtigt.
+  // status<>'vergeben' schuetzt bestehende committed_at-Zeitstempel: ohne
+  // diese Bedingung ueberschrieb ein erneuter Lauf committed_at=NOW() bei
+  // JEDER passenden Nummer, auch bei laengst vergebenen (Review r0008, K6).
+  // TRIM() zusaetzlich gegen Whitespace-Abweichungen in den Quelltabellen.
   await pool.query(`
     UPDATE nummern SET status='vergeben', committed_at=NOW()
-    WHERE nummer IN (SELECT auftragsnr FROM offerten WHERE auftragsnr ~ '^26[0-9]{4}$')
+    WHERE status <> 'vergeben'
+      AND nummer IN (
+        SELECT TRIM(auftragsnr) FROM offerten WHERE TRIM(auftragsnr) ~ '^26[0-9]{4}$'
+        UNION
+        SELECT TRIM(projektnr)  FROM projekte WHERE TRIM(projektnr)  ~ '^26[0-9]{4}$'
+      )
   `);
 
   const c = await pool.query(`SELECT status, COUNT(*)::int AS anzahl FROM nummern GROUP BY status ORDER BY status`);

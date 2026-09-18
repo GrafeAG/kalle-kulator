@@ -12,12 +12,10 @@ const TTL_STUNDEN = 6; // reservierte, nie committete Nummern nach x Std. automa
 router.post('/reservieren', express.json(), async (req, res) => {
   const session = (req.body && req.body.session) || null;
   try {
-    // 1) abgelaufene Reservierungen freigeben (Sicherheitsnetz, Browser-Close liefert kein Signal)
     await query(
       `UPDATE nummern SET status='frei', session=NULL, reserved_at=NULL
        WHERE status='reserviert' AND reserved_at < NOW() - INTERVAL '${TTL_STUNDEN} hours'`
     );
-    // 2) atomar eine freie Nummer ziehen
     const r = await query(
       `UPDATE nummern SET status='reserviert', session=$1, reserved_at=NOW()
        WHERE nummer = (SELECT nummer FROM nummern WHERE status='frei'
@@ -34,32 +32,90 @@ router.post('/reservieren', express.json(), async (req, res) => {
   }
 });
 
-// POST /nummern/commit { nummer }  → status vergeben (bei Speichern/Ablage/monday)
+// POST /nummern/commit { nummer, session? }  → status vergeben
+//
+// Überarbeitet (Review r0006/r0008, K3). Vorher: UPDATE ohne Session-Prüfung,
+// danach bedingungsloser INSERT-Fallback, IMMER {ok:true} — dadurch konnte
+// Session Y eine von Session X reservierte Nummer committen (UPDATE traf 0
+// Zeilen, der Fallback-INSERT griff wegen ON CONFLICT DO NOTHING ebenfalls
+// nicht, die Antwort war trotzdem {ok:true}, kein DB-Zustand hatte sich
+// geändert).
+//
+// Neuer Vertrag, vier Fälle:
+//   1) Eigene gültige Reservierung (session passt, Status 'reserviert') → ok:true
+//   2) Bestätigter Retry: Nummer bereits 'vergeben' → idempotent ok:true,
+//      bereitsVergeben:true (kein Fehler)
+//   3) Keine Session mitgeschickt (manuelle Eingabe) → darf NUR eine
+//      aktuell 'freie' Nummer beanspruchen, markiert manuell:true
+//   4) Alles andere (fremde/abgelaufene Reservierung, unbekannte Nummer) →
+//      HTTP 409, ok:false
 router.post('/commit', express.json(), async (req, res) => {
-  const { nummer } = req.body || {};
-  if (!nummer) return res.status(400).json({ error: 'nummer fehlt' });
+  const { nummer, session } = req.body || {};
+  if (!nummer) return res.status(400).json({ ok:false, error: 'nummer fehlt' });
+  const nr = String(nummer);
   try {
-    await query(`UPDATE nummern SET status='vergeben', committed_at=NOW() WHERE nummer=$1`, [String(nummer)]);
-    // Falls die Nummer (Fallback-Vergabe ohne vorherige Reservierung) noch nicht im Pool war: eintragen.
-    await query(`INSERT INTO nummern (nummer, status, committed_at) VALUES ($1,'vergeben',NOW()) ON CONFLICT (nummer) DO NOTHING`, [String(nummer)]);
-    res.json({ ok: true });
+    if (session) {
+      const r1 = await query(
+        `UPDATE nummern SET status='vergeben', committed_at=NOW(), session=NULL
+         WHERE nummer=$1 AND status='reserviert' AND session=$2
+         RETURNING nummer`,
+        [nr, String(session)]
+      );
+      if (r1.rows.length) {
+        console.log('[Nummern] vergeben (eigene Reservierung):', nr);
+        return res.json({ ok: true, manuell: false });
+      }
+    }
+
+    const rCheck = await query(`SELECT status FROM nummern WHERE nummer=$1`, [nr]);
+    const aktuellerStatus = rCheck.rows[0] && rCheck.rows[0].status;
+    if (aktuellerStatus === 'vergeben') {
+      return res.json({ ok: true, bereitsVergeben: true, manuell: false });
+    }
+
+    if (!session) {
+      const r2 = await query(
+        `INSERT INTO nummern (nummer, status, committed_at) VALUES ($1,'vergeben',NOW())
+         ON CONFLICT (nummer) DO UPDATE SET status='vergeben', committed_at=NOW()
+         WHERE nummern.status='frei'
+         RETURNING nummer`,
+        [nr]
+      );
+      if (r2.rows.length) {
+        console.log('[Nummern] vergeben (manuell, war frei):', nr);
+        return res.json({ ok: true, manuell: true });
+      }
+    }
+
+    console.warn('[Nummern] commit abgelehnt — Nummer nicht (mehr) unter dieser Session reserviert:', nr, 'Status:', aktuellerStatus);
+    return res.status(409).json({ ok: false, error: 'Nummer ist nicht (mehr) unter dieser Session reserviert und kann nicht bestätigt werden.' });
   } catch (e) {
     console.error('[Nummern] commit:', e.message);
-    res.status(500).json({ error: e.message });
+    res.status(500).json({ ok:false, error: e.message });
   }
 });
 
-// POST /nummern/freigeben { nummer }  → status frei (nur wenn noch reserviert)
+// POST /nummern/freigeben { nummer, session? }  → status frei (nur wenn noch reserviert)
+// session optional (Abwärtskompatibilität) — wird sie mitgeschickt, muss sie
+// zusätzlich passen, damit eine Session nicht versehentlich die Reservierung
+// einer anderen aufheben kann.
 router.post('/freigeben', express.json(), async (req, res) => {
-  const { nummer } = req.body || {};
+  const { nummer, session } = req.body || {};
   if (!nummer) return res.status(400).json({ error: 'nummer fehlt' });
+  const nr = String(nummer);
   try {
-    await query(
-      `UPDATE nummern SET status='frei', session=NULL, reserved_at=NULL
-       WHERE nummer=$1 AND status='reserviert'`,
-      [String(nummer)]
-    );
-    res.json({ ok: true });
+    const r = session
+      ? await query(
+          `UPDATE nummern SET status='frei', session=NULL, reserved_at=NULL
+           WHERE nummer=$1 AND status='reserviert' AND session=$2`,
+          [nr, String(session)]
+        )
+      : await query(
+          `UPDATE nummern SET status='frei', session=NULL, reserved_at=NULL
+           WHERE nummer=$1 AND status='reserviert'`,
+          [nr]
+        );
+    res.json({ ok: true, geaendert: r.rowCount > 0 });
   } catch (e) {
     console.error('[Nummern] freigeben:', e.message);
     res.status(500).json({ error: e.message });

@@ -42,7 +42,10 @@ async function mondayFetch(query, variables) {
 // (siehe projekte.js), diese hier stattdessen importieren statt zu duplizieren.
 function pfadErlaubtEinfach(p) {
   const basis = process.env.NETZLAUFWERK || '';
-  if (!basis) return true; // kein Basis-Pfad konfiguriert → keine Einschränkung möglich
+  // Vorher: return true (fail-open) — fehlende Konfiguration erlaubte
+  // dadurch JEDEN Pfad. Jetzt fail-closed: ohne konfigurierte Basis wird
+  // NICHTS geschrieben (Review r0008, K5).
+  if (!basis) return false;
   const norm = String(p || '').replace(/\//g, '\\').toLowerCase();
   return norm.startsWith(String(basis).replace(/\//g, '\\').toLowerCase());
 }
@@ -63,7 +66,21 @@ router.post('/:id/gesendet', async (req, res) => {
   const draft = replyStore.holen(req.params.id);
   if (!draft) return res.status(404).json({ error: 'Entwurf nicht gefunden oder abgelaufen' });
 
-  const ergebnis = { subitem: false, archiv: false };
+  // replyStore.holen() liefert den Entwurf unveraendert weiter, auch wenn
+  // er schon als gesendet markiert ist (draft.gesendet wird von holen()
+  // selbst nicht geprueft) -- ein zweiter Aufruf wuerde sonst ein zweites
+  // Monday-Subelement anlegen und eine zweite Archivdatei schreiben.
+  // Idempotent gemacht (Review r0008, K5).
+  if (draft.gesendet) {
+    return res.json({ ok: true, bereitsBestaetigt: true, subitem: null, archiv: null });
+  }
+
+  // null = nicht angefordert/nicht anwendbar (z.B. kein projektId bzw. kein
+  // projektPfad im Entwurf); true/false = tatsächlich versucht und Ergebnis.
+  // War vorher beides mit false vorbelegt — dadurch nicht vom Client
+  // unterscheidbar, ob ein Schritt fehlschlug oder gar nicht zutraf
+  // (Review r0006, Abschnitt 7).
+  const ergebnis = { subitem: null, archiv: null };
 
   // 1) Monday-Subelement anlegen (z. B. "Offerte nachgefasst")
   if (draft.projektId && draft.subitemName) {
@@ -77,6 +94,7 @@ router.post('/:id/gesendet', async (req, res) => {
       ergebnis.subitem = true;
     } catch (e) {
       console.error('[Reply/gesendet] Subelement-Fehler:', e.message);
+      ergebnis.subitem = false;
       ergebnis.subitemError = e.message;
     }
   }
@@ -92,13 +110,32 @@ router.post('/:id/gesendet', async (req, res) => {
       if (!pfadErlaubtEinfach(zielOrdner)) throw new Error('Pfad nicht erlaubt');
       fs.mkdirSync(zielOrdner, { recursive: true });
       const stamp = new Date().toISOString().replace(/[:T]/g, '-').slice(0, 16);
-      const datei = path.join(zielOrdner, `Nachfassen_${stamp}.txt`);
+      // Entwurf-ID statt nur Minute im Dateinamen — zwei Bestätigungen im
+      // selben Zielordner innerhalb derselben UTC-Minute wählten vorher
+      // denselben Namen, writeFileSync überschrieb dann die bestehende
+      // Textkopie ohne Warnung (Review r0006, Abschnitt 7).
+      const sicherId = String(req.params.id).replace(/[^a-zA-Z0-9_-]/g, '').slice(0, 40) || 'entwurf';
+      const datei = path.join(zielOrdner, `Nachfassen_${stamp}_${sicherId}.txt`);
       const inhalt = `An: ${draft.empfaenger}\nBetreff: ${draft.betreff}\nDatum: ${new Date().toLocaleString('de-CH')}\n\n${draft.text}\n`;
-      fs.writeFileSync(datei, inhalt, 'utf-8');
+      // 'wx' statt Default-Modus: schlaegt fehl, wenn die Datei schon
+      // existiert, statt sie stillschweigend zu ueberschreiben. Bei
+      // Kollision (z.B. exakt gleicher Draft, gleiche Sekunde) wird
+      // einmalig mit einem Zufalls-Suffix neu versucht statt zu
+      // ueberschreiben (Review r0008, K5).
+      let zielDatei = datei;
+      try{
+        fs.writeFileSync(zielDatei, inhalt, { encoding: 'utf-8', flag: 'wx' });
+      }catch(writeErr){
+        if(writeErr.code === 'EEXIST'){
+          zielDatei = zielDatei.replace(/\.txt$/, '_' + Math.random().toString(36).slice(2,8) + '.txt');
+          fs.writeFileSync(zielDatei, inhalt, { encoding: 'utf-8', flag: 'wx' });
+        } else { throw writeErr; }
+      }
       ergebnis.archiv = true;
       ergebnis.archivDatei = datei;
     } catch (e) {
       console.error('[Reply/gesendet] Archiv-Fehler:', e.message);
+      ergebnis.archiv = false;
       ergebnis.archivError = e.message;
     }
   }

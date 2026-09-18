@@ -1995,10 +1995,26 @@ async function nachfassenStarten(id){
 async function nachfassenGesendet(draftId,itemId){
   try{
     const r=await fetch(serverUrl()+'/reply/'+draftId+'/gesendet',{method:'POST'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    toast('Nachfassen','Erledigt — Subelement „Offerte nachgefasst" angelegt, Mail archiviert.');
+    const data = await r.json().catch(function(){ return null; });
+    if(!r.ok || !data) throw new Error((data&&data.error)||('HTTP '+r.status));
+    toast('Nachfassen', rxGesendetText(data), !(data.subitem && data.archiv));
     refreshItem(itemId);
   }catch(e){ toast('Fehler',e.message,true); }
+}
+function rxGesendetText(data){
+  /* subitem/archiv: true=ok, false=versucht+fehlgeschlagen, null/undefined=
+     nicht angefordert (z. B. kein projektId bzw. kein projektPfad im Entwurf).
+     "archiviert" bewusst als Textvorlage bezeichnet — das ist der ursprüngliche
+     Entwurfstext, kein Nachweis der tatsächlich in Outlook gesendeten Mail
+     (Review r0006, Abschnitt 7). */
+  if(data.bereitsBestaetigt) return 'War schon bestätigt — nichts erneut ausgeführt (kein doppeltes Subelement/Archiv).';
+  var teile = [];
+  if(data.subitem===true) teile.push('Subelement angelegt');
+  else if(data.subitem===false) teile.push('Subelement fehlgeschlagen'+(data.subitemError?': '+data.subitemError:''));
+  if(data.archiv===true) teile.push('Textvorlage archiviert');
+  else if(data.archiv===false) teile.push('Archivierung fehlgeschlagen'+(data.archivError?': '+data.archivError:''));
+  if(!teile.length) teile.push('Bestätigt, aber weder Subelement noch Archiv ausgeführt — bitte manuell prüfen');
+  return teile.join(' · ');
 }
 async function wtAttachLieferdokument(id){
   const l=findLead(id); const fileInput=document.getElementById('abFile'); const subId=document.getElementById('abSub').value;
@@ -2819,8 +2835,9 @@ function szNachfassenAuto(){ szNachfassenLaden(); }
 async function szNachfassenGesendet(draftId){
   try{
     var r = await fetch(serverUrl()+'/reply/'+draftId+'/gesendet', {method:'POST'});
-    if(!r.ok) throw new Error('HTTP '+r.status);
-    toast('Nachfassen','Erledigt — Subelement angelegt, Mail archiviert.');
+    var data = await r.json().catch(function(){ return null; });
+    if(!r.ok || !data) throw new Error((data&&data.error)||('HTTP '+r.status));
+    toast('Nachfassen', rxGesendetText(data), !(data.subitem && data.archiv));
     refreshItem(szCurId).then(szRenderShell);
   }catch(e){ toast('Fehler', e.message, true); }
 }
@@ -2858,36 +2875,83 @@ var SPRUECHE = [
 
 var rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
 var rxFiles = [];  // { file, ordner }
-var rxNr = '';           // beim Einstieg in Erfassen reservierte (oder manuell eingetragene) Vorgangsnummer
+var rxNr = '';           // aktuell im Feld stehende (angezeigte/zu verwendende) Vorgangsnummer
 var rxNrCommitted = false;
 var rxNrManual = false;  // true sobald der Bearbeiter die Nummer selbst eingetippt hat
+var rxAutoNr = '';       // aktuell aktive AUTOMATISCHE Reservierung (unabhängig vom Eingabefeld) — für saubere Freigabe
+var rxAutoSession = '';  // zugehörige Session dieser Auto-Reservierung
+var rxReserveGen = 0;    // Generation: erhöht sich bei jeder neuen Reservierung/manuellen Eingabe; verspätete Antworten alter Generation werden verworfen UND sofort wieder freigegeben
+var rxNrTeilpersistiert = false;  // true sobald zu dieser Nummer bereits echte externe Daten existieren (Ordner/Monday-Item) — ab dann NIE mehr über den normalen Abbruchweg freigeben (Review r0008, K3)
 var rxPfadEdited = false;
 
 async function rxReserveNr(){
   var nrEl = document.getElementById('rxVgNr'), tagEl = document.getElementById('rxVgTag');
+  var mySession = 'cockpit-'+Date.now()+'-'+Math.random().toString(36).slice(2,8);
+  var myGen = ++rxReserveGen;
   try{
-    var r = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
+    var r = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:mySession }) });
     var j = await r.json();
+    if(myGen !== rxReserveGen){
+      /* Inzwischen wurde neu reserviert oder auf manuelle Eingabe gewechselt —
+         diese Antwort ist veraltet. War sie trotzdem erfolgreich, muss die
+         dabei gezogene Nummer sofort zurückgegeben werden, sonst bleibt sie
+         unreferenziert "reserviert" liegen (Review r0006, Abschnitt 4.3). */
+      if(r.ok && j.nummer){
+        try{ await fetch(serverUrl()+'/nummern/freigeben', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:j.nummer, session:mySession }) }); }catch(e){}
+      }
+      return;
+    }
     if(r.ok && j.nummer){
+      rxAutoNr = j.nummer; rxAutoSession = mySession;
       if(!rxNrManual){
         rxNr = j.nummer; rxNrCommitted = false;
         if(nrEl) nrEl.value = rxNr;
         if(tagEl) tagEl.textContent = 'reserviert';
       }
       rxUpdateProjname();
-    } else {
+    } else if(!rxNrManual){
       if(tagEl) tagEl.textContent = 'bitte manuell eintragen';
       if(nrEl) nrEl.focus();
     }
   }catch(e){
     console.warn('[KALLE-DEBUG] rxReserveNr:', e.message);
-    if(tagEl) tagEl.textContent = 'bitte manuell eintragen';
+    if(myGen === rxReserveGen && !rxNrManual && tagEl) tagEl.textContent = 'bitte manuell eintragen';
+  }
+}
+async function rxFreigebeAutoNr(){
+  /* Gibt eine evtl. aktive automatische Reservierung zurück, unabhängig davon,
+     was aktuell im Eingabefeld steht — wichtig beim Wechsel auf manuelle
+     Eingabe, wo bisher gar keine Freigabe mehr ausgelöst wurde. */
+  if(!rxAutoNr) return;
+  var nr = rxAutoNr, session = rxAutoSession;
+  rxAutoNr = ''; rxAutoSession = '';
+  try{
+    var r = await fetch(serverUrl()+'/nummern/freigeben', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:nr, session:session }) });
+    var j = await r.json().catch(function(){ return null; });
+    if(!r.ok || !j || j.ok !== true){
+      /* Keine automatische Wiederholung (kein Retry-System im Rahmen dieses
+         begrenzten Auftrags) — aber sichtbar geloggt, statt die verwaiste
+         Nummer stillschweigend zu vergessen (Review r0008, K3/T03). */
+      console.warn('[KALLE-DEBUG] Freigabe von '+nr+' NICHT bestätigt — evtl. weiterhin "reserviert" im Pool. Bitte bei Bedarf manuell prüfen (GET /nummern/status).');
+    }
+  }catch(e){
+    console.warn('[KALLE-DEBUG] Freigabe von '+nr+' fehlgeschlagen ('+e.message+') — evtl. weiterhin "reserviert" im Pool.');
   }
 }
 async function rxFreigebeNr(){
-  if(!rxNr || rxNrCommitted || rxNrManual) { rxNr = ''; rxNrCommitted = false; rxNrManual = false; return; }
-  try{ await fetch(serverUrl()+'/nummern/freigeben', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:rxNr }) }); }catch(e){}
-  rxNr = ''; rxNrCommitted = false;
+  rxReserveGen++;  // verhindert, dass eine noch laufende Reservierungsantwort danach etwas überschreibt
+  if(rxNrTeilpersistiert){
+    /* Zu dieser Nummer existiert bereits ein echter Ordner und/oder ein
+       Monday-Item — der normale Abbruch-/Freigabeweg darf sie NICHT mehr in
+       den Pool zurückgeben, sonst könnte sie einem völlig anderen, neuen
+       Vorgang zugeteilt werden, während sie an anderer Stelle schon real
+       existiert (Review r0008, K3). Braucht manuelle Prüfung/Reparatur. */
+    console.warn('[KALLE-DEBUG] rxFreigebeNr: Nummer '+rxNr+' wurde NICHT freigegeben — bereits teilpersistiert (Ordner/Monday-Item existiert). Bitte manuell prüfen.');
+    rxNr = ''; rxNrCommitted = false; rxNrManual = false; rxAutoNr = ''; rxAutoSession = ''; rxNrTeilpersistiert = false;
+    return;
+  }
+  if(!rxNrCommitted) await rxFreigebeAutoNr();
+  rxNr = ''; rxNrCommitted = false; rxNrManual = false; rxAutoNr = ''; rxAutoSession = '';
 }
 function rxUpdateProjname(){
   var betreff = ($rx('fBetreff') ? $rx('fBetreff').value.trim() : '') || '…';
@@ -2912,7 +2976,11 @@ function rxUpdatePfad(){
   if(!pin || rxPfadEdited) return;
   var base = rxBasis || '\\\\stgag002.artexgroup.local\\grafeag\\01-Kundenprojekte';
   var firma = ($rx('fFirma') ? $rx('fFirma').value.trim() : '') || '…';
-  var ort = ($rx('fOrt') && $rx('fOrt').value.trim()) || (document.getElementById('oOrt') && document.getElementById('oOrt').value.trim()) || '…';
+  /* Objekt-Ort/-Strasse müssen exakt dieselben Felder wie in rxErfassen()
+     tatsächlich an /projekte gesendet werden (oOrt/oStrasse) — vorher wich
+     die Vorschau bei unterschiedlichem Kunden-/Objektort vom echten
+     Server-Pfad ab (Review r0006, Abschnitt 4.5). */
+  var ort = (document.getElementById('oOrt') && document.getElementById('oOrt').value.trim()) || '…';
   var str = (document.getElementById('oStrasse') && document.getElementById('oStrasse').value.trim()) || '…';
   var betreff = ($rx('fBetreff') ? $rx('fBetreff').value.trim() : '');
   var leaf = ((rxNr ? rxNr+' - ' : '') + betreff).trim();
@@ -3157,15 +3225,37 @@ async function rxErfassen(){
        vorliegt (z. B. Reservierung beim Einstieg fehlgeschlagen), jetzt
        nachholen. */
     if(!rxNr){
-      var r1 = await fetch(serverUrl()+'/nummern/reservieren', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ session:'cockpit-'+Date.now() }) });
-      var j1 = await r1.json();
-      if(!r1.ok || !j1.nummer) throw new Error(j1.error || 'Keine Nummer erhalten');
-      rxNr = j1.nummer;
+      await rxReserveNr();
+      if(!rxNr) throw new Error('Keine Nummer erhalten — bitte manuell eintragen und erneut versuchen');
     }
     nummer = rxNr;
     rxErgebnis = { nummer:nummer };
     document.getElementById('chainD0').textContent = nummer;
     rxState.fortschritt = 1; rxRender();
+
+    /* Bestandsitem-Prüfung JETZT, VOR jeder nicht-idempotenten Schreibaktion
+       (/projekte, Uploads, Monday-Anlage) — vorher lief das erst nach dem
+       Anlegen von Ordner/Dateien, wodurch diese bei einem Treffer trotzdem
+       schon ausgeführt waren (Review r0008, K4/T06). Ein fehlgeschlagener
+       Lookup ist KEIN belegtes "kein Treffer" (K4/T07) — auch dann sichtbar
+       stoppen, statt anzunehmen es gäbe noch kein Item und eines anzulegen. */
+    var bestehend = null, lookupFehler = null;
+    try{
+      var exQ0 = await mFetch('query($v:[String!]){ items_page_by_column_values(board_id:'+PROD.board+', columns:[{column_id:"'+PROD.col.projektnr+'", column_values:$v}], limit:1){ items{ id } } }', { v:[nummer] });
+      bestehend = exQ0 && exQ0.items_page_by_column_values && exQ0.items_page_by_column_values.items[0];
+    }catch(e){ lookupFehler = e.message; }
+    if(lookupFehler){
+      rxState.fehler = 'Bestandsprüfung in Monday fehlgeschlagen ('+lookupFehler+') — Projektnummer '+nummer+' wurde deshalb NICHT weiterverarbeitet (weder Ordner noch Monday-Eintrag), um kein Duplikat zu riskieren. Bitte erneut versuchen.';
+      rxRender();
+      return;
+    }
+    if(bestehend){
+      rxErgebnis.itemId = bestehend.id;
+      rxErgebnis.existing = true;
+      rxState.fehler = 'Für Projektnummer '+nummer+' existiert bereits ein Monday-Item (ID '+bestehend.id+'). Es wurde NICHT verändert und es wurde auch kein Ordner angelegt — bitte Nummer und bestehendes Item manuell prüfen.';
+      rxRender();
+      return;
+    }
 
     /* Schritt 2 — Projektordner anlegen */
     /* offerteJson: das Original schickt hier immer ein JSON mit den
@@ -3198,6 +3288,7 @@ async function rxErfassen(){
     var j2 = await r2.json();
     if(!r2.ok || !j2.ok) throw new Error(j2.error || 'Ordner konnte nicht angelegt werden');
     ordnerpfad = j2.ordnerpfad;
+    rxNrTeilpersistiert = true;
 
     /* Anhänge hochladen (best effort — bricht die Erfassung bei Fehlschlag nicht ab) */
     for(var i=0;i<rxFiles.length;i++){
@@ -3212,15 +3303,8 @@ async function rxErfassen(){
     document.getElementById('chainD1').textContent = ordnerpfad;
     rxState.fortschritt = 2; rxRender();
 
-    /* Schritt 3 — Monday-Item anlegen */
-    /* Duplikat-Prüfung: existiert schon ein Item mit dieser Projektnummer
-       (z. B. bei Doppelklick/Netzwerk-Retry), wird es wiederverwendet statt
-       ein zweites anzulegen — exakt wie im Reactor (mondayProdAnfrage()). */
-    var bestehend = null;
-    try{
-      var exQ = await mFetch('query($v:[String!]){ items_page_by_column_values(board_id:'+PROD.board+', columns:[{column_id:"'+PROD.col.projektnr+'", column_values:$v}], limit:1){ items{ id } } }', { v:[nummer] });
-      bestehend = exQ && exQ.items_page_by_column_values && exQ.items_page_by_column_values.items[0];
-    }catch(e){}
+    /* Schritt 3 — Monday-Item anlegen (Bestandsprüfung ist oben bereits
+       gelaufen — an dieser Stelle steht fest, dass noch keines existiert) */
     var cv = {};
     cv[PROD.col.projektnr] = nummer;
     cv[PROD.col.kunde] = firma;
@@ -3232,15 +3316,13 @@ async function rxErfassen(){
     /* Item-Name: nur Projektnummer + Betreff — KEIN Kunde (steht schon in der
        Kunde-Spalte), exakt wie im Reactor (mondayProdAnfrage()). */
     var itemName = (nummer+' '+betreff).replace(/\s{2,}/g,' ').trim().slice(0,255) || ('Anfrage '+nummer);
-    if(bestehend){
-      itemId = bestehend.id;
-    } else {
-      var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
-      itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
-    }
+    var mCreate = await mFetch('mutation($nm:String!,$cv:JSON!){ create_item(board_id:'+PROD.board+', group_id:"group_mm5hq91f", item_name:$nm, column_values:$cv){ id } }', { nm:itemName, cv:JSON.stringify(cv) });
+    itemId = mCreate && mCreate.create_item && mCreate.create_item.id;
     if(!itemId) throw new Error('Monday-Item nicht angelegt');
     rxErgebnis.itemId = itemId;
-    /* Status separat setzen (nicht-blockierend, wie im Original) */
+
+    /* Status separat setzen (nicht-blockierend, wie im Original) — nur für
+       neu angelegte Items, siehe Stopp oben. */
     try{ await mFetch('mutation($cv:JSON!){ change_multiple_column_values(board_id:'+PROD.board+', item_id:'+itemId+', column_values:$cv){ id } }', { cv: JSON.stringify({ [PROD.col.status]: { label:'Unbearbeitet' } }) }); }
     catch(e){ console.warn('[KALLE-DEBUG] Status evtl. nicht gesetzt:', e.message); }
 
@@ -3289,10 +3371,24 @@ async function rxErfassen(){
     rxState.fortschritt = 4; rxRender();
 
     /* Schritt 5 — Nummer fest vergeben */
-    await fetch(serverUrl()+'/nummern/commit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:nummer }) });
-    rxNrCommitted = true;
-    document.getElementById('chainD4').textContent = 'Unbearbeitet';
-    rxState.fortschritt = 5; rxRender();
+    var r5 = await fetch(serverUrl()+'/nummern/commit', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ nummer:nummer, session:rxAutoSession||undefined }) });
+    var j5 = null; try{ j5 = await r5.json(); }catch(e){}
+    if(r5.ok && j5 && j5.ok){
+      rxNrCommitted = true;
+      document.getElementById('chainD4').textContent = 'Unbearbeitet';
+      rxState.fortschritt = 5; rxRender();
+    } else {
+      /* Kein Erfolg vortäuschen: Ordner und Monday-Item existieren bereits
+         real (rxNrTeilpersistiert=true), aber die Nummer ist serverseitig
+         weiterhin nur "reserviert", nicht "vergeben". Das ist ein
+         Reparaturfall, keine normale Fertigmeldung (Review r0008, K3/T05). */
+      rxNrCommitted = false;
+      console.warn('[KALLE-DEBUG] /nummern/commit nicht bestätigt:', j5 && j5.error);
+      document.getElementById('chainD4').textContent = 'Nummer NICHT bestätigt';
+      rxState.fehler = 'Ordner und Monday-Eintrag ('+ (itemId||'—') +') wurden angelegt, aber die Nummer '+nummer+' konnte NICHT final bestätigt werden ('+(j5 && j5.error || 'Server antwortete nicht wie erwartet')+'). Bitte manuell in Monday/Nummernpool prüfen — kein automatischer Neuversuch.';
+      rxRender();
+      return;
+    }
 
     /* Cockpit-Liste aktualisiert im Hintergrund neu laden */
     try{ await loadLeads(); }catch(e){}
@@ -3327,7 +3423,11 @@ function rxBind(){
   $rx('oOrt').addEventListener('input', rxRender);
   $rx('rxPfadInput').addEventListener('input', function(){ rxPfadEdited = true; });
   $rx('rxPfadReset').addEventListener('click', function(e){ e.preventDefault(); rxPfadEdited = false; rxRender(); });
-  $rx('rxVgNr').addEventListener('input', function(){ rxNr = this.value.trim(); rxNrManual = true; rxRender(); });
+  $rx('rxVgNr').addEventListener('input', function(){
+    rxReserveGen++;               // verspätete Auto-Reservierungsantworten ab jetzt verwerfen
+    rxFreigebeAutoNr();            // evtl. schon aktive Auto-Reservierung sauber zurückgeben (fire-and-forget)
+    rxNr = this.value.trim(); rxNrManual = true; rxRender();
+  });
   $rx('go2').addEventListener('click', function(){ if(!$rx('go2').disabled){ rxBuildAnhaenge(); rxState.schritt = 2; rxRender(); } });
   $rx('back1').addEventListener('click', function(){ rxState.schritt = 1; rxRender(); });
   $rx('submit').addEventListener('click', rxErfassen);
@@ -3354,7 +3454,7 @@ function reaktorZeigeEinstieg(){
 }
 function reaktorZeigeErfassen(){
   rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
-  rxFiles = []; rxErgebnis = null; rxNrManual = false; rxPfadEdited = false;
+  rxFiles = []; rxErgebnis = null; rxNrManual = false; rxPfadEdited = false; rxNrTeilpersistiert = false;
   document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
   document.getElementById('scrErfassen').hidden = false;
   rxBuildAnhaenge(); rxRender();
@@ -3367,6 +3467,7 @@ function rxOeffnenOverlay(){
   reaktorZeigeEinstieg();
 }
 function rxSchliessenUndZurueck(){
+  rxFreigebeNr().catch(function(e){ console.warn('[KALLE-DEBUG] rxFreigebeNr beim Schliessen:', e && e.message); });
   document.getElementById('erfassungOverlay').hidden = true;
   render();
 }
