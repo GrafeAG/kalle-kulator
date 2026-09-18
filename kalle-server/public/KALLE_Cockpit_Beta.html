@@ -234,7 +234,7 @@
   --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
 
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:22px; --s6:28px; --s7:40px;
-  --head-h:64px;                  
+  --head-h:72px;                  
 }
 .rk-scope.theme-light{
   color:var(--tx);                
@@ -270,7 +270,7 @@
 .rk-scope .t-mono{font:600 12px/1.3 var(--font-mono)}
 .rk-scope .t-muted{color:var(--tx2)}
 .rk-scope .t-faint{color:var(--tx3)}
-.rk-scope .rk-header{height:var(--head-h);display:flex;align-items:center;gap:18px;
+.rk-scope .rk-header{height:var(--head-h);position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:18px;
   padding:0 24px;border-bottom:1px solid var(--bd);background:var(--bg2)}
 .rk-scope .rk-header__rule{width:1px;height:22px;background:var(--bd2)}
 .rk-scope .rk-header__brand{font:800 12px/1 var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
@@ -406,7 +406,14 @@
   font:600 12px/1 var(--font-ui);cursor:pointer}
 .rk-scope .rx-pill:hover{color:var(--tx);border-color:var(--bd2)}
 .rk-scope .rx-pill.is-active{background:var(--tx);border-color:var(--tx);color:var(--bg)}
-.rk-scope .rx-page{padding:40px 24px 36px;display:flex;flex-direction:column;gap:28px}
+.rk-scope .rx-page{padding:20px 24px 0;display:flex;flex-direction:column;gap:0}
+.rk-scope .rx-hero{background:var(--bg2);border-bottom:1px solid var(--bd);margin:0 -24px;padding:20px 24px 22px;display:flex;flex-direction:column;gap:16px}
+.rk-scope .rx-steps2{display:flex;align-items:center;gap:0;margin-bottom:2px}
+.rk-scope .rx-steps2__s{display:flex;align-items:center;gap:7px;font:700 10.5px/1 var(--font-ui);letter-spacing:.06em;color:var(--tx3);padding:4px 0}
+.rk-scope .rx-steps2__s.is-now{color:var(--tx)}
+.rk-scope .rx-steps2__n{display:inline-flex;align-items:center;justify-content:center;width:18px;height:18px;border-radius:50%;background:var(--bd2);color:var(--tx2);font:700 10px/1 var(--font-ui)}
+.rk-scope .rx-steps2__s.is-now .rx-steps2__n{background:var(--y);color:#111}
+.rk-scope .rx-steps2__line{width:26px;height:1px;background:var(--bd2);margin:0 8px}
 .rk-scope .rx-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
 .rk-scope .rx-eyebrow{font:600 11px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
 .rk-scope .rx-h1{margin:10px 0 0;font:900 48px/1 var(--font-ui);letter-spacing:-.025em}
@@ -415,9 +422,9 @@
 .rk-scope .rx-kern__txt{font:400 13px/1.35 var(--font-ui);color:rgba(255,255,255,.8)}
 .rk-scope .rx-kern__txt b{font-weight:700;color:#fff}
 .rk-scope .rx-ways{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px}
-.rk-scope .rx-way{display:flex;flex-direction:column;gap:14px;padding:26px 26px 22px;text-decoration:none;
+.rk-scope .rx-way{display:flex;flex-direction:column;gap:8px;padding:16px 20px 16px;text-decoration:none;
   transition:opacity .15s ease,border-color .15s ease}
-.rk-scope .rx-way--main{background:#111;color:#fff;min-height:200px}
+.rk-scope .rx-way--main{background:#111;color:#fff;min-height:0}
 .rk-scope .rx-way--main:hover{opacity:.9;color:#fff}
 .rk-scope .rx-way--side{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx)}
 .rk-scope .rx-way--side:hover{border-color:var(--tx);color:var(--tx)}
@@ -552,7 +559,7 @@
   --font-mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
 
   --s1:4px; --s2:8px; --s3:12px; --s4:16px; --s5:22px; --s6:28px; --s7:40px;
-  --head-h:64px;                  
+  --head-h:72px;                  
 }
 .rk-scope.theme-light{
   color:var(--tx);                
@@ -588,7 +595,7 @@
 .rk-scope .t-mono{font:600 12px/1.3 var(--font-mono)}
 .rk-scope .t-muted{color:var(--tx2)}
 .rk-scope .t-faint{color:var(--tx3)}
-.rk-scope .rk-header{height:var(--head-h);display:flex;align-items:center;gap:18px;
+.rk-scope .rk-header{height:var(--head-h);position:sticky;top:0;z-index:50;display:flex;align-items:center;gap:18px;
   padding:0 24px;border-bottom:1px solid var(--bd);background:var(--bg2)}
 .rk-scope .rk-header__rule{width:1px;height:22px;background:var(--bd2)}
 .rk-scope .rk-header__brand{font:800 12px/1 var(--font-ui);letter-spacing:.14em;text-transform:uppercase}
@@ -727,8 +734,8 @@
 
 .rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
 .rk-scope .screen{width:80vw;background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
-.rk-scope .pl-body{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:760px}
-.rk-scope .pl-side{border-right:1px solid var(--bd);padding:20px 14px 24px;display:flex;flex-direction:column;
+.rk-scope .pl-body{display:grid;grid-template-columns:216px minmax(0,1fr);min-height:0;max-height:calc(100vh - 260px)}
+.rk-scope .pl-side{border-right:1px solid var(--bd);padding:20px 14px 24px;display:flex;flex-direction:column;overflow-y:auto;
   gap:22px;background:var(--bg2)}
 .rk-scope .pl-filter{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:8px;
   background:transparent;border:none;text-align:left;color:var(--tx);font:500 13px/1 var(--font-ui);
@@ -741,7 +748,7 @@
 .rk-scope .pl-ava{width:22px;height:22px;border-radius:50%;background:var(--bg4);overflow:hidden;flex:none;
   display:grid;place-items:center;font:700 9px/1 var(--font-ui);color:var(--tx2)}
 .rk-scope .pl-ava img{width:100%;height:100%;object-fit:cover;display:block}
-.rk-scope .pl-main{padding:26px 28px 32px;display:flex;flex-direction:column;gap:30px;min-width:0}
+.rk-scope .pl-main{padding:26px 28px 32px;display:flex;flex-direction:column;gap:30px;min-width:0;overflow-y:auto}
 .rk-scope .pl-bandhead{display:flex;align-items:baseline;gap:12px;padding-bottom:8px;margin-bottom:8px;
   border-bottom:2px solid var(--bd2)}
 .rk-scope .pl-bandhead--red{border-bottom-color:var(--danger)}
@@ -847,7 +854,7 @@
 .rk-scope body.theme-light{background:#3A3A36;display:grid;place-items:start center;padding:24px}
 .rk-scope .screen{width:80vw;min-height:720px;background:var(--bg);color:var(--tx);border:1px solid #D6D5CD}
 .rk-scope .rx-nav{display:flex;gap:4px;margin-left:8px}
-.rk-scope .rx-page{padding:40px 24px 36px;display:flex;flex-direction:column;gap:28px}
+.rk-scope .rx-page{padding:20px 24px 0;display:flex;flex-direction:column;gap:0}
 .rk-scope .rx-top{display:flex;align-items:flex-end;justify-content:space-between;gap:24px}
 .rk-scope .rx-eyebrow{font:600 11px/1 var(--font-ui);letter-spacing:.12em;text-transform:uppercase;color:var(--accent-text)}
 .rk-scope .rx-h1{margin:10px 0 0;font:900 48px/1 var(--font-ui);letter-spacing:-.025em}
@@ -856,9 +863,9 @@
 .rk-scope .rx-kern__txt{font:400 13px/1.35 var(--font-ui);color:rgba(255,255,255,.8)}
 .rk-scope .rx-kern__txt b{font-weight:700;color:#fff}
 .rk-scope .rx-ways{display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr);gap:10px}
-.rk-scope .rx-way{display:flex;flex-direction:column;gap:14px;padding:26px 26px 22px;text-decoration:none;
+.rk-scope .rx-way{display:flex;flex-direction:column;gap:8px;padding:16px 20px 16px;text-decoration:none;
   transition:opacity .15s ease,border-color .15s ease}
-.rk-scope .rx-way--main{background:#111;color:#fff;min-height:200px}
+.rk-scope .rx-way--main{background:#111;color:#fff;min-height:0}
 .rk-scope .rx-way--main:hover{opacity:.9;color:#fff}
 .rk-scope .rx-way--side{background:var(--bg2);border:1px solid var(--bd2);color:var(--tx)}
 .rk-scope .rx-way--side:hover{border-color:var(--tx);color:var(--tx)}
@@ -1035,81 +1042,6 @@
 <div class="rk-scope theme-light" id="app">
 <button type="button" onclick="szExitFullscreen()" title="Zurück zu KALLE-KULATOR" style="position:fixed;top:10px;right:10px;z-index:9999;padding:8px 14px;border-radius:8px;background:#171714;color:#fff;border:none;cursor:pointer;font-size:12.5px;font-weight:700;letter-spacing:.2px;line-height:1;display:flex;align-items:center;gap:6px;box-shadow:0 2px 8px rgba(0,0,0,.3)">✕ Beta beenden</button>
 
-<div class="screen rk-screen" id="scrListe">
-
-  <div class="rk-header">
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><use href="#grafe-logo-inner"></use></svg>
-    <span class="rk-header__rule"></span>
-    <span class="rk-header__brand">REAKTOR</span>
-    <nav style="display:flex;gap:4px;margin-left:8px">
-      <button class="rk-navpill is-active" type="button">Alle Projekte</button>
-      <button class="rk-navpill" type="button" onclick="reaktorZeigeErfassen()">Erfassen</button>
-    </nav>
-    <span class="rk-spacer"></span>
-    <span class="conn bad" id="conn" style="font:500 11px/1 var(--font-ui);color:var(--tx3)"><span id="connTxt">verbinde …</span></span>
-    <button class="rk-btn rk-btn--sm" onclick="reload()" title="Alle Projekte frisch aus Monday laden">Aktualisieren</button>
-  </div>
-
-  <div class="pl-body">
-
-    <aside class="pl-side">
-      <input class="rk-input" id="suche" placeholder="Suchen …">
-
-      <div>
-        <div class="t-label" style="padding:0 8px 8px">Phase</div>
-        <div class="rk-col" style="gap:1px" id="phasen"></div>
-      </div>
-
-      <div>
-        <div class="t-label" style="padding:0 8px 8px">Projektleitung</div>
-        <div class="rk-col" style="gap:1px" id="pls"></div>
-      </div>
-
-      <div style="margin-top:auto;padding:10px 8px 0;border-top:1px solid var(--bd)" class="t-small t-faint">
-        130 aktive Projekte · Ampel alle 2 Min. neu
-      </div>
-    </aside>
-
-    <main class="pl-main">
-      <div style="display:flex;align-items:baseline;gap:16px">
-        <h1 class="t-h1">Aktive Projekte.</h1>
-        <span class="t-body t-muted" id="datumZeile">· <span id="sichtbar">0</span> sichtbar</span>
-      </div>
-
-      <section id="secRed">
-        <div class="pl-bandhead pl-bandhead--red">
-          <span class="pl-bandn" style="color:var(--danger)" id="nRed">3</span>
-          <span class="pl-bandt">Überfällig</span>
-          <span class="t-small t-muted">nächster Schritt liegt in der Vergangenheit</span>
-        </div>
-        <div class="rk-col" style="gap:6px" id="listRed"></div>
-      </section>
-
-      <section id="secYellow">
-        <div class="pl-bandhead pl-bandhead--yellow">
-          <span class="pl-bandn" id="nYellow">3</span>
-          <span class="pl-bandt">Heute / morgen</span>
-          <span class="t-small t-muted">fällig in den nächsten 48 h</span>
-        </div>
-        <div class="rk-col" style="gap:6px" id="listYellow"></div>
-      </section>
-
-      <section id="secGreen">
-        <div class="pl-bandhead">
-          <span class="pl-bandn t-faint" id="nGreen">8</span>
-          <span class="pl-bandt t-muted">Im Plan</span>
-          <span class="t-small t-muted">nach Phase · Klick öffnet das Projekt</span>
-          <span class="rk-spacer"></span>
-          <button class="rk-btn rk-btn--sm" id="togglePlan">einzeln zeigen</button>
-        </div>
-        <div id="listGreenGrouped"></div>
-        <div class="rk-col" style="gap:6px" id="listGreenFlat" hidden></div>
-      </section>
-    </main>
-  </div>
-</div>
-
-
 <div class="screen rk-screen" id="scrDetail" hidden><div class="sz-panel" id="szPanel"></div></div>
 
 <div class="screen rk-screen" id="scrEinstieg" hidden>
@@ -1128,49 +1060,102 @@
       <button class="rk-navpill" type="button" onclick="szExitFullscreen()">KALLE-KULATOR ↗</button>
     </nav>
     <span class="rk-spacer"></span>
-    <span class="rk-live"><span class="rk-live__dot"></span>Monday · Ordner · bereit</span>
+    <span class="rk-live" id="conn"><span class="rk-live__dot"></span><span id="connTxt">lade …</span></span>
   </div>
 
   <div class="rx-page">
 
-    <div class="rx-top">
-      <div>
-        <div class="rx-eyebrow">Schritt 00 · bevor ein Projekt existiert</div>
-        <h1 class="rx-h1">Was liegt an,<br>Sven?</h1>
+    <div class="rx-hero">
+      <div class="rx-top">
+        <div>
+          <div class="rx-eyebrow">Schritt 00 · bevor ein Projekt existiert</div>
+          <h1 class="rx-h1" style="font-size:34px">Was liegt an,<br>Sven?</h1>
+        </div>
+        <div class="rx-kern">
+          <span class="rx-kern__dot"></span>
+          <span class="rx-kern__txt">Kern stabil · <b id="einstiegCount2">0</b> Anfragen warten auf Verkauf</span>
+        </div>
       </div>
-      <div class="rx-kern">
-        <span class="rx-kern__dot"></span>
-        <span class="rx-kern__txt">Kern stabil · <b id="einstiegCount2">0</b> Anfragen warten auf Verkauf</span>
+
+      <div class="rx-steps2">
+        <span class="rx-steps2__s is-now"><span class="rx-steps2__n">00</span>Übersicht</span>
+        <span class="rx-steps2__line"></span>
+        <span class="rx-steps2__s"><span class="rx-steps2__n">1</span>Kunde &amp; Anfrage</span>
+        <span class="rx-steps2__line"></span>
+        <span class="rx-steps2__s"><span class="rx-steps2__n">2</span>Ablage &amp; Übersicht</span>
+      </div>
+
+      <div class="rx-ways">
+        <a class="rx-way rx-way--main" href="#" onclick="reaktorZeigeErfassen();return false;">
+          <span class="rx-way__kind">Hauptweg · 2 Schritte</span>
+          <span class="rx-way__t">Anfrage erfassen.</span>
+          <span class="rx-way__x">E-Mail hineinziehen, Kunde wird erkannt, Leistungsart wählen, ablegen. Ein Klick vergibt Projektnummer, legt Ordner und Monday-Eintrag an.</span>
+          <span class="rx-way__go">Kunde &amp; Anfrage → Ablage &amp; Übersicht
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
+          </span>
+        </a>
+
+        <a class="rx-way rx-way--side" href="#" onclick="rxNurKalkulieren();return false;">
+          <span class="rx-way__kind">Nebenweg · ohne Projektnummer</span>
+          <span class="rx-way__t">Nur kalkulieren.</span>
+          <span class="rx-way__x">Für Ausschreibungen und Grossprojekte am normalen Ablauf vorbei. Verbrennt keine Projektnummer, legt nichts ab.</span>
+          <span class="rx-way__go">Rechner öffnen →</span>
+        </a>
       </div>
     </div>
 
-    <div class="rx-ways">
-      <a class="rx-way rx-way--main" href="#" onclick="reaktorZeigeErfassen();return false;">
-        <span class="rx-way__kind">Hauptweg · 2 Schritte</span>
-        <span class="rx-way__t">Anfrage erfassen.</span>
-        <span class="rx-way__x">E-Mail hineinziehen, Kunde wird erkannt, Leistungsart wählen, ablegen. Ein Klick vergibt Projektnummer, legt Ordner und Monday-Eintrag an.</span>
-        <span class="rx-way__go">Kunde &amp; Anfrage → Ablage &amp; Übersicht
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
-        </span>
-      </a>
+    <div class="pl-body">
 
-      <a class="rx-way rx-way--side" href="#" onclick="rxNurKalkulieren();return false;">
-        <span class="rx-way__kind">Nebenweg · ohne Projektnummer</span>
-        <span class="rx-way__t">Nur kalkulieren.</span>
-        <span class="rx-way__x">Für Ausschreibungen und Grossprojekte am normalen Ablauf vorbei. Verbrennt keine Projektnummer, legt nichts ab.</span>
-        <span class="rx-way__go">Rechner öffnen →</span>
-      </a>
-    </div>
+      <aside class="pl-side">
+        <input class="rk-input" id="suche" placeholder="Suchen …">
 
-    <div>
-      <div class="rx-listhead">
-        <span style="font:900 22px/1 var(--font-ui)" id="einstiegCount">0</span>
-        <span style="font:800 12px/1 var(--font-ui);letter-spacing:.1em;text-transform:uppercase">Erfasst · unbearbeitet</span>
-        <span class="t-small t-muted">kommt später: Verkauf öffnet und kalkuliert im Rechner</span>
-      </div>
+        <div>
+          <div class="t-label" style="padding:0 8px 8px">Phase</div>
+          <div class="rk-col" style="gap:1px" id="phasen"></div>
+        </div>
 
-      <div class="rk-col" style="gap:6px" id="einstiegListe"></div>
-    </div>
+        <div>
+          <div class="t-label" style="padding:0 8px 8px">Projektleitung</div>
+          <div class="rk-col" style="gap:1px" id="pls"></div>
+        </div>
+      </aside>
+
+      <main class="pl-main">
+        <div style="display:flex;align-items:baseline;gap:16px">
+          <h1 class="t-h1" style="font-size:26px">Aktive Projekte.</h1>
+          <span class="t-body t-muted" id="datumZeile">· <span id="sichtbar">0</span> sichtbar</span>
+        </div>
+
+        <section id="secRed">
+          <div class="pl-bandhead pl-bandhead--red">
+            <span class="pl-bandn" style="color:var(--danger)" id="nRed">3</span>
+            <span class="pl-bandt">Überfällig</span>
+            <span class="t-small t-muted">nächster Schritt liegt in der Vergangenheit</span>
+          </div>
+          <div class="rk-col" style="gap:6px" id="listRed"></div>
+        </section>
+
+        <section id="secYellow">
+          <div class="pl-bandhead pl-bandhead--yellow">
+            <span class="pl-bandn" id="nYellow">3</span>
+            <span class="pl-bandt">Heute / morgen</span>
+            <span class="t-small t-muted">fällig in den nächsten 48 h</span>
+          </div>
+          <div class="rk-col" style="gap:6px" id="listYellow"></div>
+        </section>
+
+        <section id="secGreen">
+          <div class="pl-bandhead">
+            <span class="pl-bandn t-faint" id="nGreen">8</span>
+            <span class="pl-bandt t-muted">Im Plan</span>
+            <span class="t-small t-muted">nach Phase · Klick öffnet das Projekt</span>
+            <span class="rk-spacer"></span>
+            <button class="rk-btn rk-btn--sm" id="togglePlan">einzeln zeigen</button>
+          </div>
+          <div id="listGreenGrouped"></div>
+          <div class="rk-col" style="gap:6px" id="listGreenFlat" hidden></div>
+        </section>
+      </main>
     </div>
 
   </div>
@@ -1724,8 +1709,9 @@ function setPhaseFilter(v,el){
 }
 // (alte #q-Suchfeld-Bindung entfernt — Suche läuft jetzt über plInit()/#suche)
 function setConn(ok,msg){ const c=document.getElementById('conn'),t=document.getElementById('connTxt');
+  if(!c||!t) return;
   if(ok===undefined){ t.textContent='lade …'; return; }
-  c.className='conn '+(ok?'ok':'bad'); t.textContent=ok?('live an Monday'+(serverOk?' + Server':'')):('offline'+(msg?' — '+msg.slice(0,40):'')); }
+  c.className='rk-live '+(ok?'ok':'bad'); t.textContent=ok?('live an Monday'+(serverOk?' + Server':'')):('offline'+(msg?' — '+msg.slice(0,40):'')); }
 
 // ═══ Detail ═══
 let curId=null;
@@ -2319,11 +2305,7 @@ function szExitFullscreen(){
     }
   }catch(e){ console.warn('[Fullscreen-Exit]', e.message); }
 }
-function zeigeListe(){
-  document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
-  document.getElementById('scrListe').hidden = false;
-  plRender();
-}
+function zeigeListe(){ reaktorZeigeEinstieg(); }
 // Ueberschreibt die alte, modale openDrawer()-Funktion: rendert jetzt die volle
 // Schaltzentrale-Seite. Alle bestehenden wt*-Funktionen rufen am Ende weiterhin
 // openDrawer(id) auf, um den aktuellen Stand neu anzuzeigen -- das greift jetzt
@@ -3501,6 +3483,7 @@ function reaktorZeigeEinstieg(){
   document.querySelectorAll('.rk-screen').forEach(function(s){ s.hidden = true; });
   document.getElementById('scrEinstieg').hidden = false;
   rxRenderEinstiegListe();
+  plRender();
 }
 function reaktorZeigeErfassen(){
   rxState = { schritt:1, mail:false, art:'Schild', ablage:'Objekt', fortschritt:0, laufend:false, fehler:'' };
@@ -3526,21 +3509,9 @@ function rxNurKalkulieren(){
   try{ parent.postMessage({type:'kalle-open', anr:''}, '*'); }catch(e){}
 }
 function rxRenderEinstiegListe(){
-  var box = document.getElementById('einstiegListe');
-  var head = document.getElementById('einstiegCount');
-  if(!box) return;
+  var head2 = document.getElementById('einstiegCount2');
   var offen = (LEADS||[]).filter(function(l){ return l.phase === 'Anfragen'; });
-  if(head) head.textContent = String(offen.length);
-  box.innerHTML = offen.length ? offen.map(function(l){
-    return '<div class="rx-row" style="cursor:pointer" onclick="rxOeffneProjekt(\''+l.id+'\')">'+
-      '<span class="rx-row__nr">'+esc(l.nr)+'</span>'+
-      '<span class="rx-row__kunde ell">'+esc(l.kunde||'—')+'</span>'+
-      '<span class="rx-row__betreff ell">'+esc(l.betreffRaw||l.betreff||'')+'</span>'+
-      '<span class="rx-row__art">'+esc(l.nowStepLabel||'')+'</span>'+
-      '<span class="rx-row__frist" style="background:'+l.ampel.c+';color:#fff">'+esc(l.ampel.t)+'</span>'+
-      '<span class="rx-row__who" title="'+esc(l.bearbeiter||'ohne Bearbeiter')+'">'+(l.bearbeiter?esc(l.bearbeiter.slice(0,1)):'?')+'</span>'+
-    '</div>';
-  }).join('') : '<div class="t-body t-faint">Keine unbearbeiteten Anfragen.</div>';
+  if(head2) head2.textContent = String(offen.length);
 }
 function rxOeffneProjekt(id){
   document.getElementById('erfassungOverlay').hidden = true;
