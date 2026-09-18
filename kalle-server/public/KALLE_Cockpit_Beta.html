@@ -1510,6 +1510,10 @@ async function boot(){
   await checkServer();
   try{ await Promise.all([loadUsers(), loadDbEnrichment()]); }catch(e){}
   await loadLeads();
+  /* scrListe (ohne hidden-Attribut) war bisher die faktische Standardansicht
+     beim Laden — jetzt entfernt (Inhalt lebt in scrEinstieg), daher hier
+     explizit anzeigen, sonst bleiben ALLE Screens hidden. */
+  reaktorZeigeEinstieg();
 }
 async function checkServer(){
   try{ const c=new AbortController(); setTimeout(()=>c.abort(),1500);
