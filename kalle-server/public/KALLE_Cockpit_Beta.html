@@ -1044,7 +1044,7 @@
 
 <div class="screen rk-screen" id="scrDetail" hidden><div class="sz-panel" id="szPanel"></div></div>
 
-<div class="screen rk-screen" id="scrEinstieg" hidden>
+<div class="screen rk-screen" id="scrEinstieg">
 
   <div class="rk-header">
     <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block;color:var(--tx)"><use href="#grafe-logo-inner"></use></svg>
@@ -1152,7 +1152,7 @@
             <span class="rk-spacer"></span>
             <button class="rk-btn rk-btn--sm" id="togglePlan">einzeln zeigen</button>
           </div>
-          <div id="listGreenGrouped"></div>
+          <div id="listGreenGrouped"><p class="t-body t-faint" style="padding:8px 2px">Projekte werden von Monday geladen …</p></div>
           <div class="rk-col" style="gap:6px" id="listGreenFlat" hidden></div>
         </section>
       </main>
@@ -1510,10 +1510,15 @@ async function boot(){
   await checkServer();
   try{ await Promise.all([loadUsers(), loadDbEnrichment()]); }catch(e){}
   await loadLeads();
-  /* scrListe (ohne hidden-Attribut) war bisher die faktische Standardansicht
-     beim Laden — jetzt entfernt (Inhalt lebt in scrEinstieg), daher hier
-     explizit anzeigen, sonst bleiben ALLE Screens hidden. */
-  reaktorZeigeEinstieg();
+  /* NUR Daten aktualisieren — niemals den Screen wechseln/erzwingen. Ein
+     reaktorZeigeEinstieg()-Aufruf hier würde jede bereits geöffnete Ansicht
+     (z. B. "Anfrage erfassen", direkt nach dem Klick geöffnet, noch bevor
+     Monday fertig geladen hat) wieder wegreissen, sobald diese
+     Hintergrund-Ladephase abschliesst — echte Race Condition, die genau das
+     Verhalten auslöste, das Sven gemeldet hat. scrEinstieg ist inzwischen
+     ohnehin von Anfang an sichtbar (kein hidden-Attribut mehr), ein
+     erzwungenes Zurückspringen ist dafür nicht mehr nötig. */
+  rxRenderEinstiegListe();
 }
 async function checkServer(){
   try{ const c=new AbortController(); setTimeout(()=>c.abort(),1500);

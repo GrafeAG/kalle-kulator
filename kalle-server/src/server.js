@@ -134,6 +134,15 @@ try {
   console.warn('⚠ Route /nummern NICHT geladen — fehlt src/routes/nummern.js? (' + e.message + ')');
 }
 
+// ── NEU: Cockpit-Controlling — wöchentliche Monday-Auswertung (Leads/Anfragen/
+// Offerten/Produktion/Sales-Performance/Nachfassquote), 1x täglich gecacht ──
+try {
+  app.use('/controlling', require('./routes/controlling'));
+  console.log('✓ Route /controlling aktiv');
+} catch (e) {
+  console.warn('⚠ Route /controlling NICHT geladen — fehlt src/routes/controlling.js? (' + e.message + ')');
+}
+
 // ── 404 / ERROR HANDLER ───────────────────────────────────────────────────
 app.use((req, res) => {
   // API-Routen: JSON
