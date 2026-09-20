@@ -1,7 +1,13 @@
 // src/routes/controlling.js
-// Controlling-Übersicht für KALLE-Cockpit — aggregiert Monday-Daten aus Pipeline,
-// Anfragen/Offerten und Produktionsübersicht zu Wochenwerten (letzte ~3 Monate).
+// Controlling-Übersicht für KALLE-Cockpit — aggregiert Monday-Daten aus Pipeline
+// und GRAFE Produktionsübersicht (inkl. deren Subitems) zu Wochenwerten (letzte ~3 Monate).
 // Token: process.env.MONDAY_TOKEN (wie label.js/monday.js).
+//
+// Stand 20.09.2026: Umgestellt von "Anfragen und Offerten"-Board (18423106800,
+// nur 2 Elemente — neu aufgesetztes, kaum genutztes System) auf die
+// GRAFE Produktionsübersicht (1012481465, 1485+ Elemente — der tatsächlich
+// gelebte Arbeitsablauf, von Sven bestätigt). Anfragen/Offerten-Board wird
+// nicht mehr abgefragt.
 //
 // Routen:
 //   GET  /controlling/data            -> letzter gecachter Report (JSON)
@@ -24,10 +30,25 @@ const TOKEN = () => process.env.MONDAY_TOKEN;
 const CACHE_FILE = path.join(__dirname, '..', '..', 'data', 'controlling_cache.json');
 
 const BOARDS = {
-  pipeline: 908257145,       // Verkauf / Pipeline (Leads)
-  anfragen: 18423106800,     // Anfragen und Offerten (REAKTOR-Durchlaufboard)
-  produktion: 1012481465     // GRAFE Produktionsübersicht
+  pipeline: 908257145,           // Verkauf / Pipeline (Leads)
+  produktion: 1012481465,        // GRAFE Produktionsübersicht — echter Arbeitsablauf
+  produktionSubitems: 1012481470 // Unterelemente von GRAFE Produktionsübersicht
 };
+
+// Gruppen auf der Produktionsübersicht (IDs live abgefragt, nicht geraten)
+const GROUPS = {
+  anfragen: 'group_mm5hq91f',       // "Projekt und Offertanfragen"
+  offertpruefung: 'group_mm5p5zwq', // "Offerprüfung Kunde / Vergabe"
+  verloren: 'group_mm7293mg'        // "Verloren / Abgesagt"
+};
+
+// Subitem-Namen, auf die exakt gefiltert wird (Monday-seitige contains_text-
+// Suche, live gegen echte Daten bestätigt)
+const SUBITEM_OFFERTE_ERSTELLEN = 'Offerte erstellen';
+const SUBITEM_NACHFASSEN = 'Nachfassen beim Kunde'; // ab der neuen Monday-Automation (9 Kalendertage-Näherung an 7 Werktage)
+const STATUS_OFFERTE_RAUS = 'Offerte ist raus';      // Haupt-Status-Label auf der Produktionsübersicht
+const SUBITEM_STATUS_IN_ARBEIT = 'in Offertstellung'; // Subitem-Status-Label auf "Offerte erstellen"
+const SUBITEM_STATUS_FERTIG = 'Fertig';
 
 // Verkauf/Projektleiter, dessen Aktivität laut interner Vereinbarung (4-8
 // bearbeitete Leads/Tag) im Sales-Performance-Indikator ausgewertet wird.
@@ -107,7 +128,7 @@ function weekListBack(n) {
   return out;
 }
 
-// Alle Items eines Boards holen (paginiert), inkl. gewünschter Spalten
+// Alle Items eines Boards holen (paginiert), inkl. gewünschter Spalten + Gruppe
 async function fetchAllItems(boardId, columnIds) {
   let items = [];
   let cursor = null;
@@ -124,6 +145,32 @@ async function fetchAllItems(boardId, columnIds) {
       }
     }`;
     const data = await mq(query, { board: [String(boardId)], cursor });
+    const page = data.boards[0].items_page;
+    items = items.concat(page.items);
+    cursor = page.cursor;
+  } while (cursor);
+  return items;
+}
+
+// Subitems eines Boards, deren Name einen Text enthält (serverseitig gefiltert
+// via query_params/contains_text — live gegen echte Daten getestet, spart das
+// Laden aller ~4500 Subitems nur um z.B. "Offerte erstellen" herauszufiltern).
+// Liefert zusätzlich parent_item{id name}, da der Projektname bereits
+// Projektnummer+Kunde enthält (kein separater Join nötig).
+async function fetchSubitemsByName(boardId, nameContains, columnIds) {
+  let items = [];
+  let cursor = null;
+  const colsField = `column_values(ids: ${JSON.stringify(columnIds)}) { id text value }`;
+  do {
+    const query = `query($board:[ID!], $cursor:String, $name:CompareValue!){
+      boards(ids:$board){
+        items_page(limit:100, cursor:$cursor, query_params:{rules:[{column_id:"name", compare_value:$name, operator:contains_text}]}){
+          cursor
+          items{ id name created_at updated_at parent_item{ id name } ${colsField} }
+        }
+      }
+    }`;
+    const data = await mq(query, { board: [String(boardId)], cursor, name: [nameContains] });
     const page = data.boards[0].items_page;
     items = items.concat(page.items);
     cursor = page.cursor;
@@ -164,32 +211,6 @@ function pulseIdFromActivity(ev) {
   catch (e) { return null; }
 }
 
-// Anfragen/Offerten-Items inkl. Nachfass-relevanter Spalten + Kommentare (Updates).
-// Braucht eigene Query (statt fetchAllItems), weil "updates" pro Item mitgeladen wird.
-async function fetchAnfragenWithUpdates(boardId) {
-  let items = [];
-  let cursor = null;
-  do {
-    const query = `query($board:[ID!], $cursor:String){
-      boards(ids:$board){
-        items_page(limit:100, cursor:$cursor){
-          cursor
-          items{
-            id name created_at updated_at
-            column_values(ids:["color_mm5f5t2b","date_mm5fkwf9","date_mm5fywwj","multiple_person_mm5fmajv","text_mm5f47ba","text_mm5fq49c"]){ id text value }
-            updates(limit:25){ creator_id created_at }
-          }
-        }
-      }
-    }`;
-    const data = await mq(query, { board: [String(boardId)], cursor });
-    const page = data.boards[0].items_page;
-    items = items.concat(page.items);
-    cursor = page.cursor;
-  } while (cursor);
-  return items;
-}
-
 function cvMap(item) {
   const m = {};
   (item.column_values || []).forEach(c => { m[c.id] = c; });
@@ -206,25 +227,29 @@ async function buildReport(progress) {
   fromDate.setUTCDate(fromDate.getUTCDate() - (WEEKS_BACK - 1) * 7); // Montag der ältesten vollständigen Woche
   const fromISO = fromDate.toISOString();
   const toISO = new Date().toISOString();
+  const today = new Date();
 
   progress(5, 'Lade Pipeline-Board (Leads)...');
   const pipelineItems = await fetchAllItems(BOARDS.pipeline, ['status', 'person', 'people', 'creation_log']);
 
-  progress(30, 'Lade Anfragen/Offerten-Board (inkl. Kommentare)...');
-  const anfragenItems = await fetchAnfragenWithUpdates(BOARDS.anfragen);
+  progress(25, 'Lade GRAFE Produktionsübersicht...');
+  const produktionItems = await fetchAllItems(BOARDS.produktion, ['text_mkv7v7m6', 'text_mm5hbe90', 'people0', 'status']);
 
-  progress(50, 'Lade Produktionsübersicht...');
-  const produktionItems = await fetchAllItems(BOARDS.produktion, ['status', 'people0']);
+  progress(45, 'Lade Subitems "Offerte erstellen"...');
+  const offerteErstellenItems = await fetchSubitemsByName(BOARDS.produktionSubitems, SUBITEM_OFFERTE_ERSTELLEN, ['person', 'status', 'date0']);
 
-  progress(65, 'Lade Activity-Log Pipeline (Sales)...');
-  const ddeActPipeline = await fetchActivity(BOARDS.pipeline, fromISO, toISO, [SALES_USER_ID], true);
+  progress(55, 'Lade Subitems "Nachfassen beim Kunde"...');
+  const nachfassItems = await fetchSubitemsByName(BOARDS.produktionSubitems, SUBITEM_NACHFASSEN, ['person', 'status', 'date0']);
 
-  progress(80, 'Lade Activity-Log Anfragen (Sales)...');
-  const ddeActAnfragen = await fetchActivity(BOARDS.anfragen, fromISO, toISO, [SALES_USER_ID]);
+  progress(70, 'Lade Activity-Log Pipeline (Sales)...');
+  const salesActPipeline = await fetchActivity(BOARDS.pipeline, fromISO, toISO, [SALES_USER_ID], true);
 
-  progress(90, 'Aggregiere Wochenwerte...');
+  progress(85, 'Lade Activity-Log Produktionsübersicht (Sales)...');
+  const salesActProduktion = await fetchActivity(BOARDS.produktion, fromISO, toISO, [SALES_USER_ID]);
 
-  // Neue Leads/Woche — Pipeline, gezählt nach Erstellungsdatum
+  progress(92, 'Aggregiere Wochenwerte...');
+
+  // Neue Leads/Woche + pro Mitarbeiter — Pipeline, gezählt nach Erstellungsdatum
   const leadsPerWeek = {};
   const leadsProMitarbeiter = {};
   for (const it of pipelineItems) {
@@ -239,23 +264,23 @@ async function buildReport(progress) {
   }
 
   // Sales-Aktivität/Woche: Bearbeitungen, Gruppenwechsel (Mutation), Kommentare, aktive Tage
-  const ddeWeek = {};
-  for (const ev of [...ddeActPipeline, ...ddeActAnfragen]) {
+  const salesWeek = {};
+  for (const ev of [...salesActPipeline, ...salesActProduktion]) {
     const ts = parseMondayTimestamp(ev.created_at);
     if (!ts) continue;
     const wk = isoWeekLabel(ts);
-    if (!ddeWeek[wk]) ddeWeek[wk] = { bearbeitungen: 0, verschoben: 0, kommentare: 0, tage: new Set() };
-    ddeWeek[wk].tage.add(ts.toISOString().slice(0, 10));
-    if (ev.event === 'update_column_value') ddeWeek[wk].bearbeitungen++;
-    else if (ev.event === 'move_pulse_from_group' || ev.event === 'move_pulse_into_group') ddeWeek[wk].verschoben++;
-    else if (ev.event === 'create_update') ddeWeek[wk].kommentare++;
+    if (!salesWeek[wk]) salesWeek[wk] = { bearbeitungen: 0, verschoben: 0, kommentare: 0, tage: new Set() };
+    salesWeek[wk].tage.add(ts.toISOString().slice(0, 10));
+    if (ev.event === 'update_column_value') salesWeek[wk].bearbeitungen++;
+    else if (ev.event === 'move_pulse_from_group' || ev.event === 'move_pulse_into_group') salesWeek[wk].verschoben++;
+    else if (ev.event === 'create_update') salesWeek[wk].kommentare++;
   }
 
   // Sales-Performance-Indikator: Vereinbarung ist "4-8 Leads/Tag bearbeitet".
   // Zählt EINDEUTIGE Leads (pulse_id), nicht rohe Events — wer denselben Lead
   // dreimal anfasst, hat trotzdem nur 1 Lead bearbeitet an dem Tag.
   const dailyPipelineLeads = {}; // { 'YYYY-MM-DD': Set<pulse_id> }
-  for (const ev of ddeActPipeline) {
+  for (const ev of salesActPipeline) {
     const ts = parseMondayTimestamp(ev.created_at);
     const pid = pulseIdFromActivity(ev);
     if (!ts || !pid) continue;
@@ -264,58 +289,72 @@ async function buildReport(progress) {
     dailyPipelineLeads[day].add(pid);
   }
 
-  // Neue Anfragen/Woche — Anfragen-Board (alle, inkl. abgelehnte) PLUS
-  // gewonnene, die per Automatisierung ins Produktionsboard gewandert sind.
-  // Item-ID bleibt laut Sven über alle Phasen hinweg stabil (bestätigt) ->
-  // Herkunft lässt sich damit exakt bestimmen statt über Erstelldatum zu
-  // mutmassen: Pipeline-ID bekannt -> "aus Lead qualifiziert", sonst -> "direkt
-  // erfasst" (z.B. via KALLE-KULATOR ohne vorherige Lead-Qualifikation).
+  // Neue Anfragen/Woche — jetzt: ALLE Elemente der Produktionsübersicht nach
+  // Erstellungsdatum (jedes Element dort beginnt als Anfrage, unabhängig davon,
+  // wo es aktuell in der Gruppen-Kette steht). Herkunft (direkt vs. aus Lead)
+  // weiterhin exakt per Item-ID gegen die Pipeline bestimmt (von Sven bestätigt:
+  // Item-ID bleibt über alle Board-/Phasenwechsel stabil).
   const pipelineIds = new Set(pipelineItems.map(it => String(it.id)));
-  const anfragenPerWeek = {};          // gesamt (Kompatibilität)
-  const anfragenDirektPerWeek = {};    // ohne vorherige Pipeline-Station
-  const anfragenAusLeadPerWeek = {};   // aus Pipeline promoviert
-  function bumpAnfrage(id, wk) {
-    anfragenPerWeek[wk] = (anfragenPerWeek[wk] || 0) + 1;
-    if (pipelineIds.has(String(id))) anfragenAusLeadPerWeek[wk] = (anfragenAusLeadPerWeek[wk] || 0) + 1;
-    else anfragenDirektPerWeek[wk] = (anfragenDirektPerWeek[wk] || 0) + 1;
-  }
-  for (const it of anfragenItems) {
-    const created = parseMondayTimestamp(it.created_at);
-    if (!created || created < fromDate) continue;
-    bumpAnfrage(it.id, isoWeekLabel(created));
-  }
+  const anfragenPerWeek = {};
+  const anfragenDirektPerWeek = {};
+  const anfragenAusLeadPerWeek = {};
   for (const it of produktionItems) {
     const created = parseMondayTimestamp(it.created_at);
     if (!created || created < fromDate) continue;
-    bumpAnfrage(it.id, isoWeekLabel(created));
+    const wk = isoWeekLabel(created);
+    anfragenPerWeek[wk] = (anfragenPerWeek[wk] || 0) + 1;
+    if (pipelineIds.has(String(it.id))) anfragenAusLeadPerWeek[wk] = (anfragenAusLeadPerWeek[wk] || 0) + 1;
+    else anfragenDirektPerWeek[wk] = (anfragenDirektPerWeek[wk] || 0) + 1;
   }
 
-  // Offerten raus/Woche (Offertdatum gesetzt) + Gewonnen/Abgelehnt-Zähler.
-  // Abgelehnt wird über updated_at auf den Zeitraum eingegrenzt (Näherung: das
-  // Anfragen-Board hält abgelehnte Offerten dauerhaft, ohne eigenes "seit wann
-  // abgelehnt"-Datum — updated_at ist der beste verfügbare Proxy).
-  const offertenPerWeek = {};
-  let abgelehnt = 0;
-  for (const it of anfragenItems) {
+  // Offerten erstellt/Woche + pro Mitarbeiter — Subitem "Offerte erstellen",
+  // gezählt nach Erstellungsdatum des Subitems (= Start der Bearbeitung).
+  // Ersetzt die frühere "Offerten raus"-Zahl (die brauchte ein Offertdatum-Feld,
+  // das es auf der Produktionsübersicht nicht gibt) — diese Zahl ist die
+  // direkte Antwort auf "wer erstellt wie viele Offerten".
+  const offertenErstelltPerWeek = {};
+  const offertenErstelltProMitarbeiter = {};
+  const inOffertbearbeitungProMitarbeiter = {}; // Snapshot: aktuell offene "Offerte erstellen"-Subitems
+  for (const it of offerteErstellenItems) {
     const cv = cvMap(it);
-    const phase = cv['color_mm5f5t2b'] && cv['color_mm5f5t2b'].text;
-    const offertDatumTxt = cv['date_mm5fkwf9'] && cv['date_mm5fkwf9'].text;
-    if (offertDatumTxt) {
-      const od = new Date(offertDatumTxt);
-      if (od >= fromDate) {
-        const wk = isoWeekLabel(od);
-        offertenPerWeek[wk] = (offertenPerWeek[wk] || 0) + 1;
-      }
+    const bearbeiter = (cv['person'] && cv['person'].text) || '(kein Bearbeiter)';
+    const status = cv['status'] && cv['status'].text;
+    const created = parseMondayTimestamp(it.created_at);
+    if (created && created >= fromDate) {
+      const wk = isoWeekLabel(created);
+      offertenErstelltPerWeek[wk] = (offertenErstelltPerWeek[wk] || 0) + 1;
+      offertenErstelltProMitarbeiter[bearbeiter] = (offertenErstelltProMitarbeiter[bearbeiter] || 0) + 1;
     }
-    if (phase === 'Abgelehnt') {
-      const updated = parseMondayTimestamp(it.updated_at);
-      if (updated && updated >= fromDate) abgelehnt++;
+    if (status === SUBITEM_STATUS_IN_ARBEIT) {
+      inOffertbearbeitungProMitarbeiter[bearbeiter] = (inOffertbearbeitungProMitarbeiter[bearbeiter] || 0) + 1;
     }
   }
-  const gewonnen = produktionItems.filter(it => {
-    const created = parseMondayTimestamp(it.created_at);
-    return created && created >= fromDate;
-  }).length;
+
+  // Offerten aktuell beim Kunden pro Mitarbeiter — Snapshot: Haupt-Status =
+  // "Offerte ist raus" auf der Produktionsübersicht, gruppiert nach Projektleiter.
+  const offerteBeimKundeProMitarbeiter = {};
+  for (const it of produktionItems) {
+    const cv = cvMap(it);
+    if ((cv['status'] && cv['status'].text) !== STATUS_OFFERTE_RAUS) continue;
+    splitNames(cv['people0'] && cv['people0'].text).forEach(n => {
+      offerteBeimKundeProMitarbeiter[n] = (offerteBeimKundeProMitarbeiter[n] || 0) + 1;
+    });
+  }
+
+  // Gewonnen/Abgelehnt/Konversion — über die Gruppen-Zugehörigkeit auf der
+  // Produktionsübersicht (Annahme, bitte gegenprüfen): "Verloren / Abgesagt"
+  // = abgelehnt; jedes Element, das die Anfrage- und Offertprüfungs-Gruppen
+  // bereits verlassen hat (und nicht verloren ist), gilt als gewonnen. Beide
+  // über updated_at auf den Zeitraum eingegrenzt (bestes verfügbares Datum für
+  // "wann erreicht", da es keine eigene Datums-Spalte dafür gibt).
+  let gewonnen = 0, abgelehnt = 0;
+  for (const it of produktionItems) {
+    const updated = parseMondayTimestamp(it.updated_at);
+    if (!updated || updated < fromDate) continue;
+    const gid = it.group && it.group.id;
+    if (gid === GROUPS.verloren) abgelehnt++;
+    else if (gid !== GROUPS.anfragen && gid !== GROUPS.offertpruefung) gewonnen++;
+  }
 
   // Produktionsstatus-Verteilung (aktueller Stand, nicht zeitlich gefiltert)
   const produktionStatus = {};
@@ -325,69 +364,51 @@ async function buildReport(progress) {
     produktionStatus[st] = (produktionStatus[st] || 0) + 1;
   }
 
-  // Mitarbeiterübersicht: Leads (Pipeline) + offene Anfragen/Offerten + laufende Produktion
+  // Mitarbeiterübersicht: Leads (Pipeline) + Offerten erstellt (Total im Zeitraum)
+  // + aktuell in Offertbearbeitung + aktuell beim Kunden (beide Snapshots)
   const mitarbeiter = {};
-  function bump(name, key) {
-    if (!name) return;
-    if (!mitarbeiter[name]) mitarbeiter[name] = { leads: 0, anfragen: 0, produktion: 0 };
-    mitarbeiter[name][key]++;
+  function ensure(name) {
+    if (!mitarbeiter[name]) mitarbeiter[name] = { leads: 0, offertenErstellt: 0, inOffertbearbeitung: 0, offerteBeimKunde: 0 };
+    return mitarbeiter[name];
   }
-  Object.entries(leadsProMitarbeiter).forEach(([n, c]) => {
-    if (!mitarbeiter[n]) mitarbeiter[n] = { leads: 0, anfragen: 0, produktion: 0 };
-    mitarbeiter[n].leads = c;
-  });
-  for (const it of anfragenItems) {
-    const cv = cvMap(it);
-    splitNames(cv['multiple_person_mm5fmajv'] && cv['multiple_person_mm5fmajv'].text).forEach(n => bump(n, 'anfragen'));
-  }
-  for (const it of produktionItems) {
-    const cv = cvMap(it);
-    splitNames(cv['people0'] && cv['people0'].text).forEach(n => bump(n, 'produktion'));
-  }
+  Object.entries(leadsProMitarbeiter).forEach(([n, c]) => { ensure(n).leads = c; });
+  Object.entries(offertenErstelltProMitarbeiter).forEach(([n, c]) => { ensure(n).offertenErstellt = c; });
+  Object.entries(inOffertbearbeitungProMitarbeiter).forEach(([n, c]) => { ensure(n).inOffertbearbeitung = c; });
+  Object.entries(offerteBeimKundeProMitarbeiter).forEach(([n, c]) => { ensure(n).offerteBeimKunde = c; });
 
-  // Nachfassquote: pro Anfrage/Offerte mit gesetztem "Nachfassen am" prüfen,
-  // ob nach diesem Datum ein Kommentar (Update) im Item verfasst wurde.
-  // Bewusst ohne Autoren-Abgleich (einfacher, robuster) — zählt auf den/die
-  // im Item hinterlegten Verkäufer, wie von Sven vorgegeben ("jeder PL fasst
-  // seine eigenen Offerten nach"). Stand: reine Auswertung, kein Cockpit-Zwang.
-  const today = new Date();
-  const nachfassWeek = {};      // { kw: { faellig, nachgefasst } }
+  // Nachfassquote — Subitem "Nachfassen beim Kunde" (neue Monday-Automation:
+  // 9 Kalendertage nach Eintritt in "Offerprüfung Kunde / Vergabe", Bearbeiter
+  // = Projektleiter der Offerte). Fällig = "Fällig bis"-Datum erreicht,
+  // Nachgefasst = Subitem-Status "Fertig".
+  const nachfassWeek = {};        // { kw: { faellig, nachgefasst } }
   const nachfassMitarbeiter = {}; // { name: { faellig, nachgefasst } }
   const offeneNachfassungen = [];
-  for (const it of anfragenItems) {
+  for (const it of nachfassItems) {
     const cv = cvMap(it);
-    const naTxt = cv['date_mm5fywwj'] && cv['date_mm5fywwj'].text;
-    if (!naTxt) continue;
-    const naDate = new Date(naTxt);
-    if (isNaN(naDate.getTime()) || naDate > today) continue; // noch nicht fällig
-    const verkaeufer = splitNames(cv['multiple_person_mm5fmajv'] && cv['multiple_person_mm5fmajv'].text);
-    const updates = it.updates || [];
-    const nachgefasst = updates.some(u => {
-      const ts = parseMondayTimestamp(u.created_at);
-      return ts && ts >= naDate;
-    });
+    const faelligTxt = cv['date0'] && cv['date0'].text;
+    if (!faelligTxt) continue;
+    const faelligDate = new Date(faelligTxt);
+    if (isNaN(faelligDate.getTime()) || faelligDate > today) continue; // noch nicht fällig
+    const bearbeiter = (cv['person'] && cv['person'].text) || '(kein Bearbeiter)';
+    const nachgefasst = (cv['status'] && cv['status'].text) === SUBITEM_STATUS_FERTIG;
 
-    if (naDate >= fromDate) {
-      const wk = isoWeekLabel(naDate);
+    if (faelligDate >= fromDate) {
+      const wk = isoWeekLabel(faelligDate);
       if (!nachfassWeek[wk]) nachfassWeek[wk] = { faellig: 0, nachgefasst: 0 };
       nachfassWeek[wk].faellig++;
       if (nachgefasst) nachfassWeek[wk].nachgefasst++;
     }
 
-    const names = verkaeufer.length ? verkaeufer : ['(kein Verkäufer)'];
-    names.forEach(n => {
-      if (!nachfassMitarbeiter[n]) nachfassMitarbeiter[n] = { faellig: 0, nachgefasst: 0 };
-      nachfassMitarbeiter[n].faellig++;
-      if (nachgefasst) nachfassMitarbeiter[n].nachgefasst++;
-    });
+    if (!nachfassMitarbeiter[bearbeiter]) nachfassMitarbeiter[bearbeiter] = { faellig: 0, nachgefasst: 0 };
+    nachfassMitarbeiter[bearbeiter].faellig++;
+    if (nachgefasst) nachfassMitarbeiter[bearbeiter].nachgefasst++;
 
     if (!nachgefasst) {
       offeneNachfassungen.push({
-        projektnummer: (cv['text_mm5fq49c'] && cv['text_mm5fq49c'].text) || '',
-        kunde: (cv['text_mm5f47ba'] && cv['text_mm5f47ba'].text) || it.name,
-        verkaeufer: names.join(', '),
-        nachfassenAm: naTxt,
-        tageUeberfaellig: Math.round((today - naDate) / 86400000)
+        projekt: (it.parent_item && it.parent_item.name) || '',
+        bearbeiter,
+        faelligSeit: faelligTxt,
+        tageUeberfaellig: Math.round((today - faelligDate) / 86400000)
       });
     }
   }
@@ -414,12 +435,12 @@ async function buildReport(progress) {
       neueAnfragen: anfragenPerWeek[wk] || 0,
       neueAnfragenDirekt: anfragenDirektPerWeek[wk] || 0,
       neueAnfragenAusLead: anfragenAusLeadPerWeek[wk] || 0,
-      offertenRaus: offertenPerWeek[wk] || 0,
+      offertenErstellt: offertenErstelltPerWeek[wk] || 0,
       sales: {
-        bearbeitungen: (ddeWeek[wk] && ddeWeek[wk].bearbeitungen) || 0,
-        verschoben: (ddeWeek[wk] && ddeWeek[wk].verschoben) || 0,
-        kommentare: (ddeWeek[wk] && ddeWeek[wk].kommentare) || 0,
-        aktiveTage: (ddeWeek[wk] && ddeWeek[wk].tage.size) || 0
+        bearbeitungen: (salesWeek[wk] && salesWeek[wk].bearbeitungen) || 0,
+        verschoben: (salesWeek[wk] && salesWeek[wk].verschoben) || 0,
+        kommentare: (salesWeek[wk] && salesWeek[wk].kommentare) || 0,
+        aktiveTage: (salesWeek[wk] && salesWeek[wk].tage.size) || 0
       },
       salesPerformance: {
         leadsBearbeitet: leadsBearbeitetSumme,

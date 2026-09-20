@@ -197,6 +197,18 @@ async function start() {
     } catch (e) {
       console.warn('⚠ E-Mail-Updates-Job NICHT gestartet — fehlt scripts/email_updates.js? (' + e.message + ')');
     }
+
+    // ── NEU: Nachfassen-beim-Kunde-Job (alle 5 Min) ───────────────────────
+    // Legt automatisch das Subitem "Nachfassen beim Kunde" auf der GRAFE
+    // Produktionsübersicht an, sobald der Status auf "Offerte ist raus" steht
+    // — sofort, mit Fälligkeit = heute + 7 Tage direkt berechnet (Monday-
+    // Automationen können beim Datum-Setzen nur "Heute", kein "+X Tage").
+    // Voraussetzung: scripts/nachfassen_erstellen.js vorhanden + MONDAY_TOKEN.
+    try {
+      require('../scripts/nachfassen_erstellen').start();
+    } catch (e) {
+      console.warn('⚠ Nachfassen-Job NICHT gestartet — fehlt scripts/nachfassen_erstellen.js? (' + e.message + ')');
+    }
   });
 }
 
