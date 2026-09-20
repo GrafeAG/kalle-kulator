@@ -1,0 +1,423 @@
+<!DOCTYPE html>
+<html lang="de-CH">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>KALLE · Controlling</title>
+<style>
+:root{
+  --bg:#14151a; --surface:#1b1d24; --surface2:#20222b; --border:#2c2f3a;
+  --text:#eef0f4; --muted:#8b93a1; --accent:#FAE017; --accent2:#ffcb00;
+  --good:#00c875; --warn:#fdab3d; --bad:#df2f4a; --blue:#579bfc; --purple:#9d50dd;
+}
+*{box-sizing:border-box;}
+body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;}
+h1,h2,.brand{font-family:Syne,Inter,sans-serif;}
+header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
+.brand{font-weight:800;font-size:18px;color:var(--accent);letter-spacing:.3px;}
+.brand span{color:var(--text);font-weight:600;}
+.meta{color:var(--muted);font-size:12px;margin-right:auto;}
+select,button{background:var(--surface2);border:1px solid var(--border);color:var(--text);
+  border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;cursor:pointer;}
+button.primary{background:var(--accent);color:#1a1a1a;font-weight:700;border-color:var(--accent);}
+button.primary:disabled{opacity:.6;cursor:default;}
+main{padding:20px;max-width:1220px;margin:0 auto;animation:fadeIn .45s ease;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
+.progressWrap{display:none;margin:0 auto 16px;max-width:1220px;padding:0 20px;}
+.progressWrap.on{display:block;}
+.progressBar{height:7px;background:var(--surface2);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
+.progressFill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0%;transition:width .3s;}
+.progressLabel{font-size:12px;color:var(--muted);margin-top:6px;}
+
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px;}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;
+  display:flex;align-items:center;gap:12px;}
+.kpi .txt{flex:1;}
+.kpi .n{font-size:28px;font-weight:800;font-family:Syne,sans-serif;line-height:1;}
+.kpi .l{font-size:11.5px;color:var(--muted);margin-top:6px;}
+.kpi svg{flex-shrink:0;}
+
+section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;}
+section h2{margin:0 0 14px;font-size:15px;color:var(--accent);font-weight:700;}
+.row{display:flex;gap:24px;flex-wrap:wrap;align-items:center;}
+.row .grow{flex:1;min-width:280px;}
+
+table{width:100%;border-collapse:collapse;font-size:13px;}
+th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
+th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
+td.num{text-align:right;font-variant-numeric:tabular-nums;}
+
+.legend{display:flex;flex-direction:column;gap:9px;font-size:12.5px;min-width:170px;}
+.legend .row2{display:flex;justify-content:space-between;gap:10px;}
+.legend .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:middle;}
+.legend .name{color:var(--text);}
+.legend .val{color:var(--muted);font-variant-numeric:tabular-nums;}
+
+.miniBar{height:6px;border-radius:4px;background:var(--surface2);overflow:hidden;margin-top:4px;}
+.miniBar i{display:block;height:100%;border-radius:4px;}
+
+.empty{color:var(--muted);text-align:center;padding:40px 0;}
+</style>
+</head>
+<body>
+
+<header>
+  <div class="brand">KALLE <span>· Controlling</span></div>
+  <div class="meta" id="meta">lädt…</div>
+  <select id="fWochen" onchange="render()">
+    <option value="4">4 Wochen</option>
+    <option value="8">8 Wochen</option>
+    <option value="13" selected>13 Wochen (~3 Monate)</option>
+  </select>
+  <select id="fMitarbeiter" onchange="render()"><option value="">Alle Mitarbeiter</option></select>
+  <button class="primary" id="btnRefresh" onclick="refresh()">↻ Aktualisieren</button>
+</header>
+
+<div class="progressWrap" id="progressWrap">
+  <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+  <div class="progressLabel" id="progressLabel">–</div>
+</div>
+
+<main id="main">
+  <div class="empty">lädt…</div>
+</main>
+
+<script>
+function serverUrl(){
+  if(location.protocol==='http:'||location.protocol==='https:') return location.origin;
+  return localStorage.getItem('kalle_server_url')||'http://localhost:8765';
+}
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const SALES_ZIEL_MIN=4, SALES_ZIEL_MAX=8;
+
+let REPORT=null, polling=null;
+
+async function boot(){
+  try{
+    const r=await fetch(serverUrl()+'/controlling/data');
+    if(r.status===404){ REPORT=null; renderEmpty(); refresh(); return; }
+    const d=await r.json();
+    if(!d.ok) throw new Error(d.msg||'Fehler');
+    REPORT=d; populateFilters(); render();
+  }catch(e){
+    document.getElementById('main').innerHTML='<div class="empty">Kein Server erreichbar oder noch kein Report. '+esc(e.message)+'</div>';
+  }
+}
+function renderEmpty(){
+  document.getElementById('main').innerHTML='<div class="empty">Noch kein Report generiert — Aktualisierung läuft automatisch...</div>';
+}
+function populateFilters(){
+  const sel=document.getElementById('fMitarbeiter');
+  const names=Object.keys(REPORT.mitarbeiter||{}).sort();
+  sel.innerHTML='<option value="">Alle Mitarbeiter</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
+}
+
+async function refresh(){
+  const btn=document.getElementById('btnRefresh');
+  btn.disabled=true; btn.textContent='läuft…';
+  document.getElementById('progressWrap').classList.add('on');
+  try{
+    const r=await fetch(serverUrl()+'/controlling/refresh',{method:'POST'});
+    const d=await r.json();
+    if(!d.ok) throw new Error('Start fehlgeschlagen');
+    poll(d.jobId);
+  }catch(e){
+    btn.disabled=false; btn.textContent='↻ Aktualisieren';
+    document.getElementById('progressLabel').textContent='Fehler: '+e.message;
+  }
+}
+function poll(jobId){
+  clearInterval(polling);
+  polling=setInterval(async ()=>{
+    try{
+      const r=await fetch(serverUrl()+'/controlling/refresh/status');
+      const d=await r.json();
+      document.getElementById('progressFill').style.width=(d.progress||0)+'%';
+      document.getElementById('progressLabel').textContent=(d.step||'')+' ('+(d.progress||0)+'%)';
+      if(d.done){
+        clearInterval(polling);
+        document.getElementById('btnRefresh').disabled=false;
+        document.getElementById('btnRefresh').textContent='↻ Aktualisieren';
+        document.getElementById('progressWrap').classList.remove('on');
+        if(d.error){ document.getElementById('main').innerHTML='<div class="empty">Fehler bei Aktualisierung: '+esc(d.error)+'</div>'; return; }
+        boot();
+      }
+    }catch(e){ clearInterval(polling); }
+  },1200);
+}
+
+function lastNWeeks(weeks,n){ return weeks.slice(Math.max(0,weeks.length-n)); }
+
+// ─── Chart-Bausteine (reines SVG, keine externe Lib) ─────────────────────
+
+// Ring-Diagramm für eine einzelne Kennzahl in Prozent (z.B. Konversion)
+function ring(percent,size,color){
+  size=size||58; const th=7;
+  const r=(size-th)/2, cx=size/2, cy=size/2, circ=2*Math.PI*r;
+  const p=Math.max(0,Math.min(100,percent||0));
+  const dash=(p/100)*circ;
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="${th}"></circle>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${th}" stroke-linecap="round"
+      stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"></circle>
+    <text x="${cx}" y="${cy+4.5}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--text)">${p}%</text>
+  </svg>`;
+}
+
+// Donut mit mehreren Segmenten + Legende daneben
+function donut(segments,size){
+  size=size||150; const th=24;
+  const total=segments.reduce((a,s)=>a+s.value,0)||1;
+  const r=(size-th)/2, cx=size/2, cy=size/2, circ=2*Math.PI*r;
+  let offset=0, paths='';
+  segments.forEach(s=>{
+    const frac=s.value/total, dash=frac*circ;
+    paths+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${th}"
+      stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}"
+      transform="rotate(-90 ${cx} ${cy})"></circle>`;
+    offset+=dash;
+  });
+  const svg=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}
+    <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)" font-family="Syne,sans-serif">${total}</text>
+    <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="10" fill="var(--muted)">total</text>
+  </svg>`;
+  const legend=`<div class="legend">${segments.map(s=>`
+    <div class="row2"><span class="name"><span class="dot" style="background:${s.color}"></span>${esc(s.label)}</span><span class="val">${s.value}</span></div>
+  `).join('')}</div>`;
+  return `<div class="row"><div>${svg}</div>${legend}</div>`;
+}
+
+// Flächen-/Linien-Chart über Wochen, mehrere Serien
+function lineChart(weeks,series,height){
+  height=height||150;
+  const w=Math.max(420,weeks.length*50), padL=8, padR=8, padB=22, padT=14;
+  const maxVal=Math.max(1,...weeks.flatMap(wk=>series.map(s=>s.get(wk))));
+  const stepX=weeks.length>1?(w-padL-padR)/(weeks.length-1):0;
+  let svg='';
+  for(let g=0;g<=2;g++){
+    const y=padT+(height-padT-padB)*(g/2);
+    svg+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`;
+  }
+  series.forEach(s=>{
+    const pts=weeks.map((wk,i)=>{
+      const v=s.get(wk);
+      const x=padL+i*stepX;
+      const y=padT+(height-padT-padB)*(1-v/maxVal);
+      return [x,y];
+    });
+    const line=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    const area=line+` L${pts[pts.length-1][0].toFixed(1)},${(height-padB).toFixed(1)} L${pts[0][0].toFixed(1)},${(height-padB).toFixed(1)} Z`;
+    svg+=`<path d="${area}" fill="${s.color}" opacity="0.13"></path>`;
+    svg+=`<path d="${line}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>`;
+    pts.forEach(p=>svg+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${s.color}"></circle>`);
+  });
+  const every=weeks.length>10?2:1;
+  weeks.forEach((wk,i)=>{
+    if(i%every!==0 && i!==weeks.length-1) return;
+    const x=padL+i*stepX;
+    svg+=`<text x="${x.toFixed(1)}" y="${height-5}" font-size="10" fill="var(--muted)" text-anchor="middle">${wk.kw.replace(/^\d+-/,'')}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${height}" width="100%" height="${height}" preserveAspectRatio="xMinYMid meet">${svg}</svg>`;
+}
+
+// Gestapelte Balken (für DDE-Wochenaktivität)
+function stackedBars(weeks,series,height){
+  height=height||130;
+  const w=Math.max(380,weeks.length*40);
+  const stepX=w/weeks.length, bw=Math.min(22,stepX-10);
+  const maxVal=Math.max(1,...weeks.map(wk=>series.reduce((a,s)=>a+s.get(wk),0)));
+  let svg='';
+  weeks.forEach((wk,i)=>{
+    const x=i*stepX+(stepX-bw)/2;
+    let y=height-22;
+    series.forEach(s=>{
+      const v=s.get(wk);
+      const h=(v/maxVal)*(height-32);
+      y-=h;
+      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" fill="${s.color}" rx="2.5"></rect>`;
+    });
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${height-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${wk.kw.replace(/^\d+-/,'')}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${height}" width="100%" height="${height}" preserveAspectRatio="xMinYMid meet">${svg}</svg>`;
+}
+
+// Wochen-Balken gegen ein Zielband (z.B. 4-8/Tag) — Band schattiert im Hintergrund,
+// Balken farblich je nach übergebenem Status (unter/im/über Ziel)
+function targetBandChart(weeks,getVal,getColor,bandMin,bandMax){
+  const height=140, padT=10, padB=22;
+  const w=Math.max(420,weeks.length*46);
+  const maxVal=Math.max(bandMax*1.3,...weeks.map(wk=>getVal(wk)))||1;
+  const yOf=v=>padT+(height-padT-padB)*(1-v/maxVal);
+  const bandTop=yOf(bandMax), bandBottom=yOf(bandMin);
+  const stepX=w/weeks.length, bw=Math.min(26,stepX-12);
+  let svg=`<rect x="0" y="${bandTop.toFixed(1)}" width="${w}" height="${(bandBottom-bandTop).toFixed(1)}" fill="var(--good)" opacity="0.12"></rect>`;
+  svg+=`<line x1="0" y1="${bandTop.toFixed(1)}" x2="${w}" y2="${bandTop.toFixed(1)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"></line>`;
+  svg+=`<line x1="0" y1="${bandBottom.toFixed(1)}" x2="${w}" y2="${bandBottom.toFixed(1)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"></line>`;
+  weeks.forEach((wk,i)=>{
+    const v=getVal(wk);
+    const x=i*stepX+(stepX-bw)/2;
+    const y=yOf(v), base=yOf(0);
+    svg+=`<rect x="${x.toFixed(1)}" y="${Math.min(y,base).toFixed(1)}" width="${bw}" height="${Math.abs(base-y).toFixed(1)}" fill="${getColor(wk)}" rx="3"></rect>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-5).toFixed(1)}" font-size="10" fill="var(--text)" text-anchor="middle">${v}</text>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${height-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${wk.kw.replace(/^\d+-/,'')}</text>`;
+  });
+  return `<svg viewBox="0 0 ${w} ${height}" width="100%" height="${height}" preserveAspectRatio="xMinYMid meet">${svg}</svg>`;
+}
+
+function render(){
+  if(!REPORT){ renderEmpty(); return; }
+  const nW=parseInt(document.getElementById('fWochen').value,10)||13;
+  const mitarbeiterFilter=document.getElementById('fMitarbeiter').value;
+  const weeks=lastNWeeks(REPORT.weeks,nW);
+
+  document.getElementById('meta').textContent='Letzte Aktualisierung: '+new Date(REPORT.generatedAt).toLocaleString('de-CH');
+
+  const sumLeads=weeks.reduce((a,w)=>a+w.neueLeads,0);
+  const sumAnfragen=weeks.reduce((a,w)=>a+w.neueAnfragen,0);
+  const sumAnfragenDirekt=weeks.reduce((a,w)=>a+w.neueAnfragenDirekt,0);
+  const sumAnfragenAusLead=weeks.reduce((a,w)=>a+w.neueAnfragenAusLead,0);
+  const sumOffert=weeks.reduce((a,w)=>a+w.offertenRaus,0);
+  const konv=REPORT.kpis.konversionProzent;
+  const nfq=REPORT.kpis.nachfassquoteProzent;
+
+  let html='';
+  html+=`<div class="kpis">
+    <div class="kpi"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--purple);flex-shrink:0;"></span><div class="txt"><div class="n">${sumLeads}</div><div class="l">Neue Leads · Board Pipeline · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue);flex-shrink:0;"></span><div class="txt"><div class="n">${sumAnfragen}</div><div class="l">Neue Anfragen gesamt · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--good);flex-shrink:0;"></span><div class="txt"><div class="n">${sumOffert}</div><div class="l">Offerten raus · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi">${ring(konv==null?0:konv,58,'var(--accent)')}<div class="txt"><div class="n">${konv==null?'–':konv+'%'}</div><div class="l">Konversion Anfrage→Auftrag</div></div></div>
+    <div class="kpi">${ring(nfq==null?0:nfq,58,'#4eccc6')}<div class="txt"><div class="n">${nfq==null?'–':nfq+'%'}</div><div class="l">Nachfassquote</div></div></div>
+  </div>`;
+
+  html+=`<section><h2>Wochenverlauf — Leads · Anfragen · Offerten</h2>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Zwei getrennte Quellen — nie vermischt: Leads kommen ausschliesslich aus dem Board <em>Pipeline</em>, Anfragen ausschliesslich aus <em>Anfragen &amp; Offerten</em> (inkl. dorthin abgewanderter Gewinne aus der Produktionsübersicht). Herkunft der Anfragen (direkt vs. aus Lead qualifiziert) unten via Item-ID exakt bestimmt.</div>
+    <div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:10px;">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--purple);margin-right:5px;"></span>Neue Leads (Board: Pipeline)</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--blue);margin-right:5px;"></span>Neue Anfragen gesamt (Board: Anfragen &amp; Offerten)</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--good);margin-right:5px;"></span>Offerten raus</span>
+    </div>
+    ${lineChart(weeks,[
+      {color:'#9d50dd',get:w=>w.neueLeads},
+      {color:'#579bfc',get:w=>w.neueAnfragen},
+      {color:'#00c875',get:w=>w.offertenRaus}
+    ])}
+  </section>`;
+
+  html+=`<section><h2>Herkunft der Anfragen</h2>
+    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Per Item-ID bestimmt (bleibt über alle Board-Wechsel stabil): kam die Anfrage aus einer zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst (z.B. via KALLE-KULATOR ohne vorherige Lead-Station)?</div>
+    ${donut([
+      {label:'Direkt erfasst',value:sumAnfragenDirekt,color:'#579bfc'},
+      {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:'#9d50dd'}
+    ])}
+  </section>`;
+
+  html+=`<section><h2>Abschluss-Quote (im Zeitraum)</h2>
+    ${donut([
+      {label:'Gewonnen',value:REPORT.kpis.gewonnen,color:'#00c875'},
+      {label:'Abgelehnt',value:REPORT.kpis.abgelehnt,color:'#df2f4a'}
+    ])}
+  </section>`;
+
+  const ddeSum=weeks.reduce((a,w)=>({b:a.b+w.sales.bearbeitungen,v:a.v+w.sales.verschoben,k:a.k+w.sales.kommentare}),{b:0,v:0,k:0});
+
+  const perfStatusColor={'im-ziel':'var(--good)','unter-ziel':'var(--bad)','ueber-ziel':'var(--blue)','keine-daten':'var(--muted)'};
+  const perfStatusLabel={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
+  const letzteWoche=weeks[weeks.length-1];
+  html+=`<section><h2>Sales — Performance-Indikator <span style="font-size:12px;color:var(--muted);font-weight:400;">(Ziel: 4–8 bearbeitete Leads/Tag)</span></h2>
+    <div class="row" style="margin-bottom:16px;">
+      <div style="display:flex;align-items:center;gap:12px;">
+        <div style="width:10px;height:36px;border-radius:5px;background:${perfStatusColor[letzteWoche.salesPerformance.status]}"></div>
+        <div><div style="font-size:22px;font-weight:800;font-family:Syne,sans-serif;">${letzteWoche.salesPerformance.avgProTag}/Tag</div>
+        <div style="font-size:11.5px;color:var(--muted);">${esc(letzteWoche.kw)} · ${perfStatusLabel[letzteWoche.salesPerformance.status]} · ${letzteWoche.salesPerformance.leadsBearbeitet} Leads an ${letzteWoche.salesPerformance.werktage} Werktagen</div></div>
+      </div>
+    </div>
+    ${targetBandChart(weeks,w=>w.salesPerformance.avgProTag,w=>perfStatusColor[w.salesPerformance.status],SALES_ZIEL_MIN,SALES_ZIEL_MAX)}
+    <div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:8px;">
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--good);margin-right:5px;"></span>Im Ziel (4–8)</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--bad);margin-right:5px;"></span>Unter Ziel</span>
+      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--blue);margin-right:5px;"></span>Über Ziel</span>
+    </div>
+  </section>`;
+
+  html+=`<section><h2>Sales — Aktivität pro Woche</h2>
+    <div class="row">
+      <div class="grow">
+        <div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:10px;">
+          <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#fdab3d;margin-right:5px;"></span>Bearbeitungen</span>
+          <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#df2f4a;margin-right:5px;"></span>Verschoben (mutiert)</span>
+          <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#579bfc;margin-right:5px;"></span>Kommentare</span>
+        </div>
+        ${stackedBars(weeks,[
+          {color:'#fdab3d',get:w=>w.sales.bearbeitungen},
+          {color:'#df2f4a',get:w=>w.sales.verschoben},
+          {color:'#579bfc',get:w=>w.sales.kommentare}
+        ])}
+      </div>
+      ${donut([
+        {label:'Bearbeitungen',value:ddeSum.b,color:'#fdab3d'},
+        {label:'Verschoben',value:ddeSum.v,color:'#df2f4a'},
+        {label:'Kommentare',value:ddeSum.k,color:'#579bfc'}
+      ],130)}
+    </div>
+    <table style="margin-top:16px">
+      <tr><th>KW</th><th class="num">Bearbeitungen</th><th class="num">Verschoben</th><th class="num">Kommentare</th><th class="num">Aktive Tage</th><th class="num">Ø Leads/Tag</th></tr>
+      ${weeks.map(w=>`<tr><td>${esc(w.kw)}</td><td class="num">${w.sales.bearbeitungen}</td><td class="num">${w.sales.verschoben}</td><td class="num">${w.sales.kommentare}</td><td class="num">${w.sales.aktiveTage}/7</td><td class="num" style="color:${perfStatusColor[w.salesPerformance.status]};font-weight:700">${w.salesPerformance.avgProTag}</td></tr>`).join('')}
+    </table>
+  </section>`;
+
+  const statusEntries=Object.entries(REPORT.produktionStatus||{}).sort((a,b)=>b[1]-a[1]);
+  const statusPalette=['#579bfc','#9d50dd','#ffcb00','#00c875','#fdab3d','#df2f4a','#4eccc6','#ff6d3b','#e484bd','#7f5347'];
+  html+=`<section><h2>Produktionsübersicht — aktueller Status</h2>
+    ${statusEntries.length ? donut(statusEntries.map(([label,value],i)=>({label,value,color:statusPalette[i%statusPalette.length]})),160) : '<div class="empty">Keine Daten</div>'}
+  </section>`;
+
+  let mitarbeiterEntries=Object.entries(REPORT.mitarbeiter||{});
+  if(mitarbeiterFilter) mitarbeiterEntries=mitarbeiterEntries.filter(([n])=>n===mitarbeiterFilter);
+  mitarbeiterEntries.sort((a,b)=>(b[1].leads+b[1].anfragen+b[1].produktion)-(a[1].leads+a[1].anfragen+a[1].produktion));
+  const mMax=Math.max(1,...mitarbeiterEntries.map(([,v])=>v.leads+v.anfragen+v.produktion));
+  html+=`<section><h2>Mitarbeiterübersicht</h2>
+    <table>
+      <tr><th>Mitarbeiter</th><th class="num">Leads (Pipeline)</th><th class="num">Anfragen/Offerten</th><th class="num">Produktion</th><th>Auslastung</th></tr>
+      ${mitarbeiterEntries.map(([n,v])=>{
+        const tot=v.leads+v.anfragen+v.produktion;
+        return `<tr><td>${esc(n)}</td><td class="num">${v.leads}</td><td class="num">${v.anfragen}</td><td class="num">${v.produktion}</td>
+          <td><div class="miniBar"><i style="width:${Math.round(tot/mMax*100)}%;background:var(--accent)"></i></div></td></tr>`;
+      }).join('') || '<tr><td colspan="5" class="empty">Keine Daten</td></tr>'}
+    </table>
+  </section>`;
+
+  let nfEntries=Object.entries(REPORT.nachfassProMitarbeiter||{});
+  if(mitarbeiterFilter) nfEntries=nfEntries.filter(([n])=>n===mitarbeiterFilter);
+  nfEntries.sort((a,b)=>b[1].faellig-a[1].faellig);
+  html+=`<section><h2>Nachfassquote pro Mitarbeiter</h2>
+    <table>
+      <tr><th>Mitarbeiter</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th>Quote</th></tr>
+      ${nfEntries.map(([n,v])=>{
+        const pct=v.faellig?Math.round(v.nachgefasst/v.faellig*100):0;
+        const c=pct>=80?'var(--good)':pct>=50?'var(--warn)':'var(--bad)';
+        return `<tr><td>${esc(n)}</td><td class="num">${v.faellig}</td><td class="num">${v.nachgefasst}</td>
+          <td><div style="display:flex;align-items:center;gap:8px;"><div class="miniBar" style="flex:1"><i style="width:${pct}%;background:${c}"></i></div><span class="val" style="width:34px;text-align:right;color:var(--muted);font-size:12px;">${pct}%</span></div></td></tr>`;
+      }).join('') || '<tr><td colspan="4" class="empty">Keine fälligen Nachfassungen im Zeitraum</td></tr>'}
+    </table>
+  </section>`;
+
+  let offene=REPORT.offeneNachfassungen||[];
+  if(mitarbeiterFilter) offene=offene.filter(o=>(o.verkaeufer||'').split(',').map(s=>s.trim()).includes(mitarbeiterFilter));
+  html+=`<section><h2>Offene Nachfassungen ${offene.length?`<span style="font-size:12px;color:var(--muted);font-weight:400;">(${offene.length})</span>`:''}</h2>
+    <table>
+      <tr><th>Projekt</th><th>Kunde</th><th>Verkäufer</th><th>Fällig seit</th><th class="num">Tage überfällig</th></tr>
+      ${offene.map(o=>{
+        const c=o.tageUeberfaellig>7?'var(--bad)':o.tageUeberfaellig>2?'var(--warn)':'var(--muted)';
+        return `<tr><td>${esc(o.projektnummer)}</td><td>${esc(o.kunde)}</td><td>${esc(o.verkaeufer)}</td><td>${esc(o.nachfassenAm)}</td><td class="num" style="color:${c};font-weight:700">${o.tageUeberfaellig}</td></tr>`;
+      }).join('') || '<tr><td colspan="5" class="empty">Keine offenen Nachfassungen — alles dokumentiert</td></tr>'}
+    </table>
+  </section>`;
+
+  document.getElementById('main').innerHTML=html;
+}
+
+boot();
+</script>
+</body>
+</html>
