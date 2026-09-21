@@ -317,13 +317,21 @@ async function buildReport(progress) {
   const pipelineItems = await fetchAllItems(BOARDS.pipeline, ['status', 'person', 'people', 'creation_log']);
 
   progress(25, 'Lade GRAFE Produktionsübersicht...');
-  // "Abgeschlossen"/"Rechnungsstellung" bewusst ausgeschlossen — mit Abstand
-  // die grösste Gruppe (>1000 von 1485 Elementen), trägt zu keiner aktuellen
-  // Kennzahl mehr bei, verlangsamt aber v.a. die Konversions-Kandidatensuche
-  // unten (kürzlich aktualisierte alte Abschlüsse, z.B. durch Verrechnung,
-  // wurden bisher unnötig mitprüft). Auf Sven's Hinweis entfernt.
+  // "Abgeschlossen"/"Rechnungsstellung" bewusst ausgeschlossen für die aufwändige
+  // Detailverarbeitung (Snapshots, Konversions-Kandidatensuche) — mit Abstand
+  // die grösste Gruppe (>1000 von 1485 Elementen), verlangsamte v.a. die
+  // Konversions-Kandidatensuche unten unnötig. Auf Sven's Hinweis entfernt.
   const AKTIVE_GRUPPEN = [GROUPS.anfragen, GROUPS.offertpruefung, GROUPS.verloren, ...GROUPS.inUmsetzung];
   const produktionItems = await fetchAllItems(BOARDS.produktion, ['text_mkv7v7m6', 'text_mm5hbe90', 'people0', 'status'], AKTIVE_GRUPPEN);
+
+  // ABER: "Neue Anfragen erfasst" muss JEDES im Zeitraum neu angelegte Projekt
+  // zählen — auch eines, das im selben Zeitraum schon bis "Abgeschlossen"
+  // durchgelaufen ist. Der obige, gruppen-eingeschränkte Fetch würde solche
+  // Projekte sonst komplett verschwinden lassen (Root Cause für "Summe stimmt
+  // fast nicht"). Dafür ein zweiter, bewusst schlanker Fetch — nur eine Spalte,
+  // ALLE Gruppen — der die teure Detailverarbeitung oben nicht wiederholt.
+  progress(35, 'Lade alle Projekt-Erstelldaten (inkl. Abgeschlossen, nur für Neue-Anfragen-Zählung)...');
+  const alleProduktionItems = await fetchAllItems(BOARDS.produktion, ['people0']);
 
   progress(45, 'Lade Subitems "Offerte erstellen"...');
   const offerteErstellenItems = await fetchSubitemsByName(BOARDS.produktionSubitems, SUBITEM_OFFERTE_ERSTELLEN, ['person', 'status', 'date0', 'numeric_mm5hemt3']);
@@ -386,16 +394,18 @@ async function buildReport(progress) {
     dailyPipelineLeads[day].add(pid);
   }
 
-  // Neue Anfragen/Woche — jetzt: ALLE Elemente der Produktionsübersicht nach
-  // Erstellungsdatum (jedes Element dort beginnt als Anfrage, unabhängig davon,
-  // wo es aktuell in der Gruppen-Kette steht). Herkunft (direkt vs. aus Lead)
-  // weiterhin exakt per Item-ID gegen die Pipeline bestimmt (von Sven bestätigt:
-  // Item-ID bleibt über alle Board-/Phasenwechsel stabil).
+  // Neue Anfragen/Woche — über ALLE Elemente (alleProduktionItems, nicht das
+  // gruppen-eingeschränkte produktionItems!) nach Erstellungsdatum: jedes
+  // Element beginnt als Anfrage, unabhängig davon, wo es aktuell steht — auch
+  // wenn es im selben Zeitraum schon bis "Abgeschlossen" durchgelaufen ist.
+  // Herkunft (direkt vs. aus Lead) weiterhin exakt per Item-ID gegen die
+  // Pipeline bestimmt (von Sven bestätigt: Item-ID bleibt über alle
+  // Board-/Phasenwechsel stabil).
   const pipelineIds = new Set(pipelineItems.map(it => String(it.id)));
   const anfragenPerWeek = {};
   const anfragenDirektPerWeek = {};
   const anfragenAusLeadPerWeek = {};
-  for (const it of produktionItems) {
+  for (const it of alleProduktionItems) {
     const created = parseMondayTimestamp(it.created_at);
     if (!created || created < fromDate) continue;
     const wk = isoWeekLabel(created);
@@ -410,12 +420,18 @@ async function buildReport(progress) {
   // das es auf der Produktionsübersicht nicht gibt) — diese Zahl ist die
   // direkte Antwort auf "wer erstellt wie viele Offerten".
   const produktionGruppeById = {};
-  produktionItems.forEach(it => { produktionGruppeById[it.id] = it.group && it.group.id; });
+  const produktionStatusById = {};
+  produktionItems.forEach(it => {
+    produktionGruppeById[it.id] = it.group && it.group.id;
+    const cv = cvMap(it);
+    produktionStatusById[it.id] = cv['status'] && cv['status'].text;
+  });
 
   const offertenErstelltPerWeek = {};
   const offertenErstelltProMitarbeiter = {};
   const inOffertbearbeitungProMitarbeiter = {}; // Snapshot: aktuell offene "Offerte erstellen"-Subitems
   let auftragsvolumenOffenSumme = 0; // Summe Auftragsvolumen, solange Parent noch in Anfragen/Offertprüfung steht (unentschieden)
+  let auftragsvolumenBeimKundenSumme = 0; // Summe Auftragsvolumen, Parent-Status = "Offerte ist raus" — für Vorschlag 4 (Ziel-Potenzial)
   for (const it of offerteErstellenItems) {
     const cv = cvMap(it);
     const bearbeiter = (cv['person'] && cv['person'].text) || '(kein Bearbeiter)';
@@ -429,10 +445,14 @@ async function buildReport(progress) {
     if (status === SUBITEM_STATUS_IN_ARBEIT) {
       inOffertbearbeitungProMitarbeiter[bearbeiter] = (inOffertbearbeitungProMitarbeiter[bearbeiter] || 0) + 1;
     }
-    const parentGruppe = it.parent_item && produktionGruppeById[it.parent_item.id];
-    if (parentGruppe === GROUPS.anfragen || parentGruppe === GROUPS.offertpruefung) {
-      const vol = cv['numeric_mm5hemt3'] && Number(cv['numeric_mm5hemt3'].text);
-      if (vol) auftragsvolumenOffenSumme += vol;
+    const parentId = it.parent_item && it.parent_item.id;
+    const parentGruppe = parentId && produktionGruppeById[parentId];
+    const vol = cv['numeric_mm5hemt3'] && Number(cv['numeric_mm5hemt3'].text);
+    if (vol && (parentGruppe === GROUPS.anfragen || parentGruppe === GROUPS.offertpruefung)) {
+      auftragsvolumenOffenSumme += vol;
+    }
+    if (vol && parentId && produktionStatusById[parentId] === STATUS_OFFERTE_RAUS) {
+      auftragsvolumenBeimKundenSumme += vol;
     }
   }
 
@@ -536,31 +556,37 @@ async function buildReport(progress) {
   // Bewusst NICHT auf Titel/Team gefiltert (die meisten Monday-User-Profile
   // haben kein Titel-Feld gesetzt) — die tatsächliche Verwendung im people0-
   // Feld ist das einzige verlässliche Kriterium für "ist Projektleiter".
+  // Läuft über alleProduktionItems (alle Gruppen inkl. Abgeschlossen), sonst
+  // fehlt jemand, dessen Projekte im Zeitraum schon komplett durchgelaufen sind.
   const alleProjektleiter = new Set();
-  for (const it of produktionItems) {
+  for (const it of alleProduktionItems) {
     const cv = cvMap(it);
     splitNames(cv['people0'] && cv['people0'].text).forEach(n => alleProjektleiter.add(n));
   }
 
-  // Anfragen bearbeitet / In Umsetzung / Rechnung & abgeschlossen — pro
-  // Projektleiter (people0). "Anfragen bearbeitet" = im Zeitraum erstellt;
-  // die anderen zwei sind Momentaufnahmen wie inOffertbearbeitung/offerteBeimKunde.
+  // Anfragen bearbeitet — im Zeitraum erstellt, über alleProduktionItems aus
+  // demselben Grund wie "Neue Anfragen" oben (sonst fehlen schnell
+  // durchgelaufene Projekte komplett).
   const anfragenBearbeitetProMitarbeiter = {};
+  for (const it of alleProduktionItems) {
+    const cv = cvMap(it);
+    const created = parseMondayTimestamp(it.created_at);
+    if (!created || created < fromDate) continue;
+    splitNames(cv['people0'] && cv['people0'].text).forEach(n => {
+      anfragenBearbeitetProMitarbeiter[n] = (anfragenBearbeitetProMitarbeiter[n] || 0) + 1;
+    });
+  }
+
+  // In Umsetzung — Momentaufnahme, bleibt bewusst auf dem gruppen-eingeschränkten
+  // produktionItems: ein abgeschlossenes Projekt ist per Definition nicht mehr
+  // "in Umsetzung", das auszuschliessen ist hier korrekt, kein Bug.
   const inUmsetzungProMitarbeiter = {};
-  const abgeschlossenProMitarbeiter = {};
   for (const it of produktionItems) {
     const cv = cvMap(it);
-    const namen = splitNames(cv['people0'] && cv['people0'].text);
-    const created = parseMondayTimestamp(it.created_at);
-    if (created && created >= fromDate) {
-      namen.forEach(n => { anfragenBearbeitetProMitarbeiter[n] = (anfragenBearbeitetProMitarbeiter[n] || 0) + 1; });
-    }
-    const gid = it.group && it.group.id;
-    if (GROUPS.inUmsetzung.includes(gid)) {
-      namen.forEach(n => { inUmsetzungProMitarbeiter[n] = (inUmsetzungProMitarbeiter[n] || 0) + 1; });
-    } else if (GROUPS.abgeschlossen.includes(gid)) {
-      namen.forEach(n => { abgeschlossenProMitarbeiter[n] = (abgeschlossenProMitarbeiter[n] || 0) + 1; });
-    }
+    if (!GROUPS.inUmsetzung.includes(it.group && it.group.id)) continue;
+    splitNames(cv['people0'] && cv['people0'].text).forEach(n => {
+      inUmsetzungProMitarbeiter[n] = (inUmsetzungProMitarbeiter[n] || 0) + 1;
+    });
   }
 
   // Produktionsstatus-Verteilung (aktueller Stand, nicht zeitlich gefiltert)
@@ -572,13 +598,14 @@ async function buildReport(progress) {
   }
 
   // Mitarbeiterübersicht: Leads (Pipeline) + Anfragen bearbeitet + Offerten
-  // erstellt (alle im Zeitraum) + In Umsetzung + Abgeschlossen + aktuell in
-  // Offertbearbeitung + aktuell beim Kunden (alle vier zuletzt: Snapshots)
+  // erstellt (alle im Zeitraum) + In Umsetzung + aktuell in Offertbearbeitung
+  // + aktuell beim Kunden (Snapshots) — "abgeschlossen" bewusst entfernt (§5
+  // der Redesign-Übergabe: Gruppe wird nicht mehr abgefragt)
   const mitarbeiter = {};
   function ensure(name) {
     if (!mitarbeiter[name]) mitarbeiter[name] = {
       leads: 0, anfragenBearbeitet: 0, offertenErstellt: 0, inUmsetzung: 0,
-      abgeschlossen: 0, inOffertbearbeitung: 0, offerteBeimKunde: 0,
+      inOffertbearbeitung: 0, offerteBeimKunde: 0,
       inBearbeitung: 0, aktivOfferiert: 0, konversion: 0
     };
     return mitarbeiter[name];
@@ -588,7 +615,6 @@ async function buildReport(progress) {
   Object.entries(anfragenBearbeitetProMitarbeiter).forEach(([n, c]) => { ensure(n).anfragenBearbeitet = c; });
   Object.entries(offertenErstelltProMitarbeiter).forEach(([n, c]) => { ensure(n).offertenErstellt = c; });
   Object.entries(inUmsetzungProMitarbeiter).forEach(([n, c]) => { ensure(n).inUmsetzung = c; });
-  Object.entries(abgeschlossenProMitarbeiter).forEach(([n, c]) => { ensure(n).abgeschlossen = c; });
   Object.entries(inOffertbearbeitungProMitarbeiter).forEach(([n, c]) => { ensure(n).inOffertbearbeitung = c; });
   Object.entries(offerteBeimKundeProMitarbeiter).forEach(([n, c]) => { ensure(n).offerteBeimKunde = c; });
   Object.entries(inBearbeitungProMitarbeiter).forEach(([n, c]) => { ensure(n).inBearbeitung = c; });
@@ -688,6 +714,7 @@ async function buildReport(progress) {
       konversionProzent: (gewonnen + abgelehnt) ? Math.round((gewonnen / (gewonnen + abgelehnt)) * 100) : null,
       nachfassquoteProzent: nfTotalFaellig ? Math.round((nfTotalNachgefasst / nfTotalFaellig) * 100) : null,
       auftragsvolumenOffen: Math.round(auftragsvolumenOffenSumme),
+      auftragsvolumenBeimKunden: Math.round(auftragsvolumenBeimKundenSumme),
       inBearbeitungGesamt,
       aktivOfferiertGesamt,
       konversionVorbereitungGesamt: konversionGesamtGemessen

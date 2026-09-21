@@ -477,22 +477,96 @@ function statKachel(label,total,zuwachs,kw){
 /* Zielfortschritt Jahresumsatz: Balken aus Ist-Umsatz + Auftragsbestand bis
    Jahresende, gestrichelte Ziel-Marke. Zeigt auf einen Blick, ob das, was
    schon erzielt und im Bestand ist, für das Jahresziel reicht. */
-function zielChart(erzielt,bestand,ziel,height){
-  height=height||132;
+function zielChart(erzielt,bestand,potenzial,ziel,height){
+  height=height||158;
   const w=flaeche(34), padL=14, padR=14, barY=38, barH=46;
   const prognose=erzielt+bestand;
-  const maxVal=Math.max(ziel,prognose)*1.08||1;
+  const mitPotenzial=prognose+potenzial;
+  const maxVal=Math.max(ziel,mitPotenzial)*1.06||1;
   const innerW=w-padL-padR;
   const scale=v=>(Math.max(0,v)/maxVal)*innerW;
-  const xErzielt=scale(erzielt), xPrognose=scale(prognose), xZiel=padL+scale(ziel);
+  const xErzielt=scale(erzielt), xPrognose=scale(prognose), xPotenzial=scale(mitPotenzial), xZiel=padL+scale(ziel);
   let svg=`<rect x="${padL}" y="${barY}" width="${innerW}" height="${barH}" fill="var(--sub)" stroke="var(--bd)" rx="8"></rect>`;
   svg+=`<rect x="${padL}" y="${barY}" width="${xErzielt.toFixed(1)}" height="${barH}" fill="${C.gold}" rx="8"></rect>`;
   svg+=`<rect x="${(padL+xErzielt).toFixed(1)}" y="${barY}" width="${(xPrognose-xErzielt).toFixed(1)}" height="${barH}" fill="${C.leads}"></rect>`;
+  svg+=`<rect x="${(padL+xPrognose).toFixed(1)}" y="${barY}" width="${(xPotenzial-xPrognose).toFixed(1)}" height="${barH}" fill="none" stroke="${C.offerten}" stroke-width="2" stroke-dasharray="4 3"></rect>`;
   svg+=`<line x1="${xZiel.toFixed(1)}" y1="${barY-10}" x2="${xZiel.toFixed(1)}" y2="${barY+barH+10}" stroke="${C.bad}" stroke-width="2.5" stroke-dasharray="5 3"></line>`;
   svg+=`<text x="${xZiel.toFixed(1)}" y="${barY-16}" font-size="11.5" font-weight="800" text-anchor="middle" style="fill:${C.bad};font-family:'Filson Pro',sans-serif">Ziel ${chf(ziel)}</text>`;
   if(xErzielt>44) svg+=`<text x="${(padL+xErzielt/2).toFixed(1)}" y="${barY+barH/2+5}" font-size="12" font-weight="800" text-anchor="middle" style="fill:var(--on-gold)">${Math.round(erzielt/ziel*100)} %</text>`;
   if(xPrognose-xErzielt>44) svg+=`<text x="${(padL+xErzielt+(xPrognose-xErzielt)/2).toFixed(1)}" y="${barY+barH/2+5}" font-size="12" font-weight="800" text-anchor="middle" fill="#fff">+${Math.round(bestand/ziel*100)} %</text>`;
-  svg+=`<text x="${padL}" y="${barY+barH+30}" font-size="11" style="fill:var(--muted)">Erzielt + Bestand bis Jahresende: <tspan font-weight="800" style="fill:var(--ink)">${chf(prognose)}</tspan> · ${prognose>=ziel?'Ziel erreicht':'noch '+chf(ziel-prognose)+' offen'}</text>`;
+  if(xPotenzial-xPrognose>50) svg+=`<text x="${(padL+xPrognose+(xPotenzial-xPrognose)/2).toFixed(1)}" y="${barY+barH/2+5}" font-size="11.5" font-weight="800" text-anchor="middle" style="fill:${C.offerten}">Potenzial</text>`;
+
+  const luecke=ziel-prognose;
+  let aussage, aussageFarbe;
+  if(luecke<=0){
+    aussage=`Ziel bereits durch Erzielt + Bestand gesichert (Überschuss ${chf(-luecke)}).`;
+    aussageFarbe=C.good;
+  } else if(potenzial<=0){
+    aussage=`Noch ${chf(luecke)} offen — aktuell keine Offerten beim Kunden, die das schliessen könnten.`;
+    aussageFarbe=C.bad;
+  } else {
+    const trefferquote=Math.round(luecke/potenzial*100);
+    if(trefferquote<=100){
+      aussage=`Um das Ziel zu erreichen, braucht es eine Gewinnrate von <tspan font-weight="800">${trefferquote}%</tspan> auf die aktuell CHF ${chf(potenzial).replace('CHF ','')} offenen Offerten beim Kunden.`;
+      aussageFarbe='var(--ink)';
+    } else {
+      aussage=`Selbst bei 100% Gewinnrate auf die offenen CHF ${chf(potenzial).replace('CHF ','')} beim Kunden bleibt eine Lücke von ${chf(luecke-potenzial)}.`;
+      aussageFarbe=C.bad;
+    }
+  }
+  svg+=`<text x="${padL}" y="${barY+barH+30}" font-size="11" style="fill:${aussageFarbe}">${aussage}</text>`;
+  return huelle(w,height,svg);
+}
+
+/* Gleitender Durchschnitt über ein Zeitfenster — glättet einzelne, bei
+   kleinen Stückzahlen stark verrauschte Wochenwerte (z.B. 2 von 1 = 200%). */
+function gleitenderSchnitt(werte,fenster){
+  return werte.map((_,i)=>{
+    const slice=werte.slice(Math.max(0,i-fenster+1),i+1).filter(v=>v!=null);
+    return slice.length?Math.round(slice.reduce((a,v)=>a+v,0)/slice.length):null;
+  });
+}
+function letzterSchnitt(werte,fenster){
+  const slice=werte.slice(-fenster).filter(v=>v!=null);
+  return slice.length?Math.round(slice.reduce((a,v)=>a+v,0)/slice.length):null;
+}
+
+/* Zwei Prozent-Linien mit dünner, gestrichelter 4-Wochen-Trendlinie im
+   Hintergrund je Serie — Durchsatzquote pro Woche, keine Kohorten-Conversion
+   (dafür bräuchte es eine Zeitreihe pro Element, die wir nicht führen). */
+function ratenChart(weeks,series,height){
+  height=height||190;
+  const w=Math.max(flaeche(70),weeks.length*46), padL=16, padR=16, padB=34, padT=24;
+  const alleWerte=series.flatMap(s=>weeks.map(wk=>s.get(wk)).filter(v=>v!=null));
+  const maxVal=Math.max(20,...alleWerte)*1.15||100;
+  const stepX=weeks.length>1?(w-padL-padR)/(weeks.length-1):0;
+  const yOf=v=>padT+(height-padT-padB)*(1-Math.min(v,maxVal)/maxVal);
+  let svg='';
+  for(let g=0;g<=3;g++){
+    const y=padT+(height-padT-padB)*(g/3);
+    svg+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#e6e4da" stroke-width="1"></line>`;
+  }
+  series.forEach(s=>{
+    const roh=weeks.map(wk=>s.get(wk));
+    const avg=gleitenderSchnitt(roh,4);
+    const avgPts=weeks.map((wk,i)=>avg[i]==null?null:[padL+i*stepX,yOf(avg[i])]);
+    let avgPath='';
+    avgPts.forEach((p,i)=>{ if(p) avgPath+=(avgPath===''||!avgPts[i-1]?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)+' '; });
+    if(avgPath) svg+=`<path d="${avgPath.trim()}" fill="none" stroke="${s.color}" stroke-width="2" stroke-dasharray="2 5" opacity="0.4"></path>`;
+    const pts=weeks.map((wk,i)=>roh[i]==null?null:[padL+i*stepX,yOf(roh[i])]);
+    let path='';
+    pts.forEach((p,i)=>{ if(p) path+=(path===''||!pts[i-1]?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)+' '; });
+    if(path) svg+=`<path d="${path.trim()}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>`;
+    pts.forEach((p,i)=>{
+      if(!p) return;
+      svg+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3.2" fill="${s.color}"></circle>`;
+      const dy=s.unten?17:-10;
+      svg+=`<text x="${p[0].toFixed(1)}" y="${(p[1]+dy).toFixed(1)}" font-size="10.5" font-weight="700" style="fill:${s.color}" text-anchor="middle">${roh[i]}%</text>`;
+    });
+  });
+  weeks.forEach((wk,i)=>{
+    svg+=`<text x="${(padL+i*stepX).toFixed(1)}" y="${height-10}" font-size="11" font-weight="600" style="fill:#171714" text-anchor="middle">${kwKurz(wk.kw)}</text>`;
+  });
   return huelle(w,height,svg);
 }
 
@@ -557,8 +631,9 @@ function render(){
             <div class="txt"><div class="n">${chf(fz.gutschriften)}</div><div class="l">Gutschriften</div></div></div>
         </div>
         <h3 style="margin:24px 0 4px;font-family:var(--titel);font-size:13px;font-weight:800">Zielfortschritt Jahresumsatz ${new Date(fz.stichtag).getFullYear()}</h3>
-        ${legendeInline([{label:'Umsatz bis Stichtag',color:C.gold},{label:'Auftragsbestand bis Jahresende',color:C.leads},{label:'Ziel',color:C.bad}])}
-        ${zielChart(fz.umsatzBisStichtag,fz.auftragsbestandLTBisJahresende,fz.jahreszielUmsatz)}
+        <p class="note">Potenzial = Auftragsvolumen der Offerten, die aktuell beim Kunden liegen (Status «Offerte ist raus») — die realistisch kurzfristig realisierbare Reserve, nicht das gesamte offene Volumen.</p>
+        ${legendeInline([{label:'Umsatz bis Stichtag',color:C.gold},{label:'Auftragsbestand bis Jahresende',color:C.leads},{label:'Potenzial (Offerten beim Kunden)',color:C.offerten},{label:'Ziel',color:C.bad}])}
+        ${zielChart(fz.umsatzBisStichtag,fz.auftragsbestandLTBisJahresende,REPORT.kpis.auftragsvolumenBeimKunden||0,fz.jahreszielUmsatz)}
       </div>
     </section>`;
   }
@@ -577,16 +652,19 @@ function render(){
     </div>
   </section>`;
 
+  const sumLeadBearbeitung=sum(w=>w.leadsInBearbeitungKonversion);
   const perfFarbe={'im-ziel':C.good,'unter-ziel':C.bad,'ueber-ziel':C.offerten,'keine-daten':C.neutral};
   const perfText={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
   const letzteWoche=weeks[weeks.length-1];
-  html+=`<section><h2>Sales · Performance-Indikator <em>Ziel 4 – 8 bearbeitete Leads pro Tag</em></h2>
+  html+=`<section><h2>Sales · Performance <em>vereinbarte Zielgrössen</em></h2>
     <div class="sec__body">
-      <p class="note">Aus dem Activity-Log beider Boards. Bewusst ohne Klarnamen – die Kennzahl beschreibt die Rolle, nicht die Person.</p>
+      <p class="note">Zeigt konkret, wie gut die vereinbarte Leistung eingehalten wird — zwei Zielgrössen, dieselbe Person, bewusst ohne Klarnamen in der Beschriftung. <em>1) Tempo:</em> 4–8 bearbeitete Leads pro Tag. <em>2) Sauberkeit:</em> jeder qualifizierte Lead wird tatsächlich bis zum Abschluss der Prüfung gebracht, nicht nur angefasst.</p>
+
+      <h3 style="margin:22px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">1 · Tempo — Ø 4–8 bearbeitete Leads pro Tag</h3>
       <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
-        <em>Wie die Zahl zustande kommt:</em> pro Tag werden die <em>eindeutigen</em> Leads gezählt, an denen Sales mindestens eine Bearbeitung, Verschiebung oder einen Kommentar vorgenommen hat (Mehrfach-Bearbeitung desselben Leads am selben Tag zählt nur einmal). Diese Tageszahlen werden über die bereits verstrichenen Werktage der Woche gemittelt: Summe bearbeiteter Leads ÷ Anzahl Werktage bis heute.
+        <em>Wie die Zahl zustande kommt:</em> pro Tag werden die <em>eindeutigen</em> Leads gezählt, an denen mindestens eine Bearbeitung, Verschiebung oder ein Kommentar vorgenommen wurde (Mehrfach-Bearbeitung desselben Leads am selben Tag zählt nur einmal). Diese Tageszahlen werden über die bereits verstrichenen Werktage der Woche gemittelt: Summe bearbeiteter Leads ÷ Anzahl Werktage bis heute.
       </p>
-      <div class="row" style="align-items:center;gap:18px;margin-bottom:16px">
+      <div class="row" style="align-items:center;gap:18px;margin:14px 0 16px">
         <div style="display:flex;align-items:center;gap:13px">
           <div style="width:10px;height:38px;background:${perfFarbe[letzteWoche.salesPerformance.status]}"></div>
           <div>
@@ -600,6 +678,22 @@ function render(){
       <div style="margin-top:10px">${legendeInline([
         {label:'Im Ziel (4 – 8)',color:C.good},{label:'Unter Ziel',color:C.bad},{label:'Über Ziel',color:C.offerten}
       ])}</div>
+
+      <h3 style="margin:28px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">2 · Sauberkeit — Lead-Bearbeitung bis zum Abschluss</h3>
+      <p class="note">Vereinbarung: jeder qualifizierte Lead («Neue Leads - Claude») wird kontrolliert, bewertet, terminiert und nach «Aktive Leads in Bearbeitung» verschoben. Genau dieser Wechsel wird hier gemessen — nicht nur irgendeine Bearbeitung, sondern der tatsächliche Abschluss der Prüfung.</p>
+      <div class="row" style="gap:14px;margin-bottom:16px">
+        <div class="stat"><div class="stat__label">Senior Leads bereit zur Prüfung</div><div class="stat__n">${REPORT.kpis.seniorLeadsGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Neue Leads - Claude»</div></div>
+        <div class="stat"><div class="stat__label">Aktiv in Bearbeitung</div><div class="stat__n">${REPORT.kpis.aktivInBearbeitungGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Aktive Leads in Bearbeitung»</div></div>
+        ${statKachel('Bearbeitet · diese Woche',sumLeadBearbeitung,letzteWocheLeads.leadsInBearbeitungKonversion,letzteWocheLeads.kw)}
+      </div>
+      <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
+        <em>Wie die Zahl zustande kommt:</em> per Activity-Log wird der exakte Zeitpunkt gesucht, an dem ein Lead die Gruppe «Neue Leads - Claude» verlässt und in «Aktive Leads in Bearbeitung» wechselt. Gezählt nach dem Datum dieses Wechsels, nicht nach dem aktuellen Stand.
+      </p>
+      ${legendeInline([{label:'Neue qualifizierte Leads',color:C.leads},{label:'Bearbeitet',color:C.good}])}
+      ${verlaufChart(weeks,[
+        {name:'Qualifiziert',color:C.leads,get:w=>w.neueLeadsQualifiziert},
+        {name:'Bearbeitet',color:C.good,unten:true,get:w=>w.leadsInBearbeitungKonversion}
+      ])}
     </div>
   </section>`;
 
@@ -667,6 +761,23 @@ function render(){
           || '<tr><td colspan="5" class="empty">Keine Daten</td></tr>'}
       </table>
       <p class="note" style="margin:12px 0 0">«In Bearbeitung» und «Aktiv offeriert» sind Momentaufnahmen; «Anfragen bearbeitet» und «Konversion» sind Summen im gewählten Zeitraum.</p>
+    </div>
+  </section>`;
+
+  const ratenAnfrageOfferte=weeks.map(w=>w.neueAnfragen?Math.round(w.offertenErstellt/w.neueAnfragen*100):null);
+  const ratenOfferteAuftrag=weeks.map(w=>REPORT.kpis.aktivOfferiertGesamt?Math.round(w.konversionVorbereitung/REPORT.kpis.aktivOfferiertGesamt*100):null);
+  html+=`<section><h2>Konversionsraten <em>Durchsatz pro Woche, keine Kohorten-Messung</em></h2>
+    <div class="sec__body">
+      <p class="note">Zeigt, ob der Zufluss mit dem Durchsatz Schritt hält — nicht, wie viel Prozent einer bestimmten Anfrage-Woche später zur Offerte wurde (dafür bräuchte es eine Zeitreihe pro Element). Offerte→Auftrag bezieht sich bewusst auf den aktuellen Bestand aktiv offerierter Projekte als Nenner, nicht auf die neuen Offerten der Woche — sonst würden Wochen mit wenig Neuzugang die Quote extrem verzerren.</p>
+      <div class="row" style="gap:14px;margin-bottom:16px">
+        <div class="stat"><div class="stat__label">Anfrage → Offerte · Ø 4 Wochen</div><div class="stat__n">${letzterSchnitt(ratenAnfrageOfferte,4)??'–'}%</div><div class="stat__delta flat">diese Woche: ${ratenAnfrageOfferte[ratenAnfrageOfferte.length-1]??'–'}%</div></div>
+        <div class="stat"><div class="stat__label">Offerte → Auftrag · Ø 4 Wochen</div><div class="stat__n">${letzterSchnitt(ratenOfferteAuftrag,4)??'–'}%</div><div class="stat__delta flat">diese Woche: ${ratenOfferteAuftrag[ratenOfferteAuftrag.length-1]??'–'}%</div></div>
+      </div>
+      ${legendeInline([{label:'Anfrage → Offerte',color:C.anfragen},{label:'Offerte → Auftrag',color:C.good},{label:'gestrichelt: Ø 4 Wochen',color:'var(--muted)'}])}
+      ${ratenChart(weeks,[
+        {color:C.anfragen,get:(w,i)=>ratenAnfrageOfferte[weeks.indexOf(w)]},
+        {color:C.good,unten:true,get:(w,i)=>ratenOfferteAuftrag[weeks.indexOf(w)]}
+      ])}
     </div>
   </section>`;
 
@@ -824,6 +935,7 @@ const DEMO=(function(){
     kw:r[4], neueLeads:r[0], neueLeadsQualifiziert:Math.round(r[0]*0.62), neueAnfragen:r[1],
     neueAnfragenDirekt:r[2], neueAnfragenAusLead:r[1]-r[2],
     offertenErstellt:r[3], konversionVorbereitung:Math.round(r[3]*0.55),
+    leadsInBearbeitungKonversion:Math.round(r[0]*0.5),
     sales:{bearbeitungen:r[5][0],verschoben:r[5][1],kommentare:r[5][2],aktiveTage:r[5][3]},
     salesPerformance:{avgProTag:r[5][4],status:r[5][5],leadsBearbeitet:r[5][6],werktage:5}
   }));
@@ -836,7 +948,9 @@ const DEMO=(function(){
       jahreszielUmsatz:2500000
     },
     kpis:{konversionProzent:42,nachfassquoteProzent:65,gewonnen:52,abgelehnt:72,auftragsvolumenOffen:284650,
-      inBearbeitungGesamt:34,aktivOfferiertGesamt:22,konversionVorbereitungGesamt:47},
+      auftragsvolumenBeimKunden:96400,
+      inBearbeitungGesamt:34,aktivOfferiertGesamt:22,konversionVorbereitungGesamt:47,
+      seniorLeadsGesamt:18,aktivInBearbeitungGesamt:41,leadsInBearbeitungKonversionGesamt:89},
     produktionStatus:{
       'Projekt und Offertanfragen':41,'Offerprüfung Kunde / Vergabe':57,'Vorbereitung':63,
       'Produktion':88,'Montage':34,'Abgeschlossen':1102,'Verloren / Abgesagt':100
