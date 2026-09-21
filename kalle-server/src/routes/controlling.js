@@ -40,6 +40,7 @@ const BOARDS = {
 const GROUPS = {
   anfragen: 'group_mm5hq91f',       // "Projekt und Offertanfragen"
   offertpruefung: 'group_mm5p5zwq', // "Offerprüfung Kunde / Vergabe"
+  vorbereitung: 'group_mkt2vn54',   // "Vorbereitung" — Ziel der Conversion-Messung
   verloren: 'group_mm7293mg',       // "Verloren / Abgesagt"
   // "In Umsetzung" — bewusst ALLE aktiven Produktionsgruppen, nicht nur die
   // drei in der Design-Vorlage genannten (Vorbereitung/Produktion/Montage),
@@ -49,6 +50,10 @@ const GROUPS = {
   // "Rechnung / abgeschlossen" — wie in der Design-Vorlage vorgeschlagen
   abgeschlossen: ['duplicate_of_project_a', 'group_mksw4paf']
 };
+
+// Gruppe auf dem Pipeline-Board, in der der Lead-Crawler rohe Funde ablegt,
+// bevor der Senior-Lead-Agent sie qualifiziert (Gruppen-ID live abgefragt).
+const PIPELINE_ROH_GRUPPE = 'new_group2210'; // "Claude ROH Leads zur Qualifikation"
 
 // Subitem-Namen, auf die exakt gefiltert wird (Monday-seitige contains_text-
 // Suche, live gegen echte Daten bestätigt)
@@ -143,23 +148,43 @@ function weekListFrom(fromMonday, today) {
   return { labels, mondays };
 }
 
-// Alle Items eines Boards holen (paginiert), inkl. gewünschter Spalten + Gruppe
-async function fetchAllItems(boardId, columnIds) {
+// Alle Items eines Boards holen (paginiert), inkl. gewünschter Spalten + Gruppe.
+// Optional auf bestimmte Gruppen eingegrenzt (groupIds) — spart Datenvolumen,
+// wenn eine Gruppe (z.B. "Abgeschlossen") für den Report irrelevant ist.
+// Gleiches Zwei-Query-Muster wie fetchSubitemsByName: query_params nur auf
+// der ersten Seite, sonst meckert Monday bei gleichzeitigem Cursor.
+async function fetchAllItems(boardId, columnIds, groupIds) {
   let items = [];
   let cursor = null;
   const colsField = columnIds
     ? `column_values(ids: ${JSON.stringify(columnIds)}) { id text value }`
     : `column_values { id text value }`;
-  do {
-    const query = `query($board:[ID!], $cursor:String){
-      boards(ids:$board){
-        items_page(limit:100, cursor:$cursor){
-          cursor
-          items{ id name created_at updated_at group{ id title } ${colsField} }
+  const itemsField = `items{ id name created_at updated_at group{ id title } ${colsField} }`;
+  const firstQuery = groupIds
+    ? `query($board:[ID!], $groups:CompareValue!){
+        boards(ids:$board){
+          items_page(limit:100, query_params:{rules:[{column_id:"group", compare_value:$groups, operator:any_of}]}){
+            cursor
+            ${itemsField}
+          }
         }
-      }
-    }`;
-    const data = await mq(query, { board: [String(boardId)], cursor });
+      }`
+    : `query($board:[ID!]){
+        boards(ids:$board){
+          items_page(limit:100){ cursor ${itemsField} }
+        }
+      }`;
+  const nextQuery = `query($board:[ID!], $cursor:String!){
+    boards(ids:$board){
+      items_page(limit:100, cursor:$cursor){ cursor ${itemsField} }
+    }
+  }`;
+  do {
+    const query = cursor ? nextQuery : firstQuery;
+    const variables = cursor
+      ? { board: [String(boardId)], cursor }
+      : (groupIds ? { board: [String(boardId)], groups: groupIds } : { board: [String(boardId)] });
+    const data = await mq(query, variables);
     const page = data.boards[0].items_page;
     items = items.concat(page.items);
     cursor = page.cursor;
@@ -234,6 +259,34 @@ async function fetchActivity(boardId, fromISO, toISO, userIds, includeData) {
   return logs;
 }
 
+// Activity-Log NUR für bestimmte Items (statt das ganze Board) — nötig für die
+// Konversions-Messung: ein board-weiter Fetch über den ganzen Zeitraum ist zu
+// gross (allein 3.5 Wochen lieferten schon 1000+ überwiegend irrelevante
+// update_column_value-Events pro Seite, echtes Risiko stillschweigend
+// abgeschnittener Wechsel-Events). item_ids grenzt das auf die tatsächlich
+// relevanten Elemente ein. Läuft in Batches, da Monday bei sehr vielen IDs
+// pro Aufruf ebenfalls an Grenzen stösst.
+async function fetchActivityByItems(boardId, itemIds, fromISO, toISO) {
+  let logs = [];
+  for (let i = 0; i < itemIds.length; i += 40) {
+    const batchIds = itemIds.slice(i, i + 40);
+    let page = 1;
+    for (;;) {
+      const query = `query($board:[ID!], $items:[ID!], $from:ISO8601DateTime, $to:ISO8601DateTime, $page:Int){
+        boards(ids:$board){
+          activity_logs(from:$from, to:$to, item_ids:$items, limit:1000, page:$page){ event created_at data }
+        }
+      }`;
+      const data = await mq(query, { board: [String(boardId)], items: batchIds.map(String), from: fromISO, to: toISO, page });
+      const batch = (data.boards[0] && data.boards[0].activity_logs) || [];
+      logs = logs.concat(batch);
+      if (batch.length < 1000 || page > 10) break;
+      page++;
+    }
+  }
+  return logs;
+}
+
 // pulse_id aus dem activity_logs "data"-JSON extrahieren (Feldname variiert
 // nicht zwischen Event-Typen, aber JSON.parse kann bei kaputten Einträgen
 // scheitern — dann wird der Eintrag ignoriert statt den ganzen Report zu killen)
@@ -264,10 +317,16 @@ async function buildReport(progress) {
   const pipelineItems = await fetchAllItems(BOARDS.pipeline, ['status', 'person', 'people', 'creation_log']);
 
   progress(25, 'Lade GRAFE Produktionsübersicht...');
-  const produktionItems = await fetchAllItems(BOARDS.produktion, ['text_mkv7v7m6', 'text_mm5hbe90', 'people0', 'status']);
+  // "Abgeschlossen"/"Rechnungsstellung" bewusst ausgeschlossen — mit Abstand
+  // die grösste Gruppe (>1000 von 1485 Elementen), trägt zu keiner aktuellen
+  // Kennzahl mehr bei, verlangsamt aber v.a. die Konversions-Kandidatensuche
+  // unten (kürzlich aktualisierte alte Abschlüsse, z.B. durch Verrechnung,
+  // wurden bisher unnötig mitprüft). Auf Sven's Hinweis entfernt.
+  const AKTIVE_GRUPPEN = [GROUPS.anfragen, GROUPS.offertpruefung, GROUPS.verloren, ...GROUPS.inUmsetzung];
+  const produktionItems = await fetchAllItems(BOARDS.produktion, ['text_mkv7v7m6', 'text_mm5hbe90', 'people0', 'status'], AKTIVE_GRUPPEN);
 
   progress(45, 'Lade Subitems "Offerte erstellen"...');
-  const offerteErstellenItems = await fetchSubitemsByName(BOARDS.produktionSubitems, SUBITEM_OFFERTE_ERSTELLEN, ['person', 'status', 'date0']);
+  const offerteErstellenItems = await fetchSubitemsByName(BOARDS.produktionSubitems, SUBITEM_OFFERTE_ERSTELLEN, ['person', 'status', 'date0', 'numeric_mm5hemt3']);
 
   progress(55, 'Lade Subitems "Nachfassen beim Kunde"...');
   const nachfassItems = await fetchSubitemsByName(BOARDS.produktionSubitems, SUBITEM_NACHFASSEN, ['person', 'status', 'date0']);
@@ -280,14 +339,21 @@ async function buildReport(progress) {
 
   progress(92, 'Aggregiere Wochenwerte...');
 
-  // Neue Leads/Woche + pro Mitarbeiter — Pipeline, gezählt nach Erstellungsdatum
+  // Neue Leads/Woche + pro Mitarbeiter — Pipeline, gezählt nach Erstellungsdatum.
+  // Zusätzlich Rohfunde (Lead Crawler, Gruppe "Claude ROH Leads zur Qualifikation")
+  // vs. bereits qualifiziert (Senior Lead Agent, jede andere Gruppe) unterschieden —
+  // per aktueller Gruppen-Zugehörigkeit, nicht rückwirkend über die Zeit verfolgt.
   const leadsPerWeek = {};
+  const leadsQualifiziertPerWeek = {};
   const leadsProMitarbeiter = {};
   for (const it of pipelineItems) {
     const created = parseMondayTimestamp(it.created_at);
     if (!created || created < fromDate) continue;
     const wk = isoWeekLabel(created);
     leadsPerWeek[wk] = (leadsPerWeek[wk] || 0) + 1;
+    if (it.group && it.group.id !== PIPELINE_ROH_GRUPPE) {
+      leadsQualifiziertPerWeek[wk] = (leadsQualifiziertPerWeek[wk] || 0) + 1;
+    }
     const cv = cvMap(it);
     splitNames(cv['person'] && cv['person'].text).forEach(n => {
       leadsProMitarbeiter[n] = (leadsProMitarbeiter[n] || 0) + 1;
@@ -343,9 +409,13 @@ async function buildReport(progress) {
   // Ersetzt die frühere "Offerten raus"-Zahl (die brauchte ein Offertdatum-Feld,
   // das es auf der Produktionsübersicht nicht gibt) — diese Zahl ist die
   // direkte Antwort auf "wer erstellt wie viele Offerten".
+  const produktionGruppeById = {};
+  produktionItems.forEach(it => { produktionGruppeById[it.id] = it.group && it.group.id; });
+
   const offertenErstelltPerWeek = {};
   const offertenErstelltProMitarbeiter = {};
   const inOffertbearbeitungProMitarbeiter = {}; // Snapshot: aktuell offene "Offerte erstellen"-Subitems
+  let auftragsvolumenOffenSumme = 0; // Summe Auftragsvolumen, solange Parent noch in Anfragen/Offertprüfung steht (unentschieden)
   for (const it of offerteErstellenItems) {
     const cv = cvMap(it);
     const bearbeiter = (cv['person'] && cv['person'].text) || '(kein Bearbeiter)';
@@ -359,9 +429,82 @@ async function buildReport(progress) {
     if (status === SUBITEM_STATUS_IN_ARBEIT) {
       inOffertbearbeitungProMitarbeiter[bearbeiter] = (inOffertbearbeitungProMitarbeiter[bearbeiter] || 0) + 1;
     }
+    const parentGruppe = it.parent_item && produktionGruppeById[it.parent_item.id];
+    if (parentGruppe === GROUPS.anfragen || parentGruppe === GROUPS.offertpruefung) {
+      const vol = cv['numeric_mm5hemt3'] && Number(cv['numeric_mm5hemt3'].text);
+      if (vol) auftragsvolumenOffenSumme += vol;
+    }
   }
 
-  // Offerten aktuell beim Kunden pro Mitarbeiter — Snapshot: Haupt-Status =
+  // ══ Wichtigster Wochen-Indikator, wie von Sven priorisiert ═══════════════
+  // Zwei Snapshots (aktueller Stand je Gruppe) + eine präzise, per Activity-Log
+  // gemessene Konversion Offertprüfung → Vorbereitung.
+
+  // 1) Offertanfragen aktuell in Bearbeitung — Snapshot: Gruppe "Projekt und
+  //    Offertanfragen", gruppiert nach Projektleiter.
+  const inBearbeitungProMitarbeiter = {};
+  let inBearbeitungGesamt = 0;
+  // 2) Projekte aktiv offeriert — Snapshot: Gruppe "Offerprüfung Kunde / Vergabe".
+  const aktivOfferiertProMitarbeiter = {};
+  let aktivOfferiertGesamt = 0;
+  for (const it of produktionItems) {
+    const cv = cvMap(it);
+    const namen = splitNames(cv['people0'] && cv['people0'].text);
+    const gid = it.group && it.group.id;
+    if (gid === GROUPS.anfragen) {
+      inBearbeitungGesamt++;
+      namen.forEach(n => { inBearbeitungProMitarbeiter[n] = (inBearbeitungProMitarbeiter[n] || 0) + 1; });
+    } else if (gid === GROUPS.offertpruefung) {
+      aktivOfferiertGesamt++;
+      namen.forEach(n => { aktivOfferiertProMitarbeiter[n] = (aktivOfferiertProMitarbeiter[n] || 0) + 1; });
+    }
+  }
+
+  // 3) Konversion Offertprüfung → Vorbereitung — exakt per Activity-Log, aber
+  //    gezielt nur für Elemente, die überhaupt kürzlich in Frage kommen
+  //    (aktuell in Vorbereitung-oder-weiter UND zuletzt im Zeitraum verändert),
+  //    statt das ganze Board zu durchsuchen (siehe fetchActivityByItems).
+  progress(94, 'Ermittle Konversion Offertprüfung → Vorbereitung...');
+  const konversionKandidaten = produktionItems.filter(it => {
+    const gid = it.group && it.group.id;
+    // "Abgeschlossen" ist gar nicht mehr Teil von produktionItems (siehe oben),
+    // daher reicht der Check auf die aktiven Umsetzungs-Gruppen.
+    const inZielgruppen = GROUPS.inUmsetzung.includes(gid);
+    const updated = parseMondayTimestamp(it.updated_at);
+    return inZielgruppen && updated && updated >= fromDate;
+  });
+  const konversionLogs = konversionKandidaten.length
+    ? await fetchActivityByItems(BOARDS.produktion, konversionKandidaten.map(it => it.id), fromISO, toISO)
+    : [];
+  const produktionPLById = {};
+  produktionItems.forEach(it => {
+    const cv = cvMap(it);
+    produktionPLById[it.id] = splitNames(cv['people0'] && cv['people0'].text);
+  });
+  const konversionEventProItem = {}; // pulse_id -> spätestes move-in-Vorbereitung Event
+  for (const ev of konversionLogs) {
+    if (ev.event !== 'move_pulse_from_group') continue;
+    let data;
+    try { data = JSON.parse(ev.data); } catch (e) { continue; }
+    if (!data.dest_group || data.dest_group.id !== GROUPS.vorbereitung) continue;
+    const pid = String(data.pulse_id);
+    if (!konversionEventProItem[pid] || ev.created_at > konversionEventProItem[pid].created_at) {
+      konversionEventProItem[pid] = ev;
+    }
+  }
+  const konversionPerWeek = {};
+  const konversionProMitarbeiter = {};
+  Object.entries(konversionEventProItem).forEach(([pid, ev]) => {
+    const ts = parseMondayTimestamp(ev.created_at);
+    if (!ts || ts < fromDate) return;
+    const wk = isoWeekLabel(ts);
+    konversionPerWeek[wk] = (konversionPerWeek[wk] || 0) + 1;
+    (produktionPLById[pid] || []).forEach(n => {
+      konversionProMitarbeiter[n] = (konversionProMitarbeiter[n] || 0) + 1;
+    });
+  });
+  const konversionGesamtGemessen = Object.keys(konversionEventProItem).length;
+
   // "Offerte ist raus" auf der Produktionsübersicht, gruppiert nach Projektleiter.
   const offerteBeimKundeProMitarbeiter = {};
   for (const it of produktionItems) {
@@ -435,7 +578,8 @@ async function buildReport(progress) {
   function ensure(name) {
     if (!mitarbeiter[name]) mitarbeiter[name] = {
       leads: 0, anfragenBearbeitet: 0, offertenErstellt: 0, inUmsetzung: 0,
-      abgeschlossen: 0, inOffertbearbeitung: 0, offerteBeimKunde: 0
+      abgeschlossen: 0, inOffertbearbeitung: 0, offerteBeimKunde: 0,
+      inBearbeitung: 0, aktivOfferiert: 0, konversion: 0
     };
     return mitarbeiter[name];
   }
@@ -447,6 +591,10 @@ async function buildReport(progress) {
   Object.entries(abgeschlossenProMitarbeiter).forEach(([n, c]) => { ensure(n).abgeschlossen = c; });
   Object.entries(inOffertbearbeitungProMitarbeiter).forEach(([n, c]) => { ensure(n).inOffertbearbeitung = c; });
   Object.entries(offerteBeimKundeProMitarbeiter).forEach(([n, c]) => { ensure(n).offerteBeimKunde = c; });
+  Object.entries(inBearbeitungProMitarbeiter).forEach(([n, c]) => { ensure(n).inBearbeitung = c; });
+  Object.entries(aktivOfferiertProMitarbeiter).forEach(([n, c]) => { ensure(n).aktivOfferiert = c; });
+  Object.entries(konversionProMitarbeiter).forEach(([n, c]) => { ensure(n).konversion = c; });
+
 
   // Nachfassquote — Subitem "Nachfassen beim Kunde" (neue Monday-Automation:
   // 9 Kalendertage nach Eintritt in "Offerprüfung Kunde / Vergabe", Bearbeiter
@@ -500,6 +648,7 @@ async function buildReport(progress) {
     return {
       kw: wk,
       neueLeads: leadsPerWeek[wk] || 0,
+      neueLeadsQualifiziert: leadsQualifiziertPerWeek[wk] || 0,
       neueAnfragen: anfragenPerWeek[wk] || 0,
       neueAnfragenDirekt: anfragenDirektPerWeek[wk] || 0,
       neueAnfragenAusLead: anfragenAusLeadPerWeek[wk] || 0,
@@ -519,7 +668,8 @@ async function buildReport(progress) {
       nachfass: {
         faellig: (nachfassWeek[wk] && nachfassWeek[wk].faellig) || 0,
         nachgefasst: (nachfassWeek[wk] && nachfassWeek[wk].nachgefasst) || 0
-      }
+      },
+      konversionVorbereitung: konversionPerWeek[wk] || 0
     };
   });
 
@@ -536,7 +686,11 @@ async function buildReport(progress) {
       gewonnen,
       abgelehnt,
       konversionProzent: (gewonnen + abgelehnt) ? Math.round((gewonnen / (gewonnen + abgelehnt)) * 100) : null,
-      nachfassquoteProzent: nfTotalFaellig ? Math.round((nfTotalNachgefasst / nfTotalFaellig) * 100) : null
+      nachfassquoteProzent: nfTotalFaellig ? Math.round((nfTotalNachgefasst / nfTotalFaellig) * 100) : null,
+      auftragsvolumenOffen: Math.round(auftragsvolumenOffenSumme),
+      inBearbeitungGesamt,
+      aktivOfferiertGesamt,
+      konversionVorbereitungGesamt: konversionGesamtGemessen
     },
     produktionStatus,
     mitarbeiter

@@ -159,6 +159,22 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .hintDemo em{font-style:normal;font-weight:700}
 .hintDemo__mark{width:19px;height:19px;flex:none;display:grid;place-items:center;border-radius:5px;
   background:var(--gold);color:var(--on-gold);font-weight:800;font-size:11px}
+
+/* ── Gruppenköpfe (Pipeline / Produktionsübersicht) ─────────────────── */
+.gruppenkopf{display:flex;align-items:baseline;gap:12px;margin:30px 0 14px;padding-bottom:10px;
+  border-bottom:2.5px solid var(--ink)}
+.gruppenkopf:first-of-type{margin-top:4px}
+.gruppenkopf h1{margin:0;font-family:var(--titel);font-size:19px;font-weight:900;letter-spacing:-.02em}
+.gruppenkopf span{font-size:12px;color:var(--muted);font-weight:500}
+
+/* ── Kompakte Total+Zuwachs-Kachel (Pipeline) ───────────────────────── */
+.stat{display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:var(--panel);
+  border:1px solid var(--bd);border-radius:14px;box-shadow:var(--shadow);flex:1;min-width:220px}
+.stat__label{font-size:11.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
+.stat__n{font-family:var(--titel);font-weight:900;font-size:32px;line-height:1;letter-spacing:-.02em}
+.stat__delta{font-size:12.5px;font-weight:600}
+.stat__delta.up{color:var(--good)}
+.stat__delta.flat{color:var(--muted)}
 </style>
 </head>
 <body>
@@ -449,6 +465,14 @@ function legendeInline(items){
     `<span style="display:inline-flex;align-items:center;gap:7px;font:500 11.5px/1 var(--titel);color:var(--muted)">
        <span style="width:10px;height:10px;background:${i.color}"></span>${esc(i.label)}</span>`).join('')+`</div>`;
 }
+function gruppenkopf(titel,beschreibung){
+  return `<div class="gruppenkopf"><h1>${esc(titel)}</h1><span>${esc(beschreibung||'')}</span></div>`;
+}
+function statKachel(label,total,zuwachs,kw){
+  const deltaClass=zuwachs>0?'up':'flat';
+  const deltaText=zuwachs>0?`+${zuwachs} diese Woche (${kwKurz(kw)})`:`0 diese Woche (${kwKurz(kw)})`;
+  return `<div class="stat"><div class="stat__label">${esc(label)}</div><div class="stat__n">${total}</div><div class="stat__delta ${deltaClass}">${deltaText}</div></div>`;
+}
 
 /* Zielfortschritt Jahresumsatz: Balken aus Ist-Umsatz + Auftragsbestand bis
    Jahresende, gestrichelte Ziel-Marke. Zeigt auf einen Blick, ob das, was
@@ -500,12 +524,12 @@ function render(){
     <span><b>Demo-Zahlen.</b> Kein Server erreichbar – die Seite zeigt Beispielwerte, damit Aufbau und Gestaltung beurteilbar sind. Auf <em>kalle.grafe.ch</em> kommen die echten Monday-Daten.</span></div>`;
 
   html+=`<div class="kpis">
-    <div class="kpi"><span class="kpi__key" style="background:${C.leads}"></span>
-      <div class="txt"><div class="n">${sumLeads}</div><div class="l">Neue Leads · Pipeline · ${weeks.length} Wo.</div></div></div>
     <div class="kpi"><span class="kpi__key" style="background:${C.gold}"></span>
       <div class="txt"><div class="n">${sumAnfragen}</div><div class="l">Neue Anfragen gesamt · ${weeks.length} Wo.</div></div></div>
     <div class="kpi"><span class="kpi__key" style="background:${C.offerten}"></span>
       <div class="txt"><div class="n">${sumOffertenErstellt}</div><div class="l">Offerten erstellt · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi"><span class="kpi__key" style="background:${C.neutral}"></span>
+      <div class="txt"><div class="n">${chf(REPORT.kpis.auftragsvolumenOffen)}</div><div class="l">Auftragsvolumen offener Offerten</div></div></div>
     <div class="kpi kpi--lead">${ring(konv==null?0:konv,56,C.anfragen)}
       <div class="txt"><div class="n">${konv==null?'–':konv+' %'}</div><div class="l" style="color:var(--ink)">Konversion Anfrage → Auftrag</div></div></div>
     <div class="kpi">${ring(nfq==null?0:nfq,56,C.offerten)}
@@ -539,71 +563,19 @@ function render(){
     </section>`;
   }
 
-  html+=`<section><h2>Wochenverlauf <em>${weeks.length} Wochen · zwei getrennte Quellen, nie vermischt</em></h2>
-    <div class="sec__body" style="display:flex;flex-direction:column;gap:20px">
+  html+=gruppenkopf('Pipeline','Lead-Generierung — Board Pipeline. Alles, was mit Sales zu tun hat, gehört hierher.');
 
-      <div class="quelle" style="--akz:${C.leads}">
-        <div class="quelle__kopf">
-          <span class="quelle__nr">Bereich 1 · Quelle Pipeline</span>
-          <div>
-            <div class="quelle__t">Leads – Interesse, noch kein Projekt</div>
-            <div class="quelle__s">Board <em>Pipeline</em>. Gezählt wird jedes neu angelegte Lead-Element nach Erstelldatum – also was an Interesse hereinkommt, bevor daraus eine konkrete Anfrage wird.</div>
-          </div>
-          <div class="quelle__sum"><div><b>${sumLeads}</b>Leads in ${weeks.length} Wochen</div></div>
-        </div>
-        <div class="quelle__body">
-          ${verlaufChart(weeks,[{name:'Neue Leads',color:C.leads,get:w=>w.neueLeads}])}
-        </div>
+  const letzteWocheLeads=weeks[weeks.length-1];
+  const sumLeadsQualifiziert=sum(w=>w.neueLeadsQualifiziert);
+  html+=`<section><h2>Leads <em>Rohfunde &amp; qualifiziert</em></h2>
+    <div class="sec__body">
+      <p class="note">Der <em>Lead Crawler</em> legt rohe Funde in der Gruppe «Claude ROH Leads zur Qualifikation» an; sobald der <em>Senior Lead Agent</em> einen Lead qualifiziert, verlässt er diese Gruppe. Gezählt nach aktueller Gruppen-Zugehörigkeit, nicht rückwirkend über die Zeit verfolgt.</p>
+      <div class="row" style="gap:14px">
+        ${statKachel('Lead Crawler · Rohfunde',sumLeads,letzteWocheLeads.neueLeads,letzteWocheLeads.kw)}
+        ${statKachel('Senior Lead Agent · Qualifiziert',sumLeadsQualifiziert,letzteWocheLeads.neueLeadsQualifiziert,letzteWocheLeads.kw)}
       </div>
-
-      <div class="quelle" style="--akz:${C.anfragen}">
-        <div class="quelle__kopf">
-          <span class="quelle__nr">Bereich 2 · Quelle Produktionsübersicht</span>
-          <div>
-            <div class="quelle__t">Betriebsablauf – konkrete Anfragen und Offerten</div>
-            <div class="quelle__s">Board <em>GRAFE Produktionsübersicht</em>, der tatsächlich gelebte Ablauf. Jedes neu angelegte Element ist eine neue Anfrage, unabhängig vom Bearbeitungsstand; die Offerten zählen über das Subelement <em>Offerte erstellen</em>.</div>
-          </div>
-          <div class="quelle__sum">
-            <div><b>${sumAnfragen}</b>Anfragen</div>
-            <div><b>${sumOffertenErstellt}</b>Offerten</div>
-          </div>
-        </div>
-        <div class="quelle__body">
-          ${legendeInline([
-            {label:'Neue Anfragen',color:C.anfragen},
-            {label:'Offerten erstellt',color:C.offerten}
-          ])}
-          ${verlaufChart(weeks,[
-            {name:'Anfragen',color:C.anfragen,get:w=>w.neueAnfragen},
-            {name:'Offerten',color:C.offerten,unten:true,get:w=>w.offertenErstellt}
-          ])}
-        </div>
-      </div>
-
-      <p class="note" style="margin:0">Bereich 1 und Bereich 2 haben verschiedene Grössenordnungen und stehen deshalb in getrennten Diagrammen – ein gemeinsames Raster würde die Leads optisch verschwinden lassen. Wie viele Anfragen aus Bereich 1 kommen, steht unten in <em>Herkunft der Anfragen</em>.</p>
     </div>
   </section>`;
-
-  html+=`<div class="row" style="gap:16px">
-    <section class="grow" style="min-width:420px"><h2>Herkunft der Anfragen</h2>
-      <div class="sec__body">
-        <p class="note">Über die Element-ID bestimmt, die jeden Board-Wechsel übersteht: kam die Anfrage aus einem zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst – etwa über den KALLE-KULATOR ohne Lead-Station?</p>
-        ${splitBar([
-          {label:'Direkt erfasst',value:sumAnfragenDirekt,color:C.anfragen},
-          {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:C.leads}
-        ],'Anfragen')}
-      </div>
-    </section>
-    <section class="grow" style="min-width:420px"><h2>Abschluss-Quote <em>im Zeitraum</em></h2>
-      <div class="sec__body">
-        <p class="note">Über die Gruppen-Zugehörigkeit bestimmt: «Verloren / Abgesagt» gilt als abgelehnt, alles jenseits der Anfrage- und Offertprüfungs-Gruppen als gewonnen. <em>Annahme, mit Sven noch gegenzuchecken.</em></p>
-        ${splitBar([
-          {label:'Gewonnen',value:REPORT.kpis.gewonnen,color:C.good},
-          {label:'Abgelehnt',value:REPORT.kpis.abgelehnt,color:C.bad}
-        ],'entschieden')}
-      </div>
-    </section>
-  </div>`;
 
   const perfFarbe={'im-ziel':C.good,'unter-ziel':C.bad,'ueber-ziel':C.offerten,'keine-daten':C.neutral};
   const perfText={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
@@ -611,6 +583,9 @@ function render(){
   html+=`<section><h2>Sales · Performance-Indikator <em>Ziel 4 – 8 bearbeitete Leads pro Tag</em></h2>
     <div class="sec__body">
       <p class="note">Aus dem Activity-Log beider Boards. Bewusst ohne Klarnamen – die Kennzahl beschreibt die Rolle, nicht die Person.</p>
+      <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
+        <em>Wie die Zahl zustande kommt:</em> pro Tag werden die <em>eindeutigen</em> Leads gezählt, an denen Sales mindestens eine Bearbeitung, Verschiebung oder einen Kommentar vorgenommen hat (Mehrfach-Bearbeitung desselben Leads am selben Tag zählt nur einmal). Diese Tageszahlen werden über die bereits verstrichenen Werktage der Woche gemittelt: Summe bearbeiteter Leads ÷ Anzahl Werktage bis heute.
+      </p>
       <div class="row" style="align-items:center;gap:18px;margin-bottom:16px">
         <div style="display:flex;align-items:center;gap:13px">
           <div style="width:10px;height:38px;background:${perfFarbe[letzteWoche.salesPerformance.status]}"></div>
@@ -640,7 +615,7 @@ function render(){
             {name:'Bearbeitungen',color:C.warn,get:w=>w.sales.bearbeitungen},
             {name:'Verschoben',color:C.bad,get:w=>w.sales.verschoben},
             {name:'Kommentare',color:C.offerten,get:w=>w.sales.kommentare}
-          ],null,flaeche(34+26+340))}
+          ],108,flaeche(34+26+340))}
         </div>
         <div style="min-width:280px;flex:0 1 320px">
           ${splitBar([
@@ -650,12 +625,87 @@ function render(){
           ],'Ereignisse')}
         </div>
       </div>
-      <table style="margin-top:18px">
-        <tr><th>KW</th><th class="num">Bearbeitungen</th><th class="num">Verschoben</th><th class="num">Kommentare</th><th class="num">Aktive Tage</th><th class="num">Ø Leads/Tag</th></tr>
-        ${weeks.map(w=>`<tr><td class="kw">${esc(w.kw)}</td><td class="num">${w.sales.bearbeitungen}</td><td class="num">${w.sales.verschoben}</td><td class="num">${w.sales.kommentare}</td><td class="num">${w.sales.aktiveTage}/7</td><td class="num" style="color:${perfFarbe[w.salesPerformance.status]}">${Number(w.salesPerformance.avgProTag).toFixed(1)}</td></tr>`).join('')}
-      </table>
     </div>
   </section>`;
+
+  html+=gruppenkopf('Produktionsübersicht','Betriebsablauf — Board GRAFE Produktionsübersicht, der tatsächlich gelebte Ablauf von der Anfrage bis zum Abschluss.');
+
+  const letzteWocheKonv=weeks[weeks.length-1];
+  const sumKonversion=sum(w=>w.konversionVorbereitung);
+  html+=`<section><h2>Wochen-Indikator <em>Anfragen → Offertprüfung → Vorbereitung</em></h2>
+    <div class="sec__body">
+      <p class="note">Der wichtigste Indikator: wie viele Anfragen kommen rein, wie viele stecken gerade in welcher Phase, und wie viele schaffen es tatsächlich bis zur Vorbereitung (= Auftrag angenommen). Daraus leitet sich auch die Performance pro Projektleiter unten ab.</p>
+      <div class="row" style="gap:14px;margin-bottom:18px">
+        ${statKachel('Anfragen erfasst · diese Woche',sumAnfragen,letzteWocheKonv.neueAnfragen,letzteWocheKonv.kw)}
+        <div class="stat"><div class="stat__label">Offertanfragen in Bearbeitung</div><div class="stat__n">${REPORT.kpis.inBearbeitungGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Projekt und Offertanfragen»</div></div>
+        <div class="stat"><div class="stat__label">Aktiv offeriert</div><div class="stat__n">${REPORT.kpis.aktivOfferiertGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Offerprüfung Kunde / Vergabe»</div></div>
+        ${statKachel('Konversion zu Vorbereitung',sumKonversion,letzteWocheKonv.konversionVorbereitung,letzteWocheKonv.kw)}
+      </div>
+      <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
+        <em>Wie die Konversion gemessen wird:</em> per Activity-Log wird der exakte Zeitpunkt gesucht, an dem ein Element die Gruppe «Offerprüfung Kunde / Vergabe» verlässt und in «Vorbereitung» wechselt — das ist der Moment, in dem eine Offerte zum Auftrag wird. Gezählt nach dem Datum dieses Wechsels, nicht nach dem aktuellen Stand.
+      </p>
+      ${legendeInline([{label:'Neue Anfragen',color:C.anfragen},{label:'Konversion zu Vorbereitung',color:C.good}])}
+      ${verlaufChart(weeks,[
+        {name:'Anfragen',color:C.anfragen,get:w=>w.neueAnfragen},
+        {name:'Konversion',color:C.good,unten:true,get:w=>w.konversionVorbereitung}
+      ])}
+    </div>
+  </section>`;
+
+  const perfKandidaten=Object.entries(REPORT.mitarbeiter||{})
+    .filter(([n])=>!mitarbeiterFilter||n===mitarbeiterFilter)
+    .sort((a,b)=>b[1].aktivOfferiert-a[1].aktivOfferiert);
+  html+=`<section><h2>Performance pro Projektleiter <em>abgeleitet aus dem Wochen-Indikator</em></h2>
+    <div class="sec__body">
+      <table>
+        <tr><th>Projektleiter</th><th class="num">Anfragen bearbeitet</th><th class="num">In Bearbeitung</th><th class="num">Aktiv offeriert</th><th class="num">Konversion</th></tr>
+        ${perfKandidaten.map(([n,v])=>`<tr><td style="font-weight:700">${esc(n)}</td>
+          <td class="num">${v.anfragenBearbeitet}</td>
+          <td class="num" style="color:var(--muted)">${v.inBearbeitung}</td>
+          <td class="num" style="color:var(--muted)">${v.aktivOfferiert}</td>
+          <td class="num" style="font-weight:700;color:${v.konversion>0?C.good:'var(--muted)'}">${v.konversion}</td></tr>`).join('')
+          || '<tr><td colspan="5" class="empty">Keine Daten</td></tr>'}
+      </table>
+      <p class="note" style="margin:12px 0 0">«In Bearbeitung» und «Aktiv offeriert» sind Momentaufnahmen; «Anfragen bearbeitet» und «Konversion» sind Summen im gewählten Zeitraum.</p>
+    </div>
+  </section>`;
+
+  html+=`<section><h2>Wochenverlauf <em>${weeks.length} Wochen</em></h2>
+    <div class="sec__body">
+      <p class="note">Jedes neu angelegte Element ist eine neue Anfrage, unabhängig vom Bearbeitungsstand; die Offerten zählen über das Subelement <em>Offerte erstellen</em>.</p>
+      ${legendeInline([
+        {label:'Neue Anfragen',color:C.anfragen},
+        {label:'Offerten erstellt',color:C.offerten}
+      ])}
+      ${verlaufChart(weeks,[
+        {name:'Anfragen',color:C.anfragen,get:w=>w.neueAnfragen},
+        {name:'Offerten',color:C.offerten,unten:true,get:w=>w.offertenErstellt}
+      ])}
+      <p class="note" style="margin:14px 0 0">Wie viele Anfragen aus der Pipeline kommen, steht unten in <em>Herkunft der Anfragen</em>.</p>
+    </div>
+  </section>`;
+
+
+  html+=`<div class="row" style="gap:16px">
+    <section class="grow" style="min-width:420px"><h2>Herkunft der Anfragen</h2>
+      <div class="sec__body">
+        <p class="note">Über die Element-ID bestimmt, die jeden Board-Wechsel übersteht: kam die Anfrage aus einem zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst – etwa über den KALLE-KULATOR ohne Lead-Station?</p>
+        ${splitBar([
+          {label:'Direkt erfasst',value:sumAnfragenDirekt,color:C.anfragen},
+          {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:C.leads}
+        ],'Anfragen')}
+      </div>
+    </section>
+    <section class="grow" style="min-width:420px"><h2>Abschluss-Quote <em>im Zeitraum</em></h2>
+      <div class="sec__body">
+        <p class="note">Über die Gruppen-Zugehörigkeit bestimmt: «Verloren / Abgesagt» gilt als abgelehnt, alles jenseits der Anfrage- und Offertprüfungs-Gruppen als gewonnen. <em>Annahme, mit Sven noch gegenzuchecken.</em></p>
+        ${splitBar([
+          {label:'Gewonnen',value:REPORT.kpis.gewonnen,color:C.good},
+          {label:'Abgelehnt',value:REPORT.kpis.abgelehnt,color:C.bad}
+        ],'entschieden')}
+      </div>
+    </section>
+  </div>`;
 
   const statusEntries=Object.entries(REPORT.produktionStatus||{}).sort((a,b)=>b[1]-a[1]);
   html+=`<section><h2>Produktionsübersicht <em>aktueller Status, Momentaufnahme</em></h2>
@@ -666,34 +716,34 @@ function render(){
     </div>
   </section>`;
 
-  /* Vier Stufen des Ablaufs pro Person. Die hinteren zwei liefert das
-     Backend noch nicht – fehlt das Feld, steht die Säule auf 0. */
+  /* Drei Stufen des Ablaufs pro Person. "Rechnung / abgeschlossen" bewusst
+     entfernt — die Gruppe "Abgeschlossen" wird serverseitig nicht mehr
+     abgefragt (grösste Gruppe, für aktuelle Kennzahlen irrelevant, verlangsamte
+     v.a. die Konversions-Suche), die Zahl wäre also immer 0. */
   const STUFEN=[
     {name:'Anfragen bearbeitet',color:C.anfragen,get:it=>it.v.anfragenBearbeitet!=null?it.v.anfragenBearbeitet:(it.v.anfragen!=null?it.v.anfragen:0)},
     {name:'Offerten erstellt',color:C.offerten,get:it=>it.v.offertenErstellt||0},
-    {name:'Projekte in Umsetzung',color:C.leads,get:it=>it.v.inUmsetzung!=null?it.v.inUmsetzung:0},
-    {name:'Rechnung / abgeschlossen',color:C.good,get:it=>it.v.abgeschlossen!=null?it.v.abgeschlossen:(it.v.inRechnung||0)}
+    {name:'Projekte in Umsetzung',color:C.leads,get:it=>it.v.inUmsetzung!=null?it.v.inUmsetzung:0}
   ];
   let mitarbeiterEntries=Object.entries(REPORT.mitarbeiter||{});
   if(mitarbeiterFilter) mitarbeiterEntries=mitarbeiterEntries.filter(([n])=>n===mitarbeiterFilter);
   const mItems=mitarbeiterEntries.map(([name,v])=>({name,v}));
   mItems.sort((a,b)=>STUFEN.reduce((s,f2)=>s+f2.get(b),0)-STUFEN.reduce((s,f2)=>s+f2.get(a),0));
-  const fehlendeFelder=!mItems.some(it=>it.v.inUmsetzung!=null||it.v.abgeschlossen!=null);
-  html+=`<section><h2>Mitarbeiterübersicht <em>Anfrage → Offerte → Umsetzung → Rechnung</em></h2>
+  html+=`<section><h2>Mitarbeiterübersicht <em>Anfrage → Offerte → Umsetzung</em></h2>
     <div class="sec__body">
-      <p class="note">Eine Säulengruppe pro Person, eine Säule pro Stufe des Ablaufs – so ist auf einen Blick sichtbar, wo jemand steht: viele Anfragen, aber wenige Offerten heisst Rückstand vorne; viel Umsetzung bei wenig Neuem heisst gebunden in laufenden Projekten. Summen im gewählten Zeitraum.${fehlendeFelder?' <em>Umsetzung und Rechnung liefert das Backend noch nicht – nötig sind die Felder inUmsetzung und abgeschlossen pro Mitarbeiter.</em>':''}</p>
+      <p class="note">Eine Säulengruppe pro Person, eine Säule pro Stufe des Ablaufs – so ist auf einen Blick sichtbar, wo jemand steht: viele Anfragen, aber wenige Offerten heisst Rückstand vorne; viel Umsetzung bei wenig Neuem heisst gebunden in laufenden Projekten. Summen im gewählten Zeitraum. Abgeschlossene Projekte sind bewusst ausgeklammert (siehe Wochen-Indikator oben für die aktuelle Konversion).</p>
       ${legendeInline(STUFEN.map(s=>({label:s.name,color:s.color})))}
       ${mItems.length?saeulenChart(mItems,STUFEN):'<div class="empty">Keine Daten</div>'}
       <table style="margin-top:18px">
         <tr><th>Mitarbeiter</th>
           <th class="num">Anfragen bearbeitet</th><th class="num">Offerten erstellt</th>
-          <th class="num">In Umsetzung</th><th class="num">Rechnung / abgeschl.</th>
+          <th class="num">In Umsetzung</th>
           <th class="num">In Offertbearbeitung</th><th class="num">Offerte beim Kunden</th></tr>
         ${mItems.map(it=>`<tr><td style="font-weight:700">${esc(it.name)}</td>
           ${STUFEN.map(s=>`<td class="num">${s.get(it)}</td>`).join('')}
           <td class="num" style="color:var(--muted)">${it.v.inOffertbearbeitung}</td>
           <td class="num" style="color:var(--muted)">${it.v.offerteBeimKunde}</td></tr>`).join('')
-          || '<tr><td colspan="7" class="empty">Keine Daten</td></tr>'}
+          || '<tr><td colspan="6" class="empty">Keine Daten</td></tr>'}
       </table>
       <p class="note" style="margin:12px 0 0">Die letzten zwei Spalten sind Momentaufnahmen – aktueller Stand, nicht zeitraumgebunden.</p>
     </div>
@@ -702,7 +752,25 @@ function render(){
   let nfEntries=Object.entries(REPORT.nachfassProMitarbeiter||{});
   if(mitarbeiterFilter) nfEntries=nfEntries.filter(([n])=>n===mitarbeiterFilter);
   nfEntries.sort((a,b)=>b[1].faellig-a[1].faellig);
-  html+=`<section><h2>Nachfassquote pro Mitarbeiter</h2>
+  const nfWochenSum={faellig:weeks.reduce((a,w)=>a+w.nachfass.faellig,0),nachgefasst:weeks.reduce((a,w)=>a+w.nachfass.nachgefasst,0)};
+  const nfWochenPct=weeks.map(w=>w.nachfass.faellig?Math.round(w.nachfass.nachgefasst/w.nachfass.faellig*100):null);
+  html+=`<section><h2>Nachfassquote pro Mitarbeiter <em>Trend über ${weeks.length} Wochen</em></h2>
+    <div class="sec__body">
+      <p class="note">Fällig/Woche = Nachfassungen, deren Termin in dieser Woche erreicht wurde. Nachgefasst = Subitem-Status «Fertig». ${nfWochenSum.faellig?Math.round(nfWochenSum.nachgefasst/nfWochenSum.faellig*100)+' % über den ganzen Zeitraum.':''}</p>
+      ${legendeInline([{label:'Fällig',color:C.warn},{label:'Nachgefasst',color:C.good}])}
+      ${verlaufChart(weeks,[
+        {name:'Fällig',color:C.warn,get:w=>w.nachfass.faellig},
+        {name:'Nachgefasst',color:C.good,unten:true,get:w=>w.nachfass.nachgefasst}
+      ])}
+      <table style="margin-top:14px">
+        <tr><th>KW</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th class="num">Quote</th></tr>
+        ${weeks.map((w,i)=>`<tr><td class="kw">${esc(w.kw)}</td><td class="num">${w.nachfass.faellig}</td><td class="num">${w.nachfass.nachgefasst}</td>
+          <td class="num" style="color:${nfWochenPct[i]==null?'var(--muted)':nfWochenPct[i]>=80?C.good:nfWochenPct[i]>=50?C.warn:C.bad}">${nfWochenPct[i]==null?'–':nfWochenPct[i]+' %'}</td></tr>`).join('')}
+      </table>
+    </div>
+  </section>`;
+
+  html+=`<section><h2>Nachfassquote pro Mitarbeiter <em>Summe im Zeitraum</em></h2>
     <div class="sec__body">
       <table>
         <tr><th>Mitarbeiter</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th style="width:210px">Quote</th></tr>
@@ -753,9 +821,9 @@ const DEMO=(function(){
     [11,21,14,16,'2026-38',[95,14, 7,5,5.4,'im-ziel',27]]
   ];
   const weeks=roh.map(r=>({
-    kw:r[4], neueLeads:r[0], neueAnfragen:r[1],
+    kw:r[4], neueLeads:r[0], neueLeadsQualifiziert:Math.round(r[0]*0.62), neueAnfragen:r[1],
     neueAnfragenDirekt:r[2], neueAnfragenAusLead:r[1]-r[2],
-    offertenErstellt:r[3],
+    offertenErstellt:r[3], konversionVorbereitung:Math.round(r[3]*0.55),
     sales:{bearbeitungen:r[5][0],verschoben:r[5][1],kommentare:r[5][2],aktiveTage:r[5][3]},
     salesPerformance:{avgProTag:r[5][4],status:r[5][5],leadsBearbeitet:r[5][6],werktage:5}
   }));
@@ -767,17 +835,18 @@ const DEMO=(function(){
       auftragsbestandGesamt:784849, eingangsrechnungenBisStichtag:583000, gutschriften:19621,
       jahreszielUmsatz:2500000
     },
-    kpis:{konversionProzent:42,nachfassquoteProzent:65,gewonnen:52,abgelehnt:72},
+    kpis:{konversionProzent:42,nachfassquoteProzent:65,gewonnen:52,abgelehnt:72,auftragsvolumenOffen:284650,
+      inBearbeitungGesamt:34,aktivOfferiertGesamt:22,konversionVorbereitungGesamt:47},
     produktionStatus:{
       'Projekt und Offertanfragen':41,'Offerprüfung Kunde / Vergabe':57,'Vorbereitung':63,
       'Produktion':88,'Montage':34,'Abgeschlossen':1102,'Verloren / Abgesagt':100
     },
     mitarbeiter:{
-      Claudia: {leads:38,anfragenBearbeitet:71,offertenErstellt:58,inUmsetzung:19,abgeschlossen:24,inOffertbearbeitung:7,offerteBeimKunde:16},
-      Daniel:  {leads:29,anfragenBearbeitet:59,offertenErstellt:47,inUmsetzung:14,abgeschlossen:19,inOffertbearbeitung:5,offerteBeimKunde:13},
-      Benjamin:{leads:24,anfragenBearbeitet:52,offertenErstellt:41,inUmsetzung:12,abgeschlossen:16,inOffertbearbeitung:4,offerteBeimKunde:12},
-      Zora:    {leads:33,anfragenBearbeitet:44,offertenErstellt:34,inUmsetzung: 9,abgeschlossen:11,inOffertbearbeitung:5,offerteBeimKunde:9},
-      Sven:    {leads:26,anfragenBearbeitet:33,offertenErstellt:24,inUmsetzung: 7,abgeschlossen: 9,inOffertbearbeitung:2,offerteBeimKunde:7}
+      Claudia: {leads:38,anfragenBearbeitet:71,offertenErstellt:58,inUmsetzung:19,abgeschlossen:24,inOffertbearbeitung:7,offerteBeimKunde:16,inBearbeitung:11,aktivOfferiert:8,konversion:16},
+      Daniel:  {leads:29,anfragenBearbeitet:59,offertenErstellt:47,inUmsetzung:14,abgeschlossen:19,inOffertbearbeitung:5,offerteBeimKunde:13,inBearbeitung:8,aktivOfferiert:6,konversion:13},
+      Benjamin:{leads:24,anfragenBearbeitet:52,offertenErstellt:41,inUmsetzung:12,abgeschlossen:16,inOffertbearbeitung:4,offerteBeimKunde:12,inBearbeitung:6,aktivOfferiert:4,konversion:9},
+      Zora:    {leads:33,anfragenBearbeitet:44,offertenErstellt:34,inUmsetzung: 9,abgeschlossen:11,inOffertbearbeitung:5,offerteBeimKunde:9,inBearbeitung:5,aktivOfferiert:3,konversion:6},
+      Sven:    {leads:26,anfragenBearbeitet:33,offertenErstellt:24,inUmsetzung: 7,abgeschlossen: 9,inOffertbearbeitung:2,offerteBeimKunde:7,inBearbeitung:4,aktivOfferiert:1,konversion:3}
     },
     nachfassProMitarbeiter:{
       Claudia:{faellig:19,nachgefasst:14}, Daniel:{faellig:16,nachgefasst:11},
