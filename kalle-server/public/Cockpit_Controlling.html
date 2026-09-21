@@ -4,84 +4,191 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>KALLE · Controlling</title>
+
+<!-- ═══════════════════════════════════════════════════════════════════
+     KALLE · CONTROLLING — Grafe-CI
+     ───────────────────────────────────────────────────────────────────
+     Gleiche Datei wie zuvor, nur neu eingekleidet: Grafe-Tokens, Filson
+     Pro, scharfe Ecken, zwei Weltenfarben (Gelb/Oliv) statt Monday-Bunt.
+     Unverändert und damit weiter direkt einsetzbar:
+       · Endpunkte  /controlling/data · /controlling/refresh(/status)
+       · REPORT-Struktur, alle Feldnamen
+       · Element-IDs fWochen, fMitarbeiter, btnRefresh, main, meta,
+         progressWrap, progressFill, progressLabel
+     Schrift: Filson Pro liegt als OTF in ./fonts/ (wie in den REAKTOR-
+     Screens). Fehlt der Ordner, greift system-ui – Layout bleibt heil.
+     Ohne erreichbaren Server zeigt die Seite Demo-Zahlen mit Hinweis,
+     damit sie sich auch ohne kalle.grafe.ch anschauen lässt.
+     ═══════════════════════════════════════════════════════════════════ -->
+
 <style>
+/* Filson Pro – gleiche Pfade wie im Cockpit (./fonts/) */
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:400;font-display:swap;src:url('fonts/FilsonProRegular.otf') format('opentype')}
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:500;font-display:swap;src:url('fonts/FilsonProMedium.otf') format('opentype')}
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:700;font-display:swap;src:url('fonts/FilsonProBold.otf') format('opentype')}
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/FilsonProHeavy.otf') format('opentype')}
+@font-face{font-family:'Filson Pro';font-style:normal;font-weight:900;font-display:swap;src:url('fonts/FilsonProBlack.otf') format('opentype')}
+
+/* ── Tokens · 1:1 aus KALLE_Cockpit_Beta.html ────────────────────── */
 :root{
-  --bg:#14151a; --surface:#1b1d24; --surface2:#20222b; --border:#2c2f3a;
-  --text:#eef0f4; --muted:#8b93a1; --accent:#FAE017; --accent2:#ffcb00;
-  --good:#00c875; --warn:#fdab3d; --bad:#df2f4a; --blue:#579bfc; --purple:#9d50dd;
+  --gold:#FAE017; --gold-d:#8a7000; --gold-bg:#FFFBE0; --gold-bd:#F0E29A; --on-gold:#3a3200;
+  --bg:#FAFAF6; --panel:#fff; --ink:#171714; --muted:#6b6b62; --bd:#e6e4da; --sub:#F5F4EE;
+  --shadow:0 1px 2px rgba(20,20,15,.04);
+  /* Funktionsfarben, auf hellem Grund lesbar */
+  --good:#3E9E63; --warn:#C9761F; --bad:#D9402F; --teal:#1F9A9A; --olive:#8A9070;
+  --titel:'Filson Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
+  --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
 }
-*{box-sizing:border-box;}
-body{margin:0;background:var(--bg);color:var(--text);font-family:Inter,system-ui,sans-serif;font-size:14px;}
-h1,h2,.brand{font-family:Syne,Inter,sans-serif;}
-header{position:sticky;top:0;z-index:10;background:var(--surface);border-bottom:1px solid var(--border);
-  padding:14px 20px;display:flex;align-items:center;gap:16px;flex-wrap:wrap;}
-.brand{font-weight:800;font-size:18px;color:var(--accent);letter-spacing:.3px;}
-.brand span{color:var(--text);font-weight:600;}
-.meta{color:var(--muted);font-size:12px;margin-right:auto;}
-select,button{background:var(--surface2);border:1px solid var(--border);color:var(--text);
-  border-radius:8px;padding:8px 12px;font-size:13px;font-family:inherit;cursor:pointer;}
-button.primary{background:var(--accent);color:#1a1a1a;font-weight:700;border-color:var(--accent);}
-button.primary:disabled{opacity:.6;cursor:default;}
-main{padding:20px;max-width:1220px;margin:0 auto;animation:fadeIn .45s ease;}
-@keyframes fadeIn{from{opacity:0;transform:translateY(8px);}to{opacity:1;transform:translateY(0);}}
-.progressWrap{display:none;margin:0 auto 16px;max-width:1220px;padding:0 20px;}
-.progressWrap.on{display:block;}
-.progressBar{height:7px;background:var(--surface2);border-radius:5px;overflow:hidden;border:1px solid var(--border);}
-.progressFill{height:100%;background:linear-gradient(90deg,var(--accent2),var(--accent));width:0%;transition:width .3s;}
-.progressLabel{font-size:12px;color:var(--muted);margin-top:6px;}
+*,*::before,*::after{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);
+  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+  font-size:14px;line-height:1.45}
+a{color:var(--gold-d)}
+.wrap{width:85%;max-width:1900px;margin:0 auto;padding:18px 22px 60px}
 
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:20px;}
-.kpi{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:16px;
-  display:flex;align-items:center;gap:12px;}
-.kpi .txt{flex:1;}
-.kpi .n{font-size:28px;font-weight:800;font-family:Syne,sans-serif;line-height:1;}
-.kpi .l{font-size:11.5px;color:var(--muted);margin-top:6px;}
-.kpi svg{flex-shrink:0;}
+/* ── Kopfzeile ───────────────────────────────────────────────────── */
+.top{display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
+.logo{display:inline-flex;align-items:center;gap:2px;font-family:var(--titel);font-weight:800;font-size:20px;letter-spacing:-.3px}
+.logo .k{color:var(--ink);background:var(--gold);padding:2px 8px;border-radius:5px;margin-right:2px}
+.logo svg{height:20px;width:auto;margin-right:10px;color:var(--ink)}
+.crumb{font-size:12.5px;color:var(--muted)}
+.crumb b{color:var(--ink)}
+.conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px}
+.conn.ok{color:#2f9d54;background:#e6efe8;border:1px solid #bfe0c8}
+.conn.bad{color:#8a7000;background:var(--gold-bg);border:1px solid var(--gold-bd)}
+.conn .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.conn.ok .dot{animation:blink 1.6s infinite}
+@keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
+.spacer{flex:1}
 
-section{background:var(--surface);border:1px solid var(--border);border-radius:14px;padding:20px;margin-bottom:18px;}
-section h2{margin:0 0 14px;font-size:15px;color:var(--accent);font-weight:700;}
-.row{display:flex;gap:24px;flex-wrap:wrap;align-items:center;}
-.row .grow{flex:1;min-width:280px;}
+select{appearance:none;border:1px solid var(--bd);background:#fff;border-radius:8px;
+  padding:7px 30px 7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b62' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+  background-repeat:no-repeat;background-position:right 10px center}
+select:focus{outline:none;border-color:var(--gold-d);box-shadow:0 0 0 3px var(--gold-bg)}
+button{border:none;border-radius:9px;padding:9px 15px;font:inherit;font-size:13px;font-weight:700;
+  cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
+button.primary{background:var(--gold);color:var(--on-gold)}
+button.primary:hover{background:var(--gold-d);color:#fff}
+button.primary:disabled{opacity:.5;cursor:not-allowed;background:var(--gold);color:var(--on-gold)}
 
-table{width:100%;border-collapse:collapse;font-size:13px;}
-th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);}
-th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px;}
-td.num{text-align:right;font-variant-numeric:tabular-nums;}
+/* ── Fortschritt beim Neuladen ───────────────────────────────────── */
+.progressWrap{display:none;margin-bottom:16px}
+.progressWrap.on{display:block}
+.progressBar{height:7px;background:var(--sub);border:1px solid var(--bd);border-radius:5px;overflow:hidden}
+.progressFill{height:100%;width:0;background:var(--gold);border-radius:5px;transition:width .3s linear}
+.progressLabel{margin-top:7px;font-size:12px;color:var(--muted)}
 
-.legend{display:flex;flex-direction:column;gap:9px;font-size:12.5px;min-width:170px;}
-.legend .row2{display:flex;justify-content:space-between;gap:10px;}
-.legend .dot{display:inline-block;width:9px;height:9px;border-radius:3px;margin-right:7px;vertical-align:middle;}
-.legend .name{color:var(--text);}
-.legend .val{color:var(--muted);font-variant-numeric:tabular-nums;}
+main{display:flex;flex-direction:column;gap:14px}
 
-.miniBar{height:6px;border-radius:4px;background:var(--surface2);overflow:hidden;margin-top:4px;}
-.miniBar i{display:block;height:100%;border-radius:4px;}
+/* ── Kennzahlkacheln ─────────────────────────────────────────────── */
+.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px}
+.kpi{display:flex;align-items:center;gap:14px;padding:15px 16px;background:var(--panel);
+  border:1px solid var(--bd);border-radius:14px;box-shadow:var(--shadow)}
+.kpi--lead{background:var(--gold-bg);border-color:var(--gold-bd)}
+.kpi .txt{flex:1;min-width:0}
+.kpi .n{font-family:var(--titel);font-weight:800;font-size:27px;line-height:1;letter-spacing:-.02em}
+.kpi .l{margin-top:7px;font-size:11.5px;color:var(--muted)}
+.kpi__key{width:10px;height:28px;border-radius:3px;flex:none}
+.kpi svg{flex-shrink:0}
 
-.empty{color:var(--muted);text-align:center;padding:40px 0;}
+/* ── Abschnitte ──────────────────────────────────────────────────── */
+section{background:var(--panel);border:1px solid var(--bd);border-radius:14px;box-shadow:var(--shadow)}
+section h2{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0;
+  padding:13px 16px;border-bottom:1px solid var(--bd);
+  font-family:var(--titel);font-size:13.5px;font-weight:800;letter-spacing:-.01em}
+section h2 em{font-style:normal;font-size:11.5px;font-weight:500;color:var(--muted);font-family:inherit;white-space:nowrap}
+.sec__body{padding:16px}
+.note{margin:0 0 14px;max-width:820px;font-size:12px;line-height:1.5;color:var(--muted);text-wrap:pretty}
+.note em{font-style:normal;font-weight:700;color:var(--ink)}
+.row{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start}
+.row .grow{flex:1;min-width:300px}
+
+/* ── Tabellen ────────────────────────────────────────────────────── */
+table{width:100%;border-collapse:collapse}
+th,td{padding:9px 10px;text-align:left;border-bottom:1px solid var(--bd)}
+th{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+td{font-size:13px}
+tr:last-child td{border-bottom:0}
+td.num,th.num{text-align:right;font-variant-numeric:tabular-nums}
+td.num{font-family:var(--mono);font-weight:600;font-size:12.5px}
+td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
+
+/* ── Anteilsbalken statt Ringdiagramm ────────────────────────────── */
+.split{display:flex;height:32px;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.split__seg{min-width:2px;transition:opacity .15s}
+.split:hover .split__seg{opacity:.82}
+.legend{display:flex;flex-direction:column;min-width:230px}
+.legend .row2{display:flex;align-items:baseline;justify-content:space-between;gap:14px;
+  padding:7px 0;border-bottom:1px solid var(--bd)}
+.legend .row2:last-child{border-bottom:0}
+.legend .name{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600}
+.legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.legend .val{font-family:var(--mono);font-weight:700;font-size:12.5px;white-space:nowrap}
+.legend .pct{margin-left:8px;font-weight:400;color:var(--muted)}
+.total{display:flex;align-items:baseline;gap:9px;margin-bottom:12px}
+.total__n{font-family:var(--titel);font-weight:900;font-size:30px;line-height:1;letter-spacing:-.025em}
+.total__l{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
+
+/* ── Quellen-Panel im Wochenverlauf ──────────────────────────────── */
+.quelle{border:1px solid var(--bd);border-left:4px solid var(--akz);border-radius:11px;overflow:hidden;background:#fff}
+.quelle__kopf{display:flex;align-items:flex-start;gap:14px;padding:13px 16px;
+  border-bottom:1px solid var(--bd);background:var(--sub)}
+.quelle__nr{flex:none;margin-top:2px;padding:4px 10px;border-radius:100px;background:var(--akz);
+  color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
+.quelle__t{font-family:var(--titel);font-weight:800;font-size:15.5px;letter-spacing:-.01em}
+.quelle__s{margin-top:5px;max-width:700px;font-size:12px;line-height:1.5;color:var(--muted)}
+.quelle__s em{font-style:normal;font-weight:700;color:var(--ink)}
+.quelle__sum{margin-left:auto;display:flex;gap:22px;text-align:right;white-space:nowrap}
+.quelle__sum div{font-size:11px;color:var(--muted)}
+.quelle__sum b{display:block;font-family:var(--titel);font-weight:900;font-size:23px;line-height:1.15;
+  letter-spacing:-.02em;color:var(--ink)}
+.quelle__body{padding:16px 14px 10px}
+
+.miniBar{height:7px;background:var(--sub);border:1px solid var(--bd);border-radius:5px;overflow:hidden}
+.miniBar i{display:block;height:100%;border-radius:5px}
+.quote{display:flex;align-items:center;gap:10px}
+.quote span{width:38px;text-align:right;font-family:var(--mono);font-weight:700;font-size:12.5px}
+
+.chipStatus{display:inline-block;padding:3px 8px;background:var(--sub);border:1px solid var(--bd);
+  border-radius:6px;font-size:11px;font-weight:800}
+.empty{padding:36px 0;text-align:center;font-size:12.5px;color:var(--muted)}
+.hintDemo{display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--gold-bg);
+  border:1px solid var(--gold-bd);border-radius:11px;font-size:12.5px;color:var(--ink)}
+.hintDemo b{font-weight:800}
+.hintDemo em{font-style:normal;font-weight:700}
+.hintDemo__mark{width:19px;height:19px;flex:none;display:grid;place-items:center;border-radius:5px;
+  background:var(--gold);color:var(--on-gold);font-weight:800;font-size:11px}
 </style>
 </head>
 <body>
 
-<header>
-  <div class="brand">KALLE <span>· Controlling</span></div>
-  <div class="meta" id="meta">lädt…</div>
-  <select id="fWochen" onchange="render()">
-    <option value="4">4 Wochen</option>
-    <option value="8">8 Wochen</option>
-    <option value="13" selected>13 Wochen (~3 Monate)</option>
-  </select>
-  <select id="fMitarbeiter" onchange="render()"><option value="">Alle Mitarbeiter</option></select>
-  <button class="primary" id="btnRefresh" onclick="refresh()">↻ Aktualisieren</button>
-</header>
+<div class="wrap">
 
-<div class="progressWrap" id="progressWrap">
-  <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
-  <div class="progressLabel" id="progressLabel">–</div>
+  <div class="top">
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:20px;width:auto;display:block"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg><span class="k">K</span>ALLE</div>
+    <div class="crumb">Cockpit · <b>Controlling</b></div>
+    <span class="conn bad" id="conn"><span class="dot"></span>lädt …</span>
+    <span class="spacer"></span>
+    <div class="crumb" id="meta">lädt …</div>
+    <select id="fWochen" onchange="render()">
+      <option value="4">4 Wochen</option>
+      <option value="8">8 Wochen</option>
+      <option value="13" selected>13 Wochen (~3 Monate)</option>
+    </select>
+    <select id="fMitarbeiter" onchange="render()"><option value="">Alle Mitarbeiter</option></select>
+    <button class="primary" id="btnRefresh" onclick="refresh()">Aktualisieren</button>
+  </div>
+
+  <div class="progressWrap" id="progressWrap">
+    <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
+    <div class="progressLabel" id="progressLabel">–</div>
+  </div>
+
+  <main id="main">
+    <div class="empty">lädt …</div>
+  </main>
 </div>
-
-<main id="main">
-  <div class="empty">lädt…</div>
-</main>
 
 <script>
 function serverUrl(){
@@ -89,23 +196,41 @@ function serverUrl(){
   return localStorage.getItem('kalle_server_url')||'http://localhost:8765';
 }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const chf=n=>n==null?'–':'CHF '+Math.round(n).toLocaleString('de-CH');
 const SALES_ZIEL_MIN=4, SALES_ZIEL_MAX=8;
 
-let REPORT=null, polling=null;
+/* Farbrollen – zwei Weltenfarben plus die drei Funktionsfarben.
+   Bewusst nur fünf, damit die Diagramme ruhig bleiben. */
+const C={
+  leads:'#8A9070',      /* Oliv, auf Weiss abgedunkelt · Pipeline */
+  anfragen:'#C9A400',   /* Gelb, auf Weiss abgedunkelt · Produktionsübersicht */
+  gold:'#FAE017',       /* Flächengelb für Kacheln und Balken */
+  offerten:'#1F9A9A',   /* Teal · Offerten */
+  good:'#3E9E63', warn:'#C9761F', bad:'#D9402F',
+  neutral:'#9A9A91'
+};
+const STATUSFARBEN=[C.gold,C.leads,C.offerten,C.good,C.warn,C.bad,'#B9B8AE','#DCDBD2'];
+
+let REPORT=null, polling=null, demo=false;
+
+/* Antwort nur dann als JSON lesen, wenn wirklich JSON kommt – ein leerer
+   404-Körper hat die Seite sonst im Leerzustand stehen lassen. */
+async function jsonOderNull(r){
+  if(!r || !r.ok) return null;
+  try{ return JSON.parse(await r.text()); }catch(e){ return null; }
+}
+/* Rückfall auf Demo-Zahlen, solange keine echten Daten da sind. */
+function zeigeDemo(){
+  REPORT=DEMO; demo=true; populateFilters(); render();
+}
 
 async function boot(){
-  try{
-    const r=await fetch(serverUrl()+'/controlling/data');
-    if(r.status===404){ REPORT=null; renderEmpty(); refresh(); return; }
-    const d=await r.json();
-    if(!d.ok) throw new Error(d.msg||'Fehler');
-    REPORT=d; populateFilters(); render();
-  }catch(e){
-    document.getElementById('main').innerHTML='<div class="empty">Kein Server erreichbar oder noch kein Report. '+esc(e.message)+'</div>';
-  }
-}
-function renderEmpty(){
-  document.getElementById('main').innerHTML='<div class="empty">Noch kein Report generiert — Aktualisierung läuft automatisch...</div>';
+  let d=null;
+  try{ d=await jsonOderNull(await fetch(serverUrl()+'/controlling/data')); }catch(e){}
+  if(d && d.ok){ REPORT=d; demo=false; populateFilters(); render(); return; }
+  /* Noch kein Report: Aktualisierung anstossen, bis dahin Demo-Zahlen zeigen. */
+  if(!REPORT || demo) zeigeDemo();
+  refresh(true);
 }
 function populateFilters(){
   const sel=document.getElementById('fMitarbeiter');
@@ -113,34 +238,36 @@ function populateFilters(){
   sel.innerHTML='<option value="">Alle Mitarbeiter</option>'+names.map(n=>`<option value="${esc(n)}">${esc(n)}</option>`).join('');
 }
 
-async function refresh(){
+async function refresh(still){
   const btn=document.getElementById('btnRefresh');
-  btn.disabled=true; btn.textContent='läuft…';
+  btn.disabled=true; btn.textContent='läuft …';
   document.getElementById('progressWrap').classList.add('on');
-  try{
-    const r=await fetch(serverUrl()+'/controlling/refresh',{method:'POST'});
-    const d=await r.json();
-    if(!d.ok) throw new Error('Start fehlgeschlagen');
-    poll(d.jobId);
-  }catch(e){
-    btn.disabled=false; btn.textContent='↻ Aktualisieren';
-    document.getElementById('progressLabel').textContent='Fehler: '+e.message;
-  }
+  let d=null;
+  try{ d=await jsonOderNull(await fetch(serverUrl()+'/controlling/refresh',{method:'POST'})); }catch(e){}
+  if(d && d.ok){ poll(d.jobId); return; }
+  btn.disabled=false; btn.textContent='Aktualisieren';
+  document.getElementById('progressWrap').classList.remove('on');
+  document.getElementById('progressLabel').textContent='–';
+  /* Server nicht erreichbar: beim Seitenstart lautlos in die Demo,
+     auf Knopfdruck mit Meldung in der Kopfzeile. */
+  if(!REPORT) zeigeDemo();
+  if(!still) document.getElementById('meta').textContent=
+    'Server nicht erreichbar · '+(demo?'Demo-Zahlen':'Stand von vorhin');
 }
 function poll(jobId){
   clearInterval(polling);
   polling=setInterval(async ()=>{
     try{
-      const r=await fetch(serverUrl()+'/controlling/refresh/status');
-      const d=await r.json();
+      const d=await jsonOderNull(await fetch(serverUrl()+'/controlling/refresh/status'));
+      if(!d) throw new Error('kein Status');
       document.getElementById('progressFill').style.width=(d.progress||0)+'%';
       document.getElementById('progressLabel').textContent=(d.step||'')+' ('+(d.progress||0)+'%)';
       if(d.done){
         clearInterval(polling);
         document.getElementById('btnRefresh').disabled=false;
-        document.getElementById('btnRefresh').textContent='↻ Aktualisieren';
+        document.getElementById('btnRefresh').textContent='Aktualisieren';
         document.getElementById('progressWrap').classList.remove('on');
-        if(d.error){ document.getElementById('main').innerHTML='<div class="empty">Fehler bei Aktualisierung: '+esc(d.error)+'</div>'; return; }
+        if(d.error){ document.getElementById('main').innerHTML='<div class="empty">Fehler bei der Aktualisierung: '+esc(d.error)+'</div>'; return; }
         boot();
       }
     }catch(e){ clearInterval(polling); }
@@ -148,277 +275,505 @@ function poll(jobId){
 }
 
 function lastNWeeks(weeks,n){ return weeks.slice(Math.max(0,weeks.length-n)); }
+const kwKurz=kw=>String(kw).replace(/^\d+-/,'');
+/* Fehlender Fallback für render() vor dem ersten boot()-Abschluss (z.B. sehr
+   schneller Filter-Wechsel) — ohne das crasht render() mit ReferenceError. */
+function renderEmpty(){
+  document.getElementById('main').innerHTML='<div class="empty">lädt …</div>';
+}
 
-// ─── Chart-Bausteine (reines SVG, keine externe Lib) ─────────────────────
+/* ═══ Diagramme · reines SVG, scharfe Kanten ════════════════════════ */
 
-// Ring-Diagramm für eine einzelne Kennzahl in Prozent (z.B. Konversion)
+/* Ring für eine Prozentzahl (Konversion, Nachfassquote).
+   Echte Kreise sind die einzige Rundung, die die Marke zulässt. */
 function ring(percent,size,color){
-  size=size||58; const th=7;
+  size=size||56; const th=6;
   const r=(size-th)/2, cx=size/2, cy=size/2, circ=2*Math.PI*r;
   const p=Math.max(0,Math.min(100,percent||0));
   const dash=(p/100)*circ;
-  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="var(--surface2)" stroke-width="${th}"></circle>
-    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${th}" stroke-linecap="round"
+  return `<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}" aria-hidden="true">
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="#EFEEE7" stroke-width="${th}"></circle>
+    <circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${color}" stroke-width="${th}"
       stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" transform="rotate(-90 ${cx} ${cy})"></circle>
-    <text x="${cx}" y="${cy+4.5}" text-anchor="middle" font-size="13" font-weight="800" fill="var(--text)">${p}%</text>
   </svg>`;
 }
 
-// Donut mit mehreren Segmenten + Legende daneben
-function donut(segments,size){
-  size=size||150; const th=24;
-  const total=segments.reduce((a,s)=>a+s.value,0)||1;
-  const r=(size-th)/2, cx=size/2, cy=size/2, circ=2*Math.PI*r;
-  let offset=0, paths='';
-  segments.forEach(s=>{
-    const frac=s.value/total, dash=frac*circ;
-    paths+=`<circle cx="${cx}" cy="${cy}" r="${r}" fill="none" stroke="${s.color}" stroke-width="${th}"
-      stroke-dasharray="${dash.toFixed(1)} ${(circ-dash).toFixed(1)}" stroke-dashoffset="${(-offset).toFixed(1)}"
-      transform="rotate(-90 ${cx} ${cy})"></circle>`;
-    offset+=dash;
-  });
-  const svg=`<svg width="${size}" height="${size}" viewBox="0 0 ${size} ${size}">${paths}
-    <text x="${cx}" y="${cy-2}" text-anchor="middle" font-size="20" font-weight="800" fill="var(--text)" font-family="Syne,sans-serif">${total}</text>
-    <text x="${cx}" y="${cy+16}" text-anchor="middle" font-size="10" fill="var(--muted)">total</text>
-  </svg>`;
-  const legend=`<div class="legend">${segments.map(s=>`
-    <div class="row2"><span class="name"><span class="dot" style="background:${s.color}"></span>${esc(s.label)}</span><span class="val">${s.value}</span></div>
-  `).join('')}</div>`;
-  return `<div class="row"><div>${svg}</div>${legend}</div>`;
+/* Anteile als ein durchgehender Balken + Liste mit Zahl und Prozent.
+   Ersetzt das Ringdiagramm: gleiche Aussage, scharf und exakt lesbar. */
+function splitBar(segments,totalLabel){
+  const total=segments.reduce((a,s)=>a+s.value,0);
+  const bar=segments.filter(s=>s.value>0).map(s=>
+    `<span class="split__seg" style="flex:${s.value} 0 0;background:${s.color}" title="${esc(s.label)}: ${s.value}"></span>`
+  ).join('')||'<span class="split__seg" style="flex:1;background:var(--sub)"></span>';
+  const list=segments.map(s=>`<div class="row2">
+      <span class="name"><span class="dot" style="background:${s.color}"></span>${esc(s.label)}</span>
+      <span class="val">${s.value}<span class="pct">${total?Math.round(s.value/total*100):0} %</span></span>
+    </div>`).join('');
+  return `<div class="row" style="gap:22px">
+    <div class="grow">
+      <div class="total"><span class="total__n">${total}</span><span class="total__l">${esc(totalLabel||'total')}</span></div>
+      <div class="split">${bar}</div>
+    </div>
+    <div class="legend">${list}</div>
+  </div>`;
 }
 
-// Flächen-/Linien-Chart über Wochen, mehrere Serien
-function lineChart(weeks,series,height){
-  height=height||150;
-  const w=Math.max(420,weeks.length*50), padL=8, padR=8, padB=22, padT=14;
-  const maxVal=Math.max(1,...weeks.flatMap(wk=>series.map(s=>s.get(wk))));
+/* Diagramme werden auf die tatsächliche Containerbreite gebaut – ein
+   festes viewBox war breiter als der Platz und wurde samt Schrift
+   heruntergerechnet. Passt es trotzdem nicht, wird gescrollt statt
+   geschrumpft. */
+function flaeche(abzug){
+  const m=document.getElementById('main');
+  const b=m&&m.clientWidth?m.clientWidth:1120;
+  return Math.max(340,b-(abzug||34));
+}
+function huelle(w,height,svg){
+  return `<div style="overflow-x:auto;overflow-y:hidden">
+    <svg viewBox="0 0 ${w} ${height}" width="${w}" height="${height}" preserveAspectRatio="xMinYMin meet"
+      style="display:block;width:100%;min-width:${w}px;height:${height}px">${svg}</svg></div>`;
+}
+
+/* Wochenverlauf · gross, mit Zahl an jedem Messpunkt.
+   Pro Quelle ein eigenes Diagramm – die Reihen werden nie vermischt. */
+function verlaufChart(weeks,series,height){
+  height=height||226;
+  /* 70 = Innenabstände von .sec__body und .quelle__body plus Rahmen */
+  const w=Math.max(flaeche(70),weeks.length*46), padL=16, padR=16, padB=34, padT=30;
+  const maxRoh=Math.max(1,...weeks.flatMap(wk=>series.map(s=>s.get(wk))));
+  const maxVal=Math.ceil(maxRoh*1.18);
   const stepX=weeks.length>1?(w-padL-padR)/(weeks.length-1):0;
+  const yOf=v=>padT+(height-padT-padB)*(1-v/maxVal);
   let svg='';
-  for(let g=0;g<=2;g++){
-    const y=padT+(height-padT-padB)*(g/2);
-    svg+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="var(--border)" stroke-width="1"></line>`;
+  for(let g=0;g<=3;g++){
+    const y=padT+(height-padT-padB)*(g/3);
+    svg+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#e6e4da" stroke-width="1"></line>`;
   }
-  series.forEach(s=>{
-    const pts=weeks.map((wk,i)=>{
-      const v=s.get(wk);
-      const x=padL+i*stepX;
-      const y=padT+(height-padT-padB)*(1-v/maxVal);
-      return [x,y];
-    });
-    const line=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
-    const area=line+` L${pts[pts.length-1][0].toFixed(1)},${(height-padB).toFixed(1)} L${pts[0][0].toFixed(1)},${(height-padB).toFixed(1)} Z`;
-    svg+=`<path d="${area}" fill="${s.color}" opacity="0.13"></path>`;
-    svg+=`<path d="${line}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="round"></path>`;
-    pts.forEach(p=>svg+=`<circle cx="${p[0].toFixed(1)}" cy="${p[1].toFixed(1)}" r="3" fill="${s.color}"></circle>`);
-  });
-  const every=weeks.length>10?2:1;
+  /* Senkrechte Wochenraster – macht das Ablesen einzelner Wochen leichter */
   weeks.forEach((wk,i)=>{
-    if(i%every!==0 && i!==weeks.length-1) return;
     const x=padL+i*stepX;
-    svg+=`<text x="${x.toFixed(1)}" y="${height-5}" font-size="10" fill="var(--muted)" text-anchor="middle">${wk.kw.replace(/^\d+-/,'')}</text>`;
+    svg+=`<line x1="${x.toFixed(1)}" y1="${padT}" x2="${x.toFixed(1)}" y2="${(height-padB).toFixed(1)}" stroke="#f1efe7" stroke-width="1"></line>`;
   });
-  return `<svg viewBox="0 0 ${w} ${height}" width="100%" height="${height}" preserveAspectRatio="xMinYMid meet">${svg}</svg>`;
+  series.forEach(s=>{
+    const pts=weeks.map((wk,i)=>[padL+i*stepX,yOf(s.get(wk))]);
+    const line=pts.map((p,i)=>(i===0?'M':'L')+p[0].toFixed(1)+','+p[1].toFixed(1)).join(' ');
+    svg+=`<path d="${line} L${pts[pts.length-1][0].toFixed(1)},${(height-padB).toFixed(1)} L${pts[0][0].toFixed(1)},${(height-padB).toFixed(1)} Z" fill="${s.color}" opacity="0.10"></path>`;
+    svg+=`<path d="${line}" fill="none" stroke="${s.color}" stroke-width="2.5" stroke-linejoin="round" stroke-linecap="butt"></path>`;
+    pts.forEach((p,i)=>{
+      const v=s.get(weeks[i]);
+      svg+=`<rect x="${(p[0]-3.5).toFixed(1)}" y="${(p[1]-3.5).toFixed(1)}" width="7" height="7" fill="#fff" stroke="${s.color}" stroke-width="2"></rect>`;
+      const dy=s.unten?16:-11;
+      svg+=`<text x="${p[0].toFixed(1)}" y="${(p[1]+dy).toFixed(1)}" font-size="12" font-weight="700" style="fill:${s.color}" text-anchor="middle">${v}</text>`;
+    });
+  });
+  weeks.forEach((wk,i)=>{
+    svg+=`<text x="${(padL+i*stepX).toFixed(1)}" y="${height-12}" font-size="11.5" font-weight="600" style="fill:#171714" text-anchor="middle">${kwKurz(wk.kw)}</text>`;
+  });
+  svg+=`<text x="${padL}" y="${padT-12}" font-size="10.5" style="fill:#6b6b62">Kalenderwoche ${kwKurz(weeks[0].kw)} bis ${kwKurz(weeks[weeks.length-1].kw)}</text>`;
+  return huelle(w,height,svg);
 }
 
-// Gestapelte Balken (für DDE-Wochenaktivität)
-function stackedBars(weeks,series,height){
-  height=height||130;
-  const w=Math.max(380,weeks.length*40);
-  const stepX=w/weeks.length, bw=Math.min(22,stepX-10);
+/* Säulen pro Mitarbeiter · eine Gruppe je Person, eine Säule je Stufe. */
+function saeulenChart(items,series,height){
+  height=height||258;
+  const gw=series.length*30+44;
+  const w=Math.max(flaeche(34),items.length*gw), padT=26, padB=46, padL=10, padR=10;
+  const maxRoh=Math.max(1,...items.flatMap(it=>series.map(s=>s.get(it))));
+  const maxVal=Math.ceil(maxRoh*1.15);
+  const yOf=v=>padT+(height-padT-padB)*(1-v/maxVal);
+  const stepX=(w-padL-padR)/items.length, bw=Math.min(26,(stepX-26)/series.length);
+  let svg='';
+  for(let g=0;g<=3;g++){
+    const y=padT+(height-padT-padB)*(g/3);
+    svg+=`<line x1="${padL}" y1="${y.toFixed(1)}" x2="${w-padR}" y2="${y.toFixed(1)}" stroke="#e6e4da" stroke-width="1"></line>`;
+  }
+  items.forEach((it,i)=>{
+    const g0=padL+i*stepX, breite=series.length*bw+(series.length-1)*4;
+    const x0=g0+(stepX-breite)/2;
+    series.forEach((s,j)=>{
+      const v=s.get(it), x=x0+j*(bw+4), y=yOf(v), base=yOf(0);
+      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(base-y).toFixed(1)}" fill="${s.color}" rx="3"><title>${esc(it.name)} · ${esc(s.name)}: ${v}</title></rect>`;
+      svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-7).toFixed(1)}" font-size="11" font-weight="700" style="fill:${s.color}" text-anchor="middle">${v}</text>`;
+    });
+    svg+=`<line x1="${g0.toFixed(1)}" y1="${(height-padB).toFixed(1)}" x2="${(g0+stepX).toFixed(1)}" y2="${(height-padB).toFixed(1)}" stroke="#171714" stroke-width="1"></line>`;
+    svg+=`<text x="${(g0+stepX/2).toFixed(1)}" y="${height-24}" font-size="13" font-weight="800" style="fill:#171714;font-family:'Filson Pro',sans-serif" text-anchor="middle">${esc(it.name)}</text>`;
+    svg+=`<text x="${(g0+stepX/2).toFixed(1)}" y="${height-8}" font-size="11" style="fill:#6b6b62" text-anchor="middle">${series.reduce((a,s)=>a+s.get(it),0)} gesamt</text>`;
+  });
+  return huelle(w,height,svg);
+}
+
+/* Gestapelte Wochenbalken (Sales-Aktivität). */
+function stackedBars(weeks,series,height,breite){
+  height=height||150;
+  const w=Math.max(breite||flaeche(34),weeks.length*34);
+  const stepX=w/weeks.length, bw=Math.min(20,stepX-12);
   const maxVal=Math.max(1,...weeks.map(wk=>series.reduce((a,s)=>a+s.get(wk),0)));
   let svg='';
   weeks.forEach((wk,i)=>{
     const x=i*stepX+(stepX-bw)/2;
-    let y=height-22;
+    let y=height-24;
     series.forEach(s=>{
-      const v=s.get(wk);
-      const h=(v/maxVal)*(height-32);
+      const h=(s.get(wk)/maxVal)*(height-34);
       y-=h;
-      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" fill="${s.color}" rx="2.5"></rect>`;
+      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" fill="${s.color}"><title>${esc(s.name||'')} ${kwKurz(wk.kw)}: ${s.get(wk)}</title></rect>`;
     });
-    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${height-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${wk.kw.replace(/^\d+-/,'')}</text>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${height-8}" font-size="11" font-weight="600" style="fill:#171714" text-anchor="middle">${kwKurz(wk.kw)}</text>`;
   });
-  return `<svg viewBox="0 0 ${w} ${height}" width="100%" height="${height}" preserveAspectRatio="xMinYMid meet">${svg}</svg>`;
+  return huelle(w,height,svg);
 }
 
-// Wochen-Balken gegen ein Zielband (z.B. 4-8/Tag) — Band schattiert im Hintergrund,
-// Balken farblich je nach übergebenem Status (unter/im/über Ziel)
+/* Wochenbalken gegen das Zielband 4–8 Leads/Tag. */
 function targetBandChart(weeks,getVal,getColor,bandMin,bandMax){
-  const height=140, padT=10, padB=22;
-  const w=Math.max(420,weeks.length*46);
+  const height=170, padT=16, padB=28;
+  const w=Math.max(flaeche(34),weeks.length*44);
   const maxVal=Math.max(bandMax*1.3,...weeks.map(wk=>getVal(wk)))||1;
   const yOf=v=>padT+(height-padT-padB)*(1-v/maxVal);
   const bandTop=yOf(bandMax), bandBottom=yOf(bandMin);
-  const stepX=w/weeks.length, bw=Math.min(26,stepX-12);
-  let svg=`<rect x="0" y="${bandTop.toFixed(1)}" width="${w}" height="${(bandBottom-bandTop).toFixed(1)}" fill="var(--good)" opacity="0.12"></rect>`;
-  svg+=`<line x1="0" y1="${bandTop.toFixed(1)}" x2="${w}" y2="${bandTop.toFixed(1)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"></line>`;
-  svg+=`<line x1="0" y1="${bandBottom.toFixed(1)}" x2="${w}" y2="${bandBottom.toFixed(1)}" stroke="var(--good)" stroke-width="1" stroke-dasharray="4 3" opacity="0.5"></line>`;
-  weeks.forEach((wk,i)=>{
-    const v=getVal(wk);
-    const x=i*stepX+(stepX-bw)/2;
-    const y=yOf(v), base=yOf(0);
-    svg+=`<rect x="${x.toFixed(1)}" y="${Math.min(y,base).toFixed(1)}" width="${bw}" height="${Math.abs(base-y).toFixed(1)}" fill="${getColor(wk)}" rx="3"></rect>`;
-    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-5).toFixed(1)}" font-size="10" fill="var(--text)" text-anchor="middle">${v}</text>`;
-    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${height-6}" font-size="10" fill="var(--muted)" text-anchor="middle">${wk.kw.replace(/^\d+-/,'')}</text>`;
+  const stepX=w/weeks.length, bw=Math.min(24,stepX-14);
+  let svg=`<rect x="0" y="${bandTop.toFixed(1)}" width="${w}" height="${(bandBottom-bandTop).toFixed(1)}" fill="${C.good}" opacity="0.10"></rect>`;
+  [bandTop,bandBottom].forEach(y=>{
+    svg+=`<line x1="0" y1="${y.toFixed(1)}" x2="${w}" y2="${y.toFixed(1)}" stroke="${C.good}" stroke-width="1" stroke-dasharray="4 3" opacity="0.55"></line>`;
   });
-  return `<svg viewBox="0 0 ${w} ${height}" width="100%" height="${height}" preserveAspectRatio="xMinYMid meet">${svg}</svg>`;
+  const eineStelle=v=>Number(v).toFixed(1);
+  weeks.forEach((wk,i)=>{
+    const v=getVal(wk), x=i*stepX+(stepX-bw)/2, y=yOf(v), base=yOf(0);
+    svg+=`<rect x="${x.toFixed(1)}" y="${Math.min(y,base).toFixed(1)}" width="${bw}" height="${Math.abs(base-y).toFixed(1)}" fill="${getColor(wk)}"></rect>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-6).toFixed(1)}" font-size="10.5" font-weight="700" style="fill:#171714;font-family:ui-monospace,Menlo,Consolas,monospace" text-anchor="middle">${eineStelle(v)}</text>`;
+    svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${height-8}" font-size="11" font-weight="600" style="fill:#171714" text-anchor="middle">${kwKurz(wk.kw)}</text>`;
+  });
+  return huelle(w,height,svg);
 }
 
+function legendeInline(items){
+  return `<div style="display:flex;flex-wrap:wrap;gap:16px;margin-bottom:12px">`+items.map(i=>
+    `<span style="display:inline-flex;align-items:center;gap:7px;font:500 11.5px/1 var(--titel);color:var(--muted)">
+       <span style="width:10px;height:10px;background:${i.color}"></span>${esc(i.label)}</span>`).join('')+`</div>`;
+}
+
+/* ═══ Aufbau ════════════════════════════════════════════════════════ */
 function render(){
   if(!REPORT){ renderEmpty(); return; }
   const nW=parseInt(document.getElementById('fWochen').value,10)||13;
   const mitarbeiterFilter=document.getElementById('fMitarbeiter').value;
   const weeks=lastNWeeks(REPORT.weeks,nW);
 
-  document.getElementById('meta').textContent='Letzte Aktualisierung: '+new Date(REPORT.generatedAt).toLocaleString('de-CH');
+  document.getElementById('meta').textContent=(demo?'Demo-Stand: ':'Letzte Aktualisierung: ')+
+    new Date(REPORT.generatedAt).toLocaleString('de-CH');
+  const conn=document.getElementById('conn');
+  conn.className='conn '+(demo?'bad':'ok');
+  conn.innerHTML='<span class="dot"></span>'+(demo?'Demo-Zahlen':'Monday live');
 
-  const sumLeads=weeks.reduce((a,w)=>a+w.neueLeads,0);
-  const sumAnfragen=weeks.reduce((a,w)=>a+w.neueAnfragen,0);
-  const sumAnfragenDirekt=weeks.reduce((a,w)=>a+w.neueAnfragenDirekt,0);
-  const sumAnfragenAusLead=weeks.reduce((a,w)=>a+w.neueAnfragenAusLead,0);
-  const sumOffertenErstellt=weeks.reduce((a,w)=>a+w.offertenErstellt,0);
+  const sum=f=>weeks.reduce((a,w)=>a+f(w),0);
+  const sumLeads=sum(w=>w.neueLeads);
+  const sumAnfragen=sum(w=>w.neueAnfragen);
+  const sumAnfragenDirekt=sum(w=>w.neueAnfragenDirekt);
+  const sumAnfragenAusLead=sum(w=>w.neueAnfragenAusLead);
+  const sumOffertenErstellt=sum(w=>w.offertenErstellt);
   const konv=REPORT.kpis.konversionProzent;
   const nfq=REPORT.kpis.nachfassquoteProzent;
 
   let html='';
+
+  if(demo) html+=`<div class="hintDemo"><span class="hintDemo__mark">!</span>
+    <span><b>Demo-Zahlen.</b> Kein Server erreichbar – die Seite zeigt Beispielwerte, damit Aufbau und Gestaltung beurteilbar sind. Auf <em>kalle.grafe.ch</em> kommen die echten Monday-Daten.</span></div>`;
+
   html+=`<div class="kpis">
-    <div class="kpi"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--purple);flex-shrink:0;"></span><div class="txt"><div class="n">${sumLeads}</div><div class="l">Neue Leads · Board Pipeline · ${weeks.length} Wo.</div></div></div>
-    <div class="kpi"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--blue);flex-shrink:0;"></span><div class="txt"><div class="n">${sumAnfragen}</div><div class="l">Neue Anfragen gesamt · ${weeks.length} Wo.</div></div></div>
-    <div class="kpi"><span style="display:inline-block;width:10px;height:10px;border-radius:3px;background:var(--good);flex-shrink:0;"></span><div class="txt"><div class="n">${sumOffertenErstellt}</div><div class="l">Offerten erstellt · ${weeks.length} Wo.</div></div></div>
-    <div class="kpi">${ring(konv==null?0:konv,58,'var(--accent)')}<div class="txt"><div class="n">${konv==null?'–':konv+'%'}</div><div class="l">Konversion Anfrage→Auftrag</div></div></div>
-    <div class="kpi">${ring(nfq==null?0:nfq,58,'#4eccc6')}<div class="txt"><div class="n">${nfq==null?'–':nfq+'%'}</div><div class="l">Nachfassquote</div></div></div>
+    <div class="kpi"><span class="kpi__key" style="background:${C.leads}"></span>
+      <div class="txt"><div class="n">${sumLeads}</div><div class="l">Neue Leads · Pipeline · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi"><span class="kpi__key" style="background:${C.gold}"></span>
+      <div class="txt"><div class="n">${sumAnfragen}</div><div class="l">Neue Anfragen gesamt · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi"><span class="kpi__key" style="background:${C.offerten}"></span>
+      <div class="txt"><div class="n">${sumOffertenErstellt}</div><div class="l">Offerten erstellt · ${weeks.length} Wo.</div></div></div>
+    <div class="kpi kpi--lead">${ring(konv==null?0:konv,56,C.anfragen)}
+      <div class="txt"><div class="n">${konv==null?'–':konv+' %'}</div><div class="l" style="color:var(--ink)">Konversion Anfrage → Auftrag</div></div></div>
+    <div class="kpi">${ring(nfq==null?0:nfq,56,C.offerten)}
+      <div class="txt"><div class="n">${nfq==null?'–':nfq+' %'}</div><div class="l">Nachfassquote</div></div></div>
   </div>`;
 
-  html+=`<section><h2>Wochenverlauf — Leads · Anfragen · Offerten erstellt</h2>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Zwei getrennte Quellen — nie vermischt: Leads kommen ausschliesslich aus dem Board <em>Pipeline</em>, Anfragen aus der <em>GRAFE Produktionsübersicht</em> (jedes neu angelegte Element zählt als neue Anfrage, unabhängig vom aktuellen Bearbeitungsstand). Herkunft der Anfragen (direkt vs. aus Lead qualifiziert) unten via Item-ID exakt bestimmt.</div>
-    <div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:10px;">
-      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--purple);margin-right:5px;"></span>Neue Leads (Board: Pipeline)</span>
-      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--blue);margin-right:5px;"></span>Neue Anfragen gesamt (Board: Produktionsübersicht)</span>
-      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--good);margin-right:5px;"></span>Offerten erstellt</span>
+  if(REPORT.finanzen){
+    const fz=REPORT.finanzen;
+    const stichtagFmt=fz.stichtag?new Date(fz.stichtag).toLocaleDateString('de-CH'):'–';
+    html+=`<section><h2>Finanzen <em>Quelle Selectline · Stand ${esc(stichtagFmt)}</em></h2>
+      <div class="sec__body">
+        <p class="note">Wird vorerst manuell geliefert, bis eine automatische Anbindung an Selectline steht.</p>
+        <div class="kpis">
+          <div class="kpi"><span class="kpi__key" style="background:${C.gold}"></span>
+            <div class="txt"><div class="n">${chf(fz.umsatzBisStichtag)}</div><div class="l">Umsatz bis Stichtag</div></div></div>
+          <div class="kpi"><span class="kpi__key" style="background:${C.leads}"></span>
+            <div class="txt"><div class="n">${chf(fz.auftragsbestandGesamt)}</div><div class="l">Auftragsbestand gesamt</div></div></div>
+          <div class="kpi"><span class="kpi__key" style="background:${C.offerten}"></span>
+            <div class="txt"><div class="n">${chf(fz.auftragsbestandLTBisJahresende)}</div><div class="l">davon LT bis 31.12.2026</div></div></div>
+          <div class="kpi"><span class="kpi__key" style="background:${C.neutral}"></span>
+            <div class="txt"><div class="n">${chf(fz.auftragsbestandFolgejahr)}</div><div class="l">davon Folgejahr</div></div></div>
+          <div class="kpi"><span class="kpi__key" style="background:${C.warn}"></span>
+            <div class="txt"><div class="n">${chf(fz.eingangsrechnungenBisStichtag)}</div><div class="l">Eingangsrechnungen bis Stichtag</div></div></div>
+          <div class="kpi"><span class="kpi__key" style="background:${C.bad}"></span>
+            <div class="txt"><div class="n">${chf(fz.gutschriften)}</div><div class="l">Gutschriften</div></div></div>
+        </div>
+      </div>
+    </section>`;
+  }
+
+  html+=`<section><h2>Wochenverlauf <em>${weeks.length} Wochen · zwei getrennte Quellen, nie vermischt</em></h2>
+    <div class="sec__body" style="display:flex;flex-direction:column;gap:20px">
+
+      <div class="quelle" style="--akz:${C.leads}">
+        <div class="quelle__kopf">
+          <span class="quelle__nr">Bereich 1 · Quelle Pipeline</span>
+          <div>
+            <div class="quelle__t">Leads – Interesse, noch kein Projekt</div>
+            <div class="quelle__s">Board <em>Pipeline</em>. Gezählt wird jedes neu angelegte Lead-Element nach Erstelldatum – also was an Interesse hereinkommt, bevor daraus eine konkrete Anfrage wird.</div>
+          </div>
+          <div class="quelle__sum"><div><b>${sumLeads}</b>Leads in ${weeks.length} Wochen</div></div>
+        </div>
+        <div class="quelle__body">
+          ${verlaufChart(weeks,[{name:'Neue Leads',color:C.leads,get:w=>w.neueLeads}])}
+        </div>
+      </div>
+
+      <div class="quelle" style="--akz:${C.anfragen}">
+        <div class="quelle__kopf">
+          <span class="quelle__nr">Bereich 2 · Quelle Produktionsübersicht</span>
+          <div>
+            <div class="quelle__t">Betriebsablauf – konkrete Anfragen und Offerten</div>
+            <div class="quelle__s">Board <em>GRAFE Produktionsübersicht</em>, der tatsächlich gelebte Ablauf. Jedes neu angelegte Element ist eine neue Anfrage, unabhängig vom Bearbeitungsstand; die Offerten zählen über das Subelement <em>Offerte erstellen</em>.</div>
+          </div>
+          <div class="quelle__sum">
+            <div><b>${sumAnfragen}</b>Anfragen</div>
+            <div><b>${sumOffertenErstellt}</b>Offerten</div>
+          </div>
+        </div>
+        <div class="quelle__body">
+          ${legendeInline([
+            {label:'Neue Anfragen',color:C.anfragen},
+            {label:'Offerten erstellt',color:C.offerten}
+          ])}
+          ${verlaufChart(weeks,[
+            {name:'Anfragen',color:C.anfragen,get:w=>w.neueAnfragen},
+            {name:'Offerten',color:C.offerten,unten:true,get:w=>w.offertenErstellt}
+          ])}
+        </div>
+      </div>
+
+      <p class="note" style="margin:0">Bereich 1 und Bereich 2 haben verschiedene Grössenordnungen und stehen deshalb in getrennten Diagrammen – ein gemeinsames Raster würde die Leads optisch verschwinden lassen. Wie viele Anfragen aus Bereich 1 kommen, steht unten in <em>Herkunft der Anfragen</em>.</p>
     </div>
-    ${lineChart(weeks,[
-      {color:'#9d50dd',get:w=>w.neueLeads},
-      {color:'#579bfc',get:w=>w.neueAnfragen},
-      {color:'#00c875',get:w=>w.offertenErstellt}
-    ])}
   </section>`;
 
-  html+=`<section><h2>Herkunft der Anfragen</h2>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Per Item-ID bestimmt (bleibt über alle Board-Wechsel stabil): kam die Anfrage aus einer zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst (z.B. via KALLE-KULATOR ohne vorherige Lead-Station)?</div>
-    ${donut([
-      {label:'Direkt erfasst',value:sumAnfragenDirekt,color:'#579bfc'},
-      {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:'#9d50dd'}
-    ])}
-  </section>`;
+  html+=`<div class="row" style="gap:16px">
+    <section class="grow" style="min-width:420px"><h2>Herkunft der Anfragen</h2>
+      <div class="sec__body">
+        <p class="note">Über die Element-ID bestimmt, die jeden Board-Wechsel übersteht: kam die Anfrage aus einem zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst – etwa über den KALLE-KULATOR ohne Lead-Station?</p>
+        ${splitBar([
+          {label:'Direkt erfasst',value:sumAnfragenDirekt,color:C.anfragen},
+          {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:C.leads}
+        ],'Anfragen')}
+      </div>
+    </section>
+    <section class="grow" style="min-width:420px"><h2>Abschluss-Quote <em>im Zeitraum</em></h2>
+      <div class="sec__body">
+        <p class="note">Über die Gruppen-Zugehörigkeit bestimmt: «Verloren / Abgesagt» gilt als abgelehnt, alles jenseits der Anfrage- und Offertprüfungs-Gruppen als gewonnen. <em>Annahme, mit Sven noch gegenzuchecken.</em></p>
+        ${splitBar([
+          {label:'Gewonnen',value:REPORT.kpis.gewonnen,color:C.good},
+          {label:'Abgelehnt',value:REPORT.kpis.abgelehnt,color:C.bad}
+        ],'entschieden')}
+      </div>
+    </section>
+  </div>`;
 
-  html+=`<section><h2>Abschluss-Quote (im Zeitraum)</h2>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Über die Gruppen-Zugehörigkeit auf der Produktionsübersicht bestimmt: "Verloren / Abgesagt" = abgelehnt; alles, was die Anfrage- und Offertprüfungs-Gruppen bereits verlassen hat (Vorbereitung oder weiter), gilt als gewonnen.</div>
-    ${donut([
-      {label:'Gewonnen',value:REPORT.kpis.gewonnen,color:'#00c875'},
-      {label:'Abgelehnt',value:REPORT.kpis.abgelehnt,color:'#df2f4a'}
-    ])}
+  const perfFarbe={'im-ziel':C.good,'unter-ziel':C.bad,'ueber-ziel':C.offerten,'keine-daten':C.neutral};
+  const perfText={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
+  const letzteWoche=weeks[weeks.length-1];
+  html+=`<section><h2>Sales · Performance-Indikator <em>Ziel 4 – 8 bearbeitete Leads pro Tag</em></h2>
+    <div class="sec__body">
+      <p class="note">Aus dem Activity-Log beider Boards. Bewusst ohne Klarnamen – die Kennzahl beschreibt die Rolle, nicht die Person.</p>
+      <div class="row" style="align-items:center;gap:18px;margin-bottom:16px">
+        <div style="display:flex;align-items:center;gap:13px">
+          <div style="width:10px;height:38px;background:${perfFarbe[letzteWoche.salesPerformance.status]}"></div>
+          <div>
+            <div style="font:800 23px/1 var(--titel);letter-spacing:-.02em">${Number(letzteWoche.salesPerformance.avgProTag).toFixed(1)} / Tag</div>
+            <div style="margin-top:6px;font:500 11.5px/1.3 var(--titel);color:var(--muted)">
+              ${esc(letzteWoche.kw)} · ${perfText[letzteWoche.salesPerformance.status]} · ${letzteWoche.salesPerformance.leadsBearbeitet} Leads an ${letzteWoche.salesPerformance.werktage} Werktagen</div>
+          </div>
+        </div>
+      </div>
+      ${targetBandChart(weeks,w=>w.salesPerformance.avgProTag,w=>perfFarbe[w.salesPerformance.status],SALES_ZIEL_MIN,SALES_ZIEL_MAX)}
+      <div style="margin-top:10px">${legendeInline([
+        {label:'Im Ziel (4 – 8)',color:C.good},{label:'Unter Ziel',color:C.bad},{label:'Über Ziel',color:C.offerten}
+      ])}</div>
+    </div>
   </section>`;
 
   const ddeSum=weeks.reduce((a,w)=>({b:a.b+w.sales.bearbeitungen,v:a.v+w.sales.verschoben,k:a.k+w.sales.kommentare}),{b:0,v:0,k:0});
-
-  const perfStatusColor={'im-ziel':'var(--good)','unter-ziel':'var(--bad)','ueber-ziel':'var(--blue)','keine-daten':'var(--muted)'};
-  const perfStatusLabel={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
-  const letzteWoche=weeks[weeks.length-1];
-  html+=`<section><h2>Sales — Performance-Indikator <span style="font-size:12px;color:var(--muted);font-weight:400;">(Ziel: 4–8 bearbeitete Leads/Tag)</span></h2>
-    <div class="row" style="margin-bottom:16px;">
-      <div style="display:flex;align-items:center;gap:12px;">
-        <div style="width:10px;height:36px;border-radius:5px;background:${perfStatusColor[letzteWoche.salesPerformance.status]}"></div>
-        <div><div style="font-size:22px;font-weight:800;font-family:Syne,sans-serif;">${letzteWoche.salesPerformance.avgProTag}/Tag</div>
-        <div style="font-size:11.5px;color:var(--muted);">${esc(letzteWoche.kw)} · ${perfStatusLabel[letzteWoche.salesPerformance.status]} · ${letzteWoche.salesPerformance.leadsBearbeitet} Leads an ${letzteWoche.salesPerformance.werktage} Werktagen</div></div>
-      </div>
-    </div>
-    ${targetBandChart(weeks,w=>w.salesPerformance.avgProTag,w=>perfStatusColor[w.salesPerformance.status],SALES_ZIEL_MIN,SALES_ZIEL_MAX)}
-    <div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-top:8px;">
-      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--good);margin-right:5px;"></span>Im Ziel (4–8)</span>
-      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--bad);margin-right:5px;"></span>Unter Ziel</span>
-      <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:var(--blue);margin-right:5px;"></span>Über Ziel</span>
-    </div>
-  </section>`;
-
-  html+=`<section><h2>Sales — Aktivität pro Woche</h2>
-    <div class="row">
-      <div class="grow">
-        <div style="display:flex;gap:16px;font-size:11.5px;color:var(--muted);margin-bottom:10px;">
-          <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#fdab3d;margin-right:5px;"></span>Bearbeitungen</span>
-          <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#df2f4a;margin-right:5px;"></span>Verschoben (mutiert)</span>
-          <span><span style="display:inline-block;width:9px;height:9px;border-radius:3px;background:#579bfc;margin-right:5px;"></span>Kommentare</span>
+  html+=`<section><h2>Sales · Aktivität pro Woche</h2>
+    <div class="sec__body">
+      <div class="row">
+        <div class="grow">
+          ${legendeInline([
+            {label:'Bearbeitungen',color:C.warn},{label:'Verschoben (mutiert)',color:C.bad},{label:'Kommentare',color:C.offerten}
+          ])}
+          ${stackedBars(weeks,[
+            {name:'Bearbeitungen',color:C.warn,get:w=>w.sales.bearbeitungen},
+            {name:'Verschoben',color:C.bad,get:w=>w.sales.verschoben},
+            {name:'Kommentare',color:C.offerten,get:w=>w.sales.kommentare}
+          ],null,flaeche(34+26+340))}
         </div>
-        ${stackedBars(weeks,[
-          {color:'#fdab3d',get:w=>w.sales.bearbeitungen},
-          {color:'#df2f4a',get:w=>w.sales.verschoben},
-          {color:'#579bfc',get:w=>w.sales.kommentare}
-        ])}
+        <div style="min-width:280px;flex:0 1 320px">
+          ${splitBar([
+            {label:'Bearbeitungen',value:ddeSum.b,color:C.warn},
+            {label:'Verschoben',value:ddeSum.v,color:C.bad},
+            {label:'Kommentare',value:ddeSum.k,color:C.offerten}
+          ],'Ereignisse')}
+        </div>
       </div>
-      ${donut([
-        {label:'Bearbeitungen',value:ddeSum.b,color:'#fdab3d'},
-        {label:'Verschoben',value:ddeSum.v,color:'#df2f4a'},
-        {label:'Kommentare',value:ddeSum.k,color:'#579bfc'}
-      ],130)}
+      <table style="margin-top:18px">
+        <tr><th>KW</th><th class="num">Bearbeitungen</th><th class="num">Verschoben</th><th class="num">Kommentare</th><th class="num">Aktive Tage</th><th class="num">Ø Leads/Tag</th></tr>
+        ${weeks.map(w=>`<tr><td class="kw">${esc(w.kw)}</td><td class="num">${w.sales.bearbeitungen}</td><td class="num">${w.sales.verschoben}</td><td class="num">${w.sales.kommentare}</td><td class="num">${w.sales.aktiveTage}/7</td><td class="num" style="color:${perfFarbe[w.salesPerformance.status]}">${Number(w.salesPerformance.avgProTag).toFixed(1)}</td></tr>`).join('')}
+      </table>
     </div>
-    <table style="margin-top:16px">
-      <tr><th>KW</th><th class="num">Bearbeitungen</th><th class="num">Verschoben</th><th class="num">Kommentare</th><th class="num">Aktive Tage</th><th class="num">Ø Leads/Tag</th></tr>
-      ${weeks.map(w=>`<tr><td>${esc(w.kw)}</td><td class="num">${w.sales.bearbeitungen}</td><td class="num">${w.sales.verschoben}</td><td class="num">${w.sales.kommentare}</td><td class="num">${w.sales.aktiveTage}/7</td><td class="num" style="color:${perfStatusColor[w.salesPerformance.status]};font-weight:700">${w.salesPerformance.avgProTag}</td></tr>`).join('')}
-    </table>
   </section>`;
 
   const statusEntries=Object.entries(REPORT.produktionStatus||{}).sort((a,b)=>b[1]-a[1]);
-  const statusPalette=['#579bfc','#9d50dd','#ffcb00','#00c875','#fdab3d','#df2f4a','#4eccc6','#ff6d3b','#e484bd','#7f5347'];
-  html+=`<section><h2>Produktionsübersicht — aktueller Status</h2>
-    ${statusEntries.length ? donut(statusEntries.map(([label,value],i)=>({label,value,color:statusPalette[i%statusPalette.length]})),160) : '<div class="empty">Keine Daten</div>'}
+  html+=`<section><h2>Produktionsübersicht <em>aktueller Status, Momentaufnahme</em></h2>
+    <div class="sec__body">
+      ${statusEntries.length
+        ? splitBar(statusEntries.map(([label,value],i)=>({label,value,color:STATUSFARBEN[i%STATUSFARBEN.length]})),'Elemente')
+        : '<div class="empty">Keine Daten</div>'}
+    </div>
   </section>`;
 
+  /* Vier Stufen des Ablaufs pro Person. Die hinteren zwei liefert das
+     Backend noch nicht – fehlt das Feld, steht die Säule auf 0. */
+  const STUFEN=[
+    {name:'Anfragen bearbeitet',color:C.anfragen,get:it=>it.v.anfragenBearbeitet!=null?it.v.anfragenBearbeitet:(it.v.anfragen!=null?it.v.anfragen:0)},
+    {name:'Offerten erstellt',color:C.offerten,get:it=>it.v.offertenErstellt||0},
+    {name:'Projekte in Umsetzung',color:C.leads,get:it=>it.v.inUmsetzung!=null?it.v.inUmsetzung:0},
+    {name:'Rechnung / abgeschlossen',color:C.good,get:it=>it.v.abgeschlossen!=null?it.v.abgeschlossen:(it.v.inRechnung||0)}
+  ];
   let mitarbeiterEntries=Object.entries(REPORT.mitarbeiter||{});
   if(mitarbeiterFilter) mitarbeiterEntries=mitarbeiterEntries.filter(([n])=>n===mitarbeiterFilter);
-  mitarbeiterEntries.sort((a,b)=>(b[1].leads+b[1].offertenErstellt)-(a[1].leads+a[1].offertenErstellt));
-  const mMax=Math.max(1,...mitarbeiterEntries.map(([,v])=>v.leads+v.offertenErstellt));
-  html+=`<section><h2>Mitarbeiterübersicht</h2>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Leads &amp; Offerten erstellt = Summe im gewählten Zeitraum. In Offertbearbeitung &amp; Offerte beim Kunden = Momentaufnahme (aktueller Stand, nicht zeitraumgebunden).</div>
-    <table>
-      <tr><th>Mitarbeiter</th><th class="num">Leads (Pipeline)</th><th class="num">Offerten erstellt</th><th class="num">In Offertbearbeitung</th><th class="num">Offerte beim Kunden</th><th>Auslastung</th></tr>
-      ${mitarbeiterEntries.map(([n,v])=>{
-        const tot=v.leads+v.offertenErstellt;
-        return `<tr><td>${esc(n)}</td><td class="num">${v.leads}</td><td class="num">${v.offertenErstellt}</td><td class="num">${v.inOffertbearbeitung}</td><td class="num">${v.offerteBeimKunde}</td>
-          <td><div class="miniBar"><i style="width:${Math.round(tot/mMax*100)}%;background:var(--accent)"></i></div></td></tr>`;
-      }).join('') || '<tr><td colspan="6" class="empty">Keine Daten</td></tr>'}
-    </table>
+  const mItems=mitarbeiterEntries.map(([name,v])=>({name,v}));
+  mItems.sort((a,b)=>STUFEN.reduce((s,f2)=>s+f2.get(b),0)-STUFEN.reduce((s,f2)=>s+f2.get(a),0));
+  const fehlendeFelder=!mItems.some(it=>it.v.inUmsetzung!=null||it.v.abgeschlossen!=null);
+  html+=`<section><h2>Mitarbeiterübersicht <em>Anfrage → Offerte → Umsetzung → Rechnung</em></h2>
+    <div class="sec__body">
+      <p class="note">Eine Säulengruppe pro Person, eine Säule pro Stufe des Ablaufs – so ist auf einen Blick sichtbar, wo jemand steht: viele Anfragen, aber wenige Offerten heisst Rückstand vorne; viel Umsetzung bei wenig Neuem heisst gebunden in laufenden Projekten. Summen im gewählten Zeitraum.${fehlendeFelder?' <em>Umsetzung und Rechnung liefert das Backend noch nicht – nötig sind die Felder inUmsetzung und abgeschlossen pro Mitarbeiter.</em>':''}</p>
+      ${legendeInline(STUFEN.map(s=>({label:s.name,color:s.color})))}
+      ${mItems.length?saeulenChart(mItems,STUFEN):'<div class="empty">Keine Daten</div>'}
+      <table style="margin-top:18px">
+        <tr><th>Mitarbeiter</th>
+          <th class="num">Anfragen bearbeitet</th><th class="num">Offerten erstellt</th>
+          <th class="num">In Umsetzung</th><th class="num">Rechnung / abgeschl.</th>
+          <th class="num">In Offertbearbeitung</th><th class="num">Offerte beim Kunden</th></tr>
+        ${mItems.map(it=>`<tr><td style="font-weight:700">${esc(it.name)}</td>
+          ${STUFEN.map(s=>`<td class="num">${s.get(it)}</td>`).join('')}
+          <td class="num" style="color:var(--muted)">${it.v.inOffertbearbeitung}</td>
+          <td class="num" style="color:var(--muted)">${it.v.offerteBeimKunde}</td></tr>`).join('')
+          || '<tr><td colspan="7" class="empty">Keine Daten</td></tr>'}
+      </table>
+      <p class="note" style="margin:12px 0 0">Die letzten zwei Spalten sind Momentaufnahmen – aktueller Stand, nicht zeitraumgebunden.</p>
+    </div>
   </section>`;
 
   let nfEntries=Object.entries(REPORT.nachfassProMitarbeiter||{});
   if(mitarbeiterFilter) nfEntries=nfEntries.filter(([n])=>n===mitarbeiterFilter);
   nfEntries.sort((a,b)=>b[1].faellig-a[1].faellig);
   html+=`<section><h2>Nachfassquote pro Mitarbeiter</h2>
-    <table>
-      <tr><th>Mitarbeiter</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th>Quote</th></tr>
-      ${nfEntries.map(([n,v])=>{
-        const pct=v.faellig?Math.round(v.nachgefasst/v.faellig*100):0;
-        const c=pct>=80?'var(--good)':pct>=50?'var(--warn)':'var(--bad)';
-        return `<tr><td>${esc(n)}</td><td class="num">${v.faellig}</td><td class="num">${v.nachgefasst}</td>
-          <td><div style="display:flex;align-items:center;gap:8px;"><div class="miniBar" style="flex:1"><i style="width:${pct}%;background:${c}"></i></div><span class="val" style="width:34px;text-align:right;color:var(--muted);font-size:12px;">${pct}%</span></div></td></tr>`;
-      }).join('') || '<tr><td colspan="4" class="empty">Keine fälligen Nachfassungen im Zeitraum</td></tr>'}
-    </table>
+    <div class="sec__body">
+      <table>
+        <tr><th>Mitarbeiter</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th style="width:210px">Quote</th></tr>
+        ${nfEntries.map(([n,v])=>{
+          const pct=v.faellig?Math.round(v.nachgefasst/v.faellig*100):0;
+          const c=pct>=80?C.good:pct>=50?C.warn:C.bad;
+          return `<tr><td style="font-weight:700">${esc(n)}</td><td class="num">${v.faellig}</td><td class="num">${v.nachgefasst}</td>
+            <td><div class="quote"><div class="miniBar" style="flex:1"><i style="width:${pct}%;background:${c}"></i></div><span>${pct} %</span></div></td></tr>`;
+        }).join('') || '<tr><td colspan="4" class="empty">Keine fälligen Nachfassungen im Zeitraum</td></tr>'}
+      </table>
+    </div>
   </section>`;
 
   let offene=REPORT.offeneNachfassungen||[];
   if(mitarbeiterFilter) offene=offene.filter(o=>o.bearbeiter===mitarbeiterFilter);
-  html+=`<section><h2>Offene Nachfassungen ${offene.length?`<span style="font-size:12px;color:var(--muted);font-weight:400;">(${offene.length})</span>`:''}</h2>
-    <div style="font-size:11px;color:var(--muted);margin-bottom:10px;">Basis: Subitem "Nachfassen beim Kunde" auf der Produktionsübersicht — erscheint erst, sobald die neue Monday-Automation Elemente anlegt.</div>
-    <table>
-      <tr><th>Projekt</th><th>Bearbeiter</th><th>Fällig seit</th><th class="num">Tage überfällig</th></tr>
-      ${offene.map(o=>{
-        const c=o.tageUeberfaellig>7?'var(--bad)':o.tageUeberfaellig>2?'var(--warn)':'var(--muted)';
-        return `<tr><td>${esc(o.projekt)}</td><td>${esc(o.bearbeiter)}</td><td>${esc(o.faelligSeit)}</td><td class="num" style="color:${c};font-weight:700">${o.tageUeberfaellig}</td></tr>`;
-      }).join('') || '<tr><td colspan="4" class="empty">Keine offenen Nachfassungen — alles dokumentiert</td></tr>'}
-    </table>
+  html+=`<section><h2>Offene Nachfassungen ${offene.length?`<em>${offene.length} fällig, nicht «Fertig»</em>`:''}</h2>
+    <div class="sec__body">
+      <p class="note">Basis ist das Subelement «Nachfassen beim Kunden» auf der Produktionsübersicht – es entsteht automatisch, sobald der Status auf «Offerte ist raus» wechselt, mit Fälligkeit heute + 7 Tage.</p>
+      <table>
+        <tr><th>Projekt</th><th>Bearbeiter</th><th>Fällig seit</th><th class="num" style="width:150px">Tage überfällig</th></tr>
+        ${offene.map(o=>{
+          const c=o.tageUeberfaellig>7?C.bad:o.tageUeberfaellig>2?C.warn:C.neutral;
+          return `<tr><td style="font-weight:700">${esc(o.projekt)}</td><td>${esc(o.bearbeiter)}</td><td class="kw">${esc(o.faelligSeit)}</td>
+            <td class="num"><span class="chipStatus" style="border-color:${c};color:${c}">${o.tageUeberfaellig}</span></td></tr>`;
+        }).join('') || '<tr><td colspan="4" class="empty">Keine offenen Nachfassungen – alles dokumentiert</td></tr>'}
+      </table>
+    </div>
   </section>`;
 
   document.getElementById('main').innerHTML=html;
 }
+
+/* ═══ Demo-Zahlen · nur wenn kein Server antwortet ══════════════════ */
+const DEMO=(function(){
+  const roh=[
+    [14,22,16,17,'2026-26',[92,14, 7,5,5.1,'im-ziel',26]],
+    [11,19,13,15,'2026-27',[81,11, 6,5,4.8,'im-ziel',24]],
+    [ 9,16,11,12,'2026-28',[70, 9, 5,4,4.2,'im-ziel',21]],
+    [ 6,11, 8, 9,'2026-29',[48, 6, 3,4,3.1,'unter-ziel',12]],
+    [12,20,13,16,'2026-30',[97,15, 8,5,5.6,'im-ziel',28]],
+    [15,24,16,19,'2026-31',[112,17,9,5,6.2,'im-ziel',31]],
+    [13,21,14,17,'2026-32',[104,16,8,5,5.9,'im-ziel',29]],
+    [ 7,13, 9,10,'2026-33',[55, 8, 4,4,3.4,'unter-ziel',13]],
+    [10,18,12,14,'2026-34',[88,13, 7,5,5.0,'im-ziel',25]],
+    [16,26,17,21,'2026-35',[121,19,10,5,6.8,'im-ziel',34]],
+    [12,23,15,18,'2026-36',[101,15, 8,5,5.7,'im-ziel',28]],
+    [14,25,16,20,'2026-37',[110,17, 9,5,6.1,'im-ziel',30]],
+    [11,21,14,16,'2026-38',[95,14, 7,5,5.4,'im-ziel',27]]
+  ];
+  const weeks=roh.map(r=>({
+    kw:r[4], neueLeads:r[0], neueAnfragen:r[1],
+    neueAnfragenDirekt:r[2], neueAnfragenAusLead:r[1]-r[2],
+    offertenErstellt:r[3],
+    sales:{bearbeitungen:r[5][0],verschoben:r[5][1],kommentare:r[5][2],aktiveTage:r[5][3]},
+    salesPerformance:{avgProTag:r[5][4],status:r[5][5],leadsBearbeitet:r[5][6],werktage:5}
+  }));
+  return {
+    ok:true, generatedAt:'2026-09-20T06:00:00+02:00', weeks,
+    finanzen:{
+      stichtag:'2026-09-20', umsatzBisStichtag:1492265,
+      auftragsbestandLTBisJahresende:765228, auftragsbestandFolgejahr:19621,
+      auftragsbestandGesamt:784849, eingangsrechnungenBisStichtag:583000, gutschriften:19621
+    },
+    kpis:{konversionProzent:42,nachfassquoteProzent:65,gewonnen:52,abgelehnt:72},
+    produktionStatus:{
+      'Projekt und Offertanfragen':41,'Offerprüfung Kunde / Vergabe':57,'Vorbereitung':63,
+      'Produktion':88,'Montage':34,'Abgeschlossen':1102,'Verloren / Abgesagt':100
+    },
+    mitarbeiter:{
+      Claudia: {leads:38,anfragenBearbeitet:71,offertenErstellt:58,inUmsetzung:19,abgeschlossen:24,inOffertbearbeitung:7,offerteBeimKunde:16},
+      Daniel:  {leads:29,anfragenBearbeitet:59,offertenErstellt:47,inUmsetzung:14,abgeschlossen:19,inOffertbearbeitung:5,offerteBeimKunde:13},
+      Benjamin:{leads:24,anfragenBearbeitet:52,offertenErstellt:41,inUmsetzung:12,abgeschlossen:16,inOffertbearbeitung:4,offerteBeimKunde:12},
+      Zora:    {leads:33,anfragenBearbeitet:44,offertenErstellt:34,inUmsetzung: 9,abgeschlossen:11,inOffertbearbeitung:5,offerteBeimKunde:9},
+      Sven:    {leads:26,anfragenBearbeitet:33,offertenErstellt:24,inUmsetzung: 7,abgeschlossen: 9,inOffertbearbeitung:2,offerteBeimKunde:7}
+    },
+    nachfassProMitarbeiter:{
+      Claudia:{faellig:19,nachgefasst:14}, Daniel:{faellig:16,nachgefasst:11},
+      Benjamin:{faellig:14,nachgefasst:8}, Zora:{faellig:12,nachgefasst:9},
+      Sven:{faellig:7,nachgefasst:2}
+    },
+    offeneNachfassungen:[
+      {projekt:'26-0311 · Baloise Park, Basel',      bearbeiter:'Claudia',  faelligSeit:'17.08.2026', tageUeberfaellig:34},
+      {projekt:'26-0288 · Hotel Les Trois Rois',     bearbeiter:'Benjamin', faelligSeit:'24.08.2026', tageUeberfaellig:27},
+      {projekt:'26-0402 · SBB Bahnhof Liestal',      bearbeiter:'Daniel',   faelligSeit:'01.09.2026', tageUeberfaellig:19},
+      {projekt:'26-0367 · Garage Schaub, Pratteln',  bearbeiter:'Zora',     faelligSeit:'08.09.2026', tageUeberfaellig:12},
+      {projekt:'26-0421 · Kantonsspital Baselland',  bearbeiter:'Claudia',  faelligSeit:'14.09.2026', tageUeberfaellig:6},
+      {projekt:'26-0438 · Migros Sanierung Muttenz', bearbeiter:'Sven',     faelligSeit:'18.09.2026', tageUeberfaellig:2}
+    ]
+  };
+})();
+
+/* Breite geändert → Diagramme neu bauen (render() ist wiederholbar) */
+let umbau=null;
+window.addEventListener('resize',()=>{
+  clearTimeout(umbau);
+  umbau=setTimeout(()=>{ if(REPORT) render(); },180);
+});
 
 boot();
 </script>

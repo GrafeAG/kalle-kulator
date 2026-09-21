@@ -28,6 +28,7 @@ const MONDAY_VER = '2024-01';
 const TOKEN = () => process.env.MONDAY_TOKEN;
 
 const CACHE_FILE = path.join(__dirname, '..', '..', 'data', 'controlling_cache.json');
+const FINANZEN_FILE = path.join(__dirname, '..', '..', 'data', 'finanzen.json');
 
 const BOARDS = {
   pipeline: 908257145,           // Verkauf / Pipeline (Leads)
@@ -39,7 +40,14 @@ const BOARDS = {
 const GROUPS = {
   anfragen: 'group_mm5hq91f',       // "Projekt und Offertanfragen"
   offertpruefung: 'group_mm5p5zwq', // "Offerprüfung Kunde / Vergabe"
-  verloren: 'group_mm7293mg'        // "Verloren / Abgesagt"
+  verloren: 'group_mm7293mg',       // "Verloren / Abgesagt"
+  // "In Umsetzung" — bewusst ALLE aktiven Produktionsgruppen, nicht nur die
+  // drei in der Design-Vorlage genannten (Vorbereitung/Produktion/Montage),
+  // um Produktionsplanung/Montageplanung/Endkontrolle/Versandbereit nicht zu
+  // unterschlagen. Bei Bedarf mit Sven auf die engere Auswahl zurückstellen.
+  inUmsetzung: ['group_mkt2vn54', 'new_group29179', 'group_mkw1rbx', 'new_group43041', 'group_mm5h369s', 'topics', 'group_mm6csxe1'],
+  // "Rechnung / abgeschlossen" — wie in der Design-Vorlage vorgeschlagen
+  abgeschlossen: ['duplicate_of_project_a', 'group_mksw4paf']
 };
 
 // Subitem-Namen, auf die exakt gefiltert wird (Monday-seitige contains_text-
@@ -356,6 +364,27 @@ async function buildReport(progress) {
     else if (gid !== GROUPS.anfragen && gid !== GROUPS.offertpruefung) gewonnen++;
   }
 
+  // Anfragen bearbeitet / In Umsetzung / Rechnung & abgeschlossen — pro
+  // Projektleiter (people0). "Anfragen bearbeitet" = im Zeitraum erstellt;
+  // die anderen zwei sind Momentaufnahmen wie inOffertbearbeitung/offerteBeimKunde.
+  const anfragenBearbeitetProMitarbeiter = {};
+  const inUmsetzungProMitarbeiter = {};
+  const abgeschlossenProMitarbeiter = {};
+  for (const it of produktionItems) {
+    const cv = cvMap(it);
+    const namen = splitNames(cv['people0'] && cv['people0'].text);
+    const created = parseMondayTimestamp(it.created_at);
+    if (created && created >= fromDate) {
+      namen.forEach(n => { anfragenBearbeitetProMitarbeiter[n] = (anfragenBearbeitetProMitarbeiter[n] || 0) + 1; });
+    }
+    const gid = it.group && it.group.id;
+    if (GROUPS.inUmsetzung.includes(gid)) {
+      namen.forEach(n => { inUmsetzungProMitarbeiter[n] = (inUmsetzungProMitarbeiter[n] || 0) + 1; });
+    } else if (GROUPS.abgeschlossen.includes(gid)) {
+      namen.forEach(n => { abgeschlossenProMitarbeiter[n] = (abgeschlossenProMitarbeiter[n] || 0) + 1; });
+    }
+  }
+
   // Produktionsstatus-Verteilung (aktueller Stand, nicht zeitlich gefiltert)
   const produktionStatus = {};
   for (const it of produktionItems) {
@@ -364,15 +393,22 @@ async function buildReport(progress) {
     produktionStatus[st] = (produktionStatus[st] || 0) + 1;
   }
 
-  // Mitarbeiterübersicht: Leads (Pipeline) + Offerten erstellt (Total im Zeitraum)
-  // + aktuell in Offertbearbeitung + aktuell beim Kunden (beide Snapshots)
+  // Mitarbeiterübersicht: Leads (Pipeline) + Anfragen bearbeitet + Offerten
+  // erstellt (alle im Zeitraum) + In Umsetzung + Abgeschlossen + aktuell in
+  // Offertbearbeitung + aktuell beim Kunden (alle vier zuletzt: Snapshots)
   const mitarbeiter = {};
   function ensure(name) {
-    if (!mitarbeiter[name]) mitarbeiter[name] = { leads: 0, offertenErstellt: 0, inOffertbearbeitung: 0, offerteBeimKunde: 0 };
+    if (!mitarbeiter[name]) mitarbeiter[name] = {
+      leads: 0, anfragenBearbeitet: 0, offertenErstellt: 0, inUmsetzung: 0,
+      abgeschlossen: 0, inOffertbearbeitung: 0, offerteBeimKunde: 0
+    };
     return mitarbeiter[name];
   }
   Object.entries(leadsProMitarbeiter).forEach(([n, c]) => { ensure(n).leads = c; });
+  Object.entries(anfragenBearbeitetProMitarbeiter).forEach(([n, c]) => { ensure(n).anfragenBearbeitet = c; });
   Object.entries(offertenErstelltProMitarbeiter).forEach(([n, c]) => { ensure(n).offertenErstellt = c; });
+  Object.entries(inUmsetzungProMitarbeiter).forEach(([n, c]) => { ensure(n).inUmsetzung = c; });
+  Object.entries(abgeschlossenProMitarbeiter).forEach(([n, c]) => { ensure(n).abgeschlossen = c; });
   Object.entries(inOffertbearbeitungProMitarbeiter).forEach(([n, c]) => { ensure(n).inOffertbearbeitung = c; });
   Object.entries(offerteBeimKundeProMitarbeiter).forEach(([n, c]) => { ensure(n).offerteBeimKunde = c; });
 
@@ -485,11 +521,51 @@ function saveCache(data) {
   fs.writeFileSync(CACHE_FILE, JSON.stringify(data, null, 2));
 }
 
+// ─── Finanzen (Selectline) ───────────────────────────────────────────────
+// Kommt vorerst manuell von Sven (Weg noch nicht festgelegt) — deshalb bewusst
+// eine eigene, kleine Datei statt Teil des Monday-Caches: eine Aktualisierung
+// hier braucht weder einen Monday-Refresh noch einen Server-Neustart, und eine
+// spätere automatische Anbindung (Selectline-Export, Zapier, o.ä.) kann einfach
+// auf dieselbe Route schreiben, ohne am restlichen Controlling-Code etwas zu ändern.
+function loadFinanzen() {
+  try {
+    const f = JSON.parse(fs.readFileSync(FINANZEN_FILE, 'utf8'));
+    f.auftragsbestandGesamt = (f.auftragsbestandLTBisJahresende || 0) + (f.auftragsbestandFolgejahr || 0);
+    return f;
+  } catch (e) { return null; }
+}
+function saveFinanzen(data) {
+  fs.mkdirSync(path.dirname(FINANZEN_FILE), { recursive: true });
+  fs.writeFileSync(FINANZEN_FILE, JSON.stringify(data, null, 2));
+}
+
 // ─── Routen ────────────────────────────────────────────────────────────────
 router.get('/data', (req, res) => {
   const cache = loadCache();
   if (!cache) return res.status(404).json({ ok: false, msg: 'Noch kein Report vorhanden — bitte Aktualisieren klicken.' });
-  res.json({ ok: true, ...cache });
+  res.json({ ok: true, ...cache, finanzen: loadFinanzen() });
+});
+
+// Finanzzahlen (Selectline) aktualisieren — vorerst manuell aufgerufen, bis
+// der Lieferweg feststeht. Erwartet: { stichtag, umsatzBisStichtag,
+// auftragsbestandLTBisJahresende, auftragsbestandFolgejahr,
+// eingangsrechnungenBisStichtag, gutschriften }
+router.post('/finanzen', (req, res) => {
+  const b = req.body || {};
+  const felder = ['stichtag', 'umsatzBisStichtag', 'auftragsbestandLTBisJahresende', 'auftragsbestandFolgejahr', 'eingangsrechnungenBisStichtag', 'gutschriften'];
+  const fehlend = felder.filter(f => b[f] === undefined || b[f] === null);
+  if (fehlend.length) return res.status(400).json({ ok: false, msg: 'Fehlende Felder: ' + fehlend.join(', ') });
+  const data = {};
+  felder.forEach(f => { data[f] = b[f]; });
+  data.aktualisiertAm = new Date().toISOString();
+  saveFinanzen(data);
+  res.json({ ok: true, finanzen: loadFinanzen() });
+});
+
+router.get('/finanzen', (req, res) => {
+  const f = loadFinanzen();
+  if (!f) return res.status(404).json({ ok: false, msg: 'Noch keine Finanzzahlen hinterlegt.' });
+  res.json({ ok: true, finanzen: f });
 });
 
 router.post('/refresh', (req, res) => {
