@@ -176,16 +176,33 @@ async function fetchSubitemsByName(boardId, nameContains, columnIds) {
   let items = [];
   let cursor = null;
   const colsField = `column_values(ids: ${JSON.stringify(columnIds)}) { id text value }`;
-  do {
-    const query = `query($board:[ID!], $cursor:String, $name:CompareValue!){
-      boards(ids:$board){
-        items_page(limit:100, cursor:$cursor, query_params:{rules:[{column_id:"name", compare_value:$name, operator:contains_text}]}){
-          cursor
-          items{ id name created_at updated_at parent_item{ id name } ${colsField} }
-        }
+  // Monday erlaubt query_params NUR auf der ersten Seite — sobald ein Cursor
+  // mitgeschickt wird, darf query_params nicht mehr im Request stehen (auch
+  // nicht als ungenutzte Variable). Deshalb zwei komplett getrennte Queries
+  // statt einer bedingt zusammengesetzten — sonst meckert GraphQL über die
+  // dann unbenutzte $name-Variable auf Folgeseiten.
+  const firstQuery = `query($board:[ID!], $name:CompareValue!){
+    boards(ids:$board){
+      items_page(limit:100, query_params:{rules:[{column_id:"name", compare_value:$name, operator:contains_text}]}){
+        cursor
+        items{ id name created_at updated_at parent_item{ id name } ${colsField} }
       }
-    }`;
-    const data = await mq(query, { board: [String(boardId)], cursor, name: [nameContains] });
+    }
+  }`;
+  const nextQuery = `query($board:[ID!], $cursor:String!){
+    boards(ids:$board){
+      items_page(limit:100, cursor:$cursor){
+        cursor
+        items{ id name created_at updated_at parent_item{ id name } ${colsField} }
+      }
+    }
+  }`;
+  do {
+    const query = cursor ? nextQuery : firstQuery;
+    const variables = cursor
+      ? { board: [String(boardId)], cursor }
+      : { board: [String(boardId)], name: [nameContains] };
+    const data = await mq(query, variables);
     const page = data.boards[0].items_page;
     items = items.concat(page.items);
     cursor = page.cursor;

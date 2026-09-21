@@ -57,20 +57,35 @@ async function resolveStatusIndex() {
   return cachedStatusIndex;
 }
 
-// Alle Items mit Status "Offerte ist raus" inkl. vorhandenen Subitem-Namen
+// Alle Items mit Status "Offerte ist raus" inkl. vorhandenen Subitem-Namen.
+// Zwei getrennte Queries für erste/Folgeseiten — Monday erlaubt query_params
+// nur auf der ersten Seite, nicht kombiniert mit einem Cursor (auch nicht als
+// ungenutzte Variable). Siehe gleicher Fix in src/routes/controlling.js.
 async function fetchKandidaten(statusIndex) {
   let items = [];
   let cursor = null;
-  do {
-    const query = `query($board:[ID!], $cursor:String, $idx:CompareValue!){
-      boards(ids:$board){
-        items_page(limit:100, cursor:$cursor, query_params:{rules:[{column_id:"status", compare_value:$idx, operator:any_of}]}){
-          cursor
-          items{ id name subitems{ id name } }
-        }
+  const firstQuery = `query($board:[ID!], $idx:CompareValue!){
+    boards(ids:$board){
+      items_page(limit:100, query_params:{rules:[{column_id:"status", compare_value:$idx, operator:any_of}]}){
+        cursor
+        items{ id name subitems{ id name } }
       }
-    }`;
-    const data = await mq(query, { board: [String(BOARD_PRODUKTION)], cursor, idx: [statusIndex] });
+    }
+  }`;
+  const nextQuery = `query($board:[ID!], $cursor:String!){
+    boards(ids:$board){
+      items_page(limit:100, cursor:$cursor){
+        cursor
+        items{ id name subitems{ id name } }
+      }
+    }
+  }`;
+  do {
+    const query = cursor ? nextQuery : firstQuery;
+    const variables = cursor
+      ? { board: [String(BOARD_PRODUKTION)], cursor }
+      : { board: [String(BOARD_PRODUKTION)], idx: [statusIndex] };
+    const data = await mq(query, variables);
     const page = data.boards[0].items_page;
     items = items.concat(page.items);
     cursor = page.cursor;
