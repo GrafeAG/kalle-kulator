@@ -174,7 +174,8 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
     <select id="fWochen" onchange="render()">
       <option value="4">4 Wochen</option>
       <option value="8">8 Wochen</option>
-      <option value="13" selected>13 Wochen (~3 Monate)</option>
+      <option value="13">13 Wochen (~3 Monate)</option>
+      <option value="999" selected>Seit 01.06.2026 (gesamt)</option>
     </select>
     <select id="fMitarbeiter" onchange="render()"><option value="">Alle Mitarbeiter</option></select>
     <button class="primary" id="btnRefresh" onclick="refresh()">Aktualisieren</button>
@@ -449,6 +450,28 @@ function legendeInline(items){
        <span style="width:10px;height:10px;background:${i.color}"></span>${esc(i.label)}</span>`).join('')+`</div>`;
 }
 
+/* Zielfortschritt Jahresumsatz: Balken aus Ist-Umsatz + Auftragsbestand bis
+   Jahresende, gestrichelte Ziel-Marke. Zeigt auf einen Blick, ob das, was
+   schon erzielt und im Bestand ist, für das Jahresziel reicht. */
+function zielChart(erzielt,bestand,ziel,height){
+  height=height||132;
+  const w=flaeche(34), padL=14, padR=14, barY=38, barH=46;
+  const prognose=erzielt+bestand;
+  const maxVal=Math.max(ziel,prognose)*1.08||1;
+  const innerW=w-padL-padR;
+  const scale=v=>(Math.max(0,v)/maxVal)*innerW;
+  const xErzielt=scale(erzielt), xPrognose=scale(prognose), xZiel=padL+scale(ziel);
+  let svg=`<rect x="${padL}" y="${barY}" width="${innerW}" height="${barH}" fill="var(--sub)" stroke="var(--bd)" rx="8"></rect>`;
+  svg+=`<rect x="${padL}" y="${barY}" width="${xErzielt.toFixed(1)}" height="${barH}" fill="${C.gold}" rx="8"></rect>`;
+  svg+=`<rect x="${(padL+xErzielt).toFixed(1)}" y="${barY}" width="${(xPrognose-xErzielt).toFixed(1)}" height="${barH}" fill="${C.leads}"></rect>`;
+  svg+=`<line x1="${xZiel.toFixed(1)}" y1="${barY-10}" x2="${xZiel.toFixed(1)}" y2="${barY+barH+10}" stroke="${C.bad}" stroke-width="2.5" stroke-dasharray="5 3"></line>`;
+  svg+=`<text x="${xZiel.toFixed(1)}" y="${barY-16}" font-size="11.5" font-weight="800" text-anchor="middle" style="fill:${C.bad};font-family:'Filson Pro',sans-serif">Ziel ${chf(ziel)}</text>`;
+  if(xErzielt>44) svg+=`<text x="${(padL+xErzielt/2).toFixed(1)}" y="${barY+barH/2+5}" font-size="12" font-weight="800" text-anchor="middle" style="fill:var(--on-gold)">${Math.round(erzielt/ziel*100)} %</text>`;
+  if(xPrognose-xErzielt>44) svg+=`<text x="${(padL+xErzielt+(xPrognose-xErzielt)/2).toFixed(1)}" y="${barY+barH/2+5}" font-size="12" font-weight="800" text-anchor="middle" fill="#fff">+${Math.round(bestand/ziel*100)} %</text>`;
+  svg+=`<text x="${padL}" y="${barY+barH+30}" font-size="11" style="fill:var(--muted)">Erzielt + Bestand bis Jahresende: <tspan font-weight="800" style="fill:var(--ink)">${chf(prognose)}</tspan> · ${prognose>=ziel?'Ziel erreicht':'noch '+chf(ziel-prognose)+' offen'}</text>`;
+  return huelle(w,height,svg);
+}
+
 /* ═══ Aufbau ════════════════════════════════════════════════════════ */
 function render(){
   if(!REPORT){ renderEmpty(); return; }
@@ -509,6 +532,9 @@ function render(){
           <div class="kpi"><span class="kpi__key" style="background:${C.bad}"></span>
             <div class="txt"><div class="n">${chf(fz.gutschriften)}</div><div class="l">Gutschriften</div></div></div>
         </div>
+        <h3 style="margin:24px 0 4px;font-family:var(--titel);font-size:13px;font-weight:800">Zielfortschritt Jahresumsatz ${new Date(fz.stichtag).getFullYear()}</h3>
+        ${legendeInline([{label:'Umsatz bis Stichtag',color:C.gold},{label:'Auftragsbestand bis Jahresende',color:C.leads},{label:'Ziel',color:C.bad}])}
+        ${zielChart(fz.umsatzBisStichtag,fz.auftragsbestandLTBisJahresende,fz.jahreszielUmsatz)}
       </div>
     </section>`;
   }
@@ -738,7 +764,8 @@ const DEMO=(function(){
     finanzen:{
       stichtag:'2026-09-20', umsatzBisStichtag:1492265,
       auftragsbestandLTBisJahresende:765228, auftragsbestandFolgejahr:19621,
-      auftragsbestandGesamt:784849, eingangsrechnungenBisStichtag:583000, gutschriften:19621
+      auftragsbestandGesamt:784849, eingangsrechnungenBisStichtag:583000, gutschriften:19621,
+      jahreszielUmsatz:2500000
     },
     kpis:{konversionProzent:42,nachfassquoteProzent:65,gewonnen:52,abgelehnt:72},
     produktionStatus:{

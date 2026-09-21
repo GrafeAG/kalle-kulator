@@ -65,7 +65,11 @@ const SALES_USER_ID = '18168107';
 const SALES_ZIEL_MIN = 4;
 const SALES_ZIEL_MAX = 8;
 
-const WEEKS_BACK = 13; // ~3 Monate
+// Fester Startpunkt statt rollendem Wochenfenster — auf Wunsch von Sven soll
+// die gesamte Datengrundlage seit dem 01.06.2026 abgebildet werden. Board-
+// Activity-Logs haben (anders als die separate User-Activity-Log-API) keine
+// 90-Tage-Grenze, das funktioniert also technisch sauber.
+const REPORT_START_DATE = '2026-06-01'; // ist selbst ein Montag
 
 let job = null; // { id, progress, step, done, error }
 
@@ -124,16 +128,19 @@ function workdaysOfWeek(mondayDate, today) {
   return days;
 }
 
-function weekListBack(n) {
-  const out = [];
-  const now = new Date();
-  for (let i = n - 1; i >= 0; i--) {
-    const d = new Date(now);
-    d.setDate(d.getDate() - i * 7);
-    const lbl = isoWeekLabel(d);
-    if (!out.includes(lbl)) out.push(lbl);
+// Wochen-Labels vorwärts vom festen Start bis heute (statt rückwärts von
+// "jetzt" über eine feste Anzahl) — liefert zugleich die Montage jeder Woche,
+// damit Wochenrand-Berechnungen (workdaysOfWeek etc.) exakt bleiben.
+function weekListFrom(fromMonday, today) {
+  const labels = [];
+  const mondays = [];
+  const d = new Date(fromMonday);
+  while (d <= today) {
+    labels.push(isoWeekLabel(d));
+    mondays.push(new Date(d));
+    d.setUTCDate(d.getUTCDate() + 7);
   }
-  return out;
+  return { labels, mondays };
 }
 
 // Alle Items eines Boards holen (paginiert), inkl. gewünschter Spalten + Gruppe
@@ -231,11 +238,10 @@ function splitNames(text) {
 
 // ─── Hauptaggregation ────────────────────────────────────────────────────
 async function buildReport(progress) {
-  const fromDate = mondayOfWeek(new Date());
-  fromDate.setUTCDate(fromDate.getUTCDate() - (WEEKS_BACK - 1) * 7); // Montag der ältesten vollständigen Woche
-  const fromISO = fromDate.toISOString();
-  const toISO = new Date().toISOString();
   const today = new Date();
+  const fromDate = mondayOfWeek(new Date(REPORT_START_DATE)); // fester Start, nicht mehr rollend
+  const fromISO = fromDate.toISOString();
+  const toISO = today.toISOString();
 
   progress(5, 'Lade Pipeline-Board (Leads)...');
   const pipelineItems = await fetchAllItems(BOARDS.pipeline, ['status', 'person', 'people', 'creation_log']);
@@ -364,6 +370,18 @@ async function buildReport(progress) {
     else if (gid !== GROUPS.anfragen && gid !== GROUPS.offertpruefung) gewonnen++;
   }
 
+  // Vollständige Projektleiter-Liste — jeder, der jemals als Projektleiter
+  // (people0) auf der Produktionsübersicht gesetzt wurde, gilt als Mitarbeiter
+  // und muss in der Übersicht erscheinen, auch mit 0 im aktuellen Zeitraum.
+  // Bewusst NICHT auf Titel/Team gefiltert (die meisten Monday-User-Profile
+  // haben kein Titel-Feld gesetzt) — die tatsächliche Verwendung im people0-
+  // Feld ist das einzige verlässliche Kriterium für "ist Projektleiter".
+  const alleProjektleiter = new Set();
+  for (const it of produktionItems) {
+    const cv = cvMap(it);
+    splitNames(cv['people0'] && cv['people0'].text).forEach(n => alleProjektleiter.add(n));
+  }
+
   // Anfragen bearbeitet / In Umsetzung / Rechnung & abgeschlossen — pro
   // Projektleiter (people0). "Anfragen bearbeitet" = im Zeitraum erstellt;
   // die anderen zwei sind Momentaufnahmen wie inOffertbearbeitung/offerteBeimKunde.
@@ -405,6 +423,7 @@ async function buildReport(progress) {
     return mitarbeiter[name];
   }
   Object.entries(leadsProMitarbeiter).forEach(([n, c]) => { ensure(n).leads = c; });
+  alleProjektleiter.forEach(n => ensure(n)); // garantiert jeden echten Projektleiter, auch mit 0 überall
   Object.entries(anfragenBearbeitetProMitarbeiter).forEach(([n, c]) => { ensure(n).anfragenBearbeitet = c; });
   Object.entries(offertenErstelltProMitarbeiter).forEach(([n, c]) => { ensure(n).offertenErstellt = c; });
   Object.entries(inUmsetzungProMitarbeiter).forEach(([n, c]) => { ensure(n).inUmsetzung = c; });
@@ -418,6 +437,7 @@ async function buildReport(progress) {
   // Nachgefasst = Subitem-Status "Fertig".
   const nachfassWeek = {};        // { kw: { faellig, nachgefasst } }
   const nachfassMitarbeiter = {}; // { name: { faellig, nachgefasst } }
+  alleProjektleiter.forEach(n => { nachfassMitarbeiter[n] = { faellig: 0, nachgefasst: 0 }; });
   const offeneNachfassungen = [];
   for (const it of nachfassItems) {
     const cv = cvMap(it);
@@ -450,12 +470,7 @@ async function buildReport(progress) {
   }
   offeneNachfassungen.sort((a, b) => b.tageUeberfaellig - a.tageUeberfaellig);
 
-  const weekList = weekListBack(WEEKS_BACK);
-  const weekMondays = weekList.map((_, idx) => {
-    const monday = mondayOfWeek(today);
-    monday.setUTCDate(monday.getUTCDate() - (WEEKS_BACK - 1 - idx) * 7);
-    return monday;
-  });
+  const { labels: weekList, mondays: weekMondays } = weekListFrom(fromDate, today);
   const weeks = weekList.map((wk, idx) => {
     const workdays = workdaysOfWeek(weekMondays[idx], today);
     const leadsBearbeitetTage = workdays.map(day => (dailyPipelineLeads[day] ? dailyPipelineLeads[day].size : 0));
@@ -496,7 +511,7 @@ async function buildReport(progress) {
 
   return {
     generatedAt: new Date().toISOString(),
-    zeitraum: { von: fromISO, bis: toISO, wochen: WEEKS_BACK },
+    zeitraum: { von: fromISO, bis: toISO, wochen: weekList.length },
     weeks,
     nachfassProMitarbeiter: nachfassMitarbeiter,
     offeneNachfassungen: offeneNachfassungen.slice(0, 50),
@@ -531,6 +546,7 @@ function loadFinanzen() {
   try {
     const f = JSON.parse(fs.readFileSync(FINANZEN_FILE, 'utf8'));
     f.auftragsbestandGesamt = (f.auftragsbestandLTBisJahresende || 0) + (f.auftragsbestandFolgejahr || 0);
+    if (f.jahreszielUmsatz == null) f.jahreszielUmsatz = 2500000; // Default, falls in älteren finanzen.json noch nicht gesetzt
     return f;
   } catch (e) { return null; }
 }
@@ -557,6 +573,7 @@ router.post('/finanzen', (req, res) => {
   if (fehlend.length) return res.status(400).json({ ok: false, msg: 'Fehlende Felder: ' + fehlend.join(', ') });
   const data = {};
   felder.forEach(f => { data[f] = b[f]; });
+  if (b.jahreszielUmsatz != null) data.jahreszielUmsatz = b.jahreszielUmsatz;
   data.aktualisiertAm = new Date().toISOString();
   saveFinanzen(data);
   res.json({ ok: true, finanzen: loadFinanzen() });
