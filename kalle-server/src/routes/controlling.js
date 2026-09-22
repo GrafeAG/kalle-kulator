@@ -55,6 +55,17 @@ const GROUPS = {
 // bevor der Senior-Lead-Agent sie qualifiziert (Gruppen-ID live abgefragt).
 const PIPELINE_ROH_GRUPPE = 'new_group2210'; // "Claude ROH Leads zur Qualifikation"
 
+// Vereinbarung mit Daniel: jeder qualifizierte "Senior Lead" (Gruppe "Neue
+// Leads - Claude") wird von ihm kontrolliert, bewertet, terminiert und nach
+// "Aktive Leads in Bearbeitung" verschoben — laut Sven der stärkste
+// Performance-Indikator dafür. Gruppen-IDs live bestätigt.
+const PIPELINE_SENIOR_GRUPPE = 'group_mm298h3x';       // "Neue Leads - Claude"
+const PIPELINE_BEARBEITUNG_GRUPPE = 'group_mkyjyqnj';  // "Aktive Leads in Bearbeitung"
+// Alle Gruppen, in denen ein Senior Lead landen kann, NACHDEM Daniel ihn
+// bearbeitet hat (Ziel-Gruppe + alles, was danach folgt) — Basis für die
+// Kandidatensuche der Konversions-Messung.
+const PIPELINE_POST_SENIOR_GRUPPEN = ['group_mkyjyqnj', 'closed', 'new_group', 'new_group58786', 'group_mkykq7bk', 'group_mm71hcec'];
+
 // Subitem-Namen, auf die exakt gefiltert wird (Monday-seitige contains_text-
 // Suche, live gegen echte Daten bestätigt)
 const SUBITEM_OFFERTE_ERSTELLEN = 'Offerte erstellen';
@@ -367,6 +378,49 @@ async function buildReport(progress) {
       leadsProMitarbeiter[n] = (leadsProMitarbeiter[n] || 0) + 1;
     });
   }
+
+  // Snapshots: wie viele Senior Leads warten aktuell auf Daniel, wie viele
+  // sind gerade aktiv in Bearbeitung?
+  let seniorLeadsGesamt = 0;
+  let aktivInBearbeitungGesamt = 0;
+  for (const it of pipelineItems) {
+    const gid = it.group && it.group.id;
+    if (gid === PIPELINE_SENIOR_GRUPPE) seniorLeadsGesamt++;
+    else if (gid === PIPELINE_BEARBEITUNG_GRUPPE) aktivInBearbeitungGesamt++;
+  }
+
+  // Präzise Konversion "Neue Leads - Claude" → "Aktive Leads in Bearbeitung"
+  // — exakt dieselbe Methode wie die Konversion Offertprüfung→Vorbereitung:
+  // nur kürzlich veränderte Kandidaten gezielt per item_ids durchsuchen statt
+  // das ganze Board (1156 Elemente).
+  progress(70, 'Ermittle Lead-Bearbeitung durch Daniel...');
+  const leadKonversionKandidaten = pipelineItems.filter(it => {
+    const gid = it.group && it.group.id;
+    const updated = parseMondayTimestamp(it.updated_at);
+    return PIPELINE_POST_SENIOR_GRUPPEN.includes(gid) && updated && updated >= fromDate;
+  });
+  const leadKonversionLogs = leadKonversionKandidaten.length
+    ? await fetchActivityByItems(BOARDS.pipeline, leadKonversionKandidaten.map(it => it.id), fromISO, toISO)
+    : [];
+  const leadKonversionEventProItem = {};
+  for (const ev of leadKonversionLogs) {
+    if (ev.event !== 'move_pulse_from_group') continue;
+    let data;
+    try { data = JSON.parse(ev.data); } catch (e) { continue; }
+    if (!data.dest_group || data.dest_group.id !== PIPELINE_BEARBEITUNG_GRUPPE) continue;
+    const pid = String(data.pulse_id);
+    if (!leadKonversionEventProItem[pid] || ev.created_at > leadKonversionEventProItem[pid].created_at) {
+      leadKonversionEventProItem[pid] = ev;
+    }
+  }
+  const leadKonversionPerWeek = {};
+  Object.values(leadKonversionEventProItem).forEach(ev => {
+    const ts = parseMondayTimestamp(ev.created_at);
+    if (!ts || ts < fromDate) return;
+    const wk = isoWeekLabel(ts);
+    leadKonversionPerWeek[wk] = (leadKonversionPerWeek[wk] || 0) + 1;
+  });
+  const leadKonversionGesamtGemessen = Object.keys(leadKonversionEventProItem).length;
 
   // Sales-Aktivität/Woche: Bearbeitungen, Gruppenwechsel (Mutation), Kommentare, aktive Tage
   const salesWeek = {};
@@ -695,7 +749,8 @@ async function buildReport(progress) {
         faellig: (nachfassWeek[wk] && nachfassWeek[wk].faellig) || 0,
         nachgefasst: (nachfassWeek[wk] && nachfassWeek[wk].nachgefasst) || 0
       },
-      konversionVorbereitung: konversionPerWeek[wk] || 0
+      konversionVorbereitung: konversionPerWeek[wk] || 0,
+      leadsInBearbeitungKonversion: leadKonversionPerWeek[wk] || 0
     };
   });
 
@@ -717,7 +772,10 @@ async function buildReport(progress) {
       auftragsvolumenBeimKunden: Math.round(auftragsvolumenBeimKundenSumme),
       inBearbeitungGesamt,
       aktivOfferiertGesamt,
-      konversionVorbereitungGesamt: konversionGesamtGemessen
+      konversionVorbereitungGesamt: konversionGesamtGemessen,
+      seniorLeadsGesamt,
+      aktivInBearbeitungGesamt,
+      leadsInBearbeitungKonversionGesamt: leadKonversionGesamtGemessen
     },
     produktionStatus,
     mitarbeiter
