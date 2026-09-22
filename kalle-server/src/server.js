@@ -119,6 +119,19 @@ try {
   console.warn('⚠ Route /nachfassen NICHT geladen — fehlt src/routes/nachfassen.js? (' + e.message + ')');
 }
 
+// ── NEU: Mailversand über Microsoft Graph (App-only) — löst den grafemail:-
+// Helfer ab, siehe MAILVERSAND_Spec.md / MAILVERSAND_Integration.md
+// (Richtungsentscheid 22.09.2026). Voraussetzung: src/mailGraph.js,
+// MAIL_GRAPH_TENANT_ID/CLIENT_ID/CLIENT_SECRET in der .env, sowie die
+// signatur_html/mail_aktiv-Spalten in der bearbeiter-Tabelle (siehe
+// scripts/migrate_mailversand.js).
+try {
+  app.use('/mail', require('./routes/mail'));
+  console.log('✓ Route /mail aktiv');
+} catch (e) {
+  console.warn('⚠ Route /mail NICHT geladen — fehlt src/routes/mail.js oder src/mailGraph.js? (' + e.message + ')');
+}
+
 // ── NEU: Zentrale Vorgangsnummern-Vergabe (26xxxx) — reservieren/commit/freigeben ──
 // Fehlte bisher komplett in server.js, exakt derselbe Fehler wie zuvor bei
 // analyse.js: die Datei existierte und war korrekt, wurde aber nie gemountet.
