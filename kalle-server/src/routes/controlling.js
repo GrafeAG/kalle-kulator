@@ -32,6 +32,7 @@ const FINANZEN_FILE = path.join(__dirname, '..', '..', 'data', 'finanzen.json');
 
 const BOARDS = {
   pipeline: 908257145,           // Verkauf / Pipeline (Leads)
+  pipelineSubitems: 908257162,   // Unterelemente von Pipeline ("Subitems of Pipeline") — Termine/Aufgaben zu Leads
   produktion: 1012481465,        // GRAFE Produktionsübersicht — echter Arbeitsablauf
   produktionSubitems: 1012481470 // Unterelemente von GRAFE Produktionsübersicht
 };
@@ -74,12 +75,26 @@ const STATUS_OFFERTE_RAUS = 'Offerte ist raus';      // Haupt-Status-Label auf d
 const SUBITEM_STATUS_IN_ARBEIT = 'in Offertstellung'; // Subitem-Status-Label auf "Offerte erstellen"
 const SUBITEM_STATUS_FERTIG = 'Fertig';
 
-// Verkauf/Projektleiter, dessen Aktivität laut interner Vereinbarung (4-8
+// "Status" auf dem Pipeline-Board (Spalte color_mm29jktg, NICHT zu verwechseln
+// mit "Claude Prüfung" — die ist laut Sven ausschliesslich für die KI-Vorprüfung,
+// nie für Daniel). Daniel setzt hier bei der ersten Kontrolle eines Senior Leads
+// "nicht relevant / Uninteressant", was die Archivierung auslöst.
+const STATUS_SPALTE_ID = 'color_mm29jktg';
+const STATUS_NICHT_RELEVANT = 'nicht relevant / Uninteressant';
+
+// Subitems auf dem Pipeline-Board (BOARDS.pipelineSubitems) — Aufgaben/Termine
+// zu einzelnen Leads. Spalte "Status" dort hat NUR zwei Label ("in Bearbeitung"/
+// "erledigt"), bewusst separat von SUBITEM_STATUS_FERTIG oben (andere Board,
+// anderer Wortlaut).
+const PIPELINE_SUBITEM_STATUS_ERLEDIGT = 'erledigt';
+
+// Verkauf/Projektleiter, dessen Aktivität laut interner Vereinbarung (4-7
 // bearbeitete Leads/Tag) im Sales-Performance-Indikator ausgewertet wird.
 // Bewusst nicht namentlich in der UI — dort heisst es "Sales".
 const SALES_USER_ID = '18168107';
 const SALES_ZIEL_MIN = 4;
-const SALES_ZIEL_MAX = 8;
+const SALES_ZIEL_MAX = 7;
+const SALES_ZIEL_WOCHE = 20; // Mindestens 20 seriös bearbeitete Leads pro Woche
 
 // Fester Startpunkt statt rollendem Wochenfenster — auf Wunsch von Sven soll
 // die gesamte Datengrundlage seit dem 01.06.2026 abgebildet werden. Board-
@@ -140,6 +155,20 @@ function workdaysOfWeek(mondayDate, today) {
     const d = new Date(mondayDate);
     d.setUTCDate(d.getUTCDate() + i);
     if (d <= today) days.push(d.toISOString().slice(0, 10));
+  }
+  return days;
+}
+
+// Immer exakt 5 Werktage (Mo-Fr) einer Kalenderwoche, auch in der Zukunft
+// liegende — für die tageweise Anzeige im Sales-Performance-Chart. Bewusst
+// getrennt von workdaysOfWeek() oben, damit der Ø-Wert (der nur verstrichene
+// Tage zählen darf) unangetastet bleibt.
+function alleWerktageDerWoche(mondayDate) {
+  const days = [];
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(mondayDate);
+    d.setUTCDate(d.getUTCDate() + i);
+    days.push(d.toISOString().slice(0, 10));
   }
   return days;
 }
@@ -353,6 +382,9 @@ async function buildReport(progress) {
   progress(70, 'Lade Activity-Log Pipeline (Sales)...');
   const salesActPipeline = await fetchActivity(BOARDS.pipeline, fromISO, toISO, [SALES_USER_ID], true);
 
+  progress(78, 'Lade Activity-Log Pipeline-Subitems (Termine, Sales)...');
+  const salesActPipelineSubitems = await fetchActivity(BOARDS.pipelineSubitems, fromISO, toISO, [SALES_USER_ID], true);
+
   progress(85, 'Lade Activity-Log Produktionsübersicht (Sales)...');
   const salesActProduktion = await fetchActivity(BOARDS.produktion, fromISO, toISO, [SALES_USER_ID]);
 
@@ -421,6 +453,50 @@ async function buildReport(progress) {
     leadKonversionPerWeek[wk] = (leadKonversionPerWeek[wk] || 0) + 1;
   });
   const leadKonversionGesamtGemessen = Object.keys(leadKonversionEventProItem).length;
+
+  // Drei weitere DDE-Kennzahlen, alle nach demselben Muster: eindeutige
+  // Leads/Subitems pro Woche (nicht rohe Events — mehrfaches Ändern
+  // desselben Feldes in derselben Woche zählt nur einmal), damit die Zahl
+  // robust gegen Korrekturen/Doppelklicks ist.
+  //
+  // 1) "Nicht relevant" — Spalte "Status" (STATUS_SPALTE_ID) auf dem
+  //    Pipeline-Board, NICHT "Claude Prüfung" (die ist laut Sven reine
+  //    KI-Vorprüfung). Wird aus salesActPipeline mitausgewertet, kein
+  //    zusätzlicher Fetch nötig.
+  const nichtRelevantProWoche = {}; // { kw: Set<pulse_id> }
+  for (const ev of salesActPipeline) {
+    if (ev.event !== 'update_column_value') continue;
+    let data;
+    try { data = JSON.parse(ev.data); } catch (e) { continue; }
+    if (data.column_id !== STATUS_SPALTE_ID) continue;
+    if (!data.value || !data.value.label || data.value.label.text !== STATUS_NICHT_RELEVANT) continue;
+    const ts = parseMondayTimestamp(ev.created_at);
+    if (!ts) continue;
+    const wk = isoWeekLabel(ts);
+    if (!nichtRelevantProWoche[wk]) nichtRelevantProWoche[wk] = new Set();
+    nichtRelevantProWoche[wk].add(data.pulse_id);
+  }
+
+  // 2) "Termin gesetzt" / 3) "Termin erledigt" — Subitems von Pipeline
+  //    (BOARDS.pipelineSubitems), Spalten "date0" (Termin) bzw. "status"
+  //    (Label "erledigt").
+  const terminGesetztProWoche = {};  // { kw: Set<pulse_id> }
+  const terminErledigtProWoche = {}; // { kw: Set<pulse_id> }
+  for (const ev of salesActPipelineSubitems) {
+    if (ev.event !== 'update_column_value') continue;
+    let data;
+    try { data = JSON.parse(ev.data); } catch (e) { continue; }
+    const ts = parseMondayTimestamp(ev.created_at);
+    if (!ts) continue;
+    const wk = isoWeekLabel(ts);
+    if (data.column_id === 'date0') {
+      if (!terminGesetztProWoche[wk]) terminGesetztProWoche[wk] = new Set();
+      terminGesetztProWoche[wk].add(data.pulse_id);
+    } else if (data.column_id === 'status' && data.value && data.value.label && data.value.label.text === PIPELINE_SUBITEM_STATUS_ERLEDIGT) {
+      if (!terminErledigtProWoche[wk]) terminErledigtProWoche[wk] = new Set();
+      terminErledigtProWoche[wk].add(data.pulse_id);
+    }
+  }
 
   // Sales-Aktivität/Woche: Bearbeitungen, Gruppenwechsel (Mutation), Kommentare, aktive Tage
   const salesWeek = {};
@@ -725,6 +801,12 @@ async function buildReport(progress) {
       : avgProTag < SALES_ZIEL_MIN ? 'unter-ziel'
       : avgProTag > SALES_ZIEL_MAX ? 'ueber-ziel'
       : 'im-ziel';
+    // Alle 5 Werktage (auch zukünftige, dort anzahl:null statt 0 — "steht
+    // noch aus", nicht "0 bearbeitet") für die Tages-Anzeige im Frontend.
+    const alleTage = alleWerktageDerWoche(weekMondays[idx]).map(datum => ({
+      datum,
+      anzahl: datum > today.toISOString().slice(0, 10) ? null : (dailyPipelineLeads[datum] ? dailyPipelineLeads[datum].size : 0)
+    }));
     return {
       kw: wk,
       neueLeads: leadsPerWeek[wk] || 0,
@@ -743,14 +825,18 @@ async function buildReport(progress) {
         leadsBearbeitet: leadsBearbeitetSumme,
         werktage: workdays.length,
         avgProTag,
-        status
+        status,
+        tage: alleTage
       },
       nachfass: {
         faellig: (nachfassWeek[wk] && nachfassWeek[wk].faellig) || 0,
         nachgefasst: (nachfassWeek[wk] && nachfassWeek[wk].nachgefasst) || 0
       },
       konversionVorbereitung: konversionPerWeek[wk] || 0,
-      leadsInBearbeitungKonversion: leadKonversionPerWeek[wk] || 0
+      leadsInBearbeitungKonversion: leadKonversionPerWeek[wk] || 0,
+      nichtRelevant: (nichtRelevantProWoche[wk] && nichtRelevantProWoche[wk].size) || 0,
+      terminGesetzt: (terminGesetztProWoche[wk] && terminGesetztProWoche[wk].size) || 0,
+      terminErledigt: (terminErledigtProWoche[wk] && terminErledigtProWoche[wk].size) || 0
     };
   });
 
@@ -775,7 +861,10 @@ async function buildReport(progress) {
       konversionVorbereitungGesamt: konversionGesamtGemessen,
       seniorLeadsGesamt,
       aktivInBearbeitungGesamt,
-      leadsInBearbeitungKonversionGesamt: leadKonversionGesamtGemessen
+      leadsInBearbeitungKonversionGesamt: leadKonversionGesamtGemessen,
+      salesZielMin: SALES_ZIEL_MIN,
+      salesZielMax: SALES_ZIEL_MAX,
+      salesZielWoche: SALES_ZIEL_WOCHE
     },
     produktionStatus,
     mitarbeiter

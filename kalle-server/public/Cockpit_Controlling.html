@@ -186,6 +186,25 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .stat__delta.up{color:var(--good)}
 .stat__delta.flat{color:var(--muted)}
 
+/* ── Wochen-Raster (Sales-Tempo, Mo–Fr mit Umrandung + Wochensumme) ─── */
+.wochenReihe{display:flex;gap:12px;flex-wrap:wrap;margin:14px 0 18px}
+.wocheBox{flex:1;min-width:150px;border:2px solid var(--bd)}
+.wocheBox.im-ziel{border-color:var(--good)}
+.wocheBox.unter-ziel{border-color:var(--bad)}
+.wocheBox__kopf{display:flex;justify-content:space-between;align-items:baseline;padding:8px 10px;border-bottom:1px solid var(--bd);font:700 11.5px/1 var(--titel)}
+.wocheBox__sum{font:800 15px/1 var(--titel)}
+.wocheBox__sum.ok{color:var(--good)}
+.wocheBox__sum.bad{color:var(--bad)}
+.wocheBox__tage{display:flex}
+.tagChip{flex:1;text-align:center;padding:8px 2px;font:600 10.5px/1 var(--titel);color:var(--muted);border-right:1px solid var(--bd)}
+.tagChip:last-child{border-right:none}
+.tagChip .n{display:block;margin-top:4px;font:800 15px/1 var(--titel);color:var(--ink)}
+.tagChip.im-ziel .n{color:var(--good)}
+.tagChip.unter-ziel .n{color:var(--bad)}
+.tagChip.ueber-ziel .n{color:var(--teal)}
+.tagChip.pending{opacity:.45}
+.tagChip.pending .n{color:var(--muted)}
+
 /* ── Tab-Navigation · exakt .rk-tab aus der Beta ─────────────────── */
 .tabs{display:flex;align-items:flex-end;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--bd)}
 .tab{padding:9px 16px;border:none;border-bottom:3px solid transparent;background:transparent;
@@ -240,7 +259,7 @@ function serverUrl(){
 }
 const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
 const chf=n=>n==null?'–':'CHF '+Math.round(n).toLocaleString('de-CH');
-const SALES_ZIEL_MIN=4, SALES_ZIEL_MAX=8;
+const SALES_ZIEL_MIN=4, SALES_ZIEL_MAX=7, SALES_ZIEL_WOCHE=20;
 
 /* Farbrollen – zwei Weltenfarben plus die drei Funktionsfarben.
    Bewusst nur fünf, damit die Diagramme ruhig bleiben. */
@@ -465,7 +484,9 @@ function stackedBars(weeks,series,height,breite){
   return huelle(w,height,svg);
 }
 
-/* Wochenbalken gegen das Zielband 4–8 Leads/Tag. */
+/* Wochenbalken gegen ein Zielband Leads/Tag (aktuell ungenutzt, seit die
+   Tempo-Sektion auf das Wochen-Tage-Raster umgestellt wurde — als
+   generischer Baustein belassen). */
 function targetBandChart(weeks,getVal,getColor,bandMin,bandMax){
   const height=170, padT=16, padB=28;
   const w=Math.max(flaeche(34),weeks.length*44);
@@ -682,13 +703,29 @@ function render(){
   const perfFarbe={'im-ziel':C.good,'unter-ziel':C.bad,'ueber-ziel':C.offerten,'keine-daten':C.neutral};
   const perfText={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
   const letzteWoche=weeks[weeks.length-1];
+  const letzte6Wochen=lastNWeeks(REPORT.weeks,6);
+  const tageLabels=['Mo','Di','Mi','Do','Fr'];
+  const wochenReiheHtml=letzte6Wochen.map(w=>{
+    const tage=w.salesPerformance.tage||[];
+    const summe=tage.reduce((a,t)=>a+(t.anzahl||0),0);
+    const zielErreicht=summe>=SALES_ZIEL_WOCHE;
+    const tageHtml=tage.map((t,i)=>{
+      const pending=t.anzahl==null;
+      const cls=pending?'pending':(t.anzahl>=SALES_ZIEL_MIN&&t.anzahl<=SALES_ZIEL_MAX?'im-ziel':(t.anzahl>SALES_ZIEL_MAX?'ueber-ziel':'unter-ziel'));
+      return `<div class="tagChip ${cls}">${tageLabels[i]}<span class="n">${pending?'–':t.anzahl}</span></div>`;
+    }).join('');
+    return `<div class="wocheBox ${zielErreicht?'im-ziel':'unter-ziel'}">
+      <div class="wocheBox__kopf"><span>${esc(kwKurz(w.kw))}</span><span class="wocheBox__sum ${zielErreicht?'ok':'bad'}">${summe}</span></div>
+      <div class="wocheBox__tage">${tageHtml}</div>
+    </div>`;
+  }).join('');
   htmlSales+=`<section><h2>Sales · Performance <em>vereinbarte Zielgrössen</em></h2>
     <div class="sec__body">
-      <p class="note">Zeigt konkret, wie gut die vereinbarte Leistung eingehalten wird — zwei Zielgrössen, dieselbe Person, bewusst ohne Klarnamen in der Beschriftung. <em>1) Tempo:</em> 4–8 bearbeitete Leads pro Tag. <em>2) Sauberkeit:</em> jeder qualifizierte Lead wird tatsächlich bis zum Abschluss der Prüfung gebracht, nicht nur angefasst.</p>
+      <p class="note">Zeigt konkret, wie gut die vereinbarte Leistung eingehalten wird — drei Zielgrössen, dieselbe Person, bewusst ohne Klarnamen in der Beschriftung. <em>1) Tempo:</em> ${SALES_ZIEL_MIN}–${SALES_ZIEL_MAX} bearbeitete Leads pro Tag, mindestens ${SALES_ZIEL_WOCHE} pro Woche. <em>2) Sauberkeit:</em> jeder qualifizierte Lead wird tatsächlich bis zum Abschluss der Prüfung gebracht, nicht nur angefasst. <em>3) Weitere Kennzahlen:</em> Nicht-relevant-Entscheide und gesetzte/erledigte Termine.</p>
 
-      <h3 style="margin:22px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">1 · Tempo — Ø 4–8 bearbeitete Leads pro Tag</h3>
+      <h3 style="margin:22px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">1 · Tempo — Ø ${SALES_ZIEL_MIN}–${SALES_ZIEL_MAX} bearbeitete Leads pro Tag, Ziel ≥ ${SALES_ZIEL_WOCHE}/Woche</h3>
       <p class="note" style="background:var(--sub);border:1px solid var(--bd);padding:10px 12px">
-        <em>Wie die Zahl zustande kommt:</em> pro Tag werden die <em>eindeutigen</em> Leads gezählt, an denen mindestens eine Bearbeitung, Verschiebung oder ein Kommentar vorgenommen wurde (Mehrfach-Bearbeitung desselben Leads am selben Tag zählt nur einmal). Diese Tageszahlen werden über die bereits verstrichenen Werktage der Woche gemittelt: Summe bearbeiteter Leads ÷ Anzahl Werktage bis heute.
+        <em>Wie die Zahl zustande kommt:</em> pro Tag werden die <em>eindeutigen</em> Leads gezählt, an denen mindestens eine Bearbeitung, Verschiebung oder ein Kommentar vorgenommen wurde (Mehrfach-Bearbeitung desselben Leads am selben Tag zählt nur einmal). Immer die letzten 6 Kalenderwochen, jede Woche exakt Montag bis Freitag — unabhängig vom Wochen-Filter oben, damit die Wochen untereinander vergleichbar bleiben.
       </p>
       <div class="row" style="align-items:center;gap:18px;margin:14px 0 16px">
         <div style="display:flex;align-items:center;gap:13px">
@@ -700,9 +737,9 @@ function render(){
           </div>
         </div>
       </div>
-      ${targetBandChart(weeks,w=>w.salesPerformance.avgProTag,w=>perfFarbe[w.salesPerformance.status],SALES_ZIEL_MIN,SALES_ZIEL_MAX)}
+      <div class="wochenReihe">${wochenReiheHtml}</div>
       <div style="margin-top:10px">${legendeInline([
-        {label:'Im Ziel (4 – 8)',color:C.good},{label:'Unter Ziel',color:C.bad},{label:'Über Ziel',color:C.offerten}
+        {label:`Im Ziel (${SALES_ZIEL_MIN} – ${SALES_ZIEL_MAX})`,color:C.good},{label:'Unter Ziel',color:C.bad},{label:'Über Ziel',color:C.offerten},{label:'Wochenrahmen: ≥ '+SALES_ZIEL_WOCHE+' = erreicht',color:C.neutral}
       ])}</div>
 
       <h3 style="margin:28px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">2 · Sauberkeit — Lead-Bearbeitung bis zum Abschluss</h3>
@@ -718,6 +755,20 @@ function render(){
       ${legendeInline([{label:'Bearbeitet',color:C.good}])}
       ${verlaufChart(weeks,[
         {name:'Bearbeitet',color:C.good,unten:true,get:w=>w.leadsInBearbeitungKonversion}
+      ])}
+
+      <h3 style="margin:28px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">3 · Weitere Kennzahlen — Entscheide &amp; Termine</h3>
+      <p class="note">Ergänzt die erste Kontrolle eines Senior Leads: entweder «Nicht relevant / Uninteressant» (Spalte <em>Status</em>, löst die Archivierung aus — nicht zu verwechseln mit «Claude Prüfung», die ist reine KI-Vorprüfung), oder ein Termin im Subelement. Alle drei über dieselben letzten 6 Mo–Fr-Wochen wie oben.</p>
+      <div class="row" style="gap:14px;margin-bottom:16px">
+        ${statKachel('Nicht relevant',letzte6Wochen.reduce((a,w)=>a+w.nichtRelevant,0),letzte6Wochen[letzte6Wochen.length-1].nichtRelevant,letzte6Wochen[letzte6Wochen.length-1].kw)}
+        ${statKachel('Termine gesetzt',letzte6Wochen.reduce((a,w)=>a+w.terminGesetzt,0),letzte6Wochen[letzte6Wochen.length-1].terminGesetzt,letzte6Wochen[letzte6Wochen.length-1].kw)}
+        ${statKachel('Termine auf «erledigt» gesetzt',letzte6Wochen.reduce((a,w)=>a+w.terminErledigt,0),letzte6Wochen[letzte6Wochen.length-1].terminErledigt,letzte6Wochen[letzte6Wochen.length-1].kw)}
+      </div>
+      ${legendeInline([{label:'Nicht relevant',color:C.bad},{label:'Termine gesetzt',color:C.anfragen},{label:'Termine erledigt',color:C.good}])}
+      ${verlaufChart(letzte6Wochen,[
+        {name:'Nicht relevant',color:C.bad,get:w=>w.nichtRelevant},
+        {name:'Termine gesetzt',color:C.anfragen,get:w=>w.terminGesetzt},
+        {name:'Termine erledigt',color:C.good,unten:true,get:w=>w.terminErledigt}
       ])}
     </div>
   </section>`;
@@ -940,14 +991,21 @@ const DEMO=(function(){
     [14,25,16,20,'2026-37',[110,17, 9,5,6.1,'im-ziel',30]],
     [11,21,14,16,'2026-38',[95,14, 7,5,5.4,'im-ziel',27]]
   ];
-  const weeks=roh.map(r=>({
-    kw:r[4], neueLeads:r[0], neueLeadsQualifiziert:Math.round(r[0]*0.62), neueAnfragen:r[1],
-    neueAnfragenDirekt:r[2], neueAnfragenAusLead:r[1]-r[2],
-    offertenErstellt:r[3], konversionVorbereitung:Math.round(r[3]*0.55),
-    leadsInBearbeitungKonversion:Math.round(r[0]*0.5),
-    sales:{bearbeitungen:r[5][0],verschoben:r[5][1],kommentare:r[5][2],aktiveTage:r[5][3]},
-    salesPerformance:{avgProTag:r[5][4],status:r[5][5],leadsBearbeitet:r[5][6],werktage:5}
-  }));
+  const tageLabelsDemo=['01','02','03','04','05'];
+  const weeks=roh.map(r=>{
+    const summe=r[5][6];
+    const basis=Math.floor(summe/5), rest=summe-basis*5;
+    const tage=[0,1,2,3,4].map(i=>({datum:'2026-01-'+tageLabelsDemo[i], anzahl:basis+(i<rest?1:0)}));
+    return {
+      kw:r[4], neueLeads:r[0], neueLeadsQualifiziert:Math.round(r[0]*0.62), neueAnfragen:r[1],
+      neueAnfragenDirekt:r[2], neueAnfragenAusLead:r[1]-r[2],
+      offertenErstellt:r[3], konversionVorbereitung:Math.round(r[3]*0.55),
+      leadsInBearbeitungKonversion:Math.round(r[0]*0.5),
+      nichtRelevant:Math.round(r[0]*0.2), terminGesetzt:Math.round(r[0]*0.35), terminErledigt:Math.round(r[0]*0.28),
+      sales:{bearbeitungen:r[5][0],verschoben:r[5][1],kommentare:r[5][2],aktiveTage:r[5][3]},
+      salesPerformance:{avgProTag:r[5][4],status:r[5][5],leadsBearbeitet:summe,werktage:5,tage}
+    };
+  });
   return {
     ok:true, generatedAt:'2026-09-20T06:00:00+02:00', weeks,
     finanzen:{
