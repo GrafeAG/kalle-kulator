@@ -3,13 +3,15 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>KALLE · Controlling</title>
+<title>REAKTOR · Controlling</title>
 
 <!-- ═══════════════════════════════════════════════════════════════════
-     KALLE · CONTROLLING — Grafe-CI
+     REAKTOR · CONTROLLING — Grafe-CI
      ───────────────────────────────────────────────────────────────────
-     Gleiche Datei wie zuvor, nur neu eingekleidet: Grafe-Tokens, Filson
-     Pro, scharfe Ecken, zwei Weltenfarben (Gelb/Oliv) statt Monday-Bunt.
+     Gleiche Datei wie zuvor, jetzt exakt (nicht nur angenähert) gegen
+     die echte KALLE_Cockpit_Beta.html abgeglichen: Farb-Tokens 1:1 aus
+     .rk-scope.theme-light übernommen, Header-Bausteine (Logo · Regel ·
+     Wortmarke · Unterzeile) im selben Muster wie .rk-header dort.
      Unverändert und damit weiter direkt einsetzbar:
        · Endpunkte  /controlling/data · /controlling/refresh(/status)
        · REPORT-Struktur, alle Feldnamen
@@ -29,13 +31,14 @@
 @font-face{font-family:'Filson Pro';font-style:normal;font-weight:800;font-display:swap;src:url('fonts/FilsonProHeavy.otf') format('opentype')}
 @font-face{font-family:'Filson Pro';font-style:normal;font-weight:900;font-display:swap;src:url('fonts/FilsonProBlack.otf') format('opentype')}
 
-/* ── Tokens · 1:1 aus KALLE_Cockpit_Beta.html ────────────────────── */
+/* ── Tokens · exakt aus KALLE_Cockpit_Beta.html, .rk-scope.theme-light ── */
 :root{
-  --gold:#FAE017; --gold-d:#8a7000; --gold-bg:#FFFBE0; --gold-bd:#F0E29A; --on-gold:#3a3200;
-  --bg:#FAFAF6; --panel:#fff; --ink:#171714; --muted:#6b6b62; --bd:#e6e4da; --sub:#F5F4EE;
+  --gold:#fae017; --gold-d:#7A6A00; --gold-bg:#FDF6D2; --gold-bd:#D3CB94; --on-gold:#111111;
+  --bg:#F4F4F1; --panel:#ffffff; --ink:#111111; --muted:#5F5F58; --bd:#E4E3DD; --sub:#F7F7F4;
   --shadow:0 1px 2px rgba(20,20,15,.04);
-  /* Funktionsfarben, auf hellem Grund lesbar */
+  /* Funktionsfarben — deckungsgleich mit .rk-scope.theme-light */
   --good:#3E9E63; --warn:#C9761F; --bad:#D9402F; --teal:#1F9A9A; --olive:#8A9070;
+  --bd2:#D6D5CD; --muted2:#9A9A91;
   --titel:'Filson Pro',-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;
   --mono:ui-monospace,'SF Mono',Menlo,Consolas,monospace;
 }
@@ -48,35 +51,42 @@ a{color:var(--gold-d)}
 
 /* ── Kopfzeile ───────────────────────────────────────────────────── */
 .top{display:flex;align-items:center;gap:16px;margin-bottom:16px;flex-wrap:wrap}
-.logo{display:inline-flex;align-items:center;gap:2px;font-family:var(--titel);font-weight:800;font-size:20px;letter-spacing:-.3px}
-.logo .k{color:var(--ink);background:var(--gold);padding:2px 8px;border-radius:5px;margin-right:2px}
-.logo svg{height:20px;width:auto;margin-right:10px;color:var(--ink)}
+.logo{display:inline-flex;align-items:center;gap:12px}
+.logo svg{height:22px;width:auto;color:var(--ink)}
+.hdr-rule{width:1px;height:22px;background:var(--bd2)}
+.hdr-brand{font:800 12px/1 var(--titel);letter-spacing:.14em;text-transform:uppercase;color:var(--ink)}
+.hdr-sub{font:600 10px/1 var(--titel);letter-spacing:.1em;text-transform:uppercase;color:var(--muted2)}
 .crumb{font-size:12.5px;color:var(--muted)}
 .crumb b{color:var(--ink)}
-.conn{display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:700;border-radius:100px;padding:4px 10px}
-.conn.ok{color:#2f9d54;background:#e6efe8;border:1px solid #bfe0c8}
-.conn.bad{color:#8a7000;background:var(--gold-bg);border:1px solid var(--gold-bd)}
-.conn .dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+.conn{display:inline-flex;align-items:center;gap:7px;font:500 12px/1 var(--titel);color:var(--muted)}
+.conn.ok{color:var(--muted)}
+.conn.bad{color:var(--gold-d)}
+.conn .dot{width:7px;height:7px;border-radius:50%;background:var(--good)}
+.conn.bad .dot{background:var(--gold-d)}
 .conn.ok .dot{animation:blink 1.6s infinite}
 @keyframes blink{0%,100%{opacity:1}50%{opacity:.35}}
 .spacer{flex:1}
 
-select{appearance:none;border:1px solid var(--bd);background:#fff;border-radius:8px;
-  padding:7px 30px 7px 11px;font:inherit;font-size:12.5px;font-weight:700;cursor:pointer;
-  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%236b6b62' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
+select{appearance:none;border:1px solid var(--bd2);background:var(--sub);
+  padding:8px 30px 8px 11px;font:500 12px/1 var(--titel);letter-spacing:.02em;cursor:pointer;color:var(--ink);
+  transition:border-color .15s ease,box-shadow .15s ease;
+  background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%239A9A91' stroke-width='2'%3E%3Cpath d='M6 9l6 6 6-6'/%3E%3C/svg%3E");
   background-repeat:no-repeat;background-position:right 10px center}
-select:focus{outline:none;border-color:var(--gold-d);box-shadow:0 0 0 3px var(--gold-bg)}
-button{border:none;border-radius:9px;padding:9px 15px;font:inherit;font-size:13px;font-weight:700;
-  cursor:pointer;display:inline-flex;align-items:center;gap:7px;transition:.15s}
-button.primary{background:var(--gold);color:var(--on-gold)}
-button.primary:hover{background:var(--gold-d);color:#fff}
-button.primary:disabled{opacity:.5;cursor:not-allowed;background:var(--gold);color:var(--on-gold)}
+select:focus{outline:none;outline-offset:-2px;border-color:var(--gold-d);box-shadow:0 0 0 3px var(--gold-bg)}
+button{display:inline-flex;align-items:center;gap:8px;padding:11px 16px;background:transparent;
+  border:1px solid var(--bd2);color:var(--ink);font:600 12.5px/1 var(--titel);cursor:pointer;
+  transition:border-color .15s ease,opacity .15s ease,background .15s ease}
+button:hover{border-color:var(--ink)}
+button:active{transform:translateY(1px)}
+button.primary{background:var(--gold);border-color:var(--gold);color:var(--on-gold);font-weight:700}
+button.primary:hover{opacity:.85;border-color:var(--gold)}
+button.primary:disabled{opacity:.5;cursor:not-allowed;background:var(--gold);border-color:var(--gold);color:var(--on-gold)}
 
 /* ── Fortschritt beim Neuladen ───────────────────────────────────── */
 .progressWrap{display:none;margin-bottom:16px}
 .progressWrap.on{display:block}
-.progressBar{height:7px;background:var(--sub);border:1px solid var(--bd);border-radius:5px;overflow:hidden}
-.progressFill{height:100%;width:0;background:var(--gold);border-radius:5px;transition:width .3s linear}
+.progressBar{height:7px;background:var(--sub);border:1px solid var(--bd);overflow:hidden}
+.progressFill{height:100%;width:0;background:var(--gold);transition:width .3s linear}
 .progressLabel{margin-top:7px;font-size:12px;color:var(--muted)}
 
 main{display:flex;flex-direction:column;gap:14px}
@@ -84,16 +94,16 @@ main{display:flex;flex-direction:column;gap:14px}
 /* ── Kennzahlkacheln ─────────────────────────────────────────────── */
 .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(196px,1fr));gap:12px}
 .kpi{display:flex;align-items:center;gap:14px;padding:15px 16px;background:var(--panel);
-  border:1px solid var(--bd);border-radius:14px;box-shadow:var(--shadow)}
+  border:1px solid var(--bd)}
 .kpi--lead{background:var(--gold-bg);border-color:var(--gold-bd)}
 .kpi .txt{flex:1;min-width:0}
 .kpi .n{font-family:var(--titel);font-weight:800;font-size:27px;line-height:1;letter-spacing:-.02em}
 .kpi .l{margin-top:7px;font-size:11.5px;color:var(--muted)}
-.kpi__key{width:10px;height:28px;border-radius:3px;flex:none}
+.kpi__key{width:10px;height:28px;flex:none}
 .kpi svg{flex-shrink:0}
 
 /* ── Abschnitte ──────────────────────────────────────────────────── */
-section{background:var(--panel);border:1px solid var(--bd);border-radius:14px;box-shadow:var(--shadow)}
+section{background:var(--panel);border:1px solid var(--bd)}
 section h2{display:flex;align-items:baseline;gap:10px;flex-wrap:wrap;margin:0;
   padding:13px 16px;border-bottom:1px solid var(--bd);
   font-family:var(--titel);font-size:13.5px;font-weight:800;letter-spacing:-.01em}
@@ -115,7 +125,7 @@ td.num{font-family:var(--mono);font-weight:600;font-size:12.5px}
 td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
 /* ── Anteilsbalken statt Ringdiagramm ────────────────────────────── */
-.split{display:flex;height:32px;border:1px solid var(--bd);border-radius:8px;overflow:hidden}
+.split{display:flex;height:32px;border:1px solid var(--bd);overflow:hidden}
 .split__seg{min-width:2px;transition:opacity .15s}
 .split:hover .split__seg{opacity:.82}
 .legend{display:flex;flex-direction:column;min-width:230px}
@@ -123,7 +133,7 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
   padding:7px 0;border-bottom:1px solid var(--bd)}
 .legend .row2:last-child{border-bottom:0}
 .legend .name{display:inline-flex;align-items:center;gap:9px;font-size:12.5px;font-weight:600}
-.legend .dot{width:10px;height:10px;border-radius:3px;flex:none}
+.legend .dot{width:10px;height:10px;flex:none}
 .legend .val{font-family:var(--mono);font-weight:700;font-size:12.5px;white-space:nowrap}
 .legend .pct{margin-left:8px;font-weight:400;color:var(--muted)}
 .total{display:flex;align-items:baseline;gap:9px;margin-bottom:12px}
@@ -131,10 +141,10 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
 .total__l{font-size:11px;font-weight:700;letter-spacing:.4px;text-transform:uppercase;color:var(--muted)}
 
 /* ── Quellen-Panel im Wochenverlauf ──────────────────────────────── */
-.quelle{border:1px solid var(--bd);border-left:4px solid var(--akz);border-radius:11px;overflow:hidden;background:#fff}
+.quelle{border:1px solid var(--bd);border-left:4px solid var(--akz);overflow:hidden;background:#fff}
 .quelle__kopf{display:flex;align-items:flex-start;gap:14px;padding:13px 16px;
   border-bottom:1px solid var(--bd);background:var(--sub)}
-.quelle__nr{flex:none;margin-top:2px;padding:4px 10px;border-radius:100px;background:var(--akz);
+.quelle__nr{flex:none;margin-top:2px;padding:4px 10px;background:var(--akz);
   color:#fff;font-size:10.5px;font-weight:800;letter-spacing:.5px;text-transform:uppercase;white-space:nowrap}
 .quelle__t{font-family:var(--titel);font-weight:800;font-size:15.5px;letter-spacing:-.01em}
 .quelle__s{margin-top:5px;max-width:700px;font-size:12px;line-height:1.5;color:var(--muted)}
@@ -145,19 +155,19 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
   letter-spacing:-.02em;color:var(--ink)}
 .quelle__body{padding:16px 14px 10px}
 
-.miniBar{height:7px;background:var(--sub);border:1px solid var(--bd);border-radius:5px;overflow:hidden}
-.miniBar i{display:block;height:100%;border-radius:5px}
+.miniBar{height:7px;background:var(--sub);border:1px solid var(--bd);overflow:hidden}
+.miniBar i{display:block;height:100%}
 .quote{display:flex;align-items:center;gap:10px}
 .quote span{width:38px;text-align:right;font-family:var(--mono);font-weight:700;font-size:12.5px}
 
 .chipStatus{display:inline-block;padding:3px 8px;background:var(--sub);border:1px solid var(--bd);
-  border-radius:6px;font-size:11px;font-weight:800}
+  font-size:11px;font-weight:800}
 .empty{padding:36px 0;text-align:center;font-size:12.5px;color:var(--muted)}
 .hintDemo{display:flex;align-items:center;gap:11px;padding:11px 14px;background:var(--gold-bg);
-  border:1px solid var(--gold-bd);border-radius:11px;font-size:12.5px;color:var(--ink)}
+  border:1px solid var(--gold-bd);font-size:12.5px;color:var(--ink)}
 .hintDemo b{font-weight:800}
 .hintDemo em{font-style:normal;font-weight:700}
-.hintDemo__mark{width:19px;height:19px;flex:none;display:grid;place-items:center;border-radius:5px;
+.hintDemo__mark{width:19px;height:19px;flex:none;display:grid;place-items:center;
   background:var(--gold);color:var(--on-gold);font-weight:800;font-size:11px}
 
 /* ── Gruppenköpfe (Pipeline / Produktionsübersicht) ─────────────────── */
@@ -169,12 +179,19 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
 
 /* ── Kompakte Total+Zuwachs-Kachel (Pipeline) ───────────────────────── */
 .stat{display:flex;flex-direction:column;gap:6px;padding:16px 18px;background:var(--panel);
-  border:1px solid var(--bd);border-radius:14px;box-shadow:var(--shadow);flex:1;min-width:220px}
+  border:1px solid var(--bd);flex:1;min-width:220px}
 .stat__label{font-size:11.5px;font-weight:700;letter-spacing:.3px;text-transform:uppercase;color:var(--muted)}
 .stat__n{font-family:var(--titel);font-weight:900;font-size:32px;line-height:1;letter-spacing:-.02em}
 .stat__delta{font-size:12.5px;font-weight:600}
 .stat__delta.up{color:var(--good)}
 .stat__delta.flat{color:var(--muted)}
+
+/* ── Tab-Navigation · exakt .rk-tab aus der Beta ─────────────────── */
+.tabs{display:flex;align-items:flex-end;gap:2px;margin-bottom:20px;border-bottom:1px solid var(--bd)}
+.tab{padding:9px 16px;border:none;border-bottom:3px solid transparent;background:transparent;
+  font:500 12.5px/1 var(--titel);color:var(--muted);cursor:pointer;transition:color .15s ease}
+.tab:hover{color:var(--ink)}
+.tab.active{border-bottom-color:var(--ink);color:var(--ink);font-weight:700}
 </style>
 </head>
 <body>
@@ -182,8 +199,10 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
 <div class="wrap">
 
   <div class="top">
-    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:20px;width:auto;display:block"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg><span class="k">K</span>ALLE</div>
-    <div class="crumb">Cockpit · <b>Controlling</b></div>
+    <div class="logo"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 301.5378 172.5548" role="img" aria-label="Grafe" style="height:22px;width:auto;display:block"><path style="fill:#C8D2B6;fill-rule:nonzero" d="M205.8352 38.8281l-38.1691 -38.1687c-0.4392,-0.4396 -1.0152,-0.6592 -1.5915,-0.6592 -0.5761,0 -1.1524,0.2196 -1.5916,0.6592l-14.6371 14.637 7.7141 7.7137 8.5146 -8.5146 25.9244 25.9241 -25.9244 25.9242 -8.5146 -8.5146 -7.7141 -7.7141 -9.6955 -9.6955 9.6955 -9.6955 -7.7137 -7.714 -15.8179 15.818c-0.8788,0.8791 -0.8788,2.3044 0,3.1835l15.8179 15.8176 7.7137 7.714 14.6371 14.6371c0.4392,0.4392 1.0155,0.6592 1.5916,0.6592 0.5763,0 1.1523,-0.22 1.5915,-0.6592l38.1691 -38.1687c0.8787,-0.8791 0.8787,-2.3044 0,-3.1835z"></path><path style="fill:#FFEB26;fill-rule:nonzero" d="M157.5599 23.0102l-7.7144 -7.7147 0 0.0004 -14.6367 -14.6364c-0.4392,-0.4396 -1.0152,-0.6595 -1.5915,-0.6595 -0.5761,0 -1.152,0.2199 -1.5913,0.6595l-38.169 38.1687c-0.8788,0.8788 -0.8788,2.304 0,3.1832l38.169 38.1686c0.4393,0.4397 1.0152,0.6592 1.5913,0.6592 0.5763,0 1.1523,-0.2195 1.5915,-0.6592l14.6371 -14.637 -7.7137 -7.714 -8.5149 8.5146 -25.9242 -25.9238 25.9245 -25.9241 8.5142 8.5145 0 0 7.7137 7.7144 0.0004 -0.0003 9.6958 9.6955 -9.6958 9.6955 7.714 7.714 15.818 -15.8179c0.8787,-0.8792 0.8787,-2.3044 0,-3.1832l-15.818 -15.818z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M72.3628 127.1931l-26.521 0c-3.2403,0 -5.0402,1.7999 -5.0402,5.0402l0 2.0401c0,3.2403 1.7999,5.16 5.0402,5.16l16.8008 0 0 14.7608c-4.9207,2.88 -10.801,4.4399 -16.9213,4.4399 -19.4401,0 -29.6411,-14.2806 -29.6411,-29.2811 0,-16.4408 12.3612,-29.5212 28.4415,-29.5212 5.52,0 10.6808,0.2401 18.6006,4.4407 2.9999,1.44 5.2803,1.0801 6.9601,-1.6804l2.1602 -2.88c1.68,-2.88 1.3198,-5.2803 -1.4397,-7.0803 -7.8007,-4.6799 -16.2007,-6.7202 -26.2811,-6.7202 -25.3207,0 -44.5217,19.4411 -44.5217,43.4416 0,23.6409 18.6007,43.2015 45.2415,43.2015 8.8809,0 19.0809,-2.2801 28.4414,-9.2401 2.7595,-2.0404 3.7201,-4.2002 3.7201,-6.8406l0 -24.2406c0,-3.2403 -1.7999,-5.0402 -5.0402,-5.0402z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M120.0267 109.1925c-0.6003,-0.1202 -1.9202,-0.2404 -2.4003,-0.2404 -6.2398,0 -14.0401,4.4406 -16.0802,14.8806l0 -8.4004c0,-3.24 -1.7999,-5.1601 -5.0402,-5.1601l-5.0402 0c-3.2403,0 -5.0402,1.9202 -5.0402,5.1601l0 50.7618c0,3.2403 1.7999,5.0402 5.0402,5.0402l5.2803 0c3.2403,0 5.1604,-1.7999 5.1604,-5.0402l0 -19.0805c0,-19.9205 8.6401,-23.4008 14.4001,-23.4008 0.9607,0 2.0397,0.1198 3.1198,0.3598 2.2808,0.3599 3.7204,-0.9602 3.7204,-4.0799l0 -6.0005c0,-2.3999 -0.48,-4.5598 -3.1201,-4.7998z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M156.5079 159.7142c-10.9198,0 -17.2802,-8.5206 -17.2802,-18.9606 0,-10.3204 6.3604,-18.9609 17.2802,-18.9609 10.6808,0 17.7607,8.0405 17.8812,18.9609 -0.1205,10.9206 -7.2004,18.9606 -17.8812,18.9606zm27.9613 -49.442l-5.2799 0c-3.2403,0 -5.0402,1.9205 -5.0402,5.1604l0 3.9601c-5.1604,-7.4401 -12.6009,-10.4404 -20.6407,-10.4404 -17.6404,0 -29.7612,14.0405 -29.7612,31.8012 0,17.7608 12.1208,31.8013 29.7612,31.8013 8.0398,0 15.4803,-3.0002 20.6407,-10.4404l0 4.0799c0,3.2404 1.7999,5.0402 5.0402,5.0402l5.2799 0c3.2403,0 5.1601,-1.7998 5.1601,-5.0402l0 -50.7618c0,-3.24 -1.9199,-5.1604 -5.1601,-5.1604z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M252.4365 133.3131c2.88,-9.2401 10.9205,-12.0003 17.6411,-12.0003 6.4799,0 14.1602,2.4003 16.5604,12.0003l-34.2015 0zm49.0822 4.9203c-1.2007,-19.4407 -15.3608,-29.2811 -31.6811,-29.2811 -19.8013,0 -33.121,14.6406 -33.121,32.0409 0,17.4008 13.2002,31.5612 34.8007,31.5612 7.6802,0 15.9607,-1.7995 22.9211,-7.2 2.9995,-2.2801 3.1201,-5.2803 0.9599,-7.6806l-1.0801 -1.3198c-2.04,-2.28 -4.4399,-2.5201 -7.0802,-0.9599 -4.9204,3.1202 -9.9606,4.44 -15.0008,4.44 -12.6002,0 -20.7606,-7.5604 -20.5205,-16.8005l44.7617 0c3.2404,0 5.2799,-1.68 5.0403,-4.8002z"></path><path style="fill:currentColor;fill-rule:nonzero" d="M233.0332 110.7525l-12.0003 0 0 -6.4802c0,-5.4004 2.4003,-8.8801 7.0799,-8.8801l8.756 0c1.5063,0 2.7275,-1.2215 2.7275,-2.7277l0 -6.0826c0,-1.8281 -1.482,-3.3104 -3.3105,-3.3104l-8.173 0c-12.099,0 -22.4406,4.2005 -22.4406,23.2806l0 4.2005 -6.1203 0c-1.5247,0 -2.7602,1.2356 -2.7602,2.7602l0 5.7597c0,1.5247 1.236,2.7605 2.7602,2.7605l6.1203 0 0 44.1614c0,2.7838 2.2568,5.0402 5.0402,5.0402l5.5204 0c2.7835,0 5.0402,-2.2564 5.0402,-5.0402l0 -44.1614 11.7599 0c1.5247,0 2.7605,-1.2359 2.7605,-2.7605l0 -5.7597c0,-1.5247 -1.2359,-2.7602 -2.7601,-2.7602z"></path></svg></div>
+    <span class="hdr-rule"></span>
+    <span class="hdr-brand">REAKTOR</span>
+    <span class="hdr-sub">Controlling</span>
     <span class="conn bad" id="conn"><span class="dot"></span>lädt …</span>
     <span class="spacer"></span>
     <div class="crumb" id="meta">lädt …</div>
@@ -200,6 +219,13 @@ td.kw{font-family:var(--mono);font-size:12px;color:var(--muted)}
   <div class="progressWrap" id="progressWrap">
     <div class="progressBar"><div class="progressFill" id="progressFill"></div></div>
     <div class="progressLabel" id="progressLabel">–</div>
+  </div>
+
+  <div class="tabs">
+    <button class="tab active" id="tabbtn-uebersicht" onclick="setTab('uebersicht')">Übersicht</button>
+    <button class="tab" id="tabbtn-finanzen" onclick="setTab('finanzen')">Finanzen</button>
+    <button class="tab" id="tabbtn-sales" onclick="setTab('sales')">Sales</button>
+    <button class="tab" id="tabbtn-performance" onclick="setTab('performance')">Performance</button>
   </div>
 
   <main id="main">
@@ -228,7 +254,8 @@ const C={
 };
 const STATUSFARBEN=[C.gold,C.leads,C.offerten,C.good,C.warn,C.bad,'#B9B8AE','#DCDBD2'];
 
-let REPORT=null, polling=null, demo=false;
+let REPORT=null, polling=null, demo=false, activeTab='uebersicht';
+function setTab(t){ activeTab=t; render(); }
 
 /* Antwort nur dann als JSON lesen, wenn wirklich JSON kommt – ein leerer
    404-Körper hat die Seite sonst im Leerzustand stehen lassen. */
@@ -408,7 +435,7 @@ function saeulenChart(items,series,height){
     const x0=g0+(stepX-breite)/2;
     series.forEach((s,j)=>{
       const v=s.get(it), x=x0+j*(bw+4), y=yOf(v), base=yOf(0);
-      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(base-y).toFixed(1)}" fill="${s.color}" rx="3"><title>${esc(it.name)} · ${esc(s.name)}: ${v}</title></rect>`;
+      svg+=`<rect x="${x.toFixed(1)}" y="${y.toFixed(1)}" width="${bw.toFixed(1)}" height="${(base-y).toFixed(1)}" fill="${s.color}" ><title>${esc(it.name)} · ${esc(s.name)}: ${v}</title></rect>`;
       svg+=`<text x="${(x+bw/2).toFixed(1)}" y="${(y-7).toFixed(1)}" font-size="11" font-weight="700" style="fill:${s.color}" text-anchor="middle">${v}</text>`;
     });
     svg+=`<line x1="${g0.toFixed(1)}" y1="${(height-padB).toFixed(1)}" x2="${(g0+stepX).toFixed(1)}" y2="${(height-padB).toFixed(1)}" stroke="#171714" stroke-width="1"></line>`;
@@ -486,8 +513,8 @@ function zielChart(erzielt,bestand,potenzial,ziel,height){
   const innerW=w-padL-padR;
   const scale=v=>(Math.max(0,v)/maxVal)*innerW;
   const xErzielt=scale(erzielt), xPrognose=scale(prognose), xPotenzial=scale(mitPotenzial), xZiel=padL+scale(ziel);
-  let svg=`<rect x="${padL}" y="${barY}" width="${innerW}" height="${barH}" fill="var(--sub)" stroke="var(--bd)" rx="8"></rect>`;
-  svg+=`<rect x="${padL}" y="${barY}" width="${xErzielt.toFixed(1)}" height="${barH}" fill="${C.gold}" rx="8"></rect>`;
+  let svg=`<rect x="${padL}" y="${barY}" width="${innerW}" height="${barH}" fill="var(--sub)" stroke="var(--bd)" ></rect>`;
+  svg+=`<rect x="${padL}" y="${barY}" width="${xErzielt.toFixed(1)}" height="${barH}" fill="${C.gold}" ></rect>`;
   svg+=`<rect x="${(padL+xErzielt).toFixed(1)}" y="${barY}" width="${(xPrognose-xErzielt).toFixed(1)}" height="${barH}" fill="${C.leads}"></rect>`;
   svg+=`<rect x="${(padL+xPrognose).toFixed(1)}" y="${barY}" width="${(xPotenzial-xPrognose).toFixed(1)}" height="${barH}" fill="none" stroke="${C.offerten}" stroke-width="2" stroke-dasharray="4 3"></rect>`;
   svg+=`<line x1="${xZiel.toFixed(1)}" y1="${barY-10}" x2="${xZiel.toFixed(1)}" y2="${barY+barH+10}" stroke="${C.bad}" stroke-width="2.5" stroke-dasharray="5 3"></line>`;
@@ -592,28 +619,27 @@ function render(){
   const konv=REPORT.kpis.konversionProzent;
   const nfq=REPORT.kpis.nachfassquoteProzent;
 
-  let html='';
+  let htmlUebersicht='', htmlFinanzen='', htmlSales='', htmlPerformance='';
 
-  if(demo) html+=`<div class="hintDemo"><span class="hintDemo__mark">!</span>
+  if(demo) htmlUebersicht+=`<div class="hintDemo"><span class="hintDemo__mark">!</span>
     <span><b>Demo-Zahlen.</b> Kein Server erreichbar – die Seite zeigt Beispielwerte, damit Aufbau und Gestaltung beurteilbar sind. Auf <em>kalle.grafe.ch</em> kommen die echten Monday-Daten.</span></div>`;
 
-  html+=`<div class="kpis">
-    <div class="kpi"><span class="kpi__key" style="background:${C.gold}"></span>
-      <div class="txt"><div class="n">${sumAnfragen}</div><div class="l">Neue Anfragen gesamt · ${weeks.length} Wo.</div></div></div>
+  htmlUebersicht+=`<div class="kpis">
     <div class="kpi"><span class="kpi__key" style="background:${C.offerten}"></span>
       <div class="txt"><div class="n">${sumOffertenErstellt}</div><div class="l">Offerten erstellt · ${weeks.length} Wo.</div></div></div>
     <div class="kpi"><span class="kpi__key" style="background:${C.neutral}"></span>
       <div class="txt"><div class="n">${chf(REPORT.kpis.auftragsvolumenOffen)}</div><div class="l">Auftragsvolumen offener Offerten</div></div></div>
     <div class="kpi kpi--lead">${ring(konv==null?0:konv,56,C.anfragen)}
-      <div class="txt"><div class="n">${konv==null?'–':konv+' %'}</div><div class="l" style="color:var(--ink)">Konversion Anfrage → Auftrag</div></div></div>
+      <div class="txt"><div class="n">${konv==null?'–':konv+' %'}</div><div class="l" style="color:var(--ink)">Gewinnrate (Gewonnen/Abgelehnt)</div></div></div>
     <div class="kpi">${ring(nfq==null?0:nfq,56,C.offerten)}
       <div class="txt"><div class="n">${nfq==null?'–':nfq+' %'}</div><div class="l">Nachfassquote</div></div></div>
   </div>`;
+  htmlUebersicht+=`<p class="note" style="margin-top:-4px">Gewinnrate: über die Gruppen-Zugehörigkeit bestimmt – «Verloren / Abgesagt» gilt als abgelehnt, alles jenseits der Anfrage- und Offertprüfungs-Gruppen als gewonnen. <em>Annahme, mit Sven noch gegenzuchecken.</em></p>`;
 
   if(REPORT.finanzen){
     const fz=REPORT.finanzen;
     const stichtagFmt=fz.stichtag?new Date(fz.stichtag).toLocaleDateString('de-CH'):'–';
-    html+=`<section><h2>Finanzen <em>Quelle Selectline · Stand ${esc(stichtagFmt)}</em></h2>
+    htmlFinanzen+=`<section><h2>Finanzen <em>Quelle Selectline · Stand ${esc(stichtagFmt)}</em></h2>
       <div class="sec__body">
         <p class="note">Wird vorerst manuell geliefert, bis eine automatische Anbindung an Selectline steht.</p>
         <div class="kpis">
@@ -638,11 +664,11 @@ function render(){
     </section>`;
   }
 
-  html+=gruppenkopf('Pipeline','Lead-Generierung — Board Pipeline. Alles, was mit Sales zu tun hat, gehört hierher.');
+  htmlSales+=gruppenkopf('Pipeline','Lead-Generierung — Board Pipeline. Alles, was mit Sales zu tun hat, gehört hierher.');
 
   const letzteWocheLeads=weeks[weeks.length-1];
   const sumLeadsQualifiziert=sum(w=>w.neueLeadsQualifiziert);
-  html+=`<section><h2>Leads <em>Rohfunde &amp; qualifiziert</em></h2>
+  htmlSales+=`<section><h2>Leads <em>Rohfunde &amp; qualifiziert</em></h2>
     <div class="sec__body">
       <p class="note">Der <em>Lead Crawler</em> legt rohe Funde in der Gruppe «Claude ROH Leads zur Qualifikation» an; sobald der <em>Senior Lead Agent</em> einen Lead qualifiziert, verlässt er diese Gruppe. Gezählt nach aktueller Gruppen-Zugehörigkeit, nicht rückwirkend über die Zeit verfolgt.</p>
       <div class="row" style="gap:14px">
@@ -656,12 +682,12 @@ function render(){
   const perfFarbe={'im-ziel':C.good,'unter-ziel':C.bad,'ueber-ziel':C.offerten,'keine-daten':C.neutral};
   const perfText={'im-ziel':'Im Ziel','unter-ziel':'Unter Ziel','ueber-ziel':'Über Ziel','keine-daten':'—'};
   const letzteWoche=weeks[weeks.length-1];
-  html+=`<section><h2>Sales · Performance <em>vereinbarte Zielgrössen</em></h2>
+  htmlSales+=`<section><h2>Sales · Performance <em>vereinbarte Zielgrössen</em></h2>
     <div class="sec__body">
       <p class="note">Zeigt konkret, wie gut die vereinbarte Leistung eingehalten wird — zwei Zielgrössen, dieselbe Person, bewusst ohne Klarnamen in der Beschriftung. <em>1) Tempo:</em> 4–8 bearbeitete Leads pro Tag. <em>2) Sauberkeit:</em> jeder qualifizierte Lead wird tatsächlich bis zum Abschluss der Prüfung gebracht, nicht nur angefasst.</p>
 
       <h3 style="margin:22px 0 10px;font-family:var(--titel);font-size:13.5px;font-weight:800">1 · Tempo — Ø 4–8 bearbeitete Leads pro Tag</h3>
-      <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
+      <p class="note" style="background:var(--sub);border:1px solid var(--bd);padding:10px 12px">
         <em>Wie die Zahl zustande kommt:</em> pro Tag werden die <em>eindeutigen</em> Leads gezählt, an denen mindestens eine Bearbeitung, Verschiebung oder ein Kommentar vorgenommen wurde (Mehrfach-Bearbeitung desselben Leads am selben Tag zählt nur einmal). Diese Tageszahlen werden über die bereits verstrichenen Werktage der Woche gemittelt: Summe bearbeiteter Leads ÷ Anzahl Werktage bis heute.
       </p>
       <div class="row" style="align-items:center;gap:18px;margin:14px 0 16px">
@@ -686,19 +712,18 @@ function render(){
         <div class="stat"><div class="stat__label">Aktiv in Bearbeitung</div><div class="stat__n">${REPORT.kpis.aktivInBearbeitungGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Aktive Leads in Bearbeitung»</div></div>
         ${statKachel('Bearbeitet · diese Woche',sumLeadBearbeitung,letzteWocheLeads.leadsInBearbeitungKonversion,letzteWocheLeads.kw)}
       </div>
-      <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
-        <em>Wie die Zahl zustande kommt:</em> per Activity-Log wird der exakte Zeitpunkt gesucht, an dem ein Lead die Gruppe «Neue Leads - Claude» verlässt und in «Aktive Leads in Bearbeitung» wechselt. Gezählt nach dem Datum dieses Wechsels, nicht nach dem aktuellen Stand.
+      <p class="note" style="background:var(--sub);border:1px solid var(--bd);padding:10px 12px">
+        <em>Wie die Zahl zustande kommt:</em> per Activity-Log wird der exakte Zeitpunkt gesucht, an dem ein Lead die Gruppe «Neue Leads - Claude» verlässt und in «Aktive Leads in Bearbeitung» wechselt. Gezählt nach dem Datum dieses Wechsels, nicht nach dem aktuellen Stand. Wie viele qualifizierte Leads insgesamt zur Verfügung stehen, steht oben unter <em>Leads</em>.
       </p>
-      ${legendeInline([{label:'Neue qualifizierte Leads',color:C.leads},{label:'Bearbeitet',color:C.good}])}
+      ${legendeInline([{label:'Bearbeitet',color:C.good}])}
       ${verlaufChart(weeks,[
-        {name:'Qualifiziert',color:C.leads,get:w=>w.neueLeadsQualifiziert},
         {name:'Bearbeitet',color:C.good,unten:true,get:w=>w.leadsInBearbeitungKonversion}
       ])}
     </div>
   </section>`;
 
   const ddeSum=weeks.reduce((a,w)=>({b:a.b+w.sales.bearbeitungen,v:a.v+w.sales.verschoben,k:a.k+w.sales.kommentare}),{b:0,v:0,k:0});
-  html+=`<section><h2>Sales · Aktivität pro Woche</h2>
+  htmlSales+=`<section><h2>Sales · Aktivität pro Woche</h2>
     <div class="sec__body">
       <div class="row">
         <div class="grow">
@@ -722,20 +747,18 @@ function render(){
     </div>
   </section>`;
 
-  html+=gruppenkopf('Produktionsübersicht','Betriebsablauf — Board GRAFE Produktionsübersicht, der tatsächlich gelebte Ablauf von der Anfrage bis zum Abschluss.');
-
   const letzteWocheKonv=weeks[weeks.length-1];
   const sumKonversion=sum(w=>w.konversionVorbereitung);
-  html+=`<section><h2>Wochen-Indikator <em>Anfragen → Offertprüfung → Vorbereitung</em></h2>
+  htmlUebersicht+=`<section><h2>Wochen-Indikator <em>Anfragen → Offertprüfung → Vorbereitung</em></h2>
     <div class="sec__body">
       <p class="note">Der wichtigste Indikator: wie viele Anfragen kommen rein, wie viele stecken gerade in welcher Phase, und wie viele schaffen es tatsächlich bis zur Vorbereitung (= Auftrag angenommen). Daraus leitet sich auch die Performance pro Projektleiter unten ab.</p>
       <div class="row" style="gap:14px;margin-bottom:18px">
-        ${statKachel('Anfragen erfasst · diese Woche',sumAnfragen,letzteWocheKonv.neueAnfragen,letzteWocheKonv.kw)}
+        ${statKachel('Anfragen erfasst',sumAnfragen,letzteWocheKonv.neueAnfragen,letzteWocheKonv.kw)}
         <div class="stat"><div class="stat__label">Offertanfragen in Bearbeitung</div><div class="stat__n">${REPORT.kpis.inBearbeitungGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Projekt und Offertanfragen»</div></div>
         <div class="stat"><div class="stat__label">Aktiv offeriert</div><div class="stat__n">${REPORT.kpis.aktivOfferiertGesamt}</div><div class="stat__delta flat">Momentaufnahme, Gruppe «Offerprüfung Kunde / Vergabe»</div></div>
         ${statKachel('Konversion zu Vorbereitung',sumKonversion,letzteWocheKonv.konversionVorbereitung,letzteWocheKonv.kw)}
       </div>
-      <p class="note" style="background:var(--sub);border:1px solid var(--bd);border-radius:8px;padding:10px 12px">
+      <p class="note" style="background:var(--sub);border:1px solid var(--bd);padding:10px 12px">
         <em>Wie die Konversion gemessen wird:</em> per Activity-Log wird der exakte Zeitpunkt gesucht, an dem ein Element die Gruppe «Offerprüfung Kunde / Vergabe» verlässt und in «Vorbereitung» wechselt — das ist der Moment, in dem eine Offerte zum Auftrag wird. Gezählt nach dem Datum dieses Wechsels, nicht nach dem aktuellen Stand.
       </p>
       ${legendeInline([{label:'Neue Anfragen',color:C.anfragen},{label:'Konversion zu Vorbereitung',color:C.good}])}
@@ -746,10 +769,12 @@ function render(){
     </div>
   </section>`;
 
+  htmlPerformance+=gruppenkopf('Produktionsübersicht','Betriebsablauf — Board GRAFE Produktionsübersicht, der tatsächlich gelebte Ablauf von der Anfrage bis zum Abschluss.');
+
   const perfKandidaten=Object.entries(REPORT.mitarbeiter||{})
     .filter(([n])=>!mitarbeiterFilter||n===mitarbeiterFilter)
     .sort((a,b)=>b[1].aktivOfferiert-a[1].aktivOfferiert);
-  html+=`<section><h2>Performance pro Projektleiter <em>abgeleitet aus dem Wochen-Indikator</em></h2>
+  htmlPerformance+=`<section><h2>Performance pro Projektleiter <em>abgeleitet aus dem Wochen-Indikator</em></h2>
     <div class="sec__body">
       <table>
         <tr><th>Projektleiter</th><th class="num">Anfragen bearbeitet</th><th class="num">In Bearbeitung</th><th class="num">Aktiv offeriert</th><th class="num">Konversion</th></tr>
@@ -766,7 +791,7 @@ function render(){
 
   const ratenAnfrageOfferte=weeks.map(w=>w.neueAnfragen?Math.round(w.offertenErstellt/w.neueAnfragen*100):null);
   const ratenOfferteAuftrag=weeks.map(w=>REPORT.kpis.aktivOfferiertGesamt?Math.round(w.konversionVorbereitung/REPORT.kpis.aktivOfferiertGesamt*100):null);
-  html+=`<section><h2>Konversionsraten <em>Durchsatz pro Woche, keine Kohorten-Messung</em></h2>
+  htmlPerformance+=`<section><h2>Konversionsraten <em>Durchsatz pro Woche, keine Kohorten-Messung</em></h2>
     <div class="sec__body">
       <p class="note">Zeigt, ob der Zufluss mit dem Durchsatz Schritt hält — nicht, wie viel Prozent einer bestimmten Anfrage-Woche später zur Offerte wurde (dafür bräuchte es eine Zeitreihe pro Element). Offerte→Auftrag bezieht sich bewusst auf den aktuellen Bestand aktiv offerierter Projekte als Nenner, nicht auf die neuen Offerten der Woche — sonst würden Wochen mit wenig Neuzugang die Quote extrem verzerren.</p>
       <div class="row" style="gap:14px;margin-bottom:16px">
@@ -781,7 +806,7 @@ function render(){
     </div>
   </section>`;
 
-  html+=`<section><h2>Wochenverlauf <em>${weeks.length} Wochen</em></h2>
+  htmlPerformance+=`<section><h2>Wochenverlauf <em>${weeks.length} Wochen</em></h2>
     <div class="sec__body">
       <p class="note">Jedes neu angelegte Element ist eine neue Anfrage, unabhängig vom Bearbeitungsstand; die Offerten zählen über das Subelement <em>Offerte erstellen</em>.</p>
       ${legendeInline([
@@ -797,29 +822,18 @@ function render(){
   </section>`;
 
 
-  html+=`<div class="row" style="gap:16px">
-    <section class="grow" style="min-width:420px"><h2>Herkunft der Anfragen</h2>
-      <div class="sec__body">
-        <p class="note">Über die Element-ID bestimmt, die jeden Board-Wechsel übersteht: kam die Anfrage aus einem zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst – etwa über den KALLE-KULATOR ohne Lead-Station?</p>
-        ${splitBar([
-          {label:'Direkt erfasst',value:sumAnfragenDirekt,color:C.anfragen},
-          {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:C.leads}
-        ],'Anfragen')}
-      </div>
-    </section>
-    <section class="grow" style="min-width:420px"><h2>Abschluss-Quote <em>im Zeitraum</em></h2>
-      <div class="sec__body">
-        <p class="note">Über die Gruppen-Zugehörigkeit bestimmt: «Verloren / Abgesagt» gilt als abgelehnt, alles jenseits der Anfrage- und Offertprüfungs-Gruppen als gewonnen. <em>Annahme, mit Sven noch gegenzuchecken.</em></p>
-        ${splitBar([
-          {label:'Gewonnen',value:REPORT.kpis.gewonnen,color:C.good},
-          {label:'Abgelehnt',value:REPORT.kpis.abgelehnt,color:C.bad}
-        ],'entschieden')}
-      </div>
-    </section>
-  </div>`;
+  htmlPerformance+=`<section><h2>Herkunft der Anfragen</h2>
+    <div class="sec__body">
+      <p class="note">Über die Element-ID bestimmt, die jeden Board-Wechsel übersteht: kam die Anfrage aus einem zuvor qualifizierten Pipeline-Lead, oder wurde sie direkt erfasst – etwa über den KALLE-KULATOR ohne Lead-Station?</p>
+      ${splitBar([
+        {label:'Direkt erfasst',value:sumAnfragenDirekt,color:C.anfragen},
+        {label:'Aus Lead qualifiziert',value:sumAnfragenAusLead,color:C.leads}
+      ],'Anfragen')}
+    </div>
+  </section>`;
 
   const statusEntries=Object.entries(REPORT.produktionStatus||{}).sort((a,b)=>b[1]-a[1]);
-  html+=`<section><h2>Produktionsübersicht <em>aktueller Status, Momentaufnahme</em></h2>
+  htmlPerformance+=`<section><h2>Produktionsübersicht <em>aktueller Status, Momentaufnahme</em></h2>
     <div class="sec__body">
       ${statusEntries.length
         ? splitBar(statusEntries.map(([label,value],i)=>({label,value,color:STATUSFARBEN[i%STATUSFARBEN.length]})),'Elemente')
@@ -832,7 +846,6 @@ function render(){
      abgefragt (grösste Gruppe, für aktuelle Kennzahlen irrelevant, verlangsamte
      v.a. die Konversions-Suche), die Zahl wäre also immer 0. */
   const STUFEN=[
-    {name:'Anfragen bearbeitet',color:C.anfragen,get:it=>it.v.anfragenBearbeitet!=null?it.v.anfragenBearbeitet:(it.v.anfragen!=null?it.v.anfragen:0)},
     {name:'Offerten erstellt',color:C.offerten,get:it=>it.v.offertenErstellt||0},
     {name:'Projekte in Umsetzung',color:C.leads,get:it=>it.v.inUmsetzung!=null?it.v.inUmsetzung:0}
   ];
@@ -840,21 +853,21 @@ function render(){
   if(mitarbeiterFilter) mitarbeiterEntries=mitarbeiterEntries.filter(([n])=>n===mitarbeiterFilter);
   const mItems=mitarbeiterEntries.map(([name,v])=>({name,v}));
   mItems.sort((a,b)=>STUFEN.reduce((s,f2)=>s+f2.get(b),0)-STUFEN.reduce((s,f2)=>s+f2.get(a),0));
-  html+=`<section><h2>Mitarbeiterübersicht <em>Anfrage → Offerte → Umsetzung</em></h2>
+  htmlPerformance+=`<section><h2>Mitarbeiterübersicht <em>Offerte → Umsetzung</em></h2>
     <div class="sec__body">
-      <p class="note">Eine Säulengruppe pro Person, eine Säule pro Stufe des Ablaufs – so ist auf einen Blick sichtbar, wo jemand steht: viele Anfragen, aber wenige Offerten heisst Rückstand vorne; viel Umsetzung bei wenig Neuem heisst gebunden in laufenden Projekten. Summen im gewählten Zeitraum. Abgeschlossene Projekte sind bewusst ausgeklammert (siehe Wochen-Indikator oben für die aktuelle Konversion).</p>
+      <p class="note">Eine Säulengruppe pro Person, eine Säule pro Stufe des Ablaufs – so ist auf einen Blick sichtbar, wo jemand steht: viele Offerten, aber wenig Umsetzung heisst Rückstand bei der Auftragsvergabe; viel Umsetzung bei wenig Neuem heisst gebunden in laufenden Projekten. Summen im gewählten Zeitraum. «Anfragen bearbeitet» steht bereits oben in <em>Performance pro Projektleiter</em>. Abgeschlossene Projekte sind bewusst ausgeklammert (siehe Wochen-Indikator für die aktuelle Konversion).</p>
       ${legendeInline(STUFEN.map(s=>({label:s.name,color:s.color})))}
       ${mItems.length?saeulenChart(mItems,STUFEN):'<div class="empty">Keine Daten</div>'}
       <table style="margin-top:18px">
         <tr><th>Mitarbeiter</th>
-          <th class="num">Anfragen bearbeitet</th><th class="num">Offerten erstellt</th>
+          <th class="num">Offerten erstellt</th>
           <th class="num">In Umsetzung</th>
           <th class="num">In Offertbearbeitung</th><th class="num">Offerte beim Kunden</th></tr>
         ${mItems.map(it=>`<tr><td style="font-weight:700">${esc(it.name)}</td>
           ${STUFEN.map(s=>`<td class="num">${s.get(it)}</td>`).join('')}
           <td class="num" style="color:var(--muted)">${it.v.inOffertbearbeitung}</td>
           <td class="num" style="color:var(--muted)">${it.v.offerteBeimKunde}</td></tr>`).join('')
-          || '<tr><td colspan="6" class="empty">Keine Daten</td></tr>'}
+          || '<tr><td colspan="5" class="empty">Keine Daten</td></tr>'}
       </table>
       <p class="note" style="margin:12px 0 0">Die letzten zwei Spalten sind Momentaufnahmen – aktueller Stand, nicht zeitraumgebunden.</p>
     </div>
@@ -864,8 +877,7 @@ function render(){
   if(mitarbeiterFilter) nfEntries=nfEntries.filter(([n])=>n===mitarbeiterFilter);
   nfEntries.sort((a,b)=>b[1].faellig-a[1].faellig);
   const nfWochenSum={faellig:weeks.reduce((a,w)=>a+w.nachfass.faellig,0),nachgefasst:weeks.reduce((a,w)=>a+w.nachfass.nachgefasst,0)};
-  const nfWochenPct=weeks.map(w=>w.nachfass.faellig?Math.round(w.nachfass.nachgefasst/w.nachfass.faellig*100):null);
-  html+=`<section><h2>Nachfassquote pro Mitarbeiter <em>Trend über ${weeks.length} Wochen</em></h2>
+  htmlPerformance+=`<section><h2>Nachfassquote pro Mitarbeiter <em>Trend über ${weeks.length} Wochen</em></h2>
     <div class="sec__body">
       <p class="note">Fällig/Woche = Nachfassungen, deren Termin in dieser Woche erreicht wurde. Nachgefasst = Subitem-Status «Fertig». ${nfWochenSum.faellig?Math.round(nfWochenSum.nachgefasst/nfWochenSum.faellig*100)+' % über den ganzen Zeitraum.':''}</p>
       ${legendeInline([{label:'Fällig',color:C.warn},{label:'Nachgefasst',color:C.good}])}
@@ -873,16 +885,7 @@ function render(){
         {name:'Fällig',color:C.warn,get:w=>w.nachfass.faellig},
         {name:'Nachgefasst',color:C.good,unten:true,get:w=>w.nachfass.nachgefasst}
       ])}
-      <table style="margin-top:14px">
-        <tr><th>KW</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th class="num">Quote</th></tr>
-        ${weeks.map((w,i)=>`<tr><td class="kw">${esc(w.kw)}</td><td class="num">${w.nachfass.faellig}</td><td class="num">${w.nachfass.nachgefasst}</td>
-          <td class="num" style="color:${nfWochenPct[i]==null?'var(--muted)':nfWochenPct[i]>=80?C.good:nfWochenPct[i]>=50?C.warn:C.bad}">${nfWochenPct[i]==null?'–':nfWochenPct[i]+' %'}</td></tr>`).join('')}
-      </table>
-    </div>
-  </section>`;
-
-  html+=`<section><h2>Nachfassquote pro Mitarbeiter <em>Summe im Zeitraum</em></h2>
-    <div class="sec__body">
+      <h3 style="margin:24px 0 10px;font-family:var(--titel);font-size:13px;font-weight:800">Pro Mitarbeiter im Zeitraum</h3>
       <table>
         <tr><th>Mitarbeiter</th><th class="num">Fällig</th><th class="num">Nachgefasst</th><th style="width:210px">Quote</th></tr>
         ${nfEntries.map(([n,v])=>{
@@ -897,7 +900,7 @@ function render(){
 
   let offene=REPORT.offeneNachfassungen||[];
   if(mitarbeiterFilter) offene=offene.filter(o=>o.bearbeiter===mitarbeiterFilter);
-  html+=`<section><h2>Offene Nachfassungen ${offene.length?`<em>${offene.length} fällig, nicht «Fertig»</em>`:''}</h2>
+  htmlPerformance+=`<section><h2>Offene Nachfassungen ${offene.length?`<em>${offene.length} fällig, nicht «Fertig»</em>`:''}</h2>
     <div class="sec__body">
       <p class="note">Basis ist das Subelement «Nachfassen beim Kunden» auf der Produktionsübersicht – es entsteht automatisch, sobald der Status auf «Offerte ist raus» wechselt, mit Fälligkeit heute + 7 Tage.</p>
       <table>
@@ -911,7 +914,13 @@ function render(){
     </div>
   </section>`;
 
-  document.getElementById('main').innerHTML=html;
+  const TABS={uebersicht:htmlUebersicht,finanzen:htmlFinanzen,sales:htmlSales,performance:htmlPerformance};
+  if(!TABS[activeTab]) activeTab='uebersicht';
+  document.getElementById('main').innerHTML=TABS[activeTab]||'<div class="empty">Keine Daten</div>';
+  ['uebersicht','finanzen','sales','performance'].forEach(t=>{
+    const btn=document.getElementById('tabbtn-'+t);
+    if(btn) btn.classList.toggle('active',t===activeTab);
+  });
 }
 
 /* ═══ Demo-Zahlen · nur wenn kein Server antwortet ══════════════════ */

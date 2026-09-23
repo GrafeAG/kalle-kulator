@@ -1,8 +1,21 @@
-// terminstatus.js — setzt am Projekt (Hauptboard) den "Terminstatus" 🔴/🟢
+// terminstatus.js — setzt am Projekt (Hauptboard) den "Terminstatus" 🔴/🟡/🟢
 //
 // Regel: 🔴 Überfällig, wenn IRGENDEIN Subelement einen Termin (Datum) in der
 //         Vergangenheit hat UND nicht "Fertig"/"Brauchts nicht" ist UND nicht
-//         "Anfrage eingegangen" heisst. Sonst 🟢 OK.
+//         "Anfrage eingegangen" heisst.
+//        🟡 Fällig, wenn KEIN Subelement überfällig ist, aber mindestens eines
+//         HEUTE oder MORGEN fällig ist (gleiche Ausschlüsse wie oben) — ein
+//         Tag Vorlauf vor dem Termin. NEU (Sven, hat das dritte Label
+//         "Fällig" in der Spalte ergänzt).
+//        Sonst 🟢 OK.
+//
+// Gelb-Label-ID: wird NICHT hartkodiert (anders als 🔴/🟢, deren Label-IDs
+// "1"/"2" seit der Ersteinrichtung feststehen), sondern einmalig zur Laufzeit
+// aus den Spalten-Settings gelesen (siehe resolveYellowLabel()) — Monday
+// vergibt die Index-Nummer eines neu angelegten Labels selbst, die ist von
+// hier aus nicht vorhersehbar. Wird das Label "Fällig" nicht gefunden (z.B.
+// falsch benannt), degradiert der Job automatisch auf reines 🔴/🟢 zurück,
+// statt zu crashen.
 //
 // NEU (wichtig): Die Ampel gilt NUR für die AKTIVEN Produktionsgruppen
 //   (Anfragen → Offerprüfung → Vorbereitung → Produktionsplanung →
@@ -93,6 +106,12 @@ function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
 }
+// NEU: "morgen" — für die Ein-Tag-Vorlauf-Regel (Gelb).
+function tomorrowStr() {
+  const d = new Date();
+  d.setDate(d.getDate() + 1);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+}
 
 async function gql(query, variables = {}) {
   const r = await fetch(MONDAY_API, {
@@ -115,6 +134,43 @@ function subOverdue(s, today) {
   if (DONE.has(st)) return false;
   if (!dt) return false;
   return dt.slice(0, 10) < today;            // ISO-Datum: lexikografisch = chronologisch
+}
+
+// subDueSoon(): "fällig" = Termin ist HEUTE oder MORGEN (ein Tag Vorlauf) —
+// analog zu subOverdue(), aber mit Gleichheits- statt Kleiner-Vergleich.
+function subDueSoon(s, today, tomorrow) {
+  const name = (s.name || '').trim();
+  if (name === IGNORE_SUB) return false;
+  const cv = {};
+  (s.column_values || []).forEach(c => { cv[c.id] = c.text || ''; });
+  const st = cv[SUB_STATUS] || '';
+  const dt = cv[SUB_DATE]   || '';
+  if (DONE.has(st)) return false;
+  if (!dt) return false;
+  const d = dt.slice(0, 10);
+  return d === today || d === tomorrow;
+}
+
+// NEU: Label-ID + angezeigter Text von "Fällig" einmalig aus den Spalten-
+// Settings lesen (siehe Kopfkommentar). Wird nur bei Erfolg gecacht — solange
+// das Label (noch) nicht existiert, versucht jeder Lauf (alle 2 Min) es erneut
+// zu finden, ohne den Job zu blockieren.
+let _yellowCache = null; // { id:'<index>', text:'<Label-Text>' } sobald gefunden
+async function resolveYellowLabel() {
+  if (_yellowCache) return _yellowCache;
+  try {
+    const data = await gql(`query{ boards(ids:${BOARD}){ columns(ids:["${COL_STATUS}"]){ settings_str } } }`);
+    const raw = data.boards[0] && data.boards[0].columns[0] && data.boards[0].columns[0].settings_str;
+    const settings = raw ? JSON.parse(raw) : {};
+    const labels = settings.labels || {};
+    for (const [idx, text] of Object.entries(labels)) {
+      if (String(text).trim().toLowerCase() === 'fällig') { _yellowCache = { id: idx, text: String(text) }; break; }
+    }
+    if (!_yellowCache) log('[Terminstatus] WARNUNG: Label "Fällig" nicht in den Spalten-Settings gefunden — Gelb wird (noch) nicht gesetzt, Job faellt auf 🔴/🟢 zurueck. Label-Name pruefen (muss exakt "Fällig" heissen).');
+  } catch (e) {
+    log('[Terminstatus] FEHLER beim Laden der Label-Settings (Gelb): ' + (e && e.message ? e.message : String(e)));
+  }
+  return _yellowCache; // null solange nicht gefunden
 }
 
 // Holt alle Projekte MIT Gruppe; behält nur die aktiven Gruppen.
@@ -156,22 +212,26 @@ async function setStatuses(updates) {
   }
 }
 
-// Ein einzelner Durchlauf. Gibt {items, red, ok, changed} zurück.
+// Ein einzelner Durchlauf. Gibt {items, red, faellig, ok, changed} zurück.
 async function run() {
   const today = todayStr();
+  const tomorrow = tomorrowStr();
   const items = await fetchAllProjects();
-  let red = 0, ok = 0;
+  const yellow = await resolveYellowLabel();   // null, solange Label "Fällig" nicht existiert
+  let red = 0, faellig = 0, ok = 0;
   const updates = [];
   for (const it of items) {
-    const isRed = (it.subitems || []).some(s => subOverdue(s, today));
-    if (isRed) red++; else ok++;
+    const isRed     = (it.subitems || []).some(s => subOverdue(s, today));
+    const isFaellig = !isRed && !!yellow && (it.subitems || []).some(s => subDueSoon(s, today, tomorrow));
+    if (isRed) red++; else if (isFaellig) faellig++; else ok++;
     const current = ((it.column_values && it.column_values[0] && it.column_values[0].text) || '').trim();
-    const wantText = isRed ? TEXT_RED : TEXT_OK;
-    if (current !== wantText) updates.push({ id: it.id, value: isRed ? LABEL_RED : LABEL_OK });
+    const wantLabel = isRed ? LABEL_RED : (isFaellig ? yellow.id   : LABEL_OK);
+    const wantText  = isRed ? TEXT_RED  : (isFaellig ? yellow.text : TEXT_OK);
+    if (current !== wantText) updates.push({ id: it.id, value: wantLabel });
   }
   await setStatuses(updates);
-  log(`[Terminstatus ${today}] ${items.length} aktive Projekte · 🔴 ${red} · 🟢 ${ok} · geändert: ${updates.length}`);
-  return { items: items.length, red, ok, changed: updates.length };
+  log(`[Terminstatus ${today}] ${items.length} aktive Projekte · 🔴 ${red} · 🟡 ${faellig} · 🟢 ${ok} · geändert: ${updates.length}`);
+  return { items: items.length, red, faellig, ok, changed: updates.length };
 }
 
 // Eingebetteter Dauerbetrieb: sofort rechnen + alle INTERVAL_MS wiederholen.
