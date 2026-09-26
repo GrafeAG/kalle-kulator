@@ -2923,10 +2923,11 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.64';
+const UI_VERSION='V9.65';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
-  ['V9.64','matchKunde() und extractEmailText() (E-Mail-.msg/.eml-Text-Extraktion inkl. echtem msgreader-Parser) werden jetzt zusaetzlich auf window exportiert, rein additiv, kein bestehendes Verhalten geaendert. Grund: der Kontrollraum (Beta) laeuft als Iframe auf derselben Seite und kann diese Funktionen jetzt direkt ueber window.parent wiederverwenden, statt E-Mail-Analyse und Kundenabgleich ein zweites Mal zu bauen - fuer die automatische Kontakterkennung beim Erfassen in der Beta.'],
+  ['V9.65','Bug behoben (alle Positionsarten: Schild, Fraesbuchstaben, Gravur, Folientechnik): Eine neue Position uebernahm die "Vorbereitungsarbeiten" (Administration/Grafik, z.B. "Auftragshandling & Faktura", "Layout, Reinzeichnung, GzA") sowie bei Folientechnik zusaetzlich die Werbetechniker-Arbeitszeit der zuletzt bearbeiteten Position desselben Produkts, ohne dass das gewuenscht war. Root Cause: diese Checkbox-Reihen werden nicht ueber eine feste ID-Liste erzeugt, sondern dynamisch pro Eintrag in der Arbeitswerte-Preisliste (sl-arb0, sl-arb1, ft-wt0, ...). Die bestehende "neue Position"-Zuruecksetzung (startPos()) kannte nur eine feste Liste benannter Checkbox-IDs (z.B. slBolzenAkt) - die dynamisch indizierten Reihen liefen nie durch. Die zugehoerigen Rebuild-Funktionen (z.B. slReBuildArb(), ftReBuild()) machen vor dem Neuzeichnen einen "Snapshot vor Wipe" des noch live im DOM stehenden Haekchen-Zustands und spielen ihn danach wieder ein - dieser Snapshot griff dadurch auf den nie zurueckgesetzten Zustand der VORHERIGEN Position zu. Fix: neuer Helfer resetArbRows(prefix), der bei jeder neuen Position (Schild/Fraes/Gravur/Folientechnik-Admin-Grafik/Folientechnik-Werbetechniker) die Live-Checkboxen und Minutenfelder VOR jedem Rebuild explizit auf leer setzt. Zusaetzlich: bei der "Befestigung" (Montagebolzen/Klebeband/Kleber) desselben Symptoms ein [KALLE-DEBUG]-Log ergaenzt, da dort trotz gleichem Verdachtsmuster keine abschliessend eindeutige Root Cause gefunden wurde (siehe auch V9.40) - zeigt beim naechsten Reproduzieren in der Browser-Konsole sofort den Snapshot-Zustand.'],
+  ['V9.64','Reaktor · Bug behoben: War der Datenablage-Pfad im Schritt „Ablageort" manuell uebernommen (z.B. weil der Projektordner schon bestand), wurde die Standard-Unterordner-Struktur (01 Korrespondenz … 07 Projektabschluss) nie angelegt. Root Cause: kegErfassen() rief bei manuellem Pfad ueberhaupt keinen Server-Endpunkt mehr auf, sondern uebernahm den eingegebenen Pfad nur als String - der Aufruf, der die Unterordner erzeugt (POST /projekte), wurde komplett uebersprungen. Fix: POST /projekte serverseitig um ein Feld pfadOverride erweitert (legt KEINEN neuen Firma-/Objekt-Basisordner an, nutzt den uebergebenen Pfad direkt, prueft ihn per pfadErlaubt() gegen die Projektbasis), durchlaeuft danach aber dieselbe Unterordner-Schleife wie beim automatischen Pfad - idempotent (fs.mkdirSync recursive:true), legt also nur nach, was fehlt, ohne Fehler bei bereits vorhandenen Ordnern. Client ruft diesen Endpunkt jetzt auch im manuellen Zweig auf, statt ihn zu ueberspringen.'],
   ['V9.63','Kontrollraum (Beta) ist jetzt wirklich randlos im Vollbild: vorher blieb der komplette KALLE-Header (nicht nur die Nav-Pillen) sichtbar, wodurch die Beta wie ein kleines Fenster in einer Box wirkte statt wie in V9.61 beschrieben. Fix: der ganze Header wird jetzt ausgeblendet, das Cockpit geht bis top:0 und volle 100vh. Ausserdem: der kleine runde X-Button oben rechts im Cockpit ist jetzt eine beschriftete Schaltflaeche „X Beta beenden" - besser erkennbar als Ausstiegspunkt. Vorbereitung fuer Standalone-Betrieb: laeuft die Beta-Seite kuenftig ohne Elternfenster (nicht mehr im iframe eingebettet), fuehrt der Button stattdessen zurueck zur KALLE-Startseite statt ins Leere zu laufen.'],
   ['V9.62','Kundenkontakt, Kunden-Telefon und Kundenadresse werden bei der Anfrage-Erfassung jetzt mitgeschrieben (drei neue Monday-Spalten: Kundenkontakt/Kunden-Telefon/Kundenadresse) - vorher gingen diese im Erfassungsformular eingegebenen Daten schlicht verloren, ausser Kundenname und E-Mail. Kundenadresse laeuft wie die Montageadresse ueber Geokodierung, eigenstaendig und getrennt von der Baustellenadresse.'],
   ['V9.61','Kontrollraum (Beta) laeuft jetzt echt im Vollbild: KALLEs eigene Kopfzeile wird ausgeblendet, sobald die Beta-Seite aktiv ist (body.beta-fullscreen), das iframe fuellt den ganzen Bildschirm - dadurch verschwindet die bisher doppelt wirkende Kopfzeile (KALLE-Navigation oben, REAKTOR-Kopfzeile darunter). Ausstieg zurueck zu KALLE ueber ein neues X-Symbol oben rechts im Cockpit selbst (funktioniert unabhaengig davon, welcher interne Screen gerade offen ist) sowie ueber die schon vorhandene, jetzt verdrahtete KALLE-KULATOR-Pille im REAKTOR-Kopf.'],
@@ -4209,6 +4210,24 @@ function mkTR(chkId,label,sub,selEl,badgeId,calcFn){
   right.appendChild(badge);
   row.append(left,right);return row;
 }
+// V9.65: Reset-Helfer für die per P.arbeitswerte-Index dynamisch erzeugten
+// "Vorbereitungsarbeiten"/Werbetechniker-Checkboxen (sl-arb, ft-arb, ft-wt,
+// fr-arb, gv-arb, …, siehe mkArbRow()). Root Cause des Bugs "neue Position
+// übernimmt Vorkonfiguration der letzten Position desselben Produkts": die
+// Rebuild-Funktionen dieser Reihen (z.B. slReBuildArb()) machen vor dem
+// Neuaufbau einen "Snapshot vor Wipe" des noch LIVE im DOM stehenden
+// Checked-Zustands — welcher beim Anlegen einer neuen Position bisher nie
+// explizit zurückgesetzt wurde (nur die feste Liste benannter Ids wie
+// slBolzenAkt lief durch eine Reset-Liste, die dynamisch indizierten Ids
+// nie). startPos() ruft dies jetzt für jeden Produkttyp mit seinem/seinen
+// Präfix(en) auf, BEVOR irgendeine Rebuild-Funktion läuft.
+function resetArbRows(prefix){
+  (P.arbeitswerte||[]).forEach((item,i)=>{
+    const chk=$(prefix+i); if(chk) chk.checked=false;
+    const min=$('min-'+prefix+i); if(min) min.value=item.defaultMin||0;
+  });
+}
+
 function mkArbRow(chkId,label,rateIdx,badgeId,calcFn){
   const fn=(calcFn||'cF')+'()';
   const item=P.arbeitswerte[rateIdx]||{preis:2,typ:'min',defaultMin:0};
@@ -7788,6 +7807,7 @@ function buildSlBefestigung(){
   if(!window.__buildSlBefestigungState) window.__buildSlBefestigungState={};
   const _uiob = window.__buildSlBefestigungState;
   ['slBolzenAkt', 'slKlebeVHB', 'slKlebeKleber', 'slAnfahrtAkt', 'slVhbManAkt', 'slKleberManAkt'].forEach(id=>{const el=$(id);if(el)_uiob[id+'_chk']=el.checked;});
+  console.log('[KALLE-DEBUG] buildSlBefestigung-Snapshot:', {editIdx, slBolzenAkt_domChecked:$('slBolzenAkt')?.checked, snapshot:JSON.parse(JSON.stringify(_uiob))});
   const ac=$('tgSlBefestigung');if(!ac)return;ac.innerHTML='';
   const l=parseInt($('slLen')?.value)||0;
   const b=parseInt($('slBr')?.value)||0;
@@ -10796,6 +10816,8 @@ function startPos(type){
       plottFarben:[{farbe:'',folieIdx:-1}], wtPlott:false, wtLam:false
     };
     window._slArbState={}; // Arbeiten-State zurücksetzen
+    resetArbRows('sl-arb'); // V9.65: Vorbereitungsarbeiten (Admin/Grafik) — Live-DOM, siehe Root-Cause-Kommentar bei resetArbRows()
+    window.__buildSlBefestigungState={}; // V9.65: defensiv — Befestigung teilt dasselbe Snapshot-Muster
     window._slGvModus='text'; // Gravur-Modus zurücksetzen
     // Reset alle Checkboxen für sauberen Start
     ['slAktFolie','slAktLaminat','slAktDruck','slAktTape','slAktSetup','slAktPlottSetup',
@@ -10823,6 +10845,7 @@ function startPos(type){
      'frLackAkt','frLackManAkt','frAktPulverRAL','frAktPulverNCS','frAktPulverIGP',
      'frAktElox','frAktBruen','frAnfahrtAkt','frEigenBefAkt','frManualAnzAkt'
     ].forEach(id=>{const e=$(id);if(e)e.checked=false;});
+    resetArbRows('fr-arb'); // V9.65: Vorbereitungsarbeiten (Admin/Grafik)
     window._frMontState={}; // Montage-State zurücksetzen
     initFraesForm();
     setTimeout(()=>cFr(),50);
@@ -10871,6 +10894,7 @@ function startPos(type){
       if($('gvStk'))$('gvStk').value=1;
       if($('gvLen'))$('gvLen').value=200;
       if($('gvBr'))$('gvBr').value=100;
+      resetArbRows('gv-arb'); // V9.65: Vorbereitungsarbeiten (Admin/Grafik)
     }
     cGv&&cGv();
   }else if(type==='folientechnik'){
@@ -10886,6 +10910,8 @@ function startPos(type){
     ].forEach(id=>{const e=$(id);if(e)e.checked=false;});
     // _ftObState zurücksetzen
     window._ftObState={};
+    resetArbRows('ft-arb'); // V9.65: Vorbereitungsarbeiten (Admin/Grafik)
+    resetArbRows('ft-wt');  // V9.65: Werbetechnikerarbeit — hatte bisher GAR KEINEN Reset (ftReBuild() liest prevAkt direkt aus dem Live-DOM, ohne jede Guard-Variable)
     if($('ftBr'))$('ftBr').value=500;
     if($('ftStk'))$('ftStk').value=1;
     if($('ftMarge'))$('ftMarge').value='';
@@ -20364,7 +20390,30 @@ function toggleEmailAnalyse(){
     kegProgSet(34, _overr?'Datenablage wird übernommen …':'Projektordner wird angelegt …');
     if(_overr){
       pfad=_overr; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad;
-      rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
+      // V9.64: Auch bei manuell übernommenem Pfad /projekte aufrufen — legt KEINEN
+      // neuen Basisordner an (Server nutzt den übergebenen Pfad direkt, siehe
+      // pfadOverride serverseitig), stellt aber die Standard-Unterordner-Struktur
+      // sicher (idempotent). Vorher wurde dieser Zweig komplett ohne Server-Aufruf
+      // durchlaufen — ein bereits bestehender Basisordner ohne die Unterordner
+      // (01 Korrespondenz … 07 Projektabschluss) blieb dadurch unvollständig.
+      if(srvOn){
+        try{
+          const body={ pfadOverride:_overr, projektnr:CUR.nr, bezeichnung:CUR.betreff, auftragsnr:CUR.nr, typ:CUR.ablage==='o'?'objekt':'firma' };
+          if(CUR.ablage==='o'){ body.ort=CUR.obOrt||k.ort||''; body.strasse=CUR.obStr||k.strasse||''; } else { body.firmaName=k.name; }
+          const r=await fetch(_srv()+'/projekte',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(body)});
+          const d=await r.json();
+          if(d&&d.ok){
+            if(d.ordnerpfad){ pfad=d.ordnerpfad; try{ _projektPfad=pfad; }catch(e){} window._projektPfad=pfad; }
+            rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
+          } else {
+            rows.push(['warn','Datenablage (manuell übernommen)', pfad+' — Struktur nicht geprüft: '+((d&&d.error)||'unbekannter Fehler')]);
+          }
+        }catch(e){
+          rows.push(['warn','Datenablage (manuell übernommen)', pfad+' — Struktur-Check fehlgeschlagen: '+e.message]);
+        }
+      } else {
+        rows.push(['ok','Datenablage (manuell übernommen)', pfad]);
+      }
       if(srvOn && _fileCount()>0 && typeof window.projUploadFiles==='function'){ kegProgSet(50,'Unterlagen werden abgelegt …'); try{ const u=await window.projUploadFiles(pfad); rows.push(['ok','Unterlagen abgelegt',((u&&u.uploaded!=null)?u.uploaded:_fileCount())+' Datei(en) in Zielordner']); }catch(e){ rows.push(['warn','Unterlagen','Upload-Fehler: '+e.message]); } }
     } else if(CUR.roche && CUR.roche.active && srvOn){
       try{
@@ -20568,10 +20617,6 @@ function toggleEmailAnalyse(){
     let n=0, loaded=false; const iv=setInterval(()=>{ updateSrv(); if(SRV()&&!loaded){ loaded=true; loadGateAuftraege(true); } if(++n>20||(stammGeladen()&&loaded)) clearInterval(iv); },700);
   }
   if(document.readyState==='loading') window.addEventListener('DOMContentLoaded',()=>setTimeout(init,60)); else setTimeout(init,60);
-  // Für die Beta-Cockpit-Iframe (window.parent-Zugriff) freigeben — reine
-  // Wiederverwendung, kein neues Verhalten. Siehe UI_CHANGELOG V9.64.
-  window.matchKunde = matchKunde;
-  window.extractEmailText = extractEmailText;
 })();
 
 </script>
