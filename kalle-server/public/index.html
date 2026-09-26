@@ -2923,9 +2923,10 @@ let positions=[];let editIdx=-1;
 
 const APP_VERSION='2.1.0';  // Engine/Schema-Version (localStorage-Kompatibilität) — NICHT für Anzeige
 // Sichtbare KALLE-Version im Header. Bei jeder Auslieferung hochzählen (V3.1 → V3.2 → …).
-const UI_VERSION='V9.65';
+const UI_VERSION='V9.66';
 // Änderungs-Historie (neueste zuerst) — erscheint im Tooltip des Versions-Badges
 const UI_CHANGELOG=[
+  ['V9.66','Offerte-PDF · Bug behoben: Der Positionstyp "Text" (freier Absatz/Hinweistext ohne Preis) wurde in der PDF-Ausgabe komplett falsch dargestellt - statt des eingegebenen freien Textes erschien "Format: undefined × undefined mm · 1 Stk." Root Cause: Die PDF-Zeilen-Erzeugung prueft je Positionstyp einzeln ab (versand/frei/bodenmarkierung/folientechnik/fraes/gravur/montage) und faellt am Ende in einen generischen Fallback fuer Schild-artige Positionen (erwartet p.l/p.b als Format) - der Typ "text" fehlte in dieser Kette komplett und landete deshalb ungewollt in diesem Fallback, der weder p.text noch p.txtStyle kennt. Die korrekte Darstellung (freier Text, Hinweis-/Wichtig-Hervorhebung je nach txtStyle) existierte bereits in renderPos() fuer die interne Positionsliste, wurde aber nie fuer die PDF-Ausgabe nachgezogen. Fix: eigener Zweig fuer p.type==="text" in der PDF-Zeilen-Erzeugung ergaenzt, der p.text vollstaendig zeilenweise ausgibt und dieselbe Hinweis/Wichtig-Formatierung wie die interne Liste verwendet.'],
   ['V9.65','Bug behoben (alle Positionsarten: Schild, Fraesbuchstaben, Gravur, Folientechnik): Eine neue Position uebernahm die "Vorbereitungsarbeiten" (Administration/Grafik, z.B. "Auftragshandling & Faktura", "Layout, Reinzeichnung, GzA") sowie bei Folientechnik zusaetzlich die Werbetechniker-Arbeitszeit der zuletzt bearbeiteten Position desselben Produkts, ohne dass das gewuenscht war. Root Cause: diese Checkbox-Reihen werden nicht ueber eine feste ID-Liste erzeugt, sondern dynamisch pro Eintrag in der Arbeitswerte-Preisliste (sl-arb0, sl-arb1, ft-wt0, ...). Die bestehende "neue Position"-Zuruecksetzung (startPos()) kannte nur eine feste Liste benannter Checkbox-IDs (z.B. slBolzenAkt) - die dynamisch indizierten Reihen liefen nie durch. Die zugehoerigen Rebuild-Funktionen (z.B. slReBuildArb(), ftReBuild()) machen vor dem Neuzeichnen einen "Snapshot vor Wipe" des noch live im DOM stehenden Haekchen-Zustands und spielen ihn danach wieder ein - dieser Snapshot griff dadurch auf den nie zurueckgesetzten Zustand der VORHERIGEN Position zu. Fix: neuer Helfer resetArbRows(prefix), der bei jeder neuen Position (Schild/Fraes/Gravur/Folientechnik-Admin-Grafik/Folientechnik-Werbetechniker) die Live-Checkboxen und Minutenfelder VOR jedem Rebuild explizit auf leer setzt. Zusaetzlich: bei der "Befestigung" (Montagebolzen/Klebeband/Kleber) desselben Symptoms ein [KALLE-DEBUG]-Log ergaenzt, da dort trotz gleichem Verdachtsmuster keine abschliessend eindeutige Root Cause gefunden wurde (siehe auch V9.40) - zeigt beim naechsten Reproduzieren in der Browser-Konsole sofort den Snapshot-Zustand.'],
   ['V9.64','Reaktor · Bug behoben: War der Datenablage-Pfad im Schritt „Ablageort" manuell uebernommen (z.B. weil der Projektordner schon bestand), wurde die Standard-Unterordner-Struktur (01 Korrespondenz … 07 Projektabschluss) nie angelegt. Root Cause: kegErfassen() rief bei manuellem Pfad ueberhaupt keinen Server-Endpunkt mehr auf, sondern uebernahm den eingegebenen Pfad nur als String - der Aufruf, der die Unterordner erzeugt (POST /projekte), wurde komplett uebersprungen. Fix: POST /projekte serverseitig um ein Feld pfadOverride erweitert (legt KEINEN neuen Firma-/Objekt-Basisordner an, nutzt den uebergebenen Pfad direkt, prueft ihn per pfadErlaubt() gegen die Projektbasis), durchlaeuft danach aber dieselbe Unterordner-Schleife wie beim automatischen Pfad - idempotent (fs.mkdirSync recursive:true), legt also nur nach, was fehlt, ohne Fehler bei bereits vorhandenen Ordnern. Client ruft diesen Endpunkt jetzt auch im manuellen Zweig auf, statt ihn zu ueberspringen.'],
   ['V9.63','Kontrollraum (Beta) ist jetzt wirklich randlos im Vollbild: vorher blieb der komplette KALLE-Header (nicht nur die Nav-Pillen) sichtbar, wodurch die Beta wie ein kleines Fenster in einer Box wirkte statt wie in V9.61 beschrieben. Fix: der ganze Header wird jetzt ausgeblendet, das Cockpit geht bis top:0 und volle 100vh. Ausserdem: der kleine runde X-Button oben rechts im Cockpit ist jetzt eine beschriftete Schaltflaeche „X Beta beenden" - besser erkennbar als Ausstiegspunkt. Vorbereitung fuer Standalone-Betrieb: laeuft die Beta-Seite kuenftig ohne Elternfenster (nicht mehr im iframe eingebettet), fuehrt der Button stattdessen zurueck zur KALLE-Startseite statt ins Leere zu laufen.'],
@@ -17523,6 +17524,24 @@ function printDoc(mode){
         <td class="c-bez"><strong>${p.label||'Bodenmarkierung'}</strong>${variantBadge}${p.notiz?`<div style="font-size:10px;color:#555;margin-top:1px;font-style:italic;">${p.notiz}</div>`:''}<br><span class="sub">${bdetail}</span>${rabattInline}</td>
         <td class="c-ep">${fmtVar(p,p.totalVK)}</td>
         <td class="c-gp">${fmtVar(p,p.totalVK)}</td>
+      </tr>`;
+    }
+    if(p.type==='text'){
+      // V9.65: Bisher hier NICHT behandelt — 'text'-Positionen fielen dadurch in
+      // den generischen Fallback weiter unten (der von Format/Material für
+      // Schild-artige Positionen ausgeht) und zeigten "Format: undefined ×
+      // undefined mm" statt des eigentlich eingegebenen freien Textes (p.text).
+      // Dieselbe Stil-Logik (txtBg/txtBorder je nach txtStyle) existierte
+      // bereits in renderPos() für die interne Positionsliste — hier für die
+      // PDF-Ausgabe nachgezogen.
+      const txtLines=(p.text||'').split('\n').map(l=>l||'&nbsp;').join('<br>');
+      const txtBg=p.txtStyle==='hinweis'?'#f5f5f5':p.txtStyle==='wichtig'?'#fff8e8':'transparent';
+      const txtBorder=p.txtStyle==='hinweis'?'1px solid #ddd':p.txtStyle==='wichtig'?'1px solid #f5c518':'none';
+      return `<tr style="${variantStyle}">
+        <td class="c-pos">${i+1}</td><td class="c-menge"></td><td class="c-me"></td>
+        <td class="c-bez"><strong>${p.label||'Text'}</strong>${variantBadge}<br><span class="sub" style="display:block;background:${txtBg};border:${txtBorder};border-radius:4px;padding:${p.txtStyle&&p.txtStyle!=='normal'?'6px 8px':'0'};">${txtLines}</span>${rabattInline}</td>
+        <td class="c-ep"></td>
+        <td class="c-gp"></td>
       </tr>`;
     }
     let desc=`<strong>${p.label}</strong>`;
